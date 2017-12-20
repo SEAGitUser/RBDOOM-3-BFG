@@ -209,7 +209,7 @@ bool idCollisionModelManagerLocal::TestTrmInPolygon( cm_traceWork_t* tw, cm_poly
 		for( i = 0; i < p->numEdges; i++ )
 		{
 			edgeNum = p->edges[i];
-			edge = tw->model->edges + abs( edgeNum );
+			edge = tw->model->edges + idMath::Abs( edgeNum );
 			// if this edge is already tested
 			if( edge->checkcount == idCollisionModelManagerLocal::checkCount )
 			{
@@ -260,7 +260,7 @@ bool idCollisionModelManagerLocal::TestTrmInPolygon( cm_traceWork_t* tw, cm_poly
 	for( i = 0; i < p->numEdges; i++ )
 	{
 		edgeNum = p->edges[i];
-		edge = tw->model->edges + abs( edgeNum );
+		edge = tw->model->edges + idMath::Abs( edgeNum );
 		// reset sidedness cache if this is the first time we encounter this edge
 		if( edge->checkcount != idCollisionModelManagerLocal::checkCount )
 		{
@@ -299,7 +299,7 @@ bool idCollisionModelManagerLocal::TestTrmInPolygon( cm_traceWork_t* tw, cm_poly
 		for( j = 0; j < p->numEdges; j++ )
 		{
 			edgeNum = p->edges[j];
-			edge = tw->model->edges + abs( edgeNum );
+			edge = tw->model->edges + idMath::Abs( edgeNum );
 #if 1
 			CM_SetTrmEdgeSidedness( edge, tw->edges[i].pl, tw->polygonEdgePlueckerCache[j], i );
 			if( INT32_SIGNBITSET( edgeNum ) ^ ( ( edge->side >> i ) & 1 ) ^ flip )
@@ -347,7 +347,7 @@ bool idCollisionModelManagerLocal::TestTrmInPolygon( cm_traceWork_t* tw, cm_poly
 	for( i = 0; i < p->numEdges; i++ )
 	{
 		edgeNum = p->edges[i];
-		edge = tw->model->edges + abs( edgeNum );
+		edge = tw->model->edges + idMath::Abs( edgeNum );
 		if( edge->checkcount == idCollisionModelManagerLocal::checkCount )
 		{
 			continue;
@@ -389,9 +389,9 @@ bool idCollisionModelManagerLocal::TestTrmInPolygon( cm_traceWork_t* tw, cm_poly
 			for( k = 0; k < tw->polys[j].numEdges; k++ )
 			{
 				trmEdgeNum = tw->polys[j].edges[k];
-				trmEdge = tw->edges + abs( trmEdgeNum );
+				trmEdge = tw->edges + idMath::Abs( trmEdgeNum );
 #if 1
-				bitNum = abs( trmEdgeNum );
+				bitNum = idMath::Abs( trmEdgeNum );
 				CM_SetTrmEdgeSidedness( edge, trmEdge->pl, tw->polygonEdgePlueckerCache[i], bitNum );
 				if( INT32_SIGNBITSET( trmEdgeNum ) ^ ( ( edge->side >> bitNum ) & 1 ) ^ flip )
 				{
@@ -675,7 +675,7 @@ int idCollisionModelManagerLocal::ContentsTrm( trace_t* results, const idVec3& s
 	}
 	for( i = 0; i < tw.numPolys; i++ )
 	{
-		tw.polys[i].plane.FitThroughPoint( tw.edges[abs( tw.polys[i].edges[0] )].start );
+		tw.polys[i].plane.FitThroughPoint( tw.edges[ idMath::Abs( tw.polys[i].edges[0] )].start );
 	}
 	
 	// bounds for full trace, a little bit larger for epsilons

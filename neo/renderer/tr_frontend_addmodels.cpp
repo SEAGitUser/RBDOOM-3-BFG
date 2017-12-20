@@ -1327,7 +1327,7 @@ tr.viewDef->drawSurfs[] array and light link chains, along with
 frameData and vertexCache allocations to support the drawSurfs.
 ===================
 */
-void R_AddModels( idRenderView * view )
+void R_AddModels( idRenderView * const view )
 {
 	SCOPED_PROFILE_EVENT( "R_AddModels" );
 	

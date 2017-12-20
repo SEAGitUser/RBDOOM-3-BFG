@@ -170,7 +170,7 @@ ID_INLINE int idCollisionModelManagerLocal::TranslateEdgeThroughEdge( idVec3& cr
 	
 	t = -l1.PermutedInnerProduct( l2 );
 	// if the lines cross each other to begin with
-	if( fabs( t ) < idMath::FLT_SMALLEST_NON_DENORMAL )
+	if( idMath::Fabs( t ) < idMath::FLT_SMALLEST_NON_DENORMAL )
 	{
 		*fraction = 0.0f;
 		return true;
@@ -253,7 +253,7 @@ void idCollisionModelManagerLocal::TranslateTrmEdgeThroughPolygon( cm_traceWork_
 	for( i = 0; i < poly->numEdges; i++ )
 	{
 		edgeNum = poly->edges[i];
-		edge = tw->model->edges + abs( edgeNum );
+		edge = tw->model->edges + idMath::Abs( edgeNum );
 		// if this edge is already checked
 		if( edge->checkcount == idCollisionModelManagerLocal::checkCount )
 		{
@@ -399,7 +399,7 @@ void idCollisionModelManagerLocal::TranslateTrmVertexThroughPolygon( cm_traceWor
 		for( i = 0; i < poly->numEdges; i++ )
 		{
 			edgeNum = poly->edges[i];
-			edge = tw->model->edges + abs( edgeNum );
+			edge = tw->model->edges + idMath::Abs( edgeNum );
 			CM_SetEdgeSidedness( edge, tw->polygonEdgePlueckerCache[i], v->pl, bitNum );
 			if( INT32_SIGNBITSET( edgeNum ) ^ ( ( edge->side >> bitNum ) & 1 ) )
 			{
@@ -449,7 +449,7 @@ void idCollisionModelManagerLocal::TranslatePointThroughPolygon( cm_traceWork_t*
 		for( i = 0; i < poly->numEdges; i++ )
 		{
 			edgeNum = poly->edges[i];
-			edge = tw->model->edges + abs( edgeNum );
+			edge = tw->model->edges + idMath::Abs( edgeNum );
 			// if we didn't yet calculate the sidedness for this edge
 			if( edge->checkcount != idCollisionModelManagerLocal::checkCount )
 			{
@@ -508,7 +508,7 @@ void idCollisionModelManagerLocal::TranslateVertexThroughTrmPolygon( cm_traceWor
 		for( i = 0; i < trmpoly->numEdges; i++ )
 		{
 			edgeNum = trmpoly->edges[i];
-			edge = tw->edges + abs( edgeNum );
+			edge = tw->edges + idMath::Abs( edgeNum );
 			
 			CM_SetVertexSidedness( v, pl, edge->pl, edge->bitNum );
 			if( INT32_SIGNBITSET( edgeNum ) ^ ( ( v->side >> edge->bitNum ) & 1 ) )
@@ -624,7 +624,7 @@ bool idCollisionModelManagerLocal::TranslateTrmThroughPolygon( cm_traceWork_t* t
 		for( i = 0; i < p->numEdges; i++ )
 		{
 			edgeNum = p->edges[i];
-			e = tw->model->edges + abs( edgeNum );
+			e = tw->model->edges + idMath::Abs( edgeNum );
 			// reset sidedness cache if this is the first time we encounter this edge during this trace
 			if( e->checkcount != idCollisionModelManagerLocal::checkCount )
 			{
@@ -670,7 +670,7 @@ bool idCollisionModelManagerLocal::TranslateTrmThroughPolygon( cm_traceWork_t* t
 		for( i = 0; i < p->numEdges; i++ )
 		{
 			edgeNum = p->edges[i];
-			e = tw->model->edges + abs( edgeNum );
+			e = tw->model->edges + idMath::Abs( edgeNum );
 			
 			if( e->checkcount == idCollisionModelManagerLocal::checkCount )
 			{
@@ -1060,7 +1060,7 @@ void idCollisionModelManagerLocal::Translation( trace_t* results, const idVec3& 
 			poly->used = true;
 			for( j = 0; j < poly->numEdges; j++ )
 			{
-				edge = &tw.edges[abs( poly->edges[j] )];
+				edge = &tw.edges[ idMath::Abs( poly->edges[j] ) ];
 				edge->used = true;
 				tw.vertices[edge->vertexNum[0]].used = true;
 				tw.vertices[edge->vertexNum[1]].used = true;
@@ -1108,7 +1108,7 @@ void idCollisionModelManagerLocal::Translation( trace_t* results, const idVec3& 
 	{
 		if( poly->used )
 		{
-			poly->plane.FitThroughPoint( tw.edges[abs( poly->edges[0] )].start );
+			poly->plane.FitThroughPoint( tw.edges[ idMath::Abs( poly->edges[0] ) ].start );
 		}
 	}
 	

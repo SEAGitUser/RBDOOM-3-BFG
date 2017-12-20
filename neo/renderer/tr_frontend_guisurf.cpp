@@ -133,7 +133,7 @@ void R_SurfaceToTextureAxis( const idTriangles* tri, idVec3& origin, idMat3& axi
 R_AddInGameGuis
 ================
 */
-void R_AddInGameGuis( idRenderView * renderView )
+void R_AddInGameGuis( idRenderView * const renderView )
 {
 	SCOPED_PROFILE_EVENT( "R_AddInGameGuis" );
 	

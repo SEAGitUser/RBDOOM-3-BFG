@@ -603,7 +603,7 @@ REGISTER_PARALLEL_JOB( R_AddSingleLight, "R_AddSingleLight" );
 R_AddLights
 =================
 */
-void R_AddLights( idRenderView * view )
+void R_AddLights( idRenderView * const view )
 {
 	SCOPED_PROFILE_EVENT( "R_AddLights" );
 	
@@ -700,7 +700,7 @@ void R_AddLights( idRenderView * view )
 R_OptimizeViewLightsList
 =====================
 */
-void R_OptimizeViewLightsList( idRenderView * renderView )
+void R_OptimizeViewLightsList( idRenderView * const renderView )
 {
 	// go through each visible light
 	int numViewLights = 0;

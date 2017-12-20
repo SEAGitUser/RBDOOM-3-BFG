@@ -552,7 +552,7 @@ void idCollisionModelManagerLocal::RotateTrmEdgeThroughPolygon( cm_traceWork_t* 
 	for( i = 0; i < poly->numEdges; i++ )
 	{
 		edgeNum = poly->edges[i];
-		edge = tw->model->edges + abs( edgeNum );
+		edge = tw->model->edges + idMath::Abs( edgeNum );
 		
 		// if this edge is already checked
 		if( edge->checkcount == idCollisionModelManagerLocal::checkCount )
@@ -1146,7 +1146,7 @@ void idCollisionModelManagerLocal::RotateVertexThroughTrmPolygon( cm_traceWork_t
 		for( i = 0; i < trmpoly->numEdges; i++ )
 		{
 			edgeNum = trmpoly->edges[i];
-			edge = tw->edges + abs( edgeNum );
+			edge = tw->edges + idMath::Abs( edgeNum );
 			if( edgeNum < 0 )
 			{
 				if( pl.PermutedInnerProduct( edge->pl ) > 0.0f )
@@ -1266,7 +1266,7 @@ bool idCollisionModelManagerLocal::RotateTrmThroughPolygon( cm_traceWork_t* tw, 
 	for( i = 0; i < p->numEdges; i++ )
 	{
 		edgeNum = p->edges[i];
-		e = tw->model->edges + abs( edgeNum );
+		e = tw->model->edges + idMath::Abs( edgeNum );
 		v = tw->model->vertices + e->vertexNum[INT32_SIGNBITSET( edgeNum )];
 		
 		// pluecker coordinate for edge
@@ -1310,7 +1310,7 @@ bool idCollisionModelManagerLocal::RotateTrmThroughPolygon( cm_traceWork_t* tw, 
 		for( i = 0; i < p->numEdges; i++ )
 		{
 			edgeNum = p->edges[i];
-			e = tw->model->edges + abs( edgeNum );
+			e = tw->model->edges + idMath::Abs( edgeNum );
 			
 			if( e->checkcount == idCollisionModelManagerLocal::checkCount )
 			{
@@ -1715,13 +1715,13 @@ void idCollisionModelManagerLocal::Rotation180( trace_t* results, const idVec3& 
 	{
 		poly->used = true;
 		// set trm polygon plane distance
-		poly->plane.FitThroughPoint( tw.edges[abs( poly->edges[0] )].start );
+		poly->plane.FitThroughPoint( tw.edges[ idMath::Abs( poly->edges[0] ) ].start );
 		// get polygon bounds from edge bounds
 		poly->rotationBounds.Clear();
 		for( j = 0; j < poly->numEdges; j++ )
 		{
 			// add edge rotation bounds to polygon rotation bounds
-			edge = &tw.edges[abs( poly->edges[j] )];
+			edge = &tw.edges[ idMath::Abs( poly->edges[j] ) ];
 			poly->rotationBounds.AddBounds( edge->rotationBounds );
 		}
 		// get trace bounds from polygon bounds
@@ -1765,7 +1765,7 @@ void idCollisionModelManagerLocal::Rotation180( trace_t* results, const idVec3& 
 				for( j = 0; j < poly->numEdges; j++ )
 				{
 					edgeNum = poly->edges[j];
-					edge = tw.edges + abs( edgeNum );
+					edge = tw.edges + idMath::Abs( edgeNum );
 					if( ( edge->bitNum & 2 ) == 0 )
 					{
 						d = plaxis.PermutedInnerProduct( edge->pl );

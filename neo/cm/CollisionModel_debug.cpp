@@ -170,7 +170,7 @@ void idCollisionModelManagerLocal::DrawEdge( cm_model_t* model, int edgeNum, con
 	
 	isRotated = axis.IsRotated();
 	
-	edge = model->edges + abs( edgeNum );
+	edge = model->edges + idMath::Abs( edgeNum );
 	side = edgeNum < 0;
 	
 	start = model->vertices[edge->vertexNum[side]].p;
@@ -231,7 +231,7 @@ void idCollisionModelManagerLocal::DrawPolygon( cm_model_t* model, cm_polygon_t*
 	if( cm_backFaceCull.GetBool() )
 	{
 		edgeNum = p->edges[0];
-		edge = model->edges + abs( edgeNum );
+		edge = model->edges + idMath::Abs( edgeNum );
 		dir = model->vertices[edge->vertexNum[0]].p - viewOrigin;
 		if( dir * p->plane.Normal() > 0.0f )
 		{
@@ -245,7 +245,7 @@ void idCollisionModelManagerLocal::DrawPolygon( cm_model_t* model, cm_polygon_t*
 		for( i = 0; i < p->numEdges; i++ )
 		{
 			edgeNum = p->edges[i];
-			edge = model->edges + abs( edgeNum );
+			edge = model->edges + idMath::Abs( edgeNum );
 			center += model->vertices[edge->vertexNum[edgeNum < 0]].p;
 		}
 		center *= ( 1.0f / p->numEdges );
@@ -268,7 +268,7 @@ void idCollisionModelManagerLocal::DrawPolygon( cm_model_t* model, cm_polygon_t*
 		for( i = p->numEdges - 1; i >= 0; i-- )
 		{
 			edgeNum = p->edges[i];
-			edge = model->edges + abs( edgeNum );
+			edge = model->edges + idMath::Abs( edgeNum );
 			winding += origin + model->vertices[edge->vertexNum[INT32_SIGNBITSET( edgeNum )]].p * axis;
 		}
 		common->RW()->DebugPolygon( cm_color, winding );
@@ -278,7 +278,7 @@ void idCollisionModelManagerLocal::DrawPolygon( cm_model_t* model, cm_polygon_t*
 		for( i = 0; i < p->numEdges; i++ )
 		{
 			edgeNum = p->edges[i];
-			edge = model->edges + abs( edgeNum );
+			edge = model->edges + idMath::Abs( edgeNum );
 			if( edge->checkcount == checkCount )
 			{
 				continue;

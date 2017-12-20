@@ -141,7 +141,7 @@ int idRenderModelStatic::Memory() const
 		{
 			continue;
 		}
-		totalBytes += surf->geometry->UsedCPUMemory();
+		totalBytes += surf->geometry->CPUMemoryUsed();
 	}
 	
 	return totalBytes;
@@ -156,9 +156,7 @@ void idRenderModelStatic::List() const
 {
 	int	totalTris = 0;
 	int	totalVerts = 0;
-	int	totalBytes = 0;
-	
-	totalBytes = Memory();
+	int	totalBytes = Memory();
 	
 	char	closed = 'C';
 	for( int j = 0; j < NumSurfaces(); j++ )

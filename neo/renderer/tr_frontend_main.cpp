@@ -248,11 +248,11 @@ FONT-END RENDERING
 ==========================================================================================
 */
 
-extern void R_AddInGameGuis( idRenderView * );
-extern void R_OptimizeViewLightsList( idRenderView* );
-extern bool R_GenerateSubViews( idRenderView * );
-extern void R_AddLights( idRenderView * );
-extern void R_AddModels( idRenderView * );
+extern void R_AddInGameGuis( idRenderView * const );
+extern void R_OptimizeViewLightsList( idRenderView * const );
+extern bool R_GenerateSubViews( idRenderView * const );
+extern void R_AddLights( idRenderView * const );
+extern void R_AddModels( idRenderView * const );
 
 /*
 =================
