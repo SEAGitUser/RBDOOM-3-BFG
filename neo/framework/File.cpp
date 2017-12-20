@@ -258,7 +258,7 @@ void idFile::Flush()
 idFile::Seek
 =================
 */
-int idFile::Seek( long offset, fsOrigin_t origin )
+int idFile::Seek( int offset, fsOrigin_t origin )
 {
 	return -1;
 }
@@ -993,7 +993,7 @@ idFile_Memory::Seek
   returns zero on success and -1 on failure
 =================
 */
-int idFile_Memory::Seek( long offset, fsOrigin_t origin )
+int idFile_Memory::Seek( int offset, fsOrigin_t origin )
 {
 
 	switch( origin )
@@ -1263,7 +1263,7 @@ idFile_BitMsg::Seek
   returns zero on success and -1 on failure
 =================
 */
-int idFile_BitMsg::Seek( long offset, fsOrigin_t origin )
+int idFile_BitMsg::Seek( int offset, fsOrigin_t origin )
 {
 	return -1;
 }
@@ -1530,7 +1530,7 @@ idFile_Permanent::Seek
   returns zero on success and -1 on failure
 =================
 */
-int idFile_Permanent::Seek( long offset, fsOrigin_t origin )
+int idFile_Permanent::Seek( int offset, fsOrigin_t origin )
 {
 	// RB begin
 #if defined(_WIN32)
@@ -1678,7 +1678,7 @@ idFile_Cached::Seek
   returns zero on success and -1 on failure
 =================
 */
-int idFile_Cached::Seek( long offset, fsOrigin_t origin )
+int idFile_Cached::Seek( int offset, fsOrigin_t origin )
 {
 	if( origin == FS_SEEK_SET && offset >= bufferedStartOffset && offset < bufferedEndOffset )
 	{
@@ -1814,7 +1814,7 @@ idFile_InZip::Seek
 */
 #define ZIP_SEEK_BUF_SIZE	(1<<15)
 
-int idFile_InZip::Seek( long offset, fsOrigin_t origin )
+int idFile_InZip::Seek( int offset, fsOrigin_t origin )
 {
 	int res, i;
 	char* buf;
@@ -1957,7 +1957,7 @@ idFile_InnerResource::Seek
 =================
 */
 
-int idFile_InnerResource::Seek( long offset, fsOrigin_t origin )
+int idFile_InnerResource::Seek( int offset, fsOrigin_t origin )
 {
 	switch( origin )
 	{

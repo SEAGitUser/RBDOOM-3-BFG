@@ -185,7 +185,7 @@ public:
 		int64		rank;
 		idArray<int64, MAX_LEADERBOARD_COLUMNS> 	columns;
 		
-		long		user_id;
+		uint64		user_id;
 //		CSteamID	user_id;
 	};
 	

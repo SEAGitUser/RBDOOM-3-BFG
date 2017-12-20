@@ -91,7 +91,7 @@ public:
 	
 	double			GetDoubleValue();				// double value of TT_NUMBER
 	float			GetFloatValue();				// float value of TT_NUMBER
-	unsigned long	GetUnsignedLongValue();		// unsigned long value of TT_NUMBER
+	unsigned int	GetUnsignedIntValue();		// unsigned int value of TT_NUMBER
 	int				GetIntValue();				// int value of TT_NUMBER
 	int				WhiteSpaceBeforeToken() const;// returns length of whitespace before token
 	void			ClearTokenWhiteSpace();		// forget whitespace before token
@@ -151,7 +151,7 @@ ID_INLINE float idToken::GetFloatValue()
 	return ( float ) GetDoubleValue();
 }
 
-ID_INLINE unsigned long	idToken::GetUnsignedLongValue()
+ID_INLINE unsigned int	idToken::GetUnsignedIntValue()
 {
 	if( type != TT_NUMBER )
 	{
@@ -166,7 +166,7 @@ ID_INLINE unsigned long	idToken::GetUnsignedLongValue()
 
 ID_INLINE int idToken::GetIntValue()
 {
-	return ( int ) GetUnsignedLongValue();
+	return ( int ) GetUnsignedIntValue();
 }
 
 ID_INLINE int idToken::WhiteSpaceBeforeToken() const

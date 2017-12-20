@@ -55,7 +55,7 @@ public:
 	int				Tell();
 	void			ForceFlush();
 	void			Flush();
-	int				Seek( long offset, fsOrigin_t origin );
+	int				Seek( int offset, fsOrigin_t origin );
 	
 protected:
 	idFile* 		file;
@@ -247,7 +247,7 @@ void idCompressor_None::Flush()
 idCompressor_None::Seek
 ================
 */
-int idCompressor_None::Seek( long offset, fsOrigin_t origin )
+int idCompressor_None::Seek( int offset, fsOrigin_t origin )
 {
 	common->Error( "cannot seek on idCompressor" );
 	return -1;

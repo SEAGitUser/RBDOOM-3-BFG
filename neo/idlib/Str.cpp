@@ -1062,12 +1062,10 @@ idStr::FileNameHash
 */
 int idStr::FileNameHash() const
 {
-	int		i;
-	int		hash; // DG: use int instead of long for 64bit compatibility
-	char	letter;
-	
-	hash = 0;
-	i = 0;
+	int hash = 0;
+	int i = 0;
+
+	char letter;
 	while( data[i] != '\0' )
 	{
 		letter = idStr::ToLower( data[i] );
@@ -1079,7 +1077,7 @@ int idStr::FileNameHash() const
 		{
 			letter = '/';
 		}
-		hash += ( long )( letter ) * ( i + 119 ); // DG: use int instead of long for 64bit compatibility
+		hash += ( int )( letter ) * ( i + 119 ); // DG: use int instead of long for 64bit compatibility
 		i++;
 	}
 	hash &= ( FILE_HASH_SIZE - 1 );

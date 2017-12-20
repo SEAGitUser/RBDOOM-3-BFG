@@ -78,7 +78,7 @@ public:
 private:
 	bool				CreateZipFile( bool appendFiles );
 	bool				CreateZipFileFromFiles( const idList< idFile_Memory* >& srcFiles );
-	bool				GetFileTime( const idStr& filename, unsigned long* dostime ) const;
+	bool				GetFileTime( const idStr& filename, unsigned int* dostime ) const;
 	bool				IsFiltered( const idStr& filename ) const;
 	bool				IsUncompressed( const idStr& filename ) const;
 	

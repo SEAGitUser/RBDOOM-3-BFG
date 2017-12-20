@@ -169,7 +169,7 @@ public:
 		assert( 0 );
 		return 0;
 	}
-	virtual int				Seek( long offset, fsOrigin_t origin )
+	virtual int				Seek( int offset, fsOrigin_t origin )
 	{
 		assert( 0 );
 		return 0;

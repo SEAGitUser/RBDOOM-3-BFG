@@ -95,7 +95,7 @@ typedef struct
 
 static WinConData s_wcd;
 
-static LONG WINAPI ConWndProc( HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam )
+static LRESULT WINAPI ConWndProc( HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam )
 {
 	char* cmdString;
 	static bool s_timePolarity;
@@ -124,7 +124,7 @@ static LONG WINAPI ConWndProc( HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lPara
 			{
 				SetBkColor( ( HDC ) wParam, RGB( 0x00, 0x00, 0x80 ) );
 				SetTextColor( ( HDC ) wParam, RGB( 0xff, 0xff, 0x00 ) );
-				return ( long ) s_wcd.hbrEditBackground;
+				return ( LRESULT ) s_wcd.hbrEditBackground;
 			}
 			else if( ( HWND ) lParam == s_wcd.hwndErrorBox )
 			{
@@ -138,7 +138,7 @@ static LONG WINAPI ConWndProc( HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lPara
 					SetBkColor( ( HDC ) wParam, RGB( 0x80, 0x80, 0x80 ) );
 					SetTextColor( ( HDC ) wParam, RGB( 0x00, 0x0, 0x00 ) );
 				}
-				return ( long ) s_wcd.hbrErrorBackground;
+				return ( LRESULT ) s_wcd.hbrErrorBackground;
 			}
 			break;
 		case WM_SYSCOMMAND:
@@ -162,7 +162,7 @@ static LONG WINAPI ConWndProc( HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lPara
 				else
 				{
 					cmdString = Mem_CopyString( "quit" );
-					Sys_QueEvent( SE_CONSOLE, 0, 0, strlen( cmdString ) + 1, cmdString, 0 );
+					Sys_QueEvent( SE_CONSOLE, 0, 0, idStr::Length( cmdString ) + 1, cmdString, 0 );
 				}
 			}
 			else if( wParam == CLEAR_ID )
@@ -212,7 +212,7 @@ static LONG WINAPI ConWndProc( HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lPara
 	return DefWindowProc( hWnd, uMsg, wParam, lParam );
 }
 
-LONG WINAPI InputLineWndProc( HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam )
+LRESULT WINAPI InputLineWndProc( HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam )
 {
 	int key, cursor;
 	switch( uMsg )
@@ -267,7 +267,7 @@ LONG WINAPI InputLineWndProc( HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam
 			// enter the line
 			if( key == K_ENTER || key == K_KP_ENTER )
 			{
-				strncat( s_wcd.consoleText, s_wcd.consoleField.GetBuffer(), sizeof( s_wcd.consoleText ) - strlen( s_wcd.consoleText ) - 5 );
+				strncat( s_wcd.consoleText, s_wcd.consoleField.GetBuffer(), sizeof( s_wcd.consoleText ) - idStr::Length( s_wcd.consoleText ) - 5 );
 				strcat( s_wcd.consoleText, "\n" );
 				SetWindowText( s_wcd.hwndInputLine, "" );
 				
@@ -289,7 +289,7 @@ LONG WINAPI InputLineWndProc( HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam
 				s_wcd.consoleField.AutoComplete();
 				
 				SetWindowText( s_wcd.hwndInputLine, s_wcd.consoleField.GetBuffer() );
-				//s_wcd.consoleField.SetWidthInChars( strlen( s_wcd.consoleField.GetBuffer() ) );
+				//s_wcd.consoleField.SetWidthInChars( idStr::Length( s_wcd.consoleField.GetBuffer() ) );
 				SendMessage( s_wcd.hwndInputLine, EM_SETSEL, s_wcd.consoleField.GetCursor(), s_wcd.consoleField.GetCursor() );
 				
 				return 0;
@@ -426,13 +426,8 @@ void Sys_CreateConsole()
 									 win32.hInstance, NULL );
 	SendMessage( s_wcd.hwndBuffer, WM_SETFONT, ( WPARAM ) s_wcd.hfBufferFont, 0 );
 	
-	// RB begin
-#if defined(_WIN64)
-	s_wcd.SysInputLineWndProc = ( WNDPROC ) SetWindowLong( s_wcd.hwndInputLine, GWLP_WNDPROC, ( LONG_PTR ) InputLineWndProc );
-#else
-	s_wcd.SysInputLineWndProc = ( WNDPROC ) SetWindowLong( s_wcd.hwndInputLine, GWL_WNDPROC, ( LONG ) InputLineWndProc );
-#endif
-	// RB end
+	s_wcd.SysInputLineWndProc = ( WNDPROC ) SetWindowLongPtr( s_wcd.hwndInputLine, GWLP_WNDPROC, ( LONG_PTR ) InputLineWndProc );
+
 	SendMessage( s_wcd.hwndInputLine, WM_SETFONT, ( WPARAM ) s_wcd.hfBufferFont, 0 );
 	
 // don't show it now that we have a splash screen up
@@ -528,14 +523,14 @@ void Conbuf_AppendText( const char* pMsg )
 	const char* msg;
 	int bufLen;
 	int i = 0;
-	static unsigned long s_totalChars;
+	static unsigned int s_totalChars;
 	
 	//
 	// if the message is REALLY long, use just the last portion of it
 	//
-	if( strlen( pMsg ) > CONSOLE_BUFFER_SIZE - 1 )
+	if( idStr::Length( pMsg ) > CONSOLE_BUFFER_SIZE - 1 )
 	{
-		msg = pMsg + strlen( pMsg ) - CONSOLE_BUFFER_SIZE + 1;
+		msg = pMsg + idStr::Length( pMsg ) - CONSOLE_BUFFER_SIZE + 1;
 	}
 	else
 	{

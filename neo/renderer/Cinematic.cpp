@@ -92,7 +92,7 @@ private:
 	AVCodecContext*			dec_ctx;
 	SwsContext*				img_convert_ctx;
 	bool					hasFrame;
-	long					framePos;
+	int						framePos;
 	
 	cinData_t				ImageForTimeFFMPEG( int milliseconds );
 	bool					InitFromFFMPEGFile( const char* qpath, bool looping );
@@ -918,7 +918,7 @@ cinData_t idCinematicLocal::ImageForTimeFFMPEG( int thisTime )
 		startTime = thisTime;
 	}
 	
-	long desiredFrame = ( ( thisTime - startTime ) * frameRate ) / 1000;
+	int desiredFrame = ( ( thisTime - startTime ) * frameRate ) / 1000;
 	if( desiredFrame < 0 )
 	{
 		desiredFrame = 0;

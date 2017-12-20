@@ -2702,12 +2702,12 @@ int idParser::DollarDirective_evalfloat()
 	token.whiteSpaceEnd_p = NULL;
 	token.linesCrossed = 0;
 	token.flags = 0;
-	sprintf( buf, "%1.2f", fabs( value ) );
+	sprintf( buf, "%1.2f", idMath::Fabs( value ) );
 	token = buf;
 	token.type = TT_NUMBER;
 	token.subtype = TT_FLOAT | TT_LONG | TT_DECIMAL | TT_VALUESVALID;
-	token.intvalue = ( unsigned int ) fabs( value ); // DG: use int instead of long for 64bit compatibility
-	token.floatvalue = fabs( value );
+	token.intvalue = ( unsigned int )idMath::Fabs( value ); // DG: use int instead of long for 64bit compatibility
+	token.floatvalue = idMath::Fabs( value );
 	idParser::UnreadSourceToken( &token );
 	if( value < 0 )
 	{

@@ -922,7 +922,7 @@ void Sys_InitNetworking()
 			pIPAddrString = &pAdapter->IpAddressList;
 			while( pIPAddrString )
 			{
-				unsigned long ip_a, ip_m;
+				unsigned int ip_a, ip_m;
 				if( !idStr::Icmp( "127.0.0.1", pIPAddrString->IpAddress.String ) )
 				{
 					foundloopback = true;

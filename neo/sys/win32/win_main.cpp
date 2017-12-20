@@ -110,7 +110,7 @@ typedef struct CrtMemBlockHeader
    int nLine;           // Line number
    size_t nDataSize;    // Size of user block
    int nBlockUse;       // Type of block
-   long lRequest;       // Allocation number
+   int lRequest;       // Allocation number
 	byte		gap[4];								// Buffer just before (lower than) the user's memory:
 } CrtMemBlockHeader;
 
@@ -123,7 +123,7 @@ Sys_AllocHook
 	called for every malloc/new/free/delete
 ==================
 */
-int Sys_AllocHook( int nAllocType, void *pvData, size_t nSize, int nBlockUse, long lRequest, const unsigned char * szFileName, int nLine ) 
+int Sys_AllocHook( int nAllocType, void *pvData, size_t nSize, int nBlockUse, int lRequest, const unsigned char * szFileName, int nLine ) 
 {
 	CrtMemBlockHeader	*pHead;
 	byte				*temp;

@@ -85,6 +85,8 @@ enum utf8Encoding_t
 #define _strnicmp		use_idStr_Icmpn
 #define _memicmp		use_idStr_Icmpn
 
+//#define strcpy( dst, src )	idStr::Copynz( dst, src, idStr::Length( src ) )
+
 class idVec4;
 
 #ifndef FILE_HASH_SIZE

@@ -211,10 +211,9 @@ Sys_GetCurrentUser
 char* Sys_GetCurrentUser()
 {
 	static char s_userName[1024];
-	unsigned long size = sizeof( s_userName );
-	
-	
-	if( !GetUserName( s_userName, &size ) )
+	size_t size = sizeof( s_userName );
+		
+	if( !GetUserName( s_userName, ( LPDWORD )&size ) )
 	{
 		strcpy( s_userName, "player" );
 	}
