@@ -50,6 +50,7 @@ void idRenderView::DeriveData()
 		// no other data is needed in 2d rendering ?
 		return;
 	}
+
 	// setup the matrix for world space to eye space
 	{		
 		memset( &this->worldSpace, 0, sizeof( this->worldSpace ) );

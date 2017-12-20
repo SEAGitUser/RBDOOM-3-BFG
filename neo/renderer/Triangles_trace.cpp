@@ -412,7 +412,7 @@ R_LineIntersectsTriangleExpandedWithCircle
 The triangle is expanded in the plane with a circle of the given radius.
 ====================
 */
-static bool R_LineIntersectsTriangleExpandedWithCircle( localTrace_t& hit, const idVec3& start, const idVec3& end, const float circleRadius, const idVec3& triVert0, const idVec3& triVert1, const idVec3& triVert2 )
+static bool R_LineIntersectsTriangleExpandedWithCircle( idTriangles::localTrace_t& hit, const idVec3& start, const idVec3& end, const float circleRadius, const idVec3& triVert0, const idVec3& triVert1, const idVec3& triVert2 )
 {
 	const idPlane plane( triVert0, triVert1, triVert2 );
 	
@@ -597,7 +597,7 @@ static bool R_LineIntersectsTriangleExpandedWithCircle( localTrace_t& hit, const
 R_LocalTrace
 ====================
 */
-localTrace_t R_LocalTrace( const idVec3& start, const idVec3& end, const float radius, const srfTriangles_t* tri )
+idTriangles::localTrace_t idTriangles::LocalTrace( const idVec3& start, const idVec3& end, const float radius ) const
 {
 	localTrace_t hit;
 	hit.fraction = 1.0f;
@@ -616,20 +616,20 @@ localTrace_t R_LocalTrace( const idVec3& start, const idVec3& end, const float r
 	planes[3][3] = - end * planes[3].Normal();
 	
 	// catagorize each point against the four planes
-	byte* cullBits = ( byte* ) _alloca16( ALIGN( tri->numVerts, 4 ) );	// round up to a multiple of 4 for SIMD
+	byte* cullBits = ( byte* ) _alloca16( ALIGN( this->numVerts, 4 ) );	// round up to a multiple of 4 for SIMD
 	byte totalOr = 0;
 	
 	// RB: added check wether GPU skinning is available at all
-	const idJointMat* joints = ( tri->staticModelWithJoints != NULL && r_useGPUSkinning.GetBool() && glConfig.gpuSkinningAvailable ) ? tri->staticModelWithJoints->jointsInverted : NULL;
+	const idJointMat* joints = ( this->staticModelWithJoints != NULL && r_useGPUSkinning.GetBool() && glConfig.gpuSkinningAvailable ) ? this->staticModelWithJoints->jointsInverted : NULL;
 	// RB end
 	
 	if( joints != NULL )
 	{
-		R_TracePointCullSkinned( cullBits, totalOr, radius, planes, tri->verts, tri->numVerts, joints );
+		R_TracePointCullSkinned( cullBits, totalOr, radius, planes, this->verts, this->numVerts, joints );
 	}
 	else
 	{
-		R_TracePointCullStatic( cullBits, totalOr, radius, planes, tri->verts, tri->numVerts );
+		R_TracePointCullStatic( cullBits, totalOr, radius, planes, this->verts, this->numVerts );
 	}
 	
 	// if we don't have points on both sides of both the ray planes, no intersection
@@ -645,9 +645,9 @@ localTrace_t R_LocalTrace( const idVec3& start, const idVec3& end, const float r
 	}
 	
 	// start streaming the indexes
-	idODSStreamedArray< triIndex_t, 256, SBT_QUAD, 3 > indexesODS( tri->indexes, tri->numIndexes );
+	idODSStreamedArray< triIndex_t, 256, SBT_QUAD, 3 > indexesODS( this->indexes, this->numIndexes );
 	
-	for( int i = 0; i < tri->numIndexes; )
+	for( int i = 0; i < this->numIndexes; )
 	{
 	
 		const int nextNumIndexes = indexesODS.FetchNextBatch() - 3;
@@ -673,9 +673,9 @@ localTrace_t R_LocalTrace( const idVec3& start, const idVec3& end, const float r
 				continue;
 			}
 			
-			const idVec3 triVert0 = idDrawVert::GetSkinnedDrawVertPosition( idODSObject< idDrawVert > ( & tri->verts[i0] ), joints );
-			const idVec3 triVert1 = idDrawVert::GetSkinnedDrawVertPosition( idODSObject< idDrawVert > ( & tri->verts[i1] ), joints );
-			const idVec3 triVert2 = idDrawVert::GetSkinnedDrawVertPosition( idODSObject< idDrawVert > ( & tri->verts[i2] ), joints );
+			const idVec3 triVert0 = idDrawVert::GetSkinnedDrawVertPosition( idODSObject< idDrawVert > ( & this->verts[i0] ), joints );
+			const idVec3 triVert1 = idDrawVert::GetSkinnedDrawVertPosition( idODSObject< idDrawVert > ( & this->verts[i1] ), joints );
+			const idVec3 triVert2 = idDrawVert::GetSkinnedDrawVertPosition( idODSObject< idDrawVert > ( & this->verts[i2] ), joints );
 			
 			if( R_LineIntersectsTriangleExpandedWithCircle( hit, start, end, radius, triVert0, triVert1, triVert2 ) )
 			{

@@ -31,6 +31,35 @@ If you have questions concerning this license or the applicable additional terms
 
 /*
 ============
+idDrawVert::ReadFromFile
+============
+*/
+void idDrawVert::ReadFromFile( idFile *file )
+{
+	file->ReadVec3( xyz );
+	file->ReadBigArray( st, 2 );
+	file->ReadBigArray( normal, 4 );
+	file->ReadBigArray( tangent, 4 );
+	file->ReadBigArray( color, sizeof( color ) / sizeof( color[ 0 ] ) );
+	file->ReadBigArray( color2, sizeof( color2 ) / sizeof( color2[ 0 ] ) );
+}
+/*
+============
+idDrawVert::WriteToFile
+============
+*/
+void idDrawVert::WriteToFile( idFile *file ) const
+{
+	file->WriteVec3( xyz );
+	file->WriteBigArray( st, 2 );
+	file->WriteBigArray( normal, 4 );
+	file->WriteBigArray( tangent, 4 );
+	file->WriteBigArray( color, sizeof( color ) / sizeof( color[ 0 ] ) );
+	file->WriteBigArray( color2, sizeof( color2 ) / sizeof( color2[ 0 ] ) );
+}
+
+/*
+============
 idShadowVert::CreateShadowCache
 ============
 */

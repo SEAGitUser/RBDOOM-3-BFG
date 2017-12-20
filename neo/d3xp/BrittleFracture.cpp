@@ -349,7 +349,7 @@ bool idBrittleFracture::UpdateRenderEntity( renderEntity_s* renderEntity, const 
 	int i, j, k, n, msec, numTris, numDecalTris;
 	float fade;
 	dword packedColor;
-	srfTriangles_t* tris, *decalTris;
+	idTriangles* tris, *decalTris;
 	modelSurface_t surface;
 	idDrawVert* v;
 	idPlane plane;

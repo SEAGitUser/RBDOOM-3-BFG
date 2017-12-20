@@ -237,7 +237,7 @@ dynamicModel_t idRenderModelMD3::IsDynamicModel() const
 idRenderModelMD3::LerpMeshVertexes
 =================
 */
-void idRenderModelMD3::LerpMeshVertexes( srfTriangles_t* tri, const struct md3Surface_s* surf, const float backlerp, const int frame, const int oldframe ) const
+void idRenderModelMD3::LerpMeshVertexes( idTriangles* tri, const struct md3Surface_s* surf, const float backlerp, const int frame, const int oldframe ) const
 {
 	short*	oldXyz, *newXyz;
 	float	oldXyzScale, newXyzScale;
@@ -326,9 +326,9 @@ idRenderModel* idRenderModelMD3::InstantiateDynamicModel( const struct renderEnt
 	for( i = 0; i < md3->numSurfaces; i++ )
 	{
 	
-		srfTriangles_t* tri = R_AllocStaticTriSurf();
-		R_AllocStaticTriSurfVerts( tri, surface->numVerts );
-		R_AllocStaticTriSurfIndexes( tri, surface->numTriangles * 3 );
+		auto* tri = idTriangles::AllocStatic();
+		tri->AllocStaticVerts( surface->numVerts );
+		tri->AllocStaticIndexes( surface->numTriangles * 3 );
 		tri->bounds.Clear();
 		
 		modelSurface_t	surf;
@@ -356,7 +356,7 @@ idRenderModel* idRenderModelMD3::InstantiateDynamicModel( const struct renderEnt
 			tri->verts[j].SetTexCoord( texCoords[j] );
 		}
 		
-		R_BoundTriSurf( tri );
+		tri->DeriveBounds();
 		
 		staticModel->AddSurface( surf );
 		staticModel->bounds.AddPoint( surf.geometry->bounds[0] );

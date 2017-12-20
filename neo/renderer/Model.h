@@ -60,11 +60,18 @@ const int SHADOW_CAP_INFINITE	= 64;
 
 class idRenderModelStatic;
 struct idRenderView;
+/*
+====================================================================
 
-// our only drawing geometry type
-typedef struct srfTriangles_t
+	idTriangles		Tech5 style
+	
+	our only drawing geometry type
+
+====================================================================
+*/
+struct idTriangles
 {
-	srfTriangles_t() {}
+	idTriangles() {} // numVerts_, numIndexes_
 	
 	idBounds					bounds;					// for culling
 	
@@ -105,32 +112,165 @@ typedef struct srfTriangles_t
 	idShadowVert* 				preLightShadowVertexes;	// shadow vertices in CPU memory for pre-light shadow volumes
 	idShadowVert* 				staticShadowVertexes;	// shadow vertices in CPU memory for static shadow volumes
 	
-	srfTriangles_t* 			ambientSurface;			// for light interactions, point back at the original surface that generated
+	idTriangles* 				ambientSurface;			// for light interactions, point back at the original surface that generated
 	// the interaction, which we will get the ambientCache from
 	
-	srfTriangles_t* 			nextDeferredFree;		// chain of tris to free next frame
+	idTriangles* 				nextDeferredFree;		// chain of tris to free next frame
 	
 	// for deferred normal / tangent transformations by joints
 	// the jointsInverted list / buffer object on md5WithJoints may be
-	// shared by multiple srfTriangles_t
+	// shared by multiple idTriangles
 	idRenderModelStatic* 		staticModelWithJoints;
 	
 	// data in vertex object space, not directly readable by the CPU
 	vertCacheHandle_t			indexCache;				// GL_INDEX_TYPE
 	vertCacheHandle_t			ambientCache;			// idDrawVert
 	vertCacheHandle_t			shadowCache;			// idVec4
-	
-	DISALLOW_COPY_AND_ASSIGN( srfTriangles_t );
 
-} idTriangles;
+public:
 
-typedef idList<srfTriangles_t*, TAG_IDLIB_LIST_TRIANGLES> idTriList;
+	ID_INLINE void Clear()
+	{
+		memset( this, 0, sizeof( *this ) );
+	}
+
+	static idTriangles *		AllocStatic();
+	static void					FreeStatic( idTriangles* );
+	static idTriangles *		CopyStatic( const idTriangles* source );
+
+	// Read the contents of idTriangles from the given file
+	void						ReadFromFile( idFile * /*, buffer*/);
+	// Write the contents of idTriangles to the given file
+	void						WriteToFile( idFile * /*, buffer*/ ) const;
+
+	// Only deals with vertexes and indexes, not silhouettes, planes, etc.
+	// Does NOT perform a cleanup triangles, so there may be duplicated verts in the result.
+	static idTriangles * 		MergeSurfaceList( const idTriangles** surfaces, int numSurfaces );
+	static idTriangles * 		MergeTriangles( const idTriangles* tri1, const idTriangles* tri2 );
+
+	void						AllocStaticVerts( int numVerts );
+	void						AllocStaticIndexes( int numIndexes );
+	void						AllocStaticPreLightShadowVerts( int numVerts );
+	void						AllocStaticSilIndexes( int numIndexes );
+	void						AllocStaticDominantTris( int numVerts );
+	void						AllocStaticSilEdges( int numSilEdges );
+	void						AllocStaticMirroredVerts( int numMirroredVerts );
+	void						AllocStaticDupVerts( int numDupVerts );
+
+	void						ResizeStaticVerts( int numVerts );
+	void						ResizeStaticIndexes( int numIndexes );
+	void						ReferenceStaticVerts( const idTriangles* reference );
+	void						ReferenceStaticIndexes( const idTriangles* reference );
+
+	void						FreeStaticSilIndexes();
+	void						FreeStaticVerts();
+	void						FreeStaticVertexCaches();
+
+	void						RemoveDuplicatedTriangles();
+	void						CreateSilIndexes();
+	void						RemoveDegenerateTriangles();
+	void						RemoveUnusedVerts();
+	void						RangeCheckIndexes() const;
+	void						CreateVertexNormals();		// also called by dmap
+	void						CleanupTriangles( bool createNormals, bool identifySilEdges, bool useUnsmoothedTangents );
+	void						ReverseTriangles();
+
+	// if the deformed verts have significant enough texture coordinate changes to reverse the texture
+	// polarity of a triangle, the tangents will be incorrect
+	void						DeriveTangents();
+
+	void						DeriveBounds();
+
+	// copy data from a front-end idTriangles to a back-end drawSurf_t
+	void						InitDrawSurfFromTriangles( struct drawSurf_t& );
+
+	// For static surfaces, the indexes, ambient, and shadow buffers can be pre-created at load
+	// time, rather than being re-created each frame in the frame temporary buffers.
+	void						CreateStaticBuffers();
+
+	void						AddCubeFace( const idVec3& v1, const idVec3& v2, const idVec3& v3, const idVec3& v4 );
+
+	size_t						CPUMemoryUsed() const;
+	//size_t						GPUMemoryUsed() const;
+
+	struct localTrace_t {
+		float					fraction;
+		// only valid if fraction < 1.0
+		idVec3					point;
+		idVec3					normal;
+		int						indexes[ 3 ];
+	};
+
+	localTrace_t				LocalTrace( const idVec3& start, const idVec3& end, const float radius  ) const;
+
+	/*
+	GetSurfaceArea();
+	OptimizeIndexOrder();
+	OptimizeVertexOrder( vertRemap );
+	TriangleVectors(  tangent, biTangent ); idDrawVert   idVec3
+	UpdateVertexBuffer( strippedBytes, strippedVerts, unstrippedBytes )
+	UpdateIndexBuffer()
+	CreateQuads( quads )
+	TurnIntoQuads( quads )
+	GetFullSizeDrawVerts();
+	CreateStandardTriangles( triIndexes );
+	CreateBounds();
+	SnapVerts()
+	ReadbackVertexBuffer
+
+	idHeapArray<vertexTangents_t>
+	idList<skinRemap_t,5>
+
+	DeriveTangents( vertTangents normal tangents hash remap )
+	Cleanup( optimize )
+
+	idAutoStandardTriangles {
+		standardTris
+		freeOnDelete
+		operator->
+	}
+	sourceSurface_t {
+		mtr
+		mtrChecksum
+		renderSurface
+		firstVertex
+		lastVertex
+	}
+	vertexTangents_t {
+		normal
+		tangents
+	}
+	tangentVert_t {
+		polarityUsed
+		negativeRemap
+	}
+
+	matchVert_t {
+		next
+		morph
+		color
+		normal
+		tangents
+	}
+
+	idDrawVert::CompressWeightsToBytes( weights, compressed );
+
+	*/
+
+	// Get indexed vertex
+	const idDrawVert &			GetIVertex( triIndex_t index ) const { return verts[ indexes[ index ] ]; }
+	const idDrawVert &			GetVertex( int ivert ) const { return verts[ ivert ]; }
+
+	DISALLOW_COPY_AND_ASSIGN( idTriangles );
+};
+
+typedef idList<idTriangles*, TAG_IDLIB_LIST_TRIANGLES> idTriList;
 
 struct modelSurface_t
 {
 	int							id;
-	const idMaterial* 			shader;
-	srfTriangles_t* 			geometry;
+	const idMaterial * 			shader;
+	idTriangles * 				geometry;
 };
 
 enum dynamicModel_t
@@ -247,13 +387,13 @@ public:
 	virtual const modelSurface_t* Surface( int surfaceNum ) const = 0;
 	
 	// Allocates surface triangles.
-	// Allocates memory for srfTriangles_t::verts and srfTriangles_t::indexes
+	// Allocates memory for idTriangles::verts and idTriangles::indexes
 	// The allocated memory is not initialized.
-	// srfTriangles_t::numVerts and srfTriangles_t::numIndexes are set to zero.
-	virtual srfTriangles_t* 	AllocSurfaceTriangles( int numVerts, int numIndexes ) const = 0;
+	// idTriangles::numVerts and idTriangles::numIndexes are set to zero.
+	virtual idTriangles * 		AllocSurfaceTriangles( int numVerts, int numIndexes ) const = 0;
 	
 	// Frees surfaces triangles.
-	virtual void				FreeSurfaceTriangles( srfTriangles_t* tris ) const = 0;
+	virtual void				FreeSurfaceTriangles( idTriangles* tris ) const = 0;
 	
 	// models of the form "_area*" may have a prelight shadow model associated with it
 	virtual bool				IsStaticWorldModel() const = 0;

@@ -69,7 +69,7 @@ idRenderModelSprite::InstantiateDynamicModel
 idRenderModel* 	idRenderModelSprite::InstantiateDynamicModel( const struct renderEntity_s* renderEntity, const idRenderView* viewDef, idRenderModel* cachedModel )
 {
 	idRenderModelStatic* staticModel;
-	srfTriangles_t* tri;
+	idTriangles* tri;
 	modelSurface_t surf;
 	
 	if( cachedModel && !r_useCachedDynamicModels.GetBool() )
@@ -101,9 +101,9 @@ idRenderModel* 	idRenderModelSprite::InstantiateDynamicModel( const struct rende
 		staticModel = new( TAG_MODEL ) idRenderModelStatic;
 		staticModel->InitEmpty( sprite_SnapshotName );
 		
-		tri = R_AllocStaticTriSurf();
-		R_AllocStaticTriSurfVerts( tri, 4 );
-		R_AllocStaticTriSurfIndexes( tri, 6 );
+		tri = idTriangles::AllocStatic();
+		tri->AllocStaticVerts( 4 );
+		tri->AllocStaticIndexes( 6 );
 		
 		tri->verts[ 0 ].Clear();
 		tri->verts[ 0 ].SetNormal( 1.0f, 0.0f, 0.0f );
@@ -177,7 +177,7 @@ idRenderModel* 	idRenderModelSprite::InstantiateDynamicModel( const struct rende
 	tri->verts[ 3 ].color[ 2 ] = blue;
 	tri->verts[ 3 ].color[ 3 ] = alpha;
 	
-	R_BoundTriSurf( tri );
+	tri->DeriveBounds();
 	
 	staticModel->bounds = tri->bounds;
 	

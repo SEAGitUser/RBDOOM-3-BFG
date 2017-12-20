@@ -52,7 +52,7 @@ Calculates two axis for the surface such that a point dotted against
 the axis will give a 0.0 to 1.0 range in S and T when inside the gui surface
 ================
 */
-void R_SurfaceToTextureAxis( const srfTriangles_t* tri, idVec3& origin, idMat3& axis )
+void R_SurfaceToTextureAxis( const idTriangles* tri, idVec3& origin, idMat3& axis )
 {
 	// find the bounds of the texture
 	idVec2 boundsMin( 999999.0f, 999999.0f );
@@ -69,7 +69,7 @@ void R_SurfaceToTextureAxis( const srfTriangles_t* tri, idVec3& origin, idMat3& 
 	// use the floor of the midpoint as the origin of the
 	// surface, which will prevent a slight misalignment
 	// from throwing it an entire cycle off
-	const idVec2 boundsOrg( floor( ( boundsMin.x + boundsMax.x ) * 0.5f ), floor( ( boundsMin.y + boundsMax.y ) * 0.5f ) );
+	const idVec2 boundsOrg( idMath::Floor( ( boundsMin.x + boundsMax.x ) * 0.5f ), idMath::Floor( ( boundsMin.y + boundsMax.y ) * 0.5f ) );
 	
 	// determine the world S and T vectors from the first drawSurf triangle
 	

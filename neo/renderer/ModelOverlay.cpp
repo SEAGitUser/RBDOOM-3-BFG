@@ -407,7 +407,7 @@ void idRenderModelOverlay::CreateOverlay( const idRenderModel* model, const idPl
 			continue;
 		}
 		
-		const srfTriangles_t* tri = surf->geometry;
+		const idTriangles* tri = surf->geometry;
 		
 		// try to cull the whole surface along the first texture axis
 		const float d0 = tri->bounds.PlaneDistance( localTextureAxis[0] );
@@ -703,7 +703,7 @@ drawSurf_t* idRenderModelOverlay::CreateOverlayDrawSurf( const viewEntity_t* spa
 	}
 	
 	// create a new triangle surface in frame memory so it gets automatically disposed of
-	srfTriangles_t* newTri = ( srfTriangles_t* )R_ClearedFrameAlloc( sizeof( *newTri ), FRAME_ALLOC_SURFACE_TRIANGLES );
+	idTriangles* newTri = ( idTriangles* )R_ClearedFrameAlloc( sizeof( *newTri ), FRAME_ALLOC_SURFACE_TRIANGLES );
 	newTri->staticModelWithJoints = ( staticModel->jointsInverted != NULL ) ? const_cast< idRenderModelStatic* >( staticModel ) : NULL;	// allow GPU skinning
 	
 	newTri->ambientCache = vertexCache.AllocVertex( NULL, ALIGN( maxVerts * sizeof( idDrawVert ), VERTEX_CACHE_ALIGN ) );
@@ -757,7 +757,7 @@ drawSurf_t* idRenderModelOverlay::CreateOverlayDrawSurf( const viewEntity_t* spa
 		}
 		
 		// check for out of range vertex references
-		const srfTriangles_t* baseTri = baseSurf->geometry;
+		const idTriangles* baseTri = baseSurf->geometry;
 		if( overlay.maxReferencedVertex >= baseTri->numVerts )
 		{
 			// This can happen when playing a demofile and a model has been changed since it was recorded, so just issue a warning and go on.

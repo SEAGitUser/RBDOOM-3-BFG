@@ -250,7 +250,7 @@ FONT-END RENDERING
 
 extern void R_AddInGameGuis( idRenderView * );
 extern void R_OptimizeViewLightsList( idRenderView* );
-extern bool R_GenerateSubViews( idRenderView* );
+extern bool R_GenerateSubViews( idRenderView * );
 extern void R_AddLights( idRenderView * );
 extern void R_AddModels( idRenderView * );
 

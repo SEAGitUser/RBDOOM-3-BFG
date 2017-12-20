@@ -37,72 +37,89 @@ If you have questions concerning this license or the applicable additional terms
 ================================================================================================
 */
 
+#undef ID_PC
+#undef ID_PC_WIN
+#undef ID_PC_WIN64
+#undef ID_CONSOLE
+#undef ID_WIN32
+#undef ID_LITTLE_ENDIAN
+
 // Win32
 #if defined(WIN32) || defined(_WIN32)
+// _WIN32 always defined
+// _WIN64 also defined for x64 target
 
-#define	CPUSTRING						"x86"
+	#define ID_PC
+	#define ID_PC_WIN
+	#define ID_WIN32
+	#define ID_LITTLE_ENDIAN
 
-#define	BUILD_STRING					"win-" CPUSTRING
+	#define	CPUSTRING						"x86"
 
-#ifdef _MSC_VER
-#define ALIGN16( x )					__declspec(align(16)) x
-#define ALIGNTYPE16						__declspec(align(16))
-#define ALIGNTYPE128					__declspec(align(128))
-#else
-// DG: mingw/GCC (and probably clang) support
-#define ALIGN16( x )					x __attribute__ ((aligned (16)))
-// FIXME: change ALIGNTYPE* ?
-#define ALIGNTYPE16
-#define ALIGNTYPE128
-// DG end
-#endif
+	#define	BUILD_STRING					"win-" CPUSTRING
+
+	#ifdef _MSC_VER
+		#define ALIGN16( x )					__declspec(align(16)) x
+		#define ALIGNTYPE16						__declspec(align(16))
+		#define ALIGNTYPE128					__declspec(align(128))
+	#else
+		// DG: mingw/GCC (and probably clang) support
+		#define ALIGN16( x )					x __attribute__ ((aligned (16)))
+		// FIXME: change ALIGNTYPE* ?
+		#define ALIGNTYPE16
+		#define ALIGNTYPE128
+		// DG end
+	#endif
 
 
-#define FORMAT_PRINTF( x )
+	#define FORMAT_PRINTF( x )
 
-#define PATHSEPARATOR_STR				"\\"
-#define PATHSEPARATOR_CHAR				'\\'
-#define NEWLINE							"\r\n"
+	#define PATHSEPARATOR_STR				"\\"
+	#define PATHSEPARATOR_CHAR				'\\'
+	#define NEWLINE							"\r\n"
 
-#define ID_INLINE						inline
-#ifdef _MSC_VER
-#define ID_FORCE_INLINE					__forceinline
-#else
-// DG: this should at least work with GCC/MinGW, probably with clang as well..
-#define ID_FORCE_INLINE					inline // TODO: always_inline?
-// DG end
-#endif
-// lint complains that extern used with definition is a hazard, but it
-// has the benefit (?) of making it illegal to take the address of the function
-#ifdef _lint
-#define ID_INLINE_EXTERN				inline
-#define ID_FORCE_INLINE_EXTERN			__forceinline
-#else
-#define ID_INLINE_EXTERN				extern inline
-#ifdef _MSC_VER
-#define ID_FORCE_INLINE_EXTERN			extern __forceinline
-#else
-// DG: GCC/MinGW, probably clang
-#define ID_FORCE_INLINE_EXTERN			extern inline // TODO: always_inline ?
-// DG end
-#endif
-#endif
+	#define ID_INLINE						inline
+	#ifdef _MSC_VER
+		#define ID_FORCE_INLINE					__forceinline
+	#else
+		// DG: this should at least work with GCC/MinGW, probably with clang as well..
+		#define ID_FORCE_INLINE					inline // TODO: always_inline?
+		// DG end
+	#endif
+	// lint complains that extern used with definition is a hazard, but it
+	// has the benefit (?) of making it illegal to take the address of the function
+	#ifdef _lint
+		#define ID_INLINE_EXTERN				inline
+		#define ID_FORCE_INLINE_EXTERN			__forceinline
+	#else
+		#define ID_INLINE_EXTERN				extern inline
+		#ifdef _MSC_VER
+			#define ID_FORCE_INLINE_EXTERN			extern __forceinline
+		#else
+			// DG: GCC/MinGW, probably clang
+			#define ID_FORCE_INLINE_EXTERN			extern inline // TODO: always_inline ?
+			// DG end
+		#endif
+	#endif
 
-// DG: #pragma hdrstop is only available on MSVC, so make sure it doesn't cause compiler warnings on other compilers..
-#ifdef _MSC_VER
-// afaik __pragma is a MSVC specific alternative to #pragma that can be used in macros
-#define ID_HDRSTOP __pragma(hdrstop)
-#else
-#define ID_HDRSTOP
-#endif // DG end
+	// DG: #pragma hdrstop is only available on MSVC, so make sure it doesn't cause compiler warnings on other compilers..
+	#ifdef _MSC_VER
+		// afaik __pragma is a MSVC specific alternative to #pragma that can be used in macros
+		#define ID_HDRSTOP __pragma(hdrstop)
+	#else
+		#define ID_HDRSTOP
+	#endif // DG end
 
-// we should never rely on this define in our code. this is here so dodgy external libraries don't get confused
-#ifndef WIN32
-#define WIN32
-#endif
+	// we should never rely on this define in our code. this is here so dodgy external libraries don't get confused
+	#ifndef WIN32
+		#define WIN32
+	#endif
 
 
 #elif defined(__linux__) || defined(__FreeBSD__) || defined(__APPLE__) || defined(__GNUC__) || defined(__clang__)
+
+#define ID_PC
+#define ID_PC_WIN
 
 #ifndef CPUSTRING
 #if defined(__i386__)

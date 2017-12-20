@@ -803,18 +803,16 @@ void idRenderModelManagerLocal::EndLevelLoad()
 	for( int i = 0; i < models.Num(); i++ )
 	{
 		common->UpdateLevelLoadPacifier();
-		
-		
+
 		idRenderModel* model = models[i];
 		if( model->IsLoaded() )
 		{
 			for( int j = 0; j < model->NumSurfaces(); j++ )
 			{
-				R_CreateStaticBuffersForTri( *( model->Surface( j )->geometry ) );
+				model->Surface( j )->geometry->CreateStaticBuffers();
 			}
 		}
 	}
-	
 	
 	// _D3XP added this
 	int	end = Sys_Milliseconds();

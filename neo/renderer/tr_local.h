@@ -99,16 +99,16 @@ struct viewEntity_t;
 struct viewLight_t;
 
 // drawSurf_t structures command the back end to render surfaces
-// a given srfTriangles_t may be used with multiple viewEntity_t,
+// a given idTriangles may be used with multiple viewEntity_t,
 // as when viewed in a subview or multiple viewport render, or
 // with multiple shaders when skinned, or, possibly with multiple
 // lights, although currently each lighting interaction creates
-// unique srfTriangles_t
+// unique idTriangles
 // drawSurf_t are always allocated and freed every frame, they are never cached
 
 struct drawSurf_t
 {
-	const srfTriangles_t* 	frontEndGeo;		// don't use on the back end, it may be updated by the front end!
+	const idTriangles* 	frontEndGeo;		// don't use on the back end, it may be updated by the front end!
 	int						numIndexes;
 	vertCacheHandle_t		indexCache;			// triIndex_t
 	vertCacheHandle_t		ambientCache;		// idDrawVert
@@ -977,9 +977,9 @@ public:
 	
 	unsigned short			gammaTable[256];	// brightness / gamma modify this
 	
-	srfTriangles_t* 		unitSquareTriangles;
-	srfTriangles_t* 		zeroOneCubeTriangles;
-	srfTriangles_t* 		testImageTriangles;
+	idTriangles* 		unitSquareTriangles;
+	idTriangles* 		zeroOneCubeTriangles;
+	idTriangles* 		testImageTriangles;
 	
 	// these are allocated at buffer swap time, but
 	// the back end should only use the ones in the backEnd stucture,
@@ -1307,7 +1307,7 @@ void R_DeriveLightData( idRenderLightLocal* light );
 // Called by the editor and dmap to operate on light volumes
 void R_RenderLightFrustum( const renderLight_t& renderLight, idPlane lightFrustum[6] );
 
-srfTriangles_t* R_PolytopeSurface( int numPlanes, const idPlane* planes, idWinding** windings );
+idTriangles* R_PolytopeSurface( int numPlanes, const idPlane* planes, idWinding** windings );
 // RB end
 void R_CreateLightRefs( idRenderLightLocal* light );
 void R_FreeLightDefDerivedData( idRenderLightLocal* light );
@@ -1381,7 +1381,7 @@ idRenderModel* R_EntityDefDynamicModel( idRenderEntityLocal* def );
 void R_ClearEntityDefDynamicModel( idRenderEntityLocal* def );
 
 void R_SetupDrawSurfShader( drawSurf_t* drawSurf, const idMaterial* shader, const renderEntity_t* renderEntity );
-void R_SetupDrawSurfJoints( drawSurf_t* drawSurf, const srfTriangles_t* tri, const idMaterial* shader );
+void R_SetupDrawSurfJoints( drawSurf_t* drawSurf, const idTriangles* tri, const idMaterial* shader );
 void R_LinkDrawSurfToView( drawSurf_t* drawSurf, idRenderView* viewDef );
 
 
@@ -1403,7 +1403,7 @@ TR_FRONTEND_GUISURF
 =============================================================
 */
 
-void R_SurfaceToTextureAxis( const srfTriangles_t* tri, idVec3& origin, idMat3& axis );
+void R_SurfaceToTextureAxis( const idTriangles* tri, idVec3& origin, idMat3& axis );
 
 /*
 ============================================================
@@ -1423,57 +1423,8 @@ TR_TRISURF
 ============================================================
 */
 
-srfTriangles_t* 	R_AllocStaticTriSurf();
-void				R_AllocStaticTriSurfVerts( srfTriangles_t* tri, int numVerts );
-void				R_AllocStaticTriSurfIndexes( srfTriangles_t* tri, int numIndexes );
-void				R_AllocStaticTriSurfPreLightShadowVerts( srfTriangles_t* tri, int numVerts );
-void				R_AllocStaticTriSurfSilIndexes( srfTriangles_t* tri, int numIndexes );
-void				R_AllocStaticTriSurfDominantTris( srfTriangles_t* tri, int numVerts );
-void				R_AllocStaticTriSurfSilEdges( srfTriangles_t* tri, int numSilEdges );
-void				R_AllocStaticTriSurfMirroredVerts( srfTriangles_t* tri, int numMirroredVerts );
-void				R_AllocStaticTriSurfDupVerts( srfTriangles_t* tri, int numDupVerts );
-
-srfTriangles_t* 	R_CopyStaticTriSurf( const srfTriangles_t* tri );
-
-void				R_ResizeStaticTriSurfVerts( srfTriangles_t* tri, int numVerts );
-void				R_ResizeStaticTriSurfIndexes( srfTriangles_t* tri, int numIndexes );
-void				R_ReferenceStaticTriSurfVerts( srfTriangles_t* tri, const srfTriangles_t* reference );
-void				R_ReferenceStaticTriSurfIndexes( srfTriangles_t* tri, const srfTriangles_t* reference );
-
-void				R_FreeStaticTriSurfSilIndexes( srfTriangles_t* tri );
-void				R_FreeStaticTriSurf( srfTriangles_t* tri );
-void				R_FreeStaticTriSurfVerts( srfTriangles_t* tri );
-void				R_FreeStaticTriSurfVertexCaches( srfTriangles_t* tri );
-int					R_TriSurfMemory( const srfTriangles_t* tri );
-
-void				R_BoundTriSurf( srfTriangles_t* tri );
-void				R_RemoveDuplicatedTriangles( srfTriangles_t* tri );
-void				R_CreateSilIndexes( srfTriangles_t* tri );
-void				R_RemoveDegenerateTriangles( srfTriangles_t* tri );
-void				R_RemoveUnusedVerts( srfTriangles_t* tri );
-void				R_RangeCheckIndexes( const srfTriangles_t* tri );
-void				R_CreateVertexNormals( srfTriangles_t* tri );		// also called by dmap
-void				R_CleanupTriangles( srfTriangles_t* tri, bool createNormals, bool identifySilEdges, bool useUnsmoothedTangents );
-void				R_ReverseTriangles( srfTriangles_t* tri );
-
-// Only deals with vertexes and indexes, not silhouettes, planes, etc.
-// Does NOT perform a cleanup triangles, so there may be duplicated verts in the result.
-srfTriangles_t* 	R_MergeSurfaceList( const srfTriangles_t** surfaces, int numSurfaces );
-srfTriangles_t* 	R_MergeTriangles( const srfTriangles_t* tri1, const srfTriangles_t* tri2 );
-
-// if the deformed verts have significant enough texture coordinate changes to reverse the texture
-// polarity of a triangle, the tangents will be incorrect
-void				R_DeriveTangents( srfTriangles_t* tri );
-
-// copy data from a front-end srfTriangles_t to a back-end drawSurf_t
-void				R_InitDrawSurfFromTri( drawSurf_t& ds, srfTriangles_t& tri );
-
-// For static surfaces, the indexes, ambient, and shadow buffers can be pre-created at load
-// time, rather than being re-created each frame in the frame temporary buffers.
-void				R_CreateStaticBuffersForTri( srfTriangles_t& tri );
-
 // deformable meshes precalculate as much as possible from a base frame, then generate
-// complete srfTriangles_t from just a new set of vertexes
+// complete idTriangles from just a new set of vertexes
 struct deformInfo_t
 {
 	int					numSourceVerts;
@@ -1505,30 +1456,9 @@ struct deformInfo_t
 
 
 // if outputVertexes is not NULL, it will point to a newly allocated set of verts that includes the mirrored ones
-deformInfo_t* 		R_BuildDeformInfo( int numVerts, const idDrawVert* verts, int numIndexes, const int* indexes,
-									   bool useUnsmoothedTangents );
+deformInfo_t* 		R_BuildDeformInfo( int numVerts, const idDrawVert* verts, int numIndexes, const int* indexes, bool useUnsmoothedTangents );
 void				R_FreeDeformInfo( deformInfo_t* deformInfo );
 int					R_DeformInfoMemoryUsed( deformInfo_t* deformInfo );
-
-/*
-=============================================================
-
-TR_TRACE
-
-=============================================================
-*/
-
-struct localTrace_t
-{
-	float		fraction;
-	// only valid if fraction < 1.0
-	idVec3		point;
-	idVec3		normal;
-	int			indexes[3];
-};
-
-localTrace_t R_LocalTrace( const idVec3& start, const idVec3& end, const float radius, const srfTriangles_t* tri );
-void RB_ShowTrace( drawSurf_t** drawSurfs, int numDrawSurfs );
 
 /*
 =============================================================

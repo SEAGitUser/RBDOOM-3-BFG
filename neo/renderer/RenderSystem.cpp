@@ -851,9 +851,9 @@ const emptyCommand_t* idRenderSystemLocal::SwapCommandBuffers_FinishCommandBuffe
 	// scene generation, the basic surfaces needed for drawing the buffers will
 	// always be present.
 	//------------------------------
-	R_InitDrawSurfFromTri( tr.unitSquareSurface_, *tr.unitSquareTriangles );
-	R_InitDrawSurfFromTri( tr.zeroOneCubeSurface_, *tr.zeroOneCubeTriangles );
-	R_InitDrawSurfFromTri( tr.testImageSurface_, *tr.testImageTriangles );
+	tr.unitSquareTriangles->InitDrawSurfFromTriangles( tr.unitSquareSurface_ );
+	tr.zeroOneCubeTriangles->InitDrawSurfFromTriangles( tr.zeroOneCubeSurface_ );
+	tr.testImageTriangles->InitDrawSurfFromTriangles( tr.testImageSurface_ );
 	
 	// Reset render crop to be the full screen
 	renderCrops[0].x1 = 0;

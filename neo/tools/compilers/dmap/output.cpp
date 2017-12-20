@@ -214,21 +214,21 @@ ShareMapTriVerts
 Converts independent triangles to shared vertex triangles
 ====================
 */
-srfTriangles_t*	ShareMapTriVerts( const mapTri_t* tris )
+idTriangles*	ShareMapTriVerts( const mapTri_t* tris )
 {
 	const mapTri_t*	step;
 	int			count;
 	int			i, j;
 	int			numVerts;
 	int			numIndexes;
-	srfTriangles_t*	uTri;
+	idTriangles*	uTri;
 	
 	// unique the vertexes
 	count = CountTriList( tris );
 	
-	uTri = R_AllocStaticTriSurf();
-	R_AllocStaticTriSurfVerts( uTri, count * 3 );
-	R_AllocStaticTriSurfIndexes( uTri, count * 3 );
+	uTri = idTriangles::AllocStatic();
+	uTri->AllocStaticVerts( count * 3 );
+	uTri->AllocStaticIndexes( count * 3 );
 	
 	numVerts = 0;
 	numIndexes = 0;
@@ -275,17 +275,17 @@ srfTriangles_t*	ShareMapTriVerts( const mapTri_t* tris )
 CleanupUTriangles
 ==================
 */
-static void CleanupUTriangles( srfTriangles_t* tri )
+static void CleanupUTriangles( idTriangles* tri )
 {
 	// perform cleanup operations
 	
-	R_RangeCheckIndexes( tri );
-	R_CreateSilIndexes( tri );
-//	R_RemoveDuplicatedTriangles( tri );	// this may remove valid overlapped transparent triangles
-	R_RemoveDegenerateTriangles( tri );
-//	R_RemoveUnusedVerts( tri );
+	tri->RangeCheckIndexes();
+	tri->CreateSilIndexes();
+//	tri->RemoveDuplicatedTriangles();	// this may remove valid overlapped transparent triangles
+	tri->RemoveDegenerateTriangles();
+//	tri->RemoveUnusedVerts();
 
-	R_FreeStaticTriSurfSilIndexes( tri );
+	tri->FreeStaticSilIndexes();
 }
 
 /*
@@ -295,7 +295,7 @@ WriteUTriangles
 Writes text verts and indexes to procfile
 ====================
 */
-static void WriteUTriangles( const srfTriangles_t* uTris )
+static void WriteUTriangles( const idTriangles* uTris )
 {
 	int			col;
 	int			i;
@@ -394,7 +394,7 @@ static void WriteOutputSurfaces( int entityNum, int areaNum )
 	optimizeGroup_t*	group, *groupStep;
 	int			i; // , j;
 //	int			col;
-	srfTriangles_t*	uTri;
+	idTriangles*	uTri;
 //	mapTri_t	*tri;
 	typedef struct interactionTris_s
 	{
@@ -507,7 +507,7 @@ static void WriteOutputSurfaces( int entityNum, int areaNum )
 		
 		CleanupUTriangles( uTri );
 		WriteUTriangles( uTri );
-		R_FreeStaticTriSurf( uTri );
+		idTriangles::FreeStatic( uTri );
 		
 		procFile->WriteFloatString( "}\n\n" );
 	}

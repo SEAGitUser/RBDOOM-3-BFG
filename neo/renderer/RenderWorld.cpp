@@ -1258,9 +1258,8 @@ guiPoint_t idRenderWorldLocal::GuiTrace( qhandle_t entityHandle, const idVec3 st
 	for( int i = 0; i < model->NumSurfaces(); i++ )
 	{
 		auto surf = model->Surface( i );
-		
-		const srfTriangles_t* tri = surf->geometry;
-		if( tri == NULL )
+
+		if( surf->geometry == NULL )
 		{
 			continue;
 		}
@@ -1276,13 +1275,13 @@ guiPoint_t idRenderWorldLocal::GuiTrace( qhandle_t entityHandle, const idVec3 st
 			continue;
 		}
 		
-		auto local = R_LocalTrace( localStart, localEnd, 0.0f, tri );
+		auto local = surf->geometry->LocalTrace( localStart, localEnd, 0.0f );
 		if( local.fraction < 1.0f )
 		{
 			idVec3 origin; 
 			idMat3 axis;
 			
-			R_SurfaceToTextureAxis( tri, origin, axis );
+			R_SurfaceToTextureAxis( surf->geometry, origin, axis );
 			const idVec3 cursor = local.point - origin;
 			
 			float axisLen[2];
@@ -1385,7 +1384,7 @@ bool idRenderWorldLocal::ModelTrace( modelTrace_t& trace, qhandle_t entityHandle
 			}
 		}
 		
-		auto localTrace = R_LocalTrace( localStart, localEnd, radius, surf->geometry );
+		auto localTrace = surf->geometry->LocalTrace( localStart, localEnd, radius );
 		
 		if( localTrace.fraction < trace.fraction )
 		{
@@ -1528,10 +1527,7 @@ bool idRenderWorldLocal::Trace( modelTrace_t& trace, const idVec3& start, const 
 					}
 				}
 #endif
-				
-				const srfTriangles_t* tri = surf->geometry;
-				
-				bounds.FromTransformedBounds( tri->bounds, def->parms.origin, def->parms.axis );
+				bounds.FromTransformedBounds( surf->geometry->bounds, def->parms.origin, def->parms.axis );
 				
 				// if triangle bounds do not overlap with the trace bounds
 				if( !traceBounds.IntersectsBounds( bounds ) || !bounds.LineIntersection( start, trace.point ) )
@@ -1550,7 +1546,7 @@ bool idRenderWorldLocal::Trace( modelTrace_t& trace, const idVec3& start, const 
 				modelMatrix.InverseTransformPoint( start, localStart );
 				modelMatrix.InverseTransformPoint( end, localEnd );
 				
-				auto localTrace = R_LocalTrace( localStart, localEnd, radius, surf->geometry );
+				auto localTrace = surf->geometry->LocalTrace( localStart, localEnd, radius );
 				
 				if( localTrace.fraction < trace.fraction )
 				{

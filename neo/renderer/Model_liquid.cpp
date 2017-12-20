@@ -67,7 +67,7 @@ idRenderModelLiquid::GenerateSurface
 */
 modelSurface_t idRenderModelLiquid::GenerateSurface( float lerp )
 {
-	srfTriangles_t*	tri;
+	idTriangles*	tri;
 	int				i, base;
 	idDrawVert*		vert;
 	modelSurface_t	surf;
@@ -84,7 +84,7 @@ modelSurface_t idRenderModelLiquid::GenerateSurface( float lerp )
 	tr.pc.c_deformedVerts += deformInfo->numOutputVerts;
 	tr.pc.c_deformedIndexes += deformInfo->numIndexes;
 	
-	tri = R_AllocStaticTriSurf();
+	tri = idTriangles::AllocStatic();
 	
 	// note that some of the data is references, and should not be freed
 	tri->referencedIndexes = true;
@@ -100,7 +100,7 @@ modelSurface_t idRenderModelLiquid::GenerateSurface( float lerp )
 	tri->silEdges = deformInfo->silEdges;
 	
 	tri->numVerts = deformInfo->numOutputVerts;
-	R_AllocStaticTriSurfVerts( tri, tri->numVerts );
+	tri->AllocStaticVerts( tri->numVerts );
 	SIMDProcessor->Memcpy( tri->verts, verts.Ptr(), deformInfo->numSourceVerts * sizeof( tri->verts[0] ) );
 	
 	// replicate the mirror seam vertexes
@@ -110,7 +110,7 @@ modelSurface_t idRenderModelLiquid::GenerateSurface( float lerp )
 		tri->verts[base + i] = tri->verts[deformInfo->mirroredVerts[i]];
 	}
 	
-	R_BoundTriSurf( tri );
+	tri->DeriveBounds();
 	
 	surf.geometry	= tri;
 	surf.shader		= shader;

@@ -160,16 +160,16 @@ idRenderModel* idRenderModelPrt::InstantiateDynamicModel( const struct renderEnt
 		if( staticModel->FindSurfaceWithId( stageNum, surfaceNum ) )
 		{
 			surf = &staticModel->surfaces[surfaceNum];
-			R_FreeStaticTriSurfVertexCaches( surf->geometry );
+			surf->geometry->FreeStaticVertexCaches();
 		}
 		else
 		{
 			surf = &staticModel->surfaces.Alloc();
 			surf->id = stageNum;
 			surf->shader = stage->material;
-			surf->geometry = R_AllocStaticTriSurf();
-			R_AllocStaticTriSurfVerts( surf->geometry, 4 * count );
-			R_AllocStaticTriSurfIndexes( surf->geometry, 6 * count );
+			surf->geometry = idTriangles::AllocStatic();
+			surf->geometry->AllocStaticVerts( 4 * count );
+			surf->geometry->AllocStaticIndexes( 6 * count );
 		}
 		
 		int numVerts = 0;

@@ -485,7 +485,6 @@ idMD5Mesh::UpdateSurface
 void idMD5Mesh::UpdateSurface( const struct renderEntity_s* ent, const idJointMat* entJoints,
 							   const idJointMat* entJointsInverted, modelSurface_t* surf )
 {
-
 	tr.pc.c_deformedSurfaces++;
 	tr.pc.c_deformedVerts += deformInfo->numOutputVerts;
 	tr.pc.c_deformedIndexes += deformInfo->numIndexes;
@@ -497,20 +496,20 @@ void idMD5Mesh::UpdateSurface( const struct renderEntity_s* ent, const idJointMa
 		// if the number of verts and indexes are the same we can re-use the triangle surface
 		if( surf->geometry->numVerts == deformInfo->numOutputVerts && surf->geometry->numIndexes == deformInfo->numIndexes )
 		{
-			R_FreeStaticTriSurfVertexCaches( surf->geometry );
+			surf->geometry->FreeStaticVertexCaches();
 		}
 		else
 		{
-			R_FreeStaticTriSurf( surf->geometry );
-			surf->geometry = R_AllocStaticTriSurf();
+			idTriangles::FreeStatic( surf->geometry );
+			surf->geometry = idTriangles::AllocStatic();
 		}
 	}
 	else
 	{
-		surf->geometry = R_AllocStaticTriSurf();
+		surf->geometry = idTriangles::AllocStatic();
 	}
 	
-	srfTriangles_t* tri = surf->geometry;
+	auto * tri = surf->geometry;
 	
 	// note that some of the data is referenced, and should not be freed
 	tri->referencedIndexes = true;
@@ -533,7 +532,7 @@ void idMD5Mesh::UpdateSurface( const struct renderEntity_s* ent, const idJointMa
 	{
 		if( tri->verts != NULL && tri->verts != deformInfo->verts )
 		{
-			R_FreeStaticTriSurfVerts( tri );
+			tri->FreeStaticVerts();
 		}
 		tri->verts = deformInfo->verts;
 		tri->ambientCache = deformInfo->staticAmbientCache;
@@ -545,7 +544,7 @@ void idMD5Mesh::UpdateSurface( const struct renderEntity_s* ent, const idJointMa
 		if( tri->verts == NULL || tri->verts == deformInfo->verts )
 		{
 			tri->verts = NULL;
-			R_AllocStaticTriSurfVerts( tri, deformInfo->numOutputVerts );
+			tri->AllocStaticVerts( deformInfo->numOutputVerts );
 			assert( tri->verts != NULL );	// quiet analyze warning
 			memcpy( tri->verts, deformInfo->verts, deformInfo->numOutputVerts * sizeof( deformInfo->verts[0] ) );	// copy over the texture coordinates
 		}
@@ -802,20 +801,20 @@ bool idRenderModelMD5::LoadBinaryModel( idFile* file, const ID_TIME_T sourceTime
 		file->ReadBig( deform.numDupVerts );
 		file->ReadBig( deform.numSilEdges );
 		
-		srfTriangles_t	tri;
-		memset( &tri, 0, sizeof( srfTriangles_t ) );
+		idTriangles	tri;
+		tri.Clear();
 		
 		if( deform.numOutputVerts > 0 )
 		{
-			R_AllocStaticTriSurfVerts( &tri, deform.numOutputVerts );
+			tri.AllocStaticVerts( deform.numOutputVerts );
 			deform.verts = tri.verts;
 			file->ReadBigArray( deform.verts, deform.numOutputVerts );
 		}
 		
 		if( deform.numIndexes > 0 )
 		{
-			R_AllocStaticTriSurfIndexes( &tri, deform.numIndexes );
-			R_AllocStaticTriSurfSilIndexes( &tri, deform.numIndexes );
+			tri.AllocStaticIndexes( deform.numIndexes );
+			tri.AllocStaticSilIndexes( deform.numIndexes );
 			deform.indexes = tri.indexes;
 			deform.silIndexes = tri.silIndexes;
 			file->ReadBigArray( deform.indexes, deform.numIndexes );
@@ -824,21 +823,21 @@ bool idRenderModelMD5::LoadBinaryModel( idFile* file, const ID_TIME_T sourceTime
 		
 		if( deform.numMirroredVerts > 0 )
 		{
-			R_AllocStaticTriSurfMirroredVerts( &tri, deform.numMirroredVerts );
+			tri.AllocStaticMirroredVerts( deform.numMirroredVerts );
 			deform.mirroredVerts = tri.mirroredVerts;
 			file->ReadBigArray( deform.mirroredVerts, deform.numMirroredVerts );
 		}
 		
 		if( deform.numDupVerts > 0 )
 		{
-			R_AllocStaticTriSurfDupVerts( &tri, deform.numDupVerts );
+			tri.AllocStaticDupVerts( deform.numDupVerts );
 			deform.dupVerts = tri.dupVerts;
 			file->ReadBigArray( deform.dupVerts, deform.numDupVerts * 2 );
 		}
 		
 		if( deform.numSilEdges > 0 )
 		{
-			R_AllocStaticTriSurfSilEdges( &tri, deform.numSilEdges );
+			tri.AllocStaticSilEdges( deform.numSilEdges );
 			deform.silEdges = tri.silEdges;
 			assert( deform.silEdges != NULL );
 			for( int j = 0; j < deform.numSilEdges; j++ )

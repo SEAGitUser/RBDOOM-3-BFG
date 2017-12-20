@@ -2464,7 +2464,7 @@ void Cmd_NextGUI_f( const idCmdArgs& args )
 	bool					newEnt;
 	renderEntity_t*			renderEnt;
 	int						surfIndex;
-	srfTriangles_t*			geom;
+	idTriangles*			geom;
 	idVec3					normal;
 	idVec3					center;
 	const modelSurface_t*	surfaces[ MAX_RENDERENTITY_GUI ];

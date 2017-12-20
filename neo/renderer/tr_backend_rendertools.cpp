@@ -847,7 +847,7 @@ static void RB_ShowSilhouette()
 			{
 				RB_SimpleSurfaceSetup( surf );
 				
-				const srfTriangles_t* tri = surf->frontEndGeo;
+				const idTriangles* tri = surf->frontEndGeo;
 				
 				idVertexBuffer vertexBuffer;
 				if( !vertexCache.GetVertexBuffer( tri->shadowCache, &vertexBuffer ) )
@@ -1141,7 +1141,7 @@ static void RB_ShowTexturePolarity( drawSurf_t** drawSurfs, int numDrawSurfs )
 {
 	int		i, j;
 	drawSurf_t*	drawSurf;
-	const srfTriangles_t*	tri;
+	const idTriangles*	tri;
 	
 	if( !r_showTexturePolarity.GetBool() )
 	{
@@ -1220,7 +1220,7 @@ static void RB_ShowUnsmoothedTangents( drawSurf_t** drawSurfs, int numDrawSurfs 
 {
 	int		i, j;
 	drawSurf_t*	drawSurf;
-	const srfTriangles_t*	tri;
+	const idTriangles*	tri;
 	
 	if( !r_showUnsmoothedTangents.GetBool() )
 	{
@@ -1282,7 +1282,7 @@ static void RB_ShowTangentSpace( drawSurf_t** drawSurfs, int numDrawSurfs )
 {
 	int		i, j;
 	drawSurf_t*	drawSurf;
-	const srfTriangles_t*	tri;
+	const idTriangles*	tri;
 	
 	if( !r_showTangentSpace.GetInteger() )
 	{
@@ -1348,7 +1348,7 @@ static void RB_ShowVertexColor( drawSurf_t** drawSurfs, int numDrawSurfs )
 {
 	int		i, j;
 	drawSurf_t*	drawSurf;
-	const srfTriangles_t*	tri;
+	const idTriangles*	tri;
 	
 	if( !r_showVertexColor.GetBool() )
 	{
@@ -1404,7 +1404,7 @@ static void RB_ShowNormals( drawSurf_t** drawSurfs, int numDrawSurfs )
 	int			i, j;
 	drawSurf_t*	drawSurf;
 	idVec3		end;
-	const srfTriangles_t*	tri;
+	const idTriangles*	tri;
 	float		size;
 	bool		showNumbers;
 	idVec3		pos;
@@ -1534,7 +1534,7 @@ static void RB_AltShowNormals( drawSurf_t** drawSurfs, int numDrawSurfs )
 		
 		RB_SimpleSurfaceSetup( drawSurf );
 		
-		const srfTriangles_t* tri = drawSurf->geo;
+		const idTriangles* tri = drawSurf->geo;
 		
 		glBegin( GL_LINES );
 		for( int j = 0; j < tri->numIndexes; j += 3 )
@@ -1604,7 +1604,7 @@ static void RB_ShowTextureVectors( drawSurf_t** drawSurfs, int numDrawSurfs )
 	{
 		drawSurf_t* drawSurf = drawSurfs[i];
 		
-		const srfTriangles_t* tri = drawSurf->frontEndGeo;
+		const idTriangles* tri = drawSurf->frontEndGeo;
 		
 		if( tri == NULL || tri->verts == NULL )
 		{
@@ -1695,7 +1695,7 @@ static void RB_ShowDominantTris( drawSurf_t** drawSurfs, int numDrawSurfs )
 {
 	int			i, j;
 	drawSurf_t*	drawSurf;
-	const srfTriangles_t*	tri;
+	const idTriangles*	tri;
 	
 	if( !r_showDominantTri.GetBool() )
 	{
@@ -1761,7 +1761,7 @@ static void RB_ShowEdges( drawSurf_t** drawSurfs, int numDrawSurfs )
 {
 	int			i, j, k, m, n, o;
 	drawSurf_t*	drawSurf;
-	const srfTriangles_t*	tri;
+	const idTriangles*	tri;
 	const silEdge_t*			edge;
 	int			danglePlane;
 	
@@ -3058,7 +3058,7 @@ void RB_ShowShadowMaps()
 RB_DrawExpandedTriangles
 =================
 */
-void RB_DrawExpandedTriangles( const srfTriangles_t* tri, const float radius, const idVec3& vieworg )
+void RB_DrawExpandedTriangles( const idTriangles* tri, const float radius, const idVec3& vieworg )
 {
 	int i, j, k;
 	idVec3 dir[6], normal, point;
@@ -3131,14 +3131,8 @@ Debug visualization
 FIXME: not thread safe!
 ================
 */
-void RB_ShowTrace( drawSurf_t** drawSurfs, int numDrawSurfs )
+static void RB_ShowTrace( const drawSurf_t* const* drawSurfs, int numDrawSurfs )
 {
-	int						i;
-	const srfTriangles_t*	tri;
-	const drawSurf_t*		surf;
-	idVec3					localStart, localEnd;
-	localTrace_t			hit;
-
 	if( r_showTrace.GetInteger() == 0 )
 	{
 		return;
@@ -3146,7 +3140,6 @@ void RB_ShowTrace( drawSurf_t** drawSurfs, int numDrawSurfs )
 	
 	float radius = ( r_showTrace.GetInteger() == 2 )? 5.0f : 0.0f;
 
-	
 	// determine the points of the trace
 	idVec3 start = backEnd.viewDef->GetOrigin();
 	idVec3 end = start + 4000 * backEnd.viewDef->GetAxis()[0];
@@ -3155,15 +3148,17 @@ void RB_ShowTrace( drawSurf_t** drawSurfs, int numDrawSurfs )
 	globalImages->whiteImage->Bind();
 	
 	// find how many are ambient
-	for( i = 0; i < numDrawSurfs; i++ )
+	for( int i = 0; i < numDrawSurfs; i++ )
 	{
-		surf = drawSurfs[i];
-		tri = surf->frontEndGeo;
+		auto surf = drawSurfs[i];
+		auto tri = surf->frontEndGeo;
 		
 		if( tri == NULL || tri->verts == NULL )
 		{
 			continue;
 		}
+
+		idVec3 localStart, localEnd;
 
 		// transform the points into local space
 		surf->space->modelMatrix.InverseTransformPoint( start, localStart );
@@ -3197,7 +3192,7 @@ void RB_ShowTrace( drawSurf_t** drawSurfs, int numDrawSurfs )
 		}
 		
 		// check the exact surfaces
-		hit = R_LocalTrace( localStart, localEnd, radius, tri );
+		auto hit = tri->LocalTrace( localStart, localEnd, radius );
 		if( hit.fraction < 1.0 )
 		{
 			GL_Color( 1, 1, 1, 1 );

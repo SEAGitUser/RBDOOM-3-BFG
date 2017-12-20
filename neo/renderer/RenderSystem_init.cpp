@@ -2690,10 +2690,10 @@ void idRenderSystemLocal::Clear()
 R_MakeFullScreenTris
 =============
 */
-static srfTriangles_t* R_MakeFullScreenTris()
+static idTriangles* R_MakeFullScreenTris()
 {
 	// copy verts and indexes
-	srfTriangles_t* tri = ( srfTriangles_t* )Mem_ClearedAlloc( sizeof( *tri ), TAG_RENDER_TOOLS );
+	idTriangles* tri = ( idTriangles* )Mem_ClearedAlloc( sizeof( *tri ), TAG_RENDER_TOOLS );
 	
 	tri->numIndexes = 6;
 	tri->numVerts = 4;
@@ -2741,9 +2741,9 @@ static srfTriangles_t* R_MakeFullScreenTris()
 R_MakeZeroOneCubeTris
 =============
 */
-static srfTriangles_t* R_MakeZeroOneCubeTris()
+static idTriangles* R_MakeZeroOneCubeTris()
 {
-	srfTriangles_t* tri = ( srfTriangles_t* )Mem_ClearedAlloc( sizeof( *tri ), TAG_RENDER_TOOLS );
+	idTriangles* tri = ( idTriangles* )Mem_ClearedAlloc( sizeof( *tri ), TAG_RENDER_TOOLS );
 	
 	tri->numVerts = 8;
 	tri->numIndexes = 36;
@@ -2836,9 +2836,9 @@ R_MakeTestImageTriangles
 Initializes the Test Image Triangles
 ================
 */
-srfTriangles_t* R_MakeTestImageTriangles()
+idTriangles* R_MakeTestImageTriangles()
 {
-	srfTriangles_t* tri = ( srfTriangles_t* )Mem_ClearedAlloc( sizeof( *tri ), TAG_RENDER_TOOLS );
+	idTriangles* tri = ( idTriangles* )Mem_ClearedAlloc( sizeof( *tri ), TAG_RENDER_TOOLS );
 	
 	tri->numIndexes = 6;
 	tri->numVerts = 4;

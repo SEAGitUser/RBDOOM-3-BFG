@@ -790,7 +790,7 @@ void PutPrimitivesInAreas( uEntity_t* e )
 			for( i = 0 ; i < model->NumSurfaces() ; i++ )
 			{
 				const modelSurface_t* surface = model->Surface( i );
-				const srfTriangles_t* tri = surface->geometry;
+				const idTriangles* tri = surface->geometry;
 				
 				mapTri_t	mapTri;
 				memset( &mapTri, 0, sizeof( mapTri ) );

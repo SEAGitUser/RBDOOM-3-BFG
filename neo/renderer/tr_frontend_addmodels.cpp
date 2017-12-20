@@ -333,7 +333,7 @@ void R_SetupDrawSurfShader( drawSurf_t* drawSurf, const idMaterial* shader, cons
 R_SetupDrawSurfJoints
 ===================
 */
-void R_SetupDrawSurfJoints( drawSurf_t* drawSurf, const srfTriangles_t* tri, const idMaterial* shader )
+void R_SetupDrawSurfJoints( drawSurf_t* drawSurf, const idTriangles* tri, const idMaterial* shader )
 {
 	// RB: added check wether GPU skinning is available at all
 	if( tri->staticModelWithJoints == NULL || !r_useGPUSkinning.GetBool() || !glConfig.gpuSkinningAvailable )
@@ -590,7 +590,7 @@ void R_AddSingleModel( viewEntity_t* vEntity )
 			continue;
 		}
 		
-		srfTriangles_t* tri = surf->geometry;
+		idTriangles* tri = surf->geometry;
 		if( tri == NULL )
 		{
 			continue;
@@ -730,7 +730,7 @@ void R_AddSingleModel( viewEntity_t* vEntity )
 					if( shader->ReceivesLighting() && !tri->tangentsCalculated )
 					{
 						assert( tri->staticModelWithJoints == NULL );
-						R_DeriveTangents( tri );
+						tri->DeriveTangents();
 						
 						// RB: this was hit by parametric particle models ..
 						//assert( false );	// this should no longer be hit
@@ -1077,7 +1077,7 @@ void R_AddSingleModel( viewEntity_t* vEntity )
 							if( shader->ReceivesLighting() && !tri->tangentsCalculated )
 							{
 								assert( tri->staticModelWithJoints == NULL );
-								R_DeriveTangents( tri );
+								tri->DeriveTangents();
 								
 								// RB: this was hit by parametric particle models ..
 								//assert( false );	// this should no longer be hit

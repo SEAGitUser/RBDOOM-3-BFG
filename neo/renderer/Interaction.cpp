@@ -50,7 +50,7 @@ the number of surface triangles, which will be used to handle dangling
 edge silhouettes.
 ================
 */
-void R_CalcInteractionFacing( const idRenderEntityLocal* ent, const srfTriangles_t* tri, const idRenderLightLocal* light, srfCullInfo_t& cullInfo )
+void R_CalcInteractionFacing( const idRenderEntityLocal* ent, const idTriangles* tri, const idRenderLightLocal* light, srfCullInfo_t& cullInfo )
 {
 	SCOPED_PROFILE_EVENT( "R_CalcInteractionFacing" );
 	
@@ -91,7 +91,7 @@ at the border. We throw things out on the border, because if any one
 vertex is clearly inside, the entire triangle will be accepted.
 =====================
 */
-void R_CalcInteractionCullBits( const idRenderEntityLocal* ent, const srfTriangles_t* tri, const idRenderLightLocal* light, srfCullInfo_t& cullInfo )
+void R_CalcInteractionCullBits( const idRenderEntityLocal* ent, const idTriangles* tri, const idRenderLightLocal* light, srfCullInfo_t& cullInfo )
 {
 	SCOPED_PROFILE_EVENT( "R_CalcInteractionCullBits" );
 	
@@ -176,8 +176,8 @@ The resulting surface will be a subset of the original triangles,
 it will never clip triangles, but it may cull on a per-triangle basis.
 ====================
 */
-static srfTriangles_t* R_CreateInteractionLightTris( const idRenderEntityLocal* ent,
-		const srfTriangles_t* tri, const idRenderLightLocal* light,
+static idTriangles* R_CreateInteractionLightTris( const idRenderEntityLocal* ent,
+		const idTriangles* tri, const idRenderLightLocal* light,
 		const idMaterial* shader )
 {
 
@@ -186,7 +186,7 @@ static srfTriangles_t* R_CreateInteractionLightTris( const idRenderEntityLocal* 
 	int			i;
 	int			numIndexes;
 	triIndex_t*	indexes;
-	srfTriangles_t*	newTri;
+	idTriangles*	newTri;
 	int			c_backfaced;
 	int			c_distance;
 	idBounds	bounds;
@@ -212,14 +212,14 @@ static srfTriangles_t* R_CreateInteractionLightTris( const idRenderEntityLocal* 
 	}
 	
 	// allocate a new surface for the lit triangles
-	newTri = R_AllocStaticTriSurf();
+	newTri = idTriangles::AllocStatic();
 	
 	// save a reference to the original surface
-	newTri->ambientSurface = const_cast<srfTriangles_t*>( tri );
+	newTri->ambientSurface = const_cast<idTriangles*>( tri );
 	
 	// the light surface references the verts of the ambient surface
 	newTri->numVerts = tri->numVerts;
-	R_ReferenceStaticTriSurfVerts( newTri, tri );
+	newTri->ReferenceStaticVerts( tri );
 	
 	// calculate cull information
 	srfCullInfo_t cullInfo = {};
@@ -242,7 +242,7 @@ static srfTriangles_t* R_CreateInteractionLightTris( const idRenderEntityLocal* 
 			// the whole surface is lit so the light surface just references the indexes of the ambient surface
 			newTri->indexes = tri->indexes;
 			newTri->indexCache = tri->indexCache;
-//			R_ReferenceStaticTriSurfIndexes( newTri, tri );
+//			newTri->ReferenceStaticIndexes( tri );
 
 			numIndexes = tri->numIndexes;
 			bounds = tri->bounds;
@@ -253,7 +253,7 @@ static srfTriangles_t* R_CreateInteractionLightTris( const idRenderEntityLocal* 
 		
 			// the light tris indexes are going to be a subset of the original indexes so we generally
 			// allocate too much memory here but we decrease the memory block when the number of indexes is known
-			R_AllocStaticTriSurfIndexes( newTri, tri->numIndexes );
+			newTri->AllocStaticIndexes( tri->numIndexes );
 			
 			// back face cull the individual triangles
 			indexes = newTri->indexes;
@@ -276,7 +276,7 @@ static srfTriangles_t* R_CreateInteractionLightTris( const idRenderEntityLocal* 
 			
 			// decrease the size of the memory block to the size of the number of used indexes
 			newTri->numIndexes = numIndexes;
-			R_ResizeStaticTriSurfIndexes( newTri, numIndexes );
+			newTri->ResizeStaticIndexes( numIndexes );
 		}
 		
 	}
@@ -285,7 +285,7 @@ static srfTriangles_t* R_CreateInteractionLightTris( const idRenderEntityLocal* 
 	
 		// the light tris indexes are going to be a subset of the original indexes so we generally
 		// allocate too much memory here but we decrease the memory block when the number of indexes is known
-		R_AllocStaticTriSurfIndexes( newTri, tri->numIndexes );
+		newTri->AllocStaticIndexes( tri->numIndexes );
 		
 		// cull individual triangles
 		indexes = newTri->indexes;
@@ -331,7 +331,7 @@ static srfTriangles_t* R_CreateInteractionLightTris( const idRenderEntityLocal* 
 		
 		// decrease the size of the memory block to the size of the number of used indexes
 		newTri->numIndexes = numIndexes;
-		R_ResizeStaticTriSurfIndexes( newTri, numIndexes );
+		newTri->ResizeStaticIndexes( numIndexes );
 	}
 	
 	// free the cull information when it's no longer needed
@@ -339,7 +339,7 @@ static srfTriangles_t* R_CreateInteractionLightTris( const idRenderEntityLocal* 
 	
 	if( !numIndexes )
 	{
-		R_FreeStaticTriSurf( newTri );
+		idTriangles::FreeStatic( newTri );
 		return NULL;
 	}
 	
@@ -359,8 +359,8 @@ a triangle outside the light frustum is considered facing and the "fake triangle
 the outside of the dangling edge is also set to facing: cullInfo.facing[numFaces] = 1;
 =====================
 */
-static srfTriangles_t* R_CreateInteractionShadowVolume( const idRenderEntityLocal* ent,
-		const srfTriangles_t* tri, const idRenderLightLocal* light )
+static idTriangles* R_CreateInteractionShadowVolume( const idRenderEntityLocal* ent,
+		const idTriangles* tri, const idRenderLightLocal* light )
 {
 	SCOPED_PROFILE_EVENT( "R_CreateInteractionShadowVolume" );
 	
@@ -419,12 +419,12 @@ static srfTriangles_t* R_CreateInteractionShadowVolume( const idRenderEntityLoca
 	}
 	
 	// shadowVerts will be NULL on these surfaces, so the shadowVerts will be taken from the ambient surface
-	srfTriangles_t* newTri = R_AllocStaticTriSurf();
+	auto newTri = idTriangles::AllocStatic();
 	
 	newTri->numVerts = tri->numVerts * 2;
 	
 	// alloc the max possible size
-	R_AllocStaticTriSurfIndexes( newTri, ( numShadowingFaces + tri->numSilEdges ) * 6 );
+	newTri->AllocStaticIndexes( ( numShadowingFaces + tri->numSilEdges ) * 6 );
 	triIndex_t* tempIndexes = newTri->indexes;
 	triIndex_t* shadowIndexes = newTri->indexes;
 	
@@ -465,7 +465,7 @@ static srfTriangles_t* R_CreateInteractionShadowVolume( const idRenderEntityLoca
 	newTri->shadowCapPlaneBits = SHADOW_CAP_INFINITE;
 	
 	// decrease the size of the memory block to only store the used indexes
-	// R_ResizeStaticTriSurfIndexes( newTri, newTri->numIndexes );
+	// newTri->ResizeStaticIndexes( newTri->numIndexes );
 	
 	// these have no effect, because they extend to infinity
 	newTri->bounds.Clear();
@@ -785,7 +785,7 @@ void idInteraction::CreateStaticInteraction()
 	for( int c = 0 ; c < model->NumSurfaces() ; c++ )
 	{
 		const modelSurface_t* surf = model->Surface( c );
-		const srfTriangles_t* tri = surf->geometry;
+		const idTriangles* tri = surf->geometry;
 		if( tri == NULL )
 		{
 			continue;
@@ -813,7 +813,7 @@ void idInteraction::CreateStaticInteraction()
 		// not at least partially inside the light
 		if( shader->ReceivesLighting() )
 		{
-			srfTriangles_t* lightTris = R_CreateInteractionLightTris( entityDef, tri, lightDef, shader );
+			idTriangles* lightTris = R_CreateInteractionLightTris( entityDef, tri, lightDef, shader );
 			if( lightTris != NULL )
 			{
 				// make a static index cache
@@ -821,7 +821,7 @@ void idInteraction::CreateStaticInteraction()
 				sint->lightTrisIndexCache = vertexCache.AllocStaticIndex( lightTris->indexes, ALIGN( lightTris->numIndexes * sizeof( lightTris->indexes[0] ), INDEX_CACHE_ALIGN ) );
 				
 				interactionGenerated = true;
-				R_FreeStaticTriSurf( lightTris );
+				idTriangles::FreeStatic( lightTris );
 			}
 		}
 		
@@ -832,7 +832,7 @@ void idInteraction::CreateStaticInteraction()
 			// if the light has an optimized shadow volume, don't create shadows for any models that are part of the base areas
 			if( lightDef->parms.prelightModel == NULL || !model->IsStaticWorldModel() || r_skipPrelightShadows.GetBool() )
 			{
-				srfTriangles_t* shadowTris = R_CreateInteractionShadowVolume( entityDef, tri, lightDef );
+				idTriangles* shadowTris = R_CreateInteractionShadowVolume( entityDef, tri, lightDef );
 				if( shadowTris != NULL )
 				{
 					// make a static index cache
@@ -853,7 +853,7 @@ void idInteraction::CreateStaticInteraction()
 					{
 						sint->numShadowIndexesNoCaps = shadowTris->numShadowIndexesNoCaps;
 					}
-					R_FreeStaticTriSurf( shadowTris );
+					idTriangles::FreeStatic( shadowTris );
 				}
 				interactionGenerated = true;
 			}

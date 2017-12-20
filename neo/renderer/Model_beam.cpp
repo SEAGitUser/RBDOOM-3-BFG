@@ -70,7 +70,7 @@ idRenderModelBeam::InstantiateDynamicModel
 idRenderModel* idRenderModelBeam::InstantiateDynamicModel( const struct renderEntity_s* renderEntity, const idRenderView* viewDef, idRenderModel* cachedModel )
 {
 	idRenderModelStatic* staticModel;
-	srfTriangles_t* tri;
+	idTriangles* tri;
 	modelSurface_t surf;
 	
 	if( cachedModel )
@@ -86,25 +86,22 @@ idRenderModel* idRenderModelBeam::InstantiateDynamicModel( const struct renderEn
 	}
 	
 	if( cachedModel != NULL )
-	{
-	
+	{	
 		assert( dynamic_cast<idRenderModelStatic*>( cachedModel ) != NULL );
 		assert( idStr::Icmp( cachedModel->Name(), beam_SnapshotName ) == 0 );
 		
 		staticModel = static_cast<idRenderModelStatic*>( cachedModel );
 		surf = *staticModel->Surface( 0 );
-		tri = surf.geometry;
-		
+		tri = surf.geometry;		
 	}
 	else
-	{
-	
+	{	
 		staticModel = new( TAG_MODEL ) idRenderModelStatic;
 		staticModel->InitEmpty( beam_SnapshotName );
 		
-		tri = R_AllocStaticTriSurf();
-		R_AllocStaticTriSurfVerts( tri, 4 );
-		R_AllocStaticTriSurfIndexes( tri, 6 );
+		tri = idTriangles::AllocStatic();
+		tri->AllocStaticVerts( 4 );
+		tri->AllocStaticIndexes( 6 );
 		
 		tri->verts[0].Clear();
 		tri->verts[0].SetTexCoord( 0, 0 );
@@ -191,7 +188,7 @@ idRenderModel* idRenderModelBeam::InstantiateDynamicModel( const struct renderEn
 	tri->verts[3].color[2] = blue;
 	tri->verts[3].color[3] = alpha;
 	
-	R_BoundTriSurf( tri );
+	tri->DeriveBounds();
 	
 	staticModel->bounds = tri->bounds;
 	

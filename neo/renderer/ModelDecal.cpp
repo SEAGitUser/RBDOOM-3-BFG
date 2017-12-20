@@ -499,7 +499,7 @@ void idRenderModelDecal::CreateDecal( const idRenderModel* model, const decalPro
 			continue;
 		}
 		
-		srfTriangles_t* tri = surf->geometry;
+		idTriangles* tri = surf->geometry;
 		
 		// if the triangle bounds do not overlap with the projection bounds
 		if( !localParms.projectionBounds.IntersectsBounds( tri->bounds ) )
@@ -820,7 +820,7 @@ drawSurf_t* idRenderModelDecal::CreateDecalDrawSurf( const viewEntity_t* space, 
 	}
 	
 	// create a new triangle surface in frame memory so it gets automatically disposed of
-	srfTriangles_t* newTri = ( srfTriangles_t* )R_ClearedFrameAlloc( sizeof( *newTri ), FRAME_ALLOC_SURFACE_TRIANGLES );
+	idTriangles* newTri = ( idTriangles* )R_ClearedFrameAlloc( sizeof( *newTri ), FRAME_ALLOC_SURFACE_TRIANGLES );
 	newTri->numVerts = maxVerts;
 	newTri->numIndexes = maxIndexes;
 	

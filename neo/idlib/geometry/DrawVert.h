@@ -117,8 +117,9 @@ class idDrawVert
 	friend class idSwap;
 	friend class idShadowVertSkinned;
 	friend class idRenderModelStatic;
+	friend class idTriangles;
 	
-	friend void TransformVertsAndTangents( idDrawVert* targetVerts, const int numVerts, const idDrawVert* baseVerts, const idJointMat* joints );
+	friend void TransformVertsAndTangents( idDrawVert*, const int, const idDrawVert*, const idJointMat* );
 	
 public:
 	idVec3				xyz;			// 12 bytes
@@ -186,6 +187,11 @@ public:
 	void				SetNativeOrderColor2( dword color );
 	void				ClearColor2();
 	dword				GetColor2() const;
+
+	// Read the contents of idDrawVert from the given file
+	void				ReadFromFile( idFile * );
+	// Write the contents of idDrawVert to the given file
+	void				WriteToFile( idFile * ) const;
 	
 	static idDrawVert	GetSkinnedDrawVert( const idDrawVert& vert, const idJointMat* joints );
 	static idVec3		GetSkinnedDrawVertPosition( const idDrawVert& vert, const idJointMat* joints );

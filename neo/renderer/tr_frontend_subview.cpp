@@ -125,7 +125,7 @@ Returns the plane for the first triangle in the surface
 FIXME: check for degenerate triangle?
 =============
 */
-static void R_PlaneForSurface( const srfTriangles_t* tri, idPlane& plane )
+static void R_PlaneForSurface( const idTriangles* tri, idPlane& plane )
 {
 	idDrawVert* v1 = tri->verts + tri->indexes[0];
 	idDrawVert* v2 = tri->verts + tri->indexes[1];
@@ -146,9 +146,9 @@ Normalized Device Coordinates, so it can be used to crop the scissor rect.
 OPTIMIZE: we could also take exact portal passing into consideration
 =========================
 */
-bool R_PreciseCullSurface( const drawSurf_t* drawSurf, idBounds& ndcBounds )
+bool R_PreciseCullSurface( const drawSurf_t* const drawSurf, idBounds& ndcBounds )
 {
-	const srfTriangles_t* tri = drawSurf->frontEndGeo;
+	const idTriangles* tri = drawSurf->frontEndGeo;
 	
 	unsigned int pointOr = 0;
 	unsigned int pointAnd = ( unsigned int )~0;
@@ -160,12 +160,6 @@ bool R_PreciseCullSurface( const drawSurf_t* drawSurf, idBounds& ndcBounds )
 	const idJointMat* joints = ( tri->staticModelWithJoints != NULL && r_useGPUSkinning.GetBool() && glConfig.gpuSkinningAvailable ) ? tri->staticModelWithJoints->jointsInverted : NULL;
 	// RB end
 
-	///idRenderMatrix modelMatrix;
-	///idRenderMatrix::Transpose( *( idRenderMatrix* )drawSurf->space->modelMatrix, modelMatrix );
-
-	///idRenderMatrix modelViewMatrix;
-	///idRenderMatrix::Transpose( *( idRenderMatrix* )drawSurf->space->modelViewMatrix, modelViewMatrix );
-	
 	for( int i = 0; i < tri->numVerts; i++ )
 	{
 		const idVec3 vXYZ = idDrawVert::GetSkinnedDrawVertPosition( tri->verts[i], joints );
@@ -202,9 +196,9 @@ bool R_PreciseCullSurface( const drawSurf_t* drawSurf, idBounds& ndcBounds )
 	
 	for( int i = 0; i < tri->numIndexes; i += 3 )
 	{
-		const idVec3 v1 = idDrawVert::GetSkinnedDrawVertPosition( tri->verts[ tri->indexes[ i + 0 ] ], joints );
-		const idVec3 v2 = idDrawVert::GetSkinnedDrawVertPosition( tri->verts[ tri->indexes[ i + 1 ] ], joints );
-		const idVec3 v3 = idDrawVert::GetSkinnedDrawVertPosition( tri->verts[ tri->indexes[ i + 2 ] ], joints );
+		const idVec3 v1 = idDrawVert::GetSkinnedDrawVertPosition( tri->GetIVertex( i + 0 ), joints );
+		const idVec3 v2 = idDrawVert::GetSkinnedDrawVertPosition( tri->GetIVertex( i + 1 ), joints );
+		const idVec3 v3 = idDrawVert::GetSkinnedDrawVertPosition( tri->GetIVertex( i + 2 ), joints );
 		
 		// this is a hack, because R_GlobalPointToLocal doesn't work with the non-normalized
 		// axis that we get from the gui view transform.  It doesn't hurt anything, because
@@ -334,7 +328,7 @@ static idRenderView* R_MirrorViewBySurface( const idRenderView * const baseView,
 R_RemoteRender
 ===============
 */
-static void R_RemoteRender( idRenderView * baseView, const drawSurf_t* surf, textureStage_t* stage )
+static void R_RemoteRender( idRenderView * const baseView, const drawSurf_t* surf, textureStage_t* stage )
 {
 	// remote views can be reused in a single frame
 	if( stage->dynamicFrameCount == tr.GetFrameCount() )
@@ -384,7 +378,7 @@ static void R_RemoteRender( idRenderView * baseView, const drawSurf_t* surf, tex
 R_MirrorRender
 =================
 */
-static void R_MirrorRender( idRenderView * baseView, const drawSurf_t* surf, textureStage_t* stage )
+static void R_MirrorRender( idRenderView * const baseView, const drawSurf_t* const surf, textureStage_t* const stage )
 {
 	// remote views can be reused in a single frame
 	if( stage->dynamicFrameCount == tr.GetFrameCount() )
@@ -425,7 +419,7 @@ static void R_MirrorRender( idRenderView * baseView, const drawSurf_t* surf, tex
 R_XrayRender
 =================
 */
-static void R_XrayRender( idRenderView * baseView, const drawSurf_t* surf, textureStage_t* stage )
+static void R_XrayRender( idRenderView * const baseView, const drawSurf_t* const surf, textureStage_t* const stage )
 {
 	// remote views can be reused in a single frame
 	if( stage->dynamicFrameCount == tr.GetFrameCount() )
@@ -467,14 +461,8 @@ static void R_XrayRender( idRenderView * baseView, const drawSurf_t* surf, textu
 R_GenerateSurfaceSubview
 ==================
 */
-static bool R_GenerateSurfaceSubview( idRenderView * baseView, const drawSurf_t * drawSurf )
+static bool R_GenerateSurfaceSubview( idRenderView * const baseView, const drawSurf_t * const drawSurf )
 {
-	// for testing the performance hit
-	if( r_skipSubviews.GetBool() )
-	{
-		return false;
-	}
-	
 	idBounds ndcBounds;
 	if( R_PreciseCullSurface( drawSurf, ndcBounds ) )
 	{
@@ -569,7 +557,7 @@ R_GenerateSubViews
 	would change tr.viewCount.
 ================
 */
-bool R_GenerateSubViews( idRenderView * renderView )
+bool R_GenerateSubViews( idRenderView * const renderView )
 {
 	SCOPED_PROFILE_EVENT( "R_GenerateSubViews" );
 	
@@ -582,18 +570,16 @@ bool R_GenerateSubViews( idRenderView * renderView )
 	// scan the surfaces until we either find a subview, or determine
 	// there are no more subview surfaces.
 	bool subviews = false;
-	for( int i = 0; i < renderView->numDrawSurfs; i++ )
+	for( int i = 0; i < renderView->numDrawSurfs; ++i )
 	{
 		const drawSurf_t * const drawSurf = renderView->drawSurfs[i];
 		
-		if( !drawSurf->material->HasSubview() )
+		if( drawSurf->material->HasSubview() )
 		{
-			continue;
-		}
-		
-		if( R_GenerateSurfaceSubview( renderView, drawSurf ) )
-		{
-			subviews = true;
+			if( R_GenerateSurfaceSubview( renderView, drawSurf ) )
+			{
+				subviews = true;
+			}
 		}
 	}
 	

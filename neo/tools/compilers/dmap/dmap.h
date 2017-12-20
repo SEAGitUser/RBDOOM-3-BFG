@@ -206,7 +206,7 @@ typedef struct
 {
 	idRenderLightLocal	def;
 	char				name[MAX_QPATH];		// for naming the shadow volume surface and interactions
-	srfTriangles_t*		shadowTris;
+	idTriangles*		shadowTris;
 	
 	idPlane				frustumPlanes[6];		// RB: should be calculated after R_DeriveLightData()
 } mapLight_t;
@@ -522,7 +522,7 @@ void		ClipTriList( const mapTri_t* list, const idPlane& plane, float epsilon, ma
 
 int			NumberNodes_r( node_t* node, int nextNumber );
 
-srfTriangles_t*	ShareMapTriVerts( const mapTri_t* tris );
+idTriangles*	ShareMapTriVerts( const mapTri_t* tris );
 void WriteOutputFile();
 
 //=============================================================================

@@ -177,7 +177,7 @@ idRenderModel* idRenderWorldLocal::ParseModel( idLexer* src, const char* mapName
 		
 		( ( idMaterial* )surf.shader )->AddReference();
 		
-		srfTriangles_t* tri = R_AllocStaticTriSurf();
+		auto tri = idTriangles::AllocStatic();
 		surf.geometry = tri;
 		
 		tri->numVerts = src->ParseInt();
@@ -273,7 +273,7 @@ idRenderModel* idRenderWorldLocal::ParseModel( idLexer* src, const char* mapName
 		}
 #endif
 		
-		R_AllocStaticTriSurfVerts( tri, tri->numVerts );
+		tri->AllocStaticVerts( tri->numVerts );
 		for( int j = 0; j < tri->numVerts; j++ )
 		{
 			tri->verts[j].xyz[0] = verts[j * 8 + 0];
@@ -283,7 +283,7 @@ idRenderModel* idRenderWorldLocal::ParseModel( idLexer* src, const char* mapName
 			tri->verts[j].SetNormal( verts[j * 8 + 5], verts[j * 8 + 6], verts[j * 8 + 7] );
 		}
 		
-		R_AllocStaticTriSurfIndexes( tri, tri->numIndexes );
+		tri->AllocStaticIndexes( tri->numIndexes );
 		for( int j = 0; j < tri->numIndexes; j++ )
 		{
 			tri->indexes[j] = indexes[j];
@@ -347,7 +347,7 @@ idRenderModel* idRenderWorldLocal::ParseShadowModel( idLexer* src, idFile* fileO
 		fileOut->WriteString( token );
 	}
 	
-	srfTriangles_t* tri = R_AllocStaticTriSurf();
+	auto tri = idTriangles::AllocStatic();
 	
 	tri->numVerts = src->ParseInt();
 	tri->numShadowIndexesNoCaps = src->ParseInt();
@@ -357,7 +357,7 @@ idRenderModel* idRenderWorldLocal::ParseShadowModel( idLexer* src, idFile* fileO
 	
 	assert( ( tri->numVerts & 1 ) == 0 );
 	
-	R_AllocStaticTriSurfPreLightShadowVerts( tri, ALIGN( tri->numVerts, 2 ) );
+	tri->AllocStaticPreLightShadowVerts( ALIGN( tri->numVerts, 2 ) );
 	tri->bounds.Clear();
 	for( int j = 0; j < tri->numVerts; j++ )
 	{
@@ -380,7 +380,7 @@ idRenderModel* idRenderWorldLocal::ParseShadowModel( idLexer* src, idFile* fileO
 	// to be consistent set the number of vertices to half the number of shadow vertices
 	tri->numVerts = ALIGN( tri->numVerts, 2 ) / 2;
 	
-	R_AllocStaticTriSurfIndexes( tri, tri->numIndexes );
+	tri->AllocStaticIndexes( tri->numIndexes );
 	for( int j = 0; j < tri->numIndexes; j++ )
 	{
 		tri->indexes[j] = src->ParseInt();
@@ -466,8 +466,7 @@ void idRenderWorldLocal::ParseInterAreaPortals( idLexer* src, idFile* fileOut )
 		fileOut->WriteBig( numInterAreaPortals );
 	}
 	
-	doublePortals = ( doublePortal_t* )R_ClearedStaticAlloc( numInterAreaPortals *
-					sizeof( doublePortals [0] ) );
+	doublePortals = ( doublePortal_t* )R_ClearedStaticAlloc( numInterAreaPortals * sizeof( doublePortals [0] ) );
 					
 	for( int i = 0; i < numInterAreaPortals; i++ )
 	{
@@ -1070,9 +1069,8 @@ void idRenderWorldLocal::AddWorldModelEntities()
 	for( int i = 0; i < numPortalAreas; i++ )
 	{
 		common->UpdateLevelLoadPacifier();
-		
-		
-		idRenderEntityLocal*	 def = new( TAG_RENDER_ENTITY ) idRenderEntityLocal;
+				
+		idRenderEntityLocal* def = new( TAG_RENDER_ENTITY ) idRenderEntityLocal;
 		
 		// try and reuse a free spot
 		int index = entityDefs.FindNull();
