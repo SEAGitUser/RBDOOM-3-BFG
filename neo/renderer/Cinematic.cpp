@@ -1523,7 +1523,7 @@ void idCinematicLocal::blitVQQuad32fs( byte** status, unsigned char* data )
 }
 
 #define VQ2TO4(a,b,c,d) { \
-    	*c++ = a[0];	\
+		*c++ = a[0];	\
 	*d++ = a[0];	\
 	*d++ = a[0];	\
 	*c++ = a[1];	\

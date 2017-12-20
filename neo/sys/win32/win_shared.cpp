@@ -212,15 +212,16 @@ char* Sys_GetCurrentUser()
 {
 	static char s_userName[1024];
 	size_t size = sizeof( s_userName );
+	const char * defaultName = "player";
 		
 	if( !GetUserName( s_userName, ( LPDWORD )&size ) )
 	{
-		strcpy( s_userName, "player" );
+		idStr::Copy( s_userName, defaultName );
 	}
 	
 	if( !s_userName[0] )
 	{
-		strcpy( s_userName, "player" );
+		idStr::Copy( s_userName, defaultName );
 	}
 	
 	return s_userName;

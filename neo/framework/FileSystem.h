@@ -53,19 +53,21 @@ If you have questions concerning this license or the applicable additional terms
 static const ID_TIME_T	FILE_NOT_FOUND_TIMESTAMP	= ( ID_TIME_T ) - 1;
 static const int		MAX_OSPATH					= 256;
 
-// modes for OpenFileByMode
-typedef enum
-{
-	FS_READ			= 0,
-	FS_WRITE		= 1,
-	FS_APPEND	= 2
-} fsMode_t;
+typedef idHandle<ID_TIME_T, FILE_NOT_FOUND_TIMESTAMP>   idTimestamp;
 
-typedef enum
+// modes for OpenFileByMode
+enum fsMode_t
+{
+	FS_READ		= 0,
+	FS_WRITE	= 1,
+	FS_APPEND	= 2
+} ;
+
+enum findFile_t
 {
 	FIND_NO,
 	FIND_YES
-} findFile_t;
+};
 
 // file list for directory listings
 class idFileList
@@ -162,7 +164,7 @@ public:
 	// Opens a file for writing to a full OS path.
 	virtual idFile* 		OpenExplicitFileWrite( const char* OSPath ) = 0;
 	// opens a zip container
-	virtual idFile_Cached* 		OpenExplicitPakFile( const char* OSPath ) = 0;
+	virtual idFile_Cached* 	OpenExplicitPakFile( const char* OSPath ) = 0;
 	// Closes a file.
 	virtual void			CloseFile( idFile* f ) = 0;
 	// look for a dynamic module

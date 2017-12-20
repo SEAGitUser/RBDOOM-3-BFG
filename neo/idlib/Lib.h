@@ -246,6 +246,9 @@ public:
 #include "sys/sys_assert.h"
 #include "sys/sys_threading.h"
 
+// misc
+#include "Handle.h"
+
 // memory management and arrays
 #include "Heap.h"
 #include "containers/Sort.h"

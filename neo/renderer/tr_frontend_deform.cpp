@@ -908,7 +908,7 @@ static drawSurf_t* R_ParticleDeform( drawSurf_t* surf, bool useArea )
 	int maxStageQuads[MAX_PARTICLE_STAGES] = { 0 };
 	int maxQuads = 0;
 	
-	for( int stageNum = 0; stageNum < particleSystem->stages.Num(); stageNum++ )
+	for( int stageNum = 0; stageNum < particleSystem->stages.Num(); ++stageNum )
 	{
 		idParticleStage* stage = particleSystem->stages[stageNum];
 		
@@ -997,14 +997,14 @@ static drawSurf_t* R_ParticleDeform( drawSurf_t* surf, bool useArea )
 				int inCycleTime = particleAge - particleCycle * stage->cycleMsec;
 				
 				if( renderEntity->shaderParms[SHADERPARM_PARTICLE_STOPTIME] != 0.0f &&
-						g.renderView->time[renderEntity->timeGroup] - inCycleTime >= renderEntity->shaderParms[SHADERPARM_PARTICLE_STOPTIME] * 1000.0f )
+						g.renderView->time[renderEntity->timeGroup] - inCycleTime >= SEC2MS( renderEntity->shaderParms[SHADERPARM_PARTICLE_STOPTIME] ) )
 				{
 					// don't fire any more particles
 					continue;
 				}
 				
 				// supress particles before or after the age clamp
-				g.frac = ( float )inCycleTime / ( stage->particleLife * 1000.0f );
+				g.frac = ( float )inCycleTime / SEC2MS( stage->particleLife );
 				if( g.frac < 0.0f )
 				{
 					// yet to be spawned

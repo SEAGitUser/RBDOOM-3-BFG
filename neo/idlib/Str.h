@@ -51,6 +51,7 @@ enum utf8Encoding_t
 
 // these library functions should not be used for cross platform compatibility
 #define strcmp			idStr::Cmp		// use_idStr_Cmp
+#define strlen			idStr::Length	// returns int instead of size_t
 #define strncmp			use_idStr_Cmpn
 
 #if defined( StrCmpN )
@@ -75,8 +76,6 @@ enum utf8Encoding_t
 
 #define stricmp			idStr::Icmp		// use_idStr_Icmp
 
-#define strlen			idStr::Length
-
 #undef strcasecmp // DG: redefining this without undefining it causes tons of compiler warnings
 
 #define _stricmp		use_idStr_Icmp
@@ -84,14 +83,22 @@ enum utf8Encoding_t
 #define strnicmp		use_idStr_Icmpn
 #define _strnicmp		use_idStr_Icmpn
 #define _memicmp		use_idStr_Icmpn
-
-//#define strcpy( dst, src )	idStr::Copynz( dst, src, idStr::Length( src ) )
+#define StrCmpNI		use_idStr_Icmpn
+#define snprintf		use_idStr_snPrintf
+#define _snprintf		use_idStr_snPrintf
+#define vsnprintf		use_idStr_vsnPrintf
+#define _vsnprintf		use_idStr_vsnPrintf
+#define _vsnwprintf		use_idWStr_vsnPrintf
+#define vsnwprintf		use_idWStr_vsnPrintf
 
 class idVec4;
 
 #ifndef FILE_HASH_SIZE
 #define FILE_HASH_SIZE		1024
 #endif
+
+//const int COLOR_BITS				= 31;	//15;
+extern const int COLOR_BITS;
 
 // color escape character
 const int C_COLOR_ESCAPE			= '^';
@@ -105,6 +112,15 @@ const int C_COLOR_ORANGE			= '6';
 const int C_COLOR_WHITE				= '7';
 const int C_COLOR_GRAY				= '8';
 const int C_COLOR_BLACK				= '9';
+const int C_COLOR_LT_GREY			= ':';
+const int C_COLOR_MD_GREEN			= '<';
+const int C_COLOR_MD_YELLOW			= '=';
+const int C_COLOR_MD_BLUE			= '>';
+const int C_COLOR_MD_RED			= '?';
+const int C_COLOR_LT_ORANGE			= 'A';
+const int C_COLOR_MD_CYAN			= 'B';
+const int C_COLOR_MD_PURPLE			= 'C';
+const int C_COLOR_MAGENTA			= 'D';
 
 // color escape string
 #define S_COLOR_DEFAULT				"^0"
@@ -117,22 +133,36 @@ const int C_COLOR_BLACK				= '9';
 #define S_COLOR_WHITE				"^7"
 #define S_COLOR_GRAY				"^8"
 #define S_COLOR_BLACK				"^9"
+#define S_COLOR_LT_GREY				"^:"
+#define S_COLOR_MD_GREEN			"^<"
+#define S_COLOR_MD_YELLOW			"^="
+#define S_COLOR_MD_BLUE				"^>"
+#define S_COLOR_MD_RED				"^?"
+#define S_COLOR_LT_ORANGE			"^A"
+#define S_COLOR_MD_CYAN				"^B"
+#define S_COLOR_MD_PURPLE			"^C"
+#define S_COLOR_MAGENTA				"^D"
 
 // make idStr a multiple of 16 bytes long
 // don't make too large to keep memory requirements to a minimum
 const int STR_ALLOC_BASE			= 20;
 const int STR_ALLOC_GRAN			= 32;
 
-typedef enum
+enum measure_t
 {
 	MEASURE_SIZE = 0,
 	MEASURE_BANDWIDTH
-} Measure_t;
+};
 
-class idStr
-{
-
+class idStr {
 public:
+	struct hmsFormat_t {
+		hmsFormat_t() : showZeroMinutes( false ), showZeroHours( false ), showZeroSeconds( true ) {}
+		bool showZeroMinutes;
+		bool showZeroHours;
+		bool showZeroSeconds;
+	};
+
 	idStr();
 	idStr( const idStr& text );
 	idStr( const idStr& text, int start, int end );
@@ -145,85 +175,88 @@ public:
 	explicit idStr( const float f );
 	~idStr();
 	
-	size_t				Size() const;
-	const char* 		c_str() const;
-	operator			const char* () const;
-	operator			const char* ();
+	size_t					Size() const;
+	const char* 			c_str() const;
+	operator				const char* () const;
+	operator				const char* ();
 	
-	char				operator[]( int index ) const;
-	char& 				operator[]( int index );
+	char					operator[]( int index ) const;
+	char& 					operator[]( int index );
 	
-	void				operator=( const idStr& text );
-	void				operator=( const char* text );
+	void					operator=( const idStr& text );
+	void					operator=( const char* text );
 	
-	friend idStr		operator+( const idStr& a, const idStr& b );
-	friend idStr		operator+( const idStr& a, const char* b );
-	friend idStr		operator+( const char* a, const idStr& b );
+	friend idStr			operator+( const idStr& a, const idStr& b );
+	friend idStr			operator+( const idStr& a, const char* b );
+	friend idStr			operator+( const char* a, const idStr& b );
 	
-	friend idStr		operator+( const idStr& a, const float b );
-	friend idStr		operator+( const idStr& a, const int b );
-	friend idStr		operator+( const idStr& a, const unsigned b );
-	friend idStr		operator+( const idStr& a, const bool b );
-	friend idStr		operator+( const idStr& a, const char b );
+	friend idStr			operator+( const idStr& a, const float b );
+	friend idStr			operator+( const idStr& a, const int b );
+	friend idStr			operator+( const idStr& a, const unsigned b );
+	friend idStr			operator+( const idStr& a, const bool b );
+	friend idStr			operator+( const idStr& a, const char b );
 	
-	idStr& 				operator+=( const idStr& a );
-	idStr& 				operator+=( const char* a );
-	idStr& 				operator+=( const float a );
-	idStr& 				operator+=( const char a );
-	idStr& 				operator+=( const int a );
-	idStr& 				operator+=( const unsigned a );
-	idStr& 				operator+=( const bool a );
-	
-	// case sensitive compare
-	friend bool			operator==( const idStr& a, const idStr& b );
-	friend bool			operator==( const idStr& a, const char* b );
-	friend bool			operator==( const char* a, const idStr& b );
+	idStr& 					operator+=( const idStr& a );
+	idStr& 					operator+=( const char* a );
+	idStr& 					operator+=( const float a );
+	idStr& 					operator+=( const char a );
+	idStr& 					operator+=( const int a );
+	idStr& 					operator+=( const unsigned a );
+	idStr& 					operator+=( const bool a );
 	
 	// case sensitive compare
-	friend bool			operator!=( const idStr& a, const idStr& b );
-	friend bool			operator!=( const idStr& a, const char* b );
-	friend bool			operator!=( const char* a, const idStr& b );
+	friend bool				operator==( const idStr& a, const idStr& b );
+	friend bool				operator==( const idStr& a, const char* b );
+	friend bool				operator==( const char* a, const idStr& b );
 	
 	// case sensitive compare
-	int					Cmp( const char* text ) const;
-	int					Cmpn( const char* text, int n ) const;
-	int					CmpPrefix( const char* text ) const;
+	friend bool				operator!=( const idStr& a, const idStr& b );
+	friend bool				operator!=( const idStr& a, const char* b );
+	friend bool				operator!=( const char* a, const idStr& b );
+	
+	// case sensitive compare
+	int						Cmp( const char* text ) const;
+	int						Cmpn( const char* text, int n ) const;
+	int						CmpPrefix( const char* text ) const;
 	
 	// case insensitive compare
-	int					Icmp( const char* text ) const;
-	int					Icmpn( const char* text, int n ) const;
-	int					IcmpPrefix( const char* text ) const;
+	int						Icmp( const char* text ) const;
+	int						Icmpn( const char* text, int n ) const;
+	int						IcmpPrefix( const char* text ) const;
 	
 	// case insensitive compare ignoring color
-	int					IcmpNoColor( const char* text ) const;
+	int						IcmpNoColor( const char* text ) const;
 	
 	// compares paths and makes sure folders come first
-	int					IcmpPath( const char* text ) const;
-	int					IcmpnPath( const char* text, int n ) const;
-	int					IcmpPrefixPath( const char* text ) const;
+	int						IcmpPath( const char* text ) const;
+	int						IcmpnPath( const char* text, int n ) const;
+	int						IcmpPrefixPath( const char* text ) const;
 	
-	int					Length() const;
-	int					Allocated() const;
-	void				Empty();
-	bool				IsEmpty() const;
-	void				Clear();
-	void				Append( const char a );
-	void				Append( const idStr& text );
-	void				Append( const char* text );
-	void				Append( const char* text, int len );
-	void				Insert( const char a, int index );
-	void				Insert( const char* text, int index );
-	void				ToLower();
-	void				ToUpper();
-	bool				IsNumeric() const;
-	bool				IsColor() const;
-	bool				HasLower() const;
-	bool				HasUpper() const;
-	int					LengthWithoutColors() const;
-	idStr& 				RemoveColors();
-	void				CapLength( int );
-	void				Fill( const char ch, int newlen );
-	
+	int						Length() const;
+	int						Allocated() const;
+	void					Empty();
+	bool					IsEmpty() const;
+	void					Clear();
+	void					Append( const char a );
+	void					Append( const idStr& text );
+	void					Append( const char* text );
+	void					Append( const char* text, int len );
+	void					Append( int count, const char c );
+	void					Insert( const char a, int index );
+	void					Insert( const char* text, int index );
+	void					ToLower();
+	void					ToUpper();
+	bool					IsNumeric() const;
+	bool					IsColor() const;
+	bool					IsHexColor( void ) const;
+	bool					HasHexColorAlpha( void ) const;
+	bool					HasLower() const;
+	bool					HasUpper() const;
+	int						LengthWithoutColors() const;
+	idStr& 					RemoveColors();
+	void					CapLength( int );
+	void					Fill( const char ch, int newlen );
+
 	ID_INLINE int			UTF8Length();
 	ID_INLINE uint32		UTF8Char( int& idx );
 	static int				UTF8Length( const byte* s );
@@ -232,176 +265,204 @@ public:
 	void					AppendUTF8Char( uint32 c );
 	ID_INLINE void			ConvertToUTF8();
 	static bool				IsValidUTF8( const uint8* s, const int maxLen, utf8Encoding_t& encoding );
-	static ID_INLINE bool	IsValidUTF8( const char* s, const int maxLen, utf8Encoding_t& encoding )
-	{
-		return IsValidUTF8( ( const uint8* )s, maxLen, encoding );
-	}
+	static ID_INLINE bool	IsValidUTF8( const char* s, const int maxLen, utf8Encoding_t& encoding ) { return IsValidUTF8( ( const uint8* )s, maxLen, encoding ); }
 	static ID_INLINE bool	IsValidUTF8( const uint8* s, const int maxLen );
-	static ID_INLINE bool	IsValidUTF8( const char* s, const int maxLen )
-	{
-		return IsValidUTF8( ( const uint8* )s, maxLen );
-	}
+	static ID_INLINE bool	IsValidUTF8( const char* s, const int maxLen ) { return IsValidUTF8( ( const uint8* )s, maxLen ); }
 	
-	int					Find( const char c, int start = 0, int end = -1 ) const;
-	int					Find( const char* text, bool casesensitive = true, int start = 0, int end = -1 ) const;
-	bool				Filter( const char* filter, bool casesensitive ) const;
-	int					Last( const char c ) const;						// return the index to the last occurance of 'c', returns -1 if not found
-	const char* 		Left( int len, idStr& result ) const;			// store the leftmost 'len' characters in the result
-	const char* 		Right( int len, idStr& result ) const;			// store the rightmost 'len' characters in the result
-	const char* 		Mid( int start, int len, idStr& result ) const;	// store 'len' characters starting at 'start' in result
-	idStr				Left( int len ) const;							// return the leftmost 'len' characters
-	idStr				Right( int len ) const;							// return the rightmost 'len' characters
-	idStr				Mid( int start, int len ) const;				// return 'len' characters starting at 'start'
-	void				Format( VERIFY_FORMAT_STRING const char* fmt, ... );					// perform a threadsafe sprintf to the string
-	static idStr		FormatInt( const int num, bool isCash = false );			// formats an integer as a value with commas
-	static idStr		FormatCash( const int num )
-	{
-		return FormatInt( num, true );
-	}
-	void				StripLeading( const char c );					// strip char from front as many times as the char occurs
-	void				StripLeading( const char* string );				// strip string from front as many times as the string occurs
-	bool				StripLeadingOnce( const char* string );			// strip string from front just once if it occurs
-	void				StripTrailing( const char c );					// strip char from end as many times as the char occurs
-	void				StripTrailing( const char* string );			// strip string from end as many times as the string occurs
-	bool				StripTrailingOnce( const char* string );		// strip string from end just once if it occurs
-	void				Strip( const char c );							// strip char from front and end as many times as the char occurs
-	void				Strip( const char* string );					// strip string from front and end as many times as the string occurs
-	void				StripTrailingWhitespace();				// strip trailing white space characters
-	idStr& 				StripQuotes();							// strip quotes around string
-	bool				Replace( const char* old, const char* nw );
-	bool				ReplaceChar( const char old, const char nw );
-	ID_INLINE void		CopyRange( const char* text, int start, int end );
+	int						Find( const char c, int start = 0, int end = INVALID_POSITION ) const;
+	int						Find( const char* text, bool casesensitive = true, int start = 0, int end = INVALID_POSITION ) const;
+	const char*				FindString( const char* text, bool casesensitive = true, int start = 0, int end = INVALID_POSITION ) const;
+	int						CountChar( const char c );
+	bool					Filter( const char* filter, bool casesensitive ) const;
+	int						Last( const char c, int index = INVALID_POSITION ) const;						// return the index to the last occurance of 'c', returns INVALID_POSITION if not found
+	int						Last( const char* str, bool casesensitive = true, int index = INVALID_POSITION ) const;						// return the index to the last occurance of 'c', returns INVALID_POSITION if not found
+	const char* 			Left( int len, idStr& result ) const;			// store the leftmost 'len' characters in the result
+	const char* 			Right( int len, idStr& result ) const;			// store the rightmost 'len' characters in the result
+	const char* 			Mid( int start, int len, idStr& result ) const;	// store 'len' characters starting at 'start' in result
+	idStr					Left( int len ) const;							// return the leftmost 'len' characters
+	idStr					Right( int len ) const;							// return the rightmost 'len' characters
+	idStr					Mid( int start, int len ) const;				// return 'len' characters starting at 'start'
+	void					Format( VERIFY_FORMAT_STRING const char* fmt, ... );					// perform a threadsafe sprintf to the string
+	static idStr			FormatInt( const int num, bool isCash = false );			// formats an integer as a value with commas
+	static idStr			FormatCash( const int num ) { return FormatInt( num, true ); }
 	
-	// file name methods
-	int					FileNameHash() const;						// hash key for the filename (skips extension)
-	idStr& 				BackSlashesToSlashes();					// convert slashes
-	idStr& 				SlashesToBackSlashes();					// convert slashes
-	idStr& 				SetFileExtension( const char* extension );		// set the given file extension
-	idStr& 				StripFileExtension();						// remove any file extension
-	idStr& 				StripAbsoluteFileExtension();				// remove any file extension looking from front (useful if there are multiple .'s)
-	idStr& 				DefaultFileExtension( const char* extension );	// if there's no file extension use the default
-	idStr& 				DefaultPath( const char* basepath );			// if there's no path use the default
-	void				AppendPath( const char* text );					// append a partial path
-	idStr& 				StripFilename();							// remove the filename from a path
-	idStr& 				StripPath();								// remove the path from the filename
-	void				ExtractFilePath( idStr& dest ) const;			// copy the file path to another string
-	void				ExtractFileName( idStr& dest ) const;			// copy the filename to another string
-	void				ExtractFileBase( idStr& dest ) const;			// copy the filename minus the extension to another string
-	void				ExtractFileExtension( idStr& dest ) const;		// copy the file extension to another string
-	bool				CheckExtension( const char* ext );
+	void					StripLeading( const char c );					// strip char from front as many times as the char occurs
+	void					StripLeading( const char* string );				// strip string from front as many times as the string occurs
+	bool					StripLeadingOnce( const char* string );			// strip string from front just once if it occurs
+	void					StripTrailing( const char c );					// strip char from end as many times as the char occurs
+	void					StripTrailing( const char* string );			// strip string from end as many times as the string occurs
+	bool					StripTrailingOnce( const char* string );		// strip string from end just once if it occurs
+	void					Strip( const char c );							// strip char from front and end as many times as the char occurs
+	void					Strip( const char* string );					// strip string from front and end as many times as the string occurs
+	void					StripLeadingWhiteSpace();					// strip leading white space characters
+	void					StripTrailingWhitespace();				// strip trailing white space characters
+	idStr& 					StripQuotes();							// strip quotes around string
+	bool					Replace( const char* old, const char* nw );
+	void					ReplaceFirst( const char *old, const char *nw );
+	bool					ReplaceChar( const char oldChar, const char newChar );
+	void					EraseRange( int start, int len = INVALID_POSITION );
+	void					EraseChar( const char c, int start = 0 );	
+
+	ID_INLINE void			CopyRange( const char* text, int start, int end );
 	
-	// char * methods to replace library functions
-	static int			Length( const char* s );
-	static char* 		ToLower( char* s );
-	static char* 		ToUpper( char* s );
-	static bool			IsNumeric( const char* s );
-	static bool			IsColor( const char* s );
-	static bool			HasLower( const char* s );
-	static bool			HasUpper( const char* s );
-	static int			LengthWithoutColors( const char* s );
-	static char* 		RemoveColors( char* s );
-	static int			Cmp( const char* s1, const char* s2 );
-	static int			Cmpn( const char* s1, const char* s2, int n );
-	static int			Icmp( const char* s1, const char* s2 );
-	static int			Icmpn( const char* s1, const char* s2, int n );
-	static int			IcmpNoColor( const char* s1, const char* s2 );
-	static int			IcmpPath( const char* s1, const char* s2 );			// compares paths and makes sure folders come first
-	static int			IcmpnPath( const char* s1, const char* s2, int n );	// compares paths and makes sure folders come first
-	static void			Append( char* dest, int size, const char* src );
-	static void			Copynz( char* dest, const char* src, int destsize );
-	static int			snPrintf( char* dest, int size, VERIFY_FORMAT_STRING const char* fmt, ... );
-	static int			vsnPrintf( char* dest, int size, const char* fmt, va_list argptr );
-	static int			FindChar( const char* str, const char c, int start = 0, int end = -1 );
-	static int			FindText( const char* str, const char* text, bool casesensitive = true, int start = 0, int end = -1 );
-	static bool			Filter( const char* filter, const char* name, bool casesensitive );
-	static void			StripMediaName( const char* name, idStr& mediaName );
-	static bool			CheckExtension( const char* name, const char* ext );
-	static const char* 	FloatArrayToString( const float* array, const int length, const int precision );
-	static const char* 	CStyleQuote( const char* str );
-	static const char* 	CStyleUnQuote( const char* str );
+	// File name methods
+							
+	int						FileNameHash( const int hashSize = FILE_HASH_SIZE ) const; // hash key for the filename (skips extension)
+	idStr &					CollapsePath();							// where possible removes /../ and /./ from path
+	idStr& 					BackSlashesToSlashes();					// convert slashes
+	idStr& 					SlashesToBackSlashes();					// convert slashes
+	idStr& 					SetFileExtension( const char* extension );		// set the given file extension
+	idStr& 					StripFileExtension();						// remove any file extension
+	idStr& 					StripAbsoluteFileExtension();				// remove any file extension looking from front (useful if there are multiple .'s)
+	idStr& 					DefaultFileExtension( const char* extension );	// if there's no file extension use the default
+	idStr& 					DefaultPath( const char* basepath );			// if there's no path use the default
+	void					AppendPath( const char* text );					// append a partial path
+	idStr& 					StripFilename();							// remove the filename from a path
+	idStr& 					StripPath();								// remove the path from the filename
+	void					ExtractFilePath( idStr& dest ) const;			// copy the file path to another string
+	void					ExtractFileName( idStr& dest ) const;			// copy the filename to another string
+	void					ExtractFileBase( idStr& dest ) const;			// copy the filename minus the extension to another string
+	void					ExtractFileExtension( idStr& dest ) const;		// copy the file extension to another string
+	bool					CheckExtension( const char* ext );
+	idStr&					StripComments();								// remove C++ and C style comments
+	idStr& 					Indent();										// indents brace-delimited text, preserving tabs in the middle of lines
+	idStr& 					Unindent();										// unindents brace-delimited text, preserving tabs in the middle of lines
+	idStr&					CleanFilename();							// strips bad characters
+	bool					IsValidEmailAddress();
+	idStr&					CollapseColors();							// removes redundant color codes
+
+// jscott: like the declManager version, but globally accessible
+	void					MakeNameCanonical();
+
+	// Char * methods to replace library functions
+
+	static int				Length( const char* s );
+	static char* 			ToLower( char* s );
+	static char* 			ToUpper( char* s );
+	static bool				IsNumeric( const char* s );
+	static bool				IsColor( const char* s );
+	static bool				IsHexColor( const char *s );
+	static bool				HasHexColorAlpha( const char *s );
+	static bool				HasLower( const char* s );
+	static bool				HasUpper( const char* s );
+	static int				LengthWithoutColors( const char* s );
+	static char* 			RemoveColors( char* s );
+	static bool				IsBadFilenameChar( char c );
+	static char *			CleanFilename( char *s );
+	static char *			StripFilename( char *s );
+	static char *			StripPath( char *s );
+	static int				Cmp( const char* s1, const char* s2 );
+	static int				Cmpn( const char* s1, const char* s2, int n );
+	static int				Icmp( const char* s1, const char* s2 );
+	static int				Icmpn( const char* s1, const char* s2, int n );
+	static int				IcmpNoColor( const char* s1, const char* s2 );
+	static int				IcmpPath( const char* s1, const char* s2 );			// compares paths and makes sure folders come first
+	static int				IcmpnPath( const char* s1, const char* s2, int n );	// compares paths and makes sure folders come first
+	static void				Append( char* dest, int size, const char* src );
+	static void				Copynz( char* dest, const char* src, int destsize );
+	static void				Copy( char* dest, const char* src );
+	static int				snPrintf( char* dest, int size, VERIFY_FORMAT_STRING const char* fmt, ... );
+	static int				vsnPrintf( char* dest, int size, const char* fmt, va_list argptr );
+	static int				FindChar( const char* str, const char c, int start = 0, int end = INVALID_POSITION );
+	static int				FindText( const char* str, const char* text, bool casesensitive = true, int start = 0, int end = INVALID_POSITION );
+	static const char*		FindString( const char *str, const char *text, bool casesensitive = true, int start = 0, int end = INVALID_POSITION );
+	static int				CountChar( const char *str, const char c );
+	static bool				Filter( const char* filter, const char* name, bool casesensitive );
+	static void				StripMediaName( const char* name, idStr& mediaName );
+	static bool				CheckExtension( const char* name, const char* ext );
+	static const char* 		FloatArrayToString( const float* array, const int length, const int precision );
+	static const char* 		CStyleQuote( const char* str );
+	static const char* 		CStyleUnQuote( const char* str );
+	static void				IndentAndPad( int indent, int pad, idStr &str, const char *fmt, ... );  // indent and pad out formatted text	
+
+	static void				StringToBinaryString( idStr& out, void *pv, int size);
+	static bool				BinaryStringToString( const char* str,  void *pv, int size );
+
+	static bool				IsValidEmailAddress( const char* address );
+
+	static const char*		MS2HMS( double ms, const hmsFormat_t& formatSpec = defaultHMSFormat );
+//	static const char *		FormatInt( const int num );	 // formats an integer as a value with commas
 	
-	// hash keys
-	static int			Hash( const char* string );
-	static int			Hash( const char* string, int length );
-	static int			IHash( const char* string );					// case insensitive
-	static int			IHash( const char* string, int length );		// case insensitive
+	// Hash keys
+
+	static int				Hash( const char* string );
+	static int				Hash( const char* string, int length );
+	static int				IHash( const char* string );					// case insensitive
+	static int				IHash( const char* string, int length );		// case insensitive
+	static int				FileNameHash( const char *string, const int hashSize );	// hash key for the filename (skips extension)
 	
 	// character methods
-	static char			ToLower( char c );
-	static char			ToUpper( char c );
-	static bool			CharIsPrintable( int c );
-	static bool			CharIsLower( int c );
-	static bool			CharIsUpper( int c );
-	static bool			CharIsAlpha( int c );
-	static bool			CharIsNumeric( int c );
-	static bool			CharIsNewLine( char c );
-	static bool			CharIsTab( char c );
-	static int			ColorIndex( int c );
-	static idVec4& 		ColorForIndex( int i );
-	
-	friend int			sprintf( idStr& dest, const char* fmt, ... );
-	friend int			vsprintf( idStr& dest, const char* fmt, va_list ap );
-	
-	void				ReAllocate( int amount, bool keepold );				// reallocate string data buffer
-	void				FreeData();									// free allocated string memory
+	static char				ToLower( char c );
+	static char				ToUpper( char c );
+	static bool				CharIsPrintable( int c );
+	static bool				CharIsLower( int c );
+	static bool				CharIsUpper( int c );
+	static bool				CharIsAlpha( int c );
+	static bool				CharIsNumeric( int c );
+	static bool				CharIsNewLine( char c );
+	static bool				CharIsTab( char c );
+	static bool				CharIsHex( int c );
+	static int				ColorIndex( int c );
+	static const idVec4 &	ColorForIndex( int i );
+	static const idVec4 &	ColorForChar( int c );
+	static const char*		StrForColorIndex( int i );
+	static int				HexForChar( int c );
+
+	friend int				sprintf( idStr &dest, const char *fmt, ... );
+	friend int				vsprintf( idStr &dest, const char *fmt, va_list ap );
+
+	void					ReAllocate( int amount, bool keepold );				// reallocate string data buffer
+	void					FreeData();									// free allocated string memory
 	
 	// format value in the given measurement with the best unit, returns the best unit
-	int					BestUnit( const char* format, float value, Measure_t measure );
+	int						BestUnit( const char* format, float value, measure_t measure );
 	// format value in the requested unit and measurement
-	void				SetUnit( const char* format, float value, int unit, Measure_t measure );
+	void					SetUnit( const char* format, float value, int unit, measure_t measure );
 	
-	static void			InitMemory();
-	static void			ShutdownMemory();
-	static void			PurgeMemory();
-	static void			ShowMemoryUsage_f( const idCmdArgs& args );
+	static void				InitMemory();
+	static void				ShutdownMemory();
+	static void				PurgeMemory();
+	static void				ShowMemoryUsage_f( const idCmdArgs& args );
 	
-	int					DynamicMemoryUsed() const;
-	static idStr		FormatNumber( int number );
-	
+	int						DynamicMemoryUsed() const;
+	static idStr			FormatNumber( int number );
+
+	static void				Test( void );
+
 protected:
-	int					len;
-	char* 				data;
-	int					allocedAndFlag;	// top bit is used to store a flag that indicates if the string data is static or not
-	char				baseBuffer[ STR_ALLOC_BASE ];
+	int						len;
+	char* 					data;
+	int						allocedAndFlag;	// top bit is used to store a flag that indicates if the string data is static or not
+	char					baseBuffer[ STR_ALLOC_BASE ];
 	
-	void				EnsureAlloced( int amount, bool keepold = true );	// ensure string data buffer is large anough
+	void					EnsureAlloced( int amount, bool keepold = true );	// ensure string data buffer is large anough
 	
 	// sets the data point to the specified buffer... note that this ignores makes the passed buffer empty and ignores
 	// anything currently in the idStr's dynamic buffer.  This method is intended to be called only from a derived class's constructor.
-	ID_INLINE void		SetStaticBuffer( char* buffer, const int bufferLength );
+	ID_INLINE void			SetStaticBuffer( char* buffer, const int bufferLength );
 	
+	static hmsFormat_t		defaultHMSFormat;
+
 private:
 	// initialize string using base buffer... call ONLY FROM CONSTRUCTOR
-	ID_INLINE void		Construct();
+	ID_INLINE void			Construct();
 	
-	static const uint32	STATIC_BIT	= 31;
-	static const uint32	STATIC_MASK	= 1u << STATIC_BIT;
-	static const uint32	ALLOCED_MASK = STATIC_MASK - 1;
+	static const uint32		STATIC_BIT	= 31;
+	static const uint32		STATIC_MASK	= 1u << STATIC_BIT;
+	static const uint32		ALLOCED_MASK = STATIC_MASK - 1;
 	
 	
-	ID_INLINE int		GetAlloced() const
-	{
-		return allocedAndFlag & ALLOCED_MASK;
-	}
-	ID_INLINE void		SetAlloced( const int a )
-	{
-		allocedAndFlag = ( allocedAndFlag & STATIC_MASK ) | ( a & ALLOCED_MASK );
-	}
+	ID_INLINE int			GetAlloced() const { return allocedAndFlag & ALLOCED_MASK; }
+	ID_INLINE void			SetAlloced( const int a ) { allocedAndFlag = ( allocedAndFlag & STATIC_MASK ) | ( a & ALLOCED_MASK ); }
 	
-	ID_INLINE bool		IsStatic() const
-	{
-		return ( allocedAndFlag & STATIC_MASK ) != 0;
-	}
-	ID_INLINE void		SetStatic( const bool isStatic )
-	{
-		allocedAndFlag = ( allocedAndFlag & ALLOCED_MASK ) | ( isStatic << STATIC_BIT );
-	}
+	ID_INLINE bool			IsStatic() const { return ( allocedAndFlag & STATIC_MASK ) != 0; }
+	ID_INLINE void			SetStatic( const bool isStatic ) { allocedAndFlag = ( allocedAndFlag & ALLOCED_MASK ) | ( isStatic << STATIC_BIT ); }
 	
 public:
-	static const int	INVALID_POSITION = -1;
+	static const int		INVALID_POSITION = -1;
 };
 
-char* 					va( VERIFY_FORMAT_STRING const char* fmt, ... ) ID_STATIC_ATTRIBUTE_PRINTF( 1, 2 );
+char* 						va( VERIFY_FORMAT_STRING const char* fmt, ... ) ID_STATIC_ATTRIBUTE_PRINTF( 1, 2 );
 
 /*
 ================================================================================================
@@ -531,13 +592,9 @@ ID_INLINE idStr::idStr( const idStr& text, int start, int end )
 ID_INLINE idStr::idStr( const char* text )
 {
 	Construct();
-	int l;
-	
 	if( text )
 	{
-		// RB: 64 bit fixes,  conversion from 'size_t' to 'int', possible loss of data
-		l = ( int )strlen( text );
-		// RB end
+		int l = Length( text );
 		EnsureAlloced( l + 1 );
 		strcpy( data, text );
 		len = l;
@@ -547,10 +604,7 @@ ID_INLINE idStr::idStr( const char* text )
 ID_INLINE idStr::idStr( const char* text, int start, int end )
 {
 	Construct();
-	int i;
-	// RB: 64 bit fixes,  conversion from 'size_t' to 'int', possible loss of data
-	int l = ( int )strlen( text );
-	// RB end
+	int l = Length( text );
 	
 	if( end > l )
 	{
@@ -573,7 +627,7 @@ ID_INLINE idStr::idStr( const char* text, int start, int end )
 	
 	EnsureAlloced( l + 1 );
 	
-	for( i = 0; i < l; i++ )
+	for( int i = 0; i < l; i++ )
 	{
 		data[ i ] = text[ start + i ];
 	}
@@ -616,9 +670,7 @@ ID_INLINE idStr::idStr( const unsigned u )
 {
 	Construct();
 	char text[ 64 ];
-	int l;
-	
-	l = sprintf( text, "%u", u );
+	int l = sprintf( text, "%u", u );
 	EnsureAlloced( l + 1 );
 	strcpy( data, text );
 	len = l;
@@ -628,9 +680,7 @@ ID_INLINE idStr::idStr( const float f )
 {
 	Construct();
 	char text[ 64 ];
-	int l;
-	
-	l = idStr::snPrintf( text, sizeof( text ), "%f", f );
+	int l = idStr::snPrintf( text, sizeof( text ), "%f", f );
 	while( l > 0 && text[l - 1] == '0' ) text[--l] = '\0';
 	while( l > 0 && text[l - 1] == '.' ) text[--l] = '\0';
 	EnsureAlloced( l + 1 );
@@ -677,9 +727,7 @@ ID_INLINE char& idStr::operator[]( int index )
 
 ID_INLINE void idStr::operator=( const idStr& text )
 {
-	int l;
-	
-	l = text.Length();
+	int l = text.Length();
 	EnsureAlloced( l + 1, false );
 	memcpy( data, text.data, l );
 	data[l] = '\0';
@@ -855,55 +903,49 @@ ID_INLINE int idStr::Cmpn( const char* text, int n ) const
 ID_INLINE int idStr::CmpPrefix( const char* text ) const
 {
 	assert( text );
-	// RB: 64 bit fixes,  conversion from 'size_t' to 'int', possible loss of data
-	return idStr::Cmpn( data, text, ( int )strlen( text ) );
-	// RB end
+	return Cmpn( data, text, Length( text ) );
 }
 
 ID_INLINE int idStr::Icmp( const char* text ) const
 {
 	assert( text );
-	return idStr::Icmp( data, text );
+	return Icmp( data, text );
 }
 
 ID_INLINE int idStr::Icmpn( const char* text, int n ) const
 {
 	assert( text );
-	return idStr::Icmpn( data, text, n );
+	return Icmpn( data, text, n );
 }
 
 ID_INLINE int idStr::IcmpPrefix( const char* text ) const
 {
 	assert( text );
-	// RB: 64 bit fixes,  conversion from 'size_t' to 'int', possible loss of data
-	return idStr::Icmpn( data, text, ( int )strlen( text ) );
-	// RB end
+	return Icmpn( data, text, Length( text ) );
 }
 
 ID_INLINE int idStr::IcmpNoColor( const char* text ) const
 {
 	assert( text );
-	return idStr::IcmpNoColor( data, text );
+	return IcmpNoColor( data, text );
 }
 
 ID_INLINE int idStr::IcmpPath( const char* text ) const
 {
 	assert( text );
-	return idStr::IcmpPath( data, text );
+	return IcmpPath( data, text );
 }
 
 ID_INLINE int idStr::IcmpnPath( const char* text, int n ) const
 {
 	assert( text );
-	return idStr::IcmpnPath( data, text, n );
+	return IcmpnPath( data, text, n );
 }
 
 ID_INLINE int idStr::IcmpPrefixPath( const char* text ) const
 {
 	assert( text );
-	// RB: 64 bit fixes,  conversion from 'size_t' to 'int', possible loss of data
-	return idStr::IcmpnPath( data, text, ( int )strlen( text ) );
-	// RB end
+	return IcmpnPath( data, text, Length( text ) );
 }
 
 ID_INLINE int idStr::Length() const
@@ -957,12 +999,9 @@ ID_INLINE void idStr::Append( const char a )
 
 ID_INLINE void idStr::Append( const idStr& text )
 {
-	int newLen;
-	int i;
-	
-	newLen = len + text.Length();
+	int newLen = len + text.Length();
 	EnsureAlloced( newLen + 1 );
-	for( i = 0; i < text.len; i++ )
+	for( int i = 0; i < text.len; i++ )
 	{
 		data[ len + i ] = text[ i ];
 	}
@@ -977,9 +1016,7 @@ ID_INLINE void idStr::Append( const char* text )
 	
 	if( text )
 	{
-		// RB: 64 bit fixes,  conversion from 'size_t' to 'int', possible loss of data
-		newLen = len + ( int )strlen( text );
-		// RB end
+		newLen = len + Length( text );
 		EnsureAlloced( newLen + 1 );
 		for( i = 0; text[ i ]; i++ )
 		{
@@ -1044,9 +1081,7 @@ ID_INLINE void idStr::Insert( const char* text, int index )
 		index = len;
 	}
 	
-	// RB: 64 bit fixes,  conversion from 'size_t' to 'int', possible loss of data
-	l = ( int )strlen( text );
-	// RB end
+	l = Length( text );
 	EnsureAlloced( len + l + 1 );
 	for( i = len; i >= index; i-- )
 	{
@@ -1083,34 +1118,42 @@ ID_INLINE void idStr::ToUpper()
 
 ID_INLINE bool idStr::IsNumeric() const
 {
-	return idStr::IsNumeric( data );
+	return IsNumeric( data );
 }
 
 ID_INLINE bool idStr::IsColor() const
 {
-	return idStr::IsColor( data );
+	return IsColor( data );
+}
+
+ID_INLINE bool idStr::IsHexColor( void ) const {
+	return IsHexColor( data );
+}
+
+ID_INLINE bool idStr::HasHexColorAlpha( void ) const {
+	return HasHexColorAlpha( data );
 }
 
 ID_INLINE bool idStr::HasLower() const
 {
-	return idStr::HasLower( data );
+	return HasLower( data );
 }
 
 ID_INLINE bool idStr::HasUpper() const
 {
-	return idStr::HasUpper( data );
+	return HasUpper( data );
 }
 
 ID_INLINE idStr& idStr::RemoveColors()
 {
-	idStr::RemoveColors( data );
+	RemoveColors( data );
 	len = Length( data );
 	return *this;
 }
 
 ID_INLINE int idStr::LengthWithoutColors() const
 {
-	return idStr::LengthWithoutColors( data );
+	return LengthWithoutColors( data );
 }
 
 ID_INLINE void idStr::CapLength( int newlen )
@@ -1119,7 +1162,7 @@ ID_INLINE void idStr::CapLength( int newlen )
 	{
 		return;
 	}
-	data[ newlen ] = 0;
+	data[ newlen ] = '\0';
 	len = newlen;
 }
 
@@ -1128,7 +1171,37 @@ ID_INLINE void idStr::Fill( const char ch, int newlen )
 	EnsureAlloced( newlen + 1 );
 	len = newlen;
 	memset( data, ch, len );
-	data[ len ] = 0;
+	data[ len ] = '\0';
+}
+
+ID_INLINE const char* idStr::FindString( const char* text, bool casesensitive, int start, int end ) const 
+{
+	if ( end == INVALID_POSITION ) {
+		end = len;
+	}
+
+	int i = FindText( data, text, casesensitive, start, end );
+	if ( i == INVALID_POSITION ) {
+		return NULL;
+	}
+	else {
+		return &data[ i ];
+	}
+}
+
+ID_INLINE const char* idStr::FindString( const char *str, const char *text, bool casesensitive, int start, int end ) 
+{
+	if ( end == INVALID_POSITION ) {
+		end = idStr::Length( str );
+	}
+
+	int i = FindText( str, text, casesensitive, start, end );
+	if ( i == INVALID_POSITION ) {
+		return NULL;
+	}
+	else {
+		return &str[ i ];
+	}
 }
 
 /*
@@ -1256,6 +1329,13 @@ ID_INLINE bool idStr::CheckExtension( const char* ext )
 	return idStr::CheckExtension( data, ext );
 }
 
+ID_INLINE idStr& idStr::CleanFilename() 
+{
+	CleanFilename( data );
+	len = Length( data );
+	return *this;
+}
+
 ID_INLINE int idStr::Length( const char* s )
 {
 	int i;
@@ -1327,9 +1407,36 @@ ID_INLINE int idStr::IHash( const char* string, int length )
 	return hash;
 }
 
+ID_INLINE int idStr::FileNameHash( const int hashSize ) const
+{
+	return FileNameHash( data, hashSize );
+}
+
 ID_INLINE bool idStr::IsColor( const char* s )
 {
 	return ( s[0] == C_COLOR_ESCAPE && s[1] != '\0' && s[1] != ' ' );
+}
+
+ID_INLINE bool idStr::IsHexColor( const char *s )
+{
+	int i;
+	for ( i = 0; s[i] && i < 6; i++ ) {
+		if( !CharIsHex( s[i] ) ) {
+			return false;
+		}
+	}
+	return ( i == 6 );
+}
+
+ID_INLINE bool idStr::HasHexColorAlpha( const char *s ) 
+{
+	int i;
+	for ( i = 6; s[i] && i < 8; i++ ) {
+		if( !CharIsHex( s[i] ) ) {
+			return false;
+		}
+	}
+	return ( i == 8 );
 }
 
 ID_INLINE char idStr::ToLower( char c )
@@ -1371,8 +1478,7 @@ ID_INLINE bool idStr::CharIsUpper( int c )
 ID_INLINE bool idStr::CharIsAlpha( int c )
 {
 	// test for regular ascii and western European high-ascii chars
-	return ( ( c >= 'a' && c <= 'z' ) || ( c >= 'A' && c <= 'Z' ) ||
-			 ( c >= 0xC0 && c <= 0xFF ) );
+	return ( ( c >= 'a' && c <= 'z' ) || ( c >= 'A' && c <= 'Z' ) || ( c >= 0xC0 && c <= 0xFF ) );
 }
 
 ID_INLINE bool idStr::CharIsNumeric( int c )
@@ -1390,9 +1496,28 @@ ID_INLINE bool idStr::CharIsTab( char c )
 	return ( c == '\t' );
 }
 
+ID_INLINE bool idStr::CharIsHex( int c ) {
+	return ( ( c >= '0' && c <= '9' ) || ( c >= 'A' && c <= 'F' ) || ( c >= 'a' && c <= 'f' ) );
+}
+
 ID_INLINE int idStr::ColorIndex( int c )
 {
-	return ( c & 15 );
+	//return ( c & COLOR_BITS );
+	return ( ( c - '0' ) & COLOR_BITS );
+}
+
+ID_INLINE int idStr::HexForChar( int c ) {
+	return ( c > '9' ? ( c >= 'a' ? ( c - 'a' + 10 ) : ( c - '7' ) ) : ( c - '0' ) );
+}
+
+ID_INLINE int idStr::CountChar( const char c ) 
+{
+	return CountChar( data, c );
+}
+
+ID_INLINE bool idStr::IsValidEmailAddress() 
+{
+	return IsValidEmailAddress( data );
 }
 
 ID_INLINE int idStr::DynamicMemoryUsed() const
@@ -1408,18 +1533,13 @@ idStr::CopyRange
 ID_INLINE void idStr::CopyRange( const char* text, int start, int end )
 {
 	int l = end - start;
-	if( l < 0 )
-	{
-		l = 0;
-	}
+	if( l < 0 ) l = 0;
 	
 	EnsureAlloced( l + 1 );
 	
-	for( int i = 0; i < l; i++ )
-	{
+	for( int i = 0; i < l; i++ ) {
 		data[ i ] = text[ start + i ];
-	}
-	
+	}	
 	data[ l ] = '\0';
 	len = l;
 }

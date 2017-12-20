@@ -38,12 +38,12 @@ If you have questions concerning this license or the applicable additional terms
 */
 
 // mode parm for Seek
-typedef enum
+enum fsOrigin_t
 {
 	FS_SEEK_CUR,
 	FS_SEEK_END,
 	FS_SEEK_SET
-} fsOrigin_t;
+};
 
 class idFileSystemLocal;
 

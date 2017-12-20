@@ -239,7 +239,7 @@ float idConsoleLocal::DrawFPS( float y )
 		fps = ( fps + 500 ) / 1000;
 		
 		const char* s = va( "%ifps", fps );
-		int w = strlen( s ) * BIGCHAR_WIDTH;
+		int w = idStr::Length( s ) * BIGCHAR_WIDTH;
 		
 		renderSystem->DrawBigStringExt( LOCALSAFE_RIGHT - w, idMath::Ftoi( y ) + 2, s, colorWhite, true );
 	}
@@ -417,9 +417,7 @@ idConsoleLocal::ClearNotifyLines
 */
 void	idConsoleLocal::ClearNotifyLines()
 {
-	int		i;
-	
-	for( i = 0 ; i < NUM_CON_TIMES ; i++ )
+	for( int i = 0 ; i < NUM_CON_TIMES ; i++ )
 	{
 		times[i] = 0;
 	}
@@ -461,13 +459,11 @@ idConsoleLocal::Clear
 */
 void idConsoleLocal::Clear()
 {
-	int		i;
-	
-	for( i = 0 ; i < CON_TEXTSIZE ; i++ )
+	for( int i = 0 ; i < CON_TEXTSIZE ; i++ )
 	{
-		text[i] = ( idStr::ColorIndex( C_COLOR_CYAN ) << 8 ) | ' ';
+		text[i] = ( idStr::ColorIndex( C_COLOR_CYAN ) << 8 ) | ' '; // C_COLOR_CYAN
 	}
-	
+
 	Bottom();		// go to end
 }
 
@@ -530,7 +526,7 @@ void idConsoleLocal::Dump( const char* fileName )
 		buffer[x + 1] = '\r';
 		buffer[x + 2] = '\n';
 		buffer[x + 3] = 0;
-		f->Write( buffer, strlen( buffer ) );
+		f->Write( buffer, idStr::Length( buffer ) );
 	}
 	
 	fileSystem->CloseFile( f );
@@ -1062,7 +1058,7 @@ void idConsoleLocal::DrawInput()
 	
 	if( consoleField.GetAutoCompleteLength() != 0 )
 	{
-		autoCompleteLength = strlen( consoleField.GetBuffer() ) - consoleField.GetAutoCompleteLength();
+		autoCompleteLength = idStr::Length( consoleField.GetBuffer() ) - consoleField.GetAutoCompleteLength();
 		
 		if( autoCompleteLength > 0 )
 		{
