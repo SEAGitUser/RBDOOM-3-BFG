@@ -40,7 +40,7 @@ static void FindMatches( const char* s )
 {
 	int		i;
 	
-	if( idStr::Icmpn( s, globalAutoComplete.completionString, strlen( globalAutoComplete.completionString ) ) != 0 )
+	if( idStr::Icmpn( s, globalAutoComplete.completionString, idStr::Length( globalAutoComplete.completionString ) ) != 0 )
 	{
 		return;
 	}
@@ -71,7 +71,7 @@ FindIndexMatch
 static void FindIndexMatch( const char* s )
 {
 
-	if( idStr::Icmpn( s, globalAutoComplete.completionString, strlen( globalAutoComplete.completionString ) ) != 0 )
+	if( idStr::Icmpn( s, globalAutoComplete.completionString, idStr::Length( globalAutoComplete.completionString ) ) != 0 )
 	{
 		return;
 	}
@@ -91,7 +91,7 @@ PrintMatches
 */
 static void PrintMatches( const char* s )
 {
-	if( idStr::Icmpn( s, globalAutoComplete.currentMatch, strlen( globalAutoComplete.currentMatch ) ) == 0 )
+	if( idStr::Icmpn( s, globalAutoComplete.currentMatch, idStr::Length( globalAutoComplete.currentMatch ) ) == 0 )
 	{
 		common->Printf( "    %s\n", s );
 	}
@@ -104,7 +104,7 @@ PrintCvarMatches
 */
 static void PrintCvarMatches( const char* s )
 {
-	if( idStr::Icmpn( s, globalAutoComplete.currentMatch, strlen( globalAutoComplete.currentMatch ) ) == 0 )
+	if( idStr::Icmpn( s, globalAutoComplete.currentMatch, idStr::Length( globalAutoComplete.currentMatch ) ) == 0 )
 	{
 		common->Printf( "    %s" S_COLOR_WHITE " = \"%s\"\n", s, cvarSystem->GetCVarString( s ) );
 	}
@@ -183,7 +183,7 @@ idEditField::ClearAutoComplete
 */
 void idEditField::ClearAutoComplete()
 {
-	if( autoComplete.length > 0 && autoComplete.length <= ( int ) strlen( buffer ) )
+	if( autoComplete.length > 0 && autoComplete.length <= idStr::Length( buffer ) )
 	{
 		buffer[autoComplete.length] = '\0';
 		if( cursor > autoComplete.length )
@@ -224,7 +224,7 @@ void idEditField::AutoComplete()
 		autoComplete.matchIndex = 0;
 		autoComplete.currentMatch[0] = 0;
 		
-		if( strlen( autoComplete.completionString ) == 0 )
+		if( idStr::Length( autoComplete.completionString ) == 0 )
 		{
 			return;
 		}
@@ -264,7 +264,7 @@ void idEditField::AutoComplete()
 				// no argument matches
 				idStr::Append( buffer, sizeof( buffer ), " " );
 				idStr::Append( buffer, sizeof( buffer ), completionArgString );
-				SetCursor( strlen( buffer ) );
+				SetCursor( idStr::Length( buffer ) );
 				return;
 			}
 		}
@@ -273,14 +273,14 @@ void idEditField::AutoComplete()
 		
 			// multiple matches, complete to shortest
 			idStr::snPrintf( buffer, sizeof( buffer ), "%s", autoComplete.currentMatch );
-			if( strlen( completionArgString ) )
+			if( idStr::Length( completionArgString ) )
 			{
 				idStr::Append( buffer, sizeof( buffer ), " " );
 				idStr::Append( buffer, sizeof( buffer ), completionArgString );
 			}
 		}
 		
-		autoComplete.length = strlen( buffer );
+		autoComplete.length = idStr::Length( buffer );
 		autoComplete.valid = ( autoComplete.matchCount != 1 );
 		SetCursor( autoComplete.length );
 		
@@ -317,9 +317,10 @@ void idEditField::AutoComplete()
 		
 		// and print it
 		idStr::snPrintf( buffer, sizeof( buffer ), autoComplete.currentMatch );
-		if( autoComplete.length > ( int )strlen( buffer ) )
+		int buffer_length = idStr::Length( buffer );
+		if( autoComplete.length > buffer_length )
 		{
-			autoComplete.length = strlen( buffer );
+			autoComplete.length = buffer_length;
 		}
 		SetCursor( autoComplete.length );
 	}
@@ -332,8 +333,6 @@ idEditField::CharEvent
 */
 void idEditField::CharEvent( int ch )
 {
-	int		len;
-	
 	if( ch == 'v' - 'a' + 1 )  	// ctrl-v is paste
 	{
 		Paste();
@@ -346,7 +345,7 @@ void idEditField::CharEvent( int ch )
 		return;
 	}
 	
-	len = strlen( buffer );
+	int len = idStr::Length( buffer );
 	
 	if( ch == 'h' - 'a' + 1 || ch == K_BACKSPACE )  	// ctrl-h is backspace
 	{
@@ -423,8 +422,6 @@ idEditField::KeyDownEvent
 */
 void idEditField::KeyDownEvent( int key )
 {
-	int		len;
-	
 	// shift-insert is paste
 	if( ( ( key == K_INS ) || ( key == K_KP_0 ) ) && ( idKeyInput::IsDown( K_LSHIFT ) || idKeyInput::IsDown( K_RSHIFT ) ) )
 	{
@@ -433,7 +430,7 @@ void idEditField::KeyDownEvent( int key )
 		return;
 	}
 	
-	len = strlen( buffer );
+	int len = idStr::Length( buffer );
 	
 	if( key == K_DEL )
 	{
@@ -568,10 +565,7 @@ idEditField::Paste
 */
 void idEditField::Paste()
 {
-	char*	cbd;
-	int		pasteLen, i;
-	
-	cbd = Sys_GetClipboardData();
+	char* cbd = Sys_GetClipboardData();
 	
 	if( !cbd )
 	{
@@ -579,8 +573,8 @@ void idEditField::Paste()
 	}
 	
 	// send as if typed, so insert / overstrike works properly
-	pasteLen = strlen( cbd );
-	for( i = 0; i < pasteLen; i++ )
+	int pasteLen = idStr::Length( cbd );
+	for( int i = 0; i < pasteLen; i++ )
 	{
 		CharEvent( cbd[i] );
 	}
@@ -607,7 +601,7 @@ void idEditField::SetBuffer( const char* buf )
 {
 	Clear();
 	idStr::Copynz( buffer, buf, sizeof( buffer ) );
-	SetCursor( strlen( buffer ) );
+	SetCursor( idStr::Length( buffer ) );
 }
 
 /*
@@ -617,17 +611,14 @@ idEditField::Draw
 */
 void idEditField::Draw( int x, int y, int width, bool showCursor )
 {
-	int		len;
-	int		drawLen;
-	int		prestep;
-	int		cursorChar;
-	char	str[MAX_EDIT_LINE];
-	int		size;
+	int prestep;
+	int cursorChar;
+	char str[MAX_EDIT_LINE];
 	
-	size = SMALLCHAR_WIDTH;
-	
-	drawLen = widthInChars;
-	len = strlen( buffer ) + 1;
+	int size = SMALLCHAR_WIDTH;
+
+	int drawLen = widthInChars;
+	int len = idStr::Length( buffer ) + 1;
 	
 	// guarantee that cursor will be visible
 	if( len <= drawLen )

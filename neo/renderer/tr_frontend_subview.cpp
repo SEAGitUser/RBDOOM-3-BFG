@@ -337,7 +337,7 @@ static void R_RemoteRender( idRenderView * const baseView, const drawSurf_t* sur
 	}
 	
 	// if the entity doesn't have a remoteRenderView, do nothing
-	if( !surf->space->entityDef->parms.remoteRenderView )
+	if( !surf->space->entityDef->GetParms().remoteRenderView )
 	{
 		return;
 	}
@@ -345,7 +345,7 @@ static void R_RemoteRender( idRenderView * const baseView, const drawSurf_t* sur
 	auto view = R_AllocSubView( baseView );	
 	view->isMirror = false;
 
-	view->parms = *surf->space->entityDef->parms.remoteRenderView;
+	view->parms = *surf->space->entityDef->GetParms().remoteRenderView;
 	view->initialViewAreaOrigin = view->GetOrigin();
 
 	tr.CropRenderSize( stage->width, stage->height );
@@ -572,7 +572,7 @@ bool R_GenerateSubViews( idRenderView * const renderView )
 	bool subviews = false;
 	for( int i = 0; i < renderView->numDrawSurfs; ++i )
 	{
-		const drawSurf_t * const drawSurf = renderView->drawSurfs[i];
+		const drawSurf_t * const drawSurf = renderView->drawSurfs[ i ];
 		
 		if( drawSurf->material->HasSubview() )
 		{

@@ -666,7 +666,7 @@ unsigned int idRenderModelOverlay::GetNumOverlayDrawSurfs()
 idRenderModelOverlay::CreateOverlayDrawSurf
 ====================
 */
-drawSurf_t* idRenderModelOverlay::CreateOverlayDrawSurf( const viewEntity_t* space, const idRenderModel* baseModel, unsigned int index )
+drawSurf_t* idRenderModelOverlay::CreateOverlayDrawSurf( const viewModel_t* space, const idRenderModel* baseModel, unsigned int index )
 {
 	if( index < 0 || index >= numOverlayMaterials )
 	{
@@ -792,7 +792,7 @@ drawSurf_t* idRenderModelOverlay::CreateOverlayDrawSurf( const viewEntity_t* spa
 	drawSurf->extraGLState = 0;
 	drawSurf->renderZFail = 0;
 	
-	R_SetupDrawSurfShader( drawSurf, material, &space->entityDef->parms );
+	R_SetupDrawSurfShader( drawSurf, material, &space->entityDef->GetParms() );
 	R_SetupDrawSurfJoints( drawSurf, newTri, NULL );
 	
 	return drawSurf;

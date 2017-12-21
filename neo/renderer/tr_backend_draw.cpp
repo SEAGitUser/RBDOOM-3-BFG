@@ -3228,7 +3228,7 @@ static int RB_DrawShaderPasses( const drawSurf_t* const* const drawSurfs, const 
 	
 	GL_SelectTexture( 0 );
 	
-	backEnd.currentSpace = ( const viewEntity_t* )1;	// using NULL makes /analyze think surf->space needs to be checked...
+	backEnd.currentSpace = ( const viewModel_t* )1;	// using NULL makes /analyze think surf->space needs to be checked...
 	float currentGuiStereoOffset = 0.0f;
 	
 	int i = 0;
@@ -3260,7 +3260,7 @@ static int RB_DrawShaderPasses( const drawSurf_t* const* const drawSurfs, const 
 		
 		if( backEnd.viewDef->isXraySubview && surf->space->entityDef )
 		{
-			if( surf->space->entityDef->parms.xrayIndex != 2 )
+			if( surf->space->entityDef->GetParms().xrayIndex != 2 )
 			{
 				continue;
 			}
@@ -3295,7 +3295,7 @@ static int RB_DrawShaderPasses( const drawSurf_t* const* const drawSurfs, const 
 			backEnd.currentSpace = surf->space;
 			currentGuiStereoOffset = thisGuiStereoOffset;
 			
-			const viewEntity_t* space = backEnd.currentSpace;
+			const viewModel_t* space = backEnd.currentSpace;
 			
 			if( guiStereoScreenOffset != 0.0f )
 			{
@@ -3827,32 +3827,37 @@ static void RB_FogPass( const drawSurf_t* drawSurfs,  const drawSurf_t* drawSurf
 	
 	GL_Color( lightColor );
 	
-	// calculate the falloff planes
-	float a;
-	
-	// if they left the default value on, set a fog distance of 500
-	if( lightColor[3] <= 1.0f )
-	{
-		a = -0.5f / DEFAULT_FOG_DISTANCE;
-	}
-	else
-	{
-		// otherwise, distance = alpha color
-		a = -0.5f / lightColor[3];
-	}
+	// Calculate the falloff planes.
+	// If they left the default value on, set a fog distance of 500 otherwise, distance = alpha color
+	const float a = ( lightColor[ 3 ] <= 1.0f )? ( -0.5f / DEFAULT_FOG_DISTANCE ) : ( -0.5f / lightColor[ 3 ] );
 	
 	// texture 0 is the falloff image
 	GL_BindTexture( 0, globalImages->fogImage );
 	
 	// texture 1 is the entering plane fade correction
 	GL_BindTexture( 1, globalImages->fogEnterImage );
+
+	idPlane fogPlane;
+
+	// the fog plane is the light far clip plane
+	const idPlane plane( 
+		vLight->baseLightProject[ 2 ][ 0 ] - vLight->baseLightProject[ 3 ][ 0 ],
+		vLight->baseLightProject[ 2 ][ 1 ] - vLight->baseLightProject[ 3 ][ 1 ],
+		vLight->baseLightProject[ 2 ][ 2 ] - vLight->baseLightProject[ 3 ][ 2 ],
+		vLight->baseLightProject[ 2 ][ 3 ] - vLight->baseLightProject[ 3 ][ 3 ] 
+	);
+	const float planeScale = idMath::InvSqrt( plane.Normal().LengthSqr() );
+	fogPlane[ 0 ] = plane[ 0 ] * planeScale;
+	fogPlane[ 1 ] = plane[ 1 ] * planeScale;
+	fogPlane[ 2 ] = plane[ 2 ] * planeScale;
+	fogPlane[ 3 ] = plane[ 3 ] * planeScale;
 	
 	// S is based on the view origin
-	const float s = vLight->fogPlane.Distance( backEnd.viewDef->GetOrigin() );
+	const float s = fogPlane.Distance( backEnd.viewDef->GetOrigin() );
 	
 	const float FOG_SCALE = 0.001f;
 	
-	idPlane fogPlanes[4];
+	ALIGN16( idPlane fogPlanes[4] );
 	
 	// S-0
 	fogPlanes[0][0] = a * backEnd.viewDef->GetViewMatrix()[2][0];
@@ -3867,10 +3872,10 @@ static void RB_FogPass( const drawSurf_t* drawSurfs,  const drawSurf_t* drawSurf
 	fogPlanes[1][3] = 0.5f;//a * backEnd.viewDef->worldSpace.modelViewMatrix[3*4+0] + 0.5f;
 	
 	// T-1 will get a texgen for the fade plane, which is always the "top" plane on unrotated lights
-	fogPlanes[2][0] = FOG_SCALE * vLight->fogPlane[0];
-	fogPlanes[2][1] = FOG_SCALE * vLight->fogPlane[1];
-	fogPlanes[2][2] = FOG_SCALE * vLight->fogPlane[2];
-	fogPlanes[2][3] = FOG_SCALE * vLight->fogPlane[3] + FOG_ENTER;
+	fogPlanes[2][0] = FOG_SCALE * fogPlane[0];
+	fogPlanes[2][1] = FOG_SCALE * fogPlane[1];
+	fogPlanes[2][2] = FOG_SCALE * fogPlane[2];
+	fogPlanes[2][3] = FOG_SCALE * fogPlane[3] + FOG_ENTER;
 	
 	// S-1
 	fogPlanes[3][0] = 0.0f;

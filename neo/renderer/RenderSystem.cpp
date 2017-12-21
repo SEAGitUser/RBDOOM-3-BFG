@@ -414,7 +414,7 @@ void idRenderSystemLocal::DrawStretchPic( float x, float y, float w, float h, fl
 idRenderSystemLocal::DrawStretchPic
 =============
 */
-static triIndex_t quadPicIndexes[6] = { 3, 0, 2, 2, 0, 1 };
+static const triIndex_t quadPicIndexes[6] = { 0, 1, 2, 2, 3, 0 }; //{ 3, 0, 2, 2, 0, 1 };
 void idRenderSystemLocal::DrawStretchPic( const idVec4& topLeft, const idVec4& topRight, const idVec4& bottomRight, const idVec4& bottomLeft, const idMaterial* material )
 {
 	if( !R_IsInitialized() )

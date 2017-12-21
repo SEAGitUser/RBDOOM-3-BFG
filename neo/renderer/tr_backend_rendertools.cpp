@@ -1039,7 +1039,7 @@ RB_ShowViewEntitys
 Debugging tool
 =====================
 */
-static void RB_ShowViewEntitys( viewEntity_t* vModels )
+static void RB_ShowViewEntitys( viewModel_t* vModels )
 {
 	if( !r_showViewEntitys.GetBool() )
 	{
@@ -1049,15 +1049,15 @@ static void RB_ShowViewEntitys( viewEntity_t* vModels )
 	if( r_showViewEntitys.GetInteger() >= 2 )
 	{
 		common->Printf( "view entities: " );
-		for( const viewEntity_t* vModel = vModels; vModel; vModel = vModel->next )
+		for( const viewModel_t* vModel = vModels; vModel; vModel = vModel->next )
 		{
 			if( vModel->entityDef->IsDirectlyVisible() )
 			{
-				common->Printf( "<%i> ", vModel->entityDef->index );
+				common->Printf( "<%i> ", vModel->entityDef->GetIndex() );
 			}
 			else
 			{
-				common->Printf( "%i ", vModel->entityDef->index );
+				common->Printf( "%i ", vModel->entityDef->GetIndex() );
 			}
 		}
 		common->Printf( "\n" );
@@ -1071,10 +1071,8 @@ static void RB_ShowViewEntitys( viewEntity_t* vModels )
 	GL_State( GLS_DEPTHFUNC_ALWAYS | GLS_POLYMODE_LINE );
 	GL_Cull( CT_TWO_SIDED );
 	
-	for( const viewEntity_t* vModel = vModels; vModel; vModel = vModel->next )
+	for( const viewModel_t* vModel = vModels; vModel; vModel = vModel->next )
 	{
-		idBounds b;
-		
 		//glLoadMatrixf( vModel->modelViewMatrix );
 		
 		const idRenderEntityLocal* edef = vModel->entityDef;
@@ -1089,9 +1087,8 @@ static void RB_ShowViewEntitys( viewEntity_t* vModels )
 		if( edef->IsDirectlyVisible() )
 		{
 			color.Set( 1, 1, 1, 1 );
-		}
-		else
-		{
+		} 
+		else {
 			color.Set( 0, 0, 1, 1 );
 		}
 		GL_Color( color[0], color[1], color[2] );
@@ -1104,7 +1101,7 @@ static void RB_ShowViewEntitys( viewEntity_t* vModels )
 			vModel->modelMatrix.TransformPoint( edef->localReferenceBounds[ 1 ], corner );
 
 			tr.primaryWorld->DrawText(
-				va( "%i:%s", edef->index, edef->parms.hModel->Name() ),
+				va( "%i:%s", edef->GetIndex(), edef->GetModel()->Name() ),
 				corner,
 				0.25f, color,
 				tr.primaryView->GetAxis() );
@@ -1115,12 +1112,12 @@ static void RB_ShowViewEntitys( viewEntity_t* vModels )
 		{
 			GL_Color( 1, 1, 0 );
 			// FIXME: cannot instantiate a dynamic model from the renderer back-end
-			idRenderModel* model = R_EntityDefDynamicModel( vModel->entityDef );
+			idRenderModel* model = vModel->entityDef->EmitDynamicModel();
 			if( !model )
 			{
 				continue;	// particles won't instantiate without a current view
 			}
-			b = model->Bounds( &vModel->entityDef->parms );
+			idBounds b = model->Bounds( &vModel->entityDef->GetParms() );
 			if( b != vModel->entityDef->localReferenceBounds )
 			{
 				RB_DrawBounds( b );
@@ -1928,7 +1925,7 @@ static void RB_ShowLights()
 			RB_DrawElementsWithCounters( &backEnd.zeroOneCubeSurface );
 		}
 		
-		common->Printf( "%i ", vLight->lightDef->index );
+		common->Printf( "%i ", vLight->lightDef->GetIndex() );
 	}
 	
 	common->Printf( " = %i total\n", count );
@@ -2017,7 +2014,7 @@ static void RB_ShowShadowMapLODs()
 			RB_DrawElementsWithCounters( &backEnd.zeroOneCubeSurface );
 		}
 		
-		common->Printf( "%i ", vLight->lightDef->index );
+		common->Printf( "%i ", vLight->lightDef->GetIndex() );
 	}
 	
 	common->Printf( " = %i total\n", count );

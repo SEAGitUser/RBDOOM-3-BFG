@@ -793,7 +793,7 @@ unsigned int idRenderModelDecal::GetNumDecalDrawSurfs()
 idRenderModelDecal::CreateDecalDrawSurf
 =====================
 */
-drawSurf_t* idRenderModelDecal::CreateDecalDrawSurf( const viewEntity_t* space, unsigned int index )
+drawSurf_t* idRenderModelDecal::CreateDecalDrawSurf( const viewModel_t* space, unsigned int index )
 {
 	if( index < 0 || index >= numDecalMaterials )
 	{
@@ -892,7 +892,7 @@ drawSurf_t* idRenderModelDecal::CreateDecalDrawSurf( const viewEntity_t* space, 
 	drawSurf->extraGLState = 0;
 	drawSurf->renderZFail = 0;
 	
-	R_SetupDrawSurfShader( drawSurf, material, &space->entityDef->parms );
+	R_SetupDrawSurfShader( drawSurf, material, &space->entityDef->GetParms() );
 	
 	return drawSurf;
 }

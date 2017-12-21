@@ -124,7 +124,7 @@ public:
 	void						RemoveFadedDecals( int time );
 	
 	unsigned int				GetNumDecalDrawSurfs();
-	struct drawSurf_t* 			CreateDecalDrawSurf( const struct viewEntity_t* space, unsigned int index );
+	struct drawSurf_t* 			CreateDecalDrawSurf( const struct viewModel_t* space, unsigned int index );
 	
 	void						ReadFromDemoFile( class idDemoFile* f );
 	void						WriteToDemoFile( class idDemoFile* f ) const;

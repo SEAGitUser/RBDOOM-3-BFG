@@ -471,7 +471,7 @@ void	idRenderWorldLocal::WriteLoadMap()
 	{
 		idRenderLightLocal* light = lightDefs[ i ];
 		if( light )
-			WriteRenderLight( f, light->index, &light->parms );
+			WriteRenderLight( f, light->GetIndex(), &light->parms );
 	}
 	
 	for( int i = 0; i < entityDefs.Num(); i++ )
@@ -504,7 +504,7 @@ void	idRenderWorldLocal::WriteVisibleDefs( const idRenderView* viewDef )
 	}
 	
 	// make sure all necessary entities and lights are updated
-	for( viewEntity_t* viewEnt = viewDef->viewEntitys ; viewEnt ; viewEnt = viewEnt->next )
+	for( viewModel_t* viewEnt = viewDef->viewEntitys ; viewEnt ; viewEnt = viewEnt->next )
 	{
 		idRenderEntityLocal* ent = viewEnt->entityDef;
 		
@@ -528,7 +528,7 @@ void	idRenderWorldLocal::WriteVisibleDefs( const idRenderView* viewDef )
 			continue;
 		}
 		// write it out
-		WriteRenderLight( common->WriteDemo(), light->index, &light->parms );
+		WriteRenderLight( common->WriteDemo(), light->GetIndex(), &light->parms );
 		light->archived = true;
 	}
 }
@@ -802,7 +802,7 @@ void	idRenderWorldLocal::WriteRenderEntity( idDemoFile* f, idRenderEntityLocal* 
 	
 	f->WriteInt( DS_RENDER );
 	f->WriteInt( DC_UPDATE_ENTITYDEF );
-	f->WriteInt( entity->index );
+	f->WriteInt( entity->GetIndex() );
 	entity->WriteToDemoFile( f );
 	
 	// write decal ref

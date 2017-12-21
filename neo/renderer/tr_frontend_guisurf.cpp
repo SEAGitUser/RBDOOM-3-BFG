@@ -149,7 +149,7 @@ void R_AddInGameGuis( idRenderView * const renderView )
 		{
 			if( drawSurf->space->entityDef != NULL )
 			{
-				gui = drawSurf->space->entityDef->parms.gui[ guiNum ];
+				gui = drawSurf->space->entityDef->GetParms().gui[ guiNum ];
 			}
 		}
 		

@@ -36,7 +36,6 @@ If you have questions concerning this license or the applicable additional terms
 // assume any lightDef or entityDef index above this is an internal error
 const int LUDICROUS_INDEX	= 10000;
 
-
 typedef struct portal_s
 {
 	int						intoArea;		// area this portal leads to

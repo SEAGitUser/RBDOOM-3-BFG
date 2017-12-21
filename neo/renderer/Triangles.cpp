@@ -2447,3 +2447,89 @@ void idTriangles::AddCubeFace( const idVec3& v1, const idVec3& v2, const idVec3&
 	this->numVerts += 4;
 	this->numIndexes += 6;
 }
+
+/*
+=====================
+ R_PolytopeSurface
+	Generate vertexes and indexes for a polytope, and optionally returns the polygon windings.
+	The positive sides of the planes will be visible.
+=====================
+*/
+idTriangles * idTriangles::CreateTrianglesForPolytope( int numPlanes, const idPlane* planes, idWinding** windings )
+{
+	const int MAX_POLYTOPE_PLANES = 6;
+	idFixedWinding planeWindings[ MAX_POLYTOPE_PLANES ];
+
+	if( numPlanes > MAX_POLYTOPE_PLANES )
+	{
+		common->Error( "R_PolytopeSurface: more than %d planes", MAX_POLYTOPE_PLANES );
+	}
+
+	int numVerts = 0;
+	int numIndexes = 0;
+	for( int i = 0; i < numPlanes; i++ )
+	{
+		const idPlane& plane = planes[ i ];
+		idFixedWinding& w = planeWindings[ i ];
+
+		w.BaseForPlane( plane );
+		for( int j = 0; j < numPlanes; j++ )
+		{
+			const idPlane& plane2 = planes[ j ];
+			if( j == i )
+			{
+				continue;
+			}
+			if( !w.ClipInPlace( -plane2, ON_EPSILON ) )
+			{
+				break;
+			}
+		}
+		if( w.GetNumPoints() <= 2 )
+		{
+			continue;
+		}
+		numVerts += w.GetNumPoints();
+		numIndexes += ( w.GetNumPoints() - 2 ) * 3;
+	}
+
+	// allocate the surface
+	auto tri = idTriangles::AllocStatic();
+	tri->AllocStaticVerts( numVerts );
+	tri->AllocStaticIndexes( numIndexes );
+
+	// copy the data from the windings
+	for( int i = 0; i < numPlanes; i++ )
+	{
+		idFixedWinding& w = planeWindings[ i ];
+		if( !w.GetNumPoints() )
+		{
+			continue;
+		}
+		for( int j = 0; j < w.GetNumPoints(); j++ )
+		{
+			tri->verts[ tri->numVerts + j ].Clear();
+			tri->verts[ tri->numVerts + j ].xyz = w[ j ].ToVec3();
+		}
+
+		for( int j = 1; j < w.GetNumPoints() - 1; j++ )
+		{
+			tri->indexes[ tri->numIndexes + 0 ] = tri->numVerts;
+			tri->indexes[ tri->numIndexes + 1 ] = tri->numVerts + j;
+			tri->indexes[ tri->numIndexes + 2 ] = tri->numVerts + j + 1;
+			tri->numIndexes += 3;
+		}
+		tri->numVerts += w.GetNumPoints();
+
+		// optionally save the winding
+		if( windings )
+		{
+			windings[ i ] = new idWinding( w.GetNumPoints() );
+			*windings[ i ] = w;
+		}
+	}
+
+	tri->DeriveBounds();
+
+	return tri;
+}

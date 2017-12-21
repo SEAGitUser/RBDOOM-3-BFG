@@ -1056,8 +1056,8 @@ static void CarveGroupsByLight( uEntity_t* e, mapLight_t* light )
 			
 			// if the surface doesn't get lit, don't carve it up
 			if( ( light->def.lightShader->IsFogLight() && !group->material->ReceivesFog() )
-					|| ( !light->def.lightShader->IsFogLight() && !group->material->ReceivesLighting() )
-					|| !group->bounds.IntersectsBounds( light->def.globalLightBounds ) )
+				|| ( !light->def.lightShader->IsFogLight() && !group->material->ReceivesLighting() )
+				|| !group->bounds.IntersectsBounds( light->def.globalLightBounds ) )
 			{
 			
 				group->nextGroup = carvedGroups;
@@ -1067,15 +1067,14 @@ static void CarveGroupsByLight( uEntity_t* e, mapLight_t* light )
 			
 			if( group->numGroupLights == MAX_GROUP_LIGHTS )
 			{
-				common->Error( "MAX_GROUP_LIGHTS around %f %f %f",
-							   group->triList->v[0].xyz[0], group->triList->v[0].xyz[1], group->triList->v[0].xyz[2] );
+				common->Error( "MAX_GROUP_LIGHTS around %f %f %f", group->triList->v[0].xyz[0], group->triList->v[0].xyz[1], group->triList->v[0].xyz[2] );
 			}
 			
 			// if the group doesn't face the light,
 			// it won't get carved at all
 			if( !light->def.lightShader->LightEffectsBackSides() &&
-					!group->material->ReceivesLightingOnBackSides() &&
-					dmapGlobals.mapPlanes[ group->planeNum ].Distance( light->def.parms.origin ) <= 0 )
+				!group->material->ReceivesLightingOnBackSides() &&
+				dmapGlobals.mapPlanes[ group->planeNum ].Distance( light->def.GetOrigin() ) <= 0 )
 			{
 			
 				group->nextGroup = carvedGroups;
@@ -1089,7 +1088,7 @@ static void CarveGroupsByLight( uEntity_t* e, mapLight_t* light )
 			
 			for( tri = group->triList ; tri ; tri = tri->next )
 			{
-				mapTri_t*	in, *out;
+				mapTri_t *in, *out;
 				
 				ClipTriByLight( light, tri, &in, &out );
 				inside = MergeTriLists( inside, in );

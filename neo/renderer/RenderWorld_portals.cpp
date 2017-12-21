@@ -57,66 +57,67 @@ visible in the portal areas that can be seen from the current viewpoint.
 
 /*
 =============
-R_SetLightDefViewLight
+ R_SetLightDefViewLight
 
-If the lightDef is not already on the viewLight list, create
-a viewLight and add it to the list with an empty scissor rect.
+	If the lightDef is not already on the viewLight list, create
+	a viewLight and add it to the list with an empty scissor rect.
 =============
 */
-viewLight_t* R_SetLightDefViewLight( idRenderLightLocal* light )
+viewLight_t* idRenderLightLocal::EmitToView( idRenderView * view )
 {
-	if( light->viewCount == tr.GetViewCount() )
+	if( this->viewCount == tr.GetViewCount() )
 	{
 		// already set up for this frame
-		return light->viewLight;
+		return this->viewLight;
 	}
-	light->viewCount = tr.GetViewCount();
+	this->viewCount = tr.GetViewCount();
 	
 	// add to the view light chain
-	viewLight_t* vLight = ( viewLight_t* )R_ClearedFrameAlloc( sizeof( *vLight ), FRAME_ALLOC_VIEW_LIGHT );
-	vLight->lightDef = light;
+	auto vLight = ( viewLight_t* )R_ClearedFrameAlloc( sizeof( viewLight_t ), FRAME_ALLOC_VIEW_LIGHT );
 	
+	vLight->lightDef = this;
+	this->viewLight = vLight;
+		
+	// link the view light
+	vLight->next = view->viewLights;
+	view->viewLights = vLight;
+
 	// the scissorRect will be expanded as the light bounds is accepted into visible portal chains
 	// and the scissor will be reduced in R_AddSingleLight based on the screen space projection
 	vLight->scissorRect.Clear();
-	
-	// link the view light
-	vLight->next = tr.viewDef->viewLights;
-	tr.viewDef->viewLights = vLight;
-	
-	light->viewLight = vLight;
-	
+
 	return vLight;
 }
 
 /*
 =============
-R_SetEntityDefViewEntity
+ R_SetEntityDefViewEntity
 
-If the entityDef is not already on the viewEntity list, create
-a viewEntity and add it to the list with an empty scissor rect.
+	If the entityDef is not already on the viewModel list, create
+	a viewModel and add it to the list with an empty scissor rect.
 =============
 */
-viewEntity_t* R_SetEntityDefViewEntity( idRenderEntityLocal* def )
+viewModel_t* idRenderEntityLocal::EmitToView( idRenderView * view )
 {
-	if( def->viewCount == tr.GetViewCount() )
+	if( this->viewCount == tr.GetViewCount() )
 	{
 		// already set up for this frame
-		return def->viewEntity;
+		return this->viewModel;
 	}
-	def->viewCount = tr.GetViewCount();
+	this->viewCount = tr.GetViewCount();
 	
-	viewEntity_t* vModel = ( viewEntity_t* )R_ClearedFrameAlloc( sizeof( *vModel ), FRAME_ALLOC_VIEW_ENTITY );
-	vModel->entityDef = def;
+	auto vModel = ( viewModel_t* )R_ClearedFrameAlloc( sizeof( viewModel_t ), FRAME_ALLOC_VIEW_ENTITY );
 	
+	vModel->entityDef = this;
+	this->viewModel = vModel;
+		
+	// link the view model
+	vModel->next = tr.viewDef->viewEntitys;
+	tr.viewDef->viewEntitys = vModel;
+
 	// the scissorRect will be expanded as the model bounds is accepted into visible portal chains
 	// It will remain clear if the model is only needed for shadows.
 	vModel->scissorRect.Clear();
-	
-	vModel->next = tr.viewDef->viewEntitys;
-	tr.viewDef->viewEntitys = vModel;
-	
-	def->viewEntity = vModel;
 	
 	return vModel;
 }
@@ -221,20 +222,20 @@ Any models that are visible through the current portalStack will have their scis
 */
 void idRenderWorldLocal::AddAreaViewEntities( int areaNum, const portalStack_t* ps )
 {
-	portalArea_t* area = &portalAreas[ areaNum ];
+	auto area = &portalAreas[ areaNum ];
 	
-	for( areaReference_t* ref = area->entityRefs.areaNext; ref != &area->entityRefs; ref = ref->areaNext )
+	for( auto ref = area->entityRefs.areaNext; ref != &area->entityRefs; ref = ref->areaNext )
 	{
-		idRenderEntityLocal*	 entity = ref->entity;
+		auto entity = ref->entity;
 		
 		// debug tool to allow viewing of only one entity at a time
-		if( r_singleEntity.GetInteger() >= 0 && r_singleEntity.GetInteger() != entity->index )
+		if( r_singleEntity.GetInteger() >= 0 && r_singleEntity.GetInteger() != entity->GetIndex() )
 		{
 			continue;
 		}
 		
 		// remove decals that are completely faded away
-		R_FreeEntityDefFadedDecals( entity, tr.viewDef->GetGameTimeMS() );
+		entity->FreeFadedDecals( tr.viewDef->GetGameTimeMS() );
 		
 		// check for completely suppressing the model
 		if( !r_skipSuppress.GetBool() )
@@ -257,7 +258,7 @@ void idRenderWorldLocal::AddAreaViewEntities( int areaNum, const portalStack_t* 
 			continue;
 		}
 		
-		viewEntity_t* vEnt = R_SetEntityDefViewEntity( entity );
+		viewModel_t* vEnt = entity->EmitToView( tr.viewDef );
 		
 		// possibly expand the scissor rect
 		vEnt->scissorRect.Union( ps->rect );
@@ -274,9 +275,8 @@ Return true if the light frustum does not intersect the current portal chain.
 bool idRenderWorldLocal::CullLightByPortals( const idRenderLightLocal* light, const portalStack_t* ps )
 {
 	if( r_useLightPortalCulling.GetInteger() == 1 )
-	{
-	
-		ALIGNTYPE16 frustumCorners_t corners;
+	{	
+		frustumCorners_t corners;
 		idRenderMatrix::GetFrustumCorners( corners, light->inverseBaseLightProject, bounds_zeroOneCube );
 		for( int i = 0; i < ps->numPortalPlanes; i++ )
 		{
@@ -284,12 +284,10 @@ bool idRenderWorldLocal::CullLightByPortals( const idRenderLightLocal* light, co
 			{
 				return true;
 			}
-		}
-		
+		}		
 	}
 	else if( r_useLightPortalCulling.GetInteger() >= 2 )
-	{
-	
+	{	
 		idPlane frustumPlanes[6];
 		idRenderMatrix::GetFrustumPlanes( frustumPlanes, light->baseLightProject, true, true );
 		
@@ -334,8 +332,7 @@ bool idRenderWorldLocal::CullLightByPortals( const idRenderLightLocal* light, co
 				{
 					break;
 				}
-			}
-			
+			}			
 			if( w.GetNumPoints() > 2 )
 			{
 				// part of the winding is visible through the portalStack,
@@ -368,7 +365,7 @@ void idRenderWorldLocal::AddAreaViewLights( int areaNum, const portalStack_t* ps
 		idRenderLightLocal* light = lref->light;
 		
 		// debug tool to allow viewing of only one light at a time
-		if( r_singleLight.GetInteger() >= 0 && r_singleLight.GetInteger() != light->index )
+		if( r_singleLight.GetInteger() >= 0 && r_singleLight.GetInteger() != light->GetIndex() )
 		{
 			continue;
 		}
@@ -376,7 +373,7 @@ void idRenderWorldLocal::AddAreaViewLights( int areaNum, const portalStack_t* ps
 		// check for being closed off behind a door
 		// a light that doesn't cast shadows will still light even if it is behind a door
 		if( r_useLightAreaCulling.GetBool() && !light->LightCastsShadows()
-				&& light->areaNum != -1 && !tr.viewDef->connectedAreas[ light->areaNum ] )
+			&& light->areaNum != -1 && !tr.viewDef->connectedAreas[ light->areaNum ] )
 		{
 			continue;
 		}
@@ -389,7 +386,7 @@ void idRenderWorldLocal::AddAreaViewLights( int areaNum, const portalStack_t* ps
 			continue;
 		}
 		
-		viewLight_t* vLight = R_SetLightDefViewLight( light );
+		viewLight_t* vLight = light->EmitToView( tr.viewDef );
 		
 		// expand the scissor rect
 		vLight->scissorRect.Union( ps->rect );
@@ -431,22 +428,12 @@ bool idRenderWorldLocal::PortalIsFoggedOut( const portal_t* p )
 
 	float* regs = ( float* )_alloca( ldef->lightShader->GetNumRegisters() * sizeof( float ) );
 
-	ldef->lightShader->EvaluateRegisters( regs, ldef->parms.shaderParms,
-		tr.viewDef->GetMaterialParms(), tr.viewDef->GetGameTimeSec(), ldef->parms.referenceSound );
+	ldef->lightShader->EvaluateRegisters( regs, ldef->parms.shaderParms, tr.viewDef->GetMaterialParms(), tr.viewDef->GetGameTimeSec(), ldef->parms.referenceSound );
 
-	const float alpha = regs[ ldef->lightShader->GetStage( 0 )->color.registers[3] ];
-	
-	// if they left the default value on, set a fog distance of 500
-	float a;
-	if( alpha <= 1.0f )
-	{
-		a = -0.5f / DEFAULT_FOG_DISTANCE;
-	}
-	else
-	{
-		// otherwise, distance = alpha color
-		a = -0.5f / alpha;
-	}
+	const float alpha = regs[ ldef->lightShader->GetStage( 0 )->color.registers[ SHADERPARM_ALPHA ] ];
+
+	// if they left the default value on, set a fog distance of 500 otherwise, distance = alpha color
+	const float a = ( alpha <= 1.0f )? ( -0.5f / DEFAULT_FOG_DISTANCE ) : ( -0.5f / alpha );
 	
 	idPlane forward;
 	forward[0] = a * tr.viewDef->GetViewMatrix()[2][0];
@@ -473,7 +460,7 @@ idRenderWorldLocal::FloodViewThroughArea_r
 */
 void idRenderWorldLocal::FloodViewThroughArea_r( const idVec3& origin, int areaNum, const portalStack_t* ps )
 {
-	portalArea_t* area = &portalAreas[ areaNum ];
+	const auto area = &portalAreas[ areaNum ];
 	
 	// cull models and lights to the current collection of planes
 	AddAreaToView( areaNum, ps );

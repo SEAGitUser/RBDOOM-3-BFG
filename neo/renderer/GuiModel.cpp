@@ -108,7 +108,7 @@ void idRenderModelGui::EmitSurfaces( idRenderView * view,
 	const idRenderMatrix & modelMatrix, const idRenderMatrix & modelViewMatrix,
 	bool depthHack, bool allowFullScreenStereoDepth, bool linkAsEntity )
 {
-	viewEntity_t* guiSpace = ( viewEntity_t* )R_ClearedFrameAlloc( sizeof( *guiSpace ), FRAME_ALLOC_VIEW_ENTITY );
+	viewModel_t* guiSpace = ( viewModel_t* )R_ClearedFrameAlloc( sizeof( *guiSpace ), FRAME_ALLOC_VIEW_ENTITY );
 
 	guiSpace->modelMatrix.Copy( modelMatrix );
 	guiSpace->modelViewMatrix.Copy( modelViewMatrix );

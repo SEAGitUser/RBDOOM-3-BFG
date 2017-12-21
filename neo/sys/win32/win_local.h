@@ -37,6 +37,8 @@ If you have questions concerning this license or the applicable additional terms
 
 #include "win_input.h"
 
+#define RECTWidth( rect ) ( rect.right - rect.left )
+#define RECTHeight( rect ) ( rect.bottom  - rect.top )
 
 #define	WINDOW_STYLE	(WS_OVERLAPPED|WS_BORDER|WS_CAPTION|WS_VISIBLE | WS_THICKFRAME)
 

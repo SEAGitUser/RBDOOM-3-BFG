@@ -92,7 +92,7 @@ idRenderModel* idRenderModelBeam::InstantiateDynamicModel( const struct renderEn
 		
 		staticModel = static_cast<idRenderModelStatic*>( cachedModel );
 		surf = *staticModel->Surface( 0 );
-		tri = surf.geometry;		
+		tri = surf.geometry;
 	}
 	else
 	{	

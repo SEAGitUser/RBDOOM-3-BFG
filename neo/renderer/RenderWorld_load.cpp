@@ -417,10 +417,8 @@ void idRenderWorldLocal::SetupAreaRefs()
 	for( int i = 0; i < numPortalAreas; i++ )
 	{
 		portalAreas[i].areaNum = i;
-		portalAreas[i].lightRefs.areaNext =
-			portalAreas[i].lightRefs.areaPrev = &portalAreas[i].lightRefs;
-		portalAreas[i].entityRefs.areaNext =
-			portalAreas[i].entityRefs.areaPrev = &portalAreas[i].entityRefs;
+		portalAreas[i].lightRefs.areaNext = portalAreas[i].lightRefs.areaPrev = &portalAreas[i].lightRefs;
+		portalAreas[i].entityRefs.areaNext = portalAreas[i].entityRefs.areaPrev = &portalAreas[i].entityRefs;
 	}
 }
 
@@ -626,9 +624,7 @@ void idRenderWorldLocal::ParseNodes( idLexer* src, idFile* fileOut )
 	
 	for( int i = 0; i < numAreaNodes; i++ )
 	{
-		areaNode_t*	node;
-		
-		node = &areaNodes[i];
+		areaNode_t* node = &areaNodes[i];
 		
 		src->Parse1DMatrix( 4, node->plane.ToFloatPtr() );
 		
@@ -759,10 +755,10 @@ void idRenderWorldLocal::FreeDefs()
 	}
 	
 	// free all lightDefs
-	for( int i = 0; i < lightDefs.Num(); i++ )
+	for( int i = 0; i < lightDefs.Num(); ++i )
 	{
 		idRenderLightLocal* light = lightDefs[i];
-		if( light != NULL && light->world == this )
+		if( light != NULL && light->GetOwner() == this )
 		{
 			FreeLightDef( i );
 			lightDefs[i] = NULL;
@@ -770,10 +766,10 @@ void idRenderWorldLocal::FreeDefs()
 	}
 	
 	// free all entityDefs
-	for( int i = 0; i < entityDefs.Num(); i++ )
+	for( int i = 0; i < entityDefs.Num(); ++i )
 	{
-		idRenderEntityLocal*	 mod = entityDefs[i];
-		if( mod != NULL && mod->world == this )
+		idRenderEntityLocal* mod = entityDefs[i];
+		if( mod != NULL && mod->GetOwner() == this )
 		{
 			FreeEntityDef( i );
 			entityDefs[i] = NULL;
@@ -781,12 +777,12 @@ void idRenderWorldLocal::FreeDefs()
 	}
 	
 	// Reset decals and overlays
-	for( int i = 0; i < decals.Num(); i++ )
+	for( int i = 0; i < decals.Num(); ++i )
 	{
 		decals[i].entityHandle = -1;
 		decals[i].lastStartTime = 0;
 	}
-	for( int i = 0; i < overlays.Num(); i++ )
+	for( int i = 0; i < overlays.Num(); ++i )
 	{
 		overlays[i].entityHandle = -1;
 		overlays[i].lastStartTime = 0;
@@ -803,10 +799,6 @@ is still useful for displaying a bare model
 */
 bool idRenderWorldLocal::InitFromMap( const char* name )
 {
-	idLexer* 		src;
-	idToken			token;
-	idRenderModel* 	lastModel;
-	
 	// if this is an empty world, initialize manually
 	if( !name || !name[0] )
 	{
@@ -861,7 +853,7 @@ bool idRenderWorldLocal::InitFromMap( const char* name )
 			file->ReadString( mapName );
 			file->ReadBig( mapTimeStamp );
 			loaded = true;
-			for( int i = 0; i < numEntries; i++ )
+			for( int i = 0; i < numEntries; ++i )
 			{
 				idStrStatic< MAX_OSPATH > type;
 				file->ReadString( type );
@@ -905,16 +897,14 @@ bool idRenderWorldLocal::InitFromMap( const char* name )
 	}
 	
 	if( !loaded )
-	{
-	
-		src = new( TAG_RENDER ) idLexer( filename, LEXFL_NOSTRINGCONCAT | LEXFL_NODOLLARPRECOMPILE );
+	{	
+		auto src = new( TAG_RENDER ) idLexer( filename, LEXFL_NOSTRINGCONCAT | LEXFL_NODOLLARPRECOMPILE );
 		if( !src->IsLoaded() )
 		{
 			common->Printf( "idRenderWorldLocal::InitFromMap: %s not found\n", filename.c_str() );
 			ClearWorld();
 			return false;
-		}
-		
+		}		
 		
 		mapName = name;
 		mapTimeStamp = currentTimeStamp;
@@ -924,6 +914,8 @@ bool idRenderWorldLocal::InitFromMap( const char* name )
 		{
 			WriteLoadMap();
 		}
+
+		idToken token;
 		
 		if( !src->ReadToken( &token ) || token.Icmp( PROC_FILE_ID ) )
 		{
@@ -952,11 +944,10 @@ bool idRenderWorldLocal::InitFromMap( const char* name )
 			}
 			
 			common->UpdateLevelLoadPacifier();
-			
-			
+					
 			if( token == "model" )
 			{
-				lastModel = ParseModel( src, name, currentTimeStamp, outputFile );
+				auto lastModel = ParseModel( src, name, currentTimeStamp, outputFile );
 				
 				// add it to the model manager list
 				renderModelManager->AddModel( lastModel );
@@ -971,7 +962,7 @@ bool idRenderWorldLocal::InitFromMap( const char* name )
 			
 			if( token == "shadowModel" )
 			{
-				lastModel = ParseShadowModel( src, outputFile );
+				auto lastModel = ParseShadowModel( src, outputFile );
 				
 				// add it to the model manager list
 				renderModelManager->AddModel( lastModel );
@@ -1013,9 +1004,7 @@ bool idRenderWorldLocal::InitFromMap( const char* name )
 		}
 		
 	}
-	
-	
-	
+		
 	// if it was a trivial map without any areas, create a single area
 	if( !numPortalAreas )
 	{
@@ -1040,13 +1029,13 @@ idRenderWorldLocal::ClearPortalStates
 void idRenderWorldLocal::ClearPortalStates()
 {
 	// all portals start off open
-	for( int i = 0; i < numInterAreaPortals; i++ )
+	for( int i = 0; i < numInterAreaPortals; ++i )
 	{
 		doublePortals[i].blockingBits = PS_BLOCK_NONE;
 	}
 	
 	// flood fill all area connections
-	for( int i = 0; i < numPortalAreas; i++ )
+	for( int i = 0; i < numPortalAreas; ++i )
 	{
 		for( int j = 0; j < NUM_PORTAL_ATTRIBUTES; j++ )
 		{
@@ -1066,11 +1055,11 @@ void idRenderWorldLocal::AddWorldModelEntities()
 	// add the world model for each portal area
 	// we can't just call AddEntityDef, because that would place the references
 	// based on the bounding box, rather than explicitly into the correct area
-	for( int i = 0; i < numPortalAreas; i++ )
+	for( int i = 0; i < numPortalAreas; ++i )
 	{
 		common->UpdateLevelLoadPacifier();
 				
-		idRenderEntityLocal* def = new( TAG_RENDER_ENTITY ) idRenderEntityLocal;
+		auto def = new( TAG_RENDER_ENTITY ) idRenderEntityLocal;
 		
 		// try and reuse a free spot
 		int index = entityDefs.FindNull();
@@ -1078,8 +1067,7 @@ void idRenderWorldLocal::AddWorldModelEntities()
 		{
 			index = entityDefs.Append( def );
 		}
-		else
-		{
+		else {
 			entityDefs[index] = def;
 		}
 		
@@ -1092,34 +1080,28 @@ void idRenderWorldLocal::AddWorldModelEntities()
 			common->Error( "idRenderWorldLocal::InitFromMap: bad area model lookup" );
 		}
 		
-		idRenderModel* hModel = def->parms.hModel;
-		
-		for( int j = 0; j < hModel->NumSurfaces(); j++ )
-		{
-			const modelSurface_t* surf = hModel->Surface( j );
-			
-			if( surf->shader->GetName() == idStr( "textures/smf/portal_sky" ) )
+		for( int j = 0; j < def->parms.hModel->NumSurfaces(); ++j )
+		{		
+			if( def->parms.hModel->Surface( j )->shader->GetName() == idStr( "textures/smf/portal_sky" ) )
 			{
 				def->needsPortalSky = true;
 			}
 		}
 		
 		// the local and global reference bounds are the same for area models
-		def->localReferenceBounds = def->parms.hModel->Bounds();
+		def->localReferenceBounds  = def->parms.hModel->Bounds();
 		def->globalReferenceBounds = def->parms.hModel->Bounds();
 		
-		def->parms.axis[0][0] = 1.0f;
-		def->parms.axis[1][1] = 1.0f;
-		def->parms.axis[2][2] = 1.0f;
+		def->parms.axis.Identity();
 		
 		// in case an explicit shader is used on the world, we don't
 		// want it to have a 0 alpha or color
-		def->parms.shaderParms[0] = 1.0f;
-		def->parms.shaderParms[1] = 1.0f;
-		def->parms.shaderParms[2] = 1.0f;
-		def->parms.shaderParms[3] = 1.0f;
+		def->parms.shaderParms[ SHADERPARM_RED ]   = 1.0f;
+		def->parms.shaderParms[ SHADERPARM_GREEN ] = 1.0f;
+		def->parms.shaderParms[ SHADERPARM_BLUE ]  = 1.0f;
+		def->parms.shaderParms[ SHADERPARM_ALPHA ] = 1.0f;
 		
-		R_DeriveEntityData( def );
+		def->DeriveData();
 		
 		AddEntityRefToArea( def, &portalAreas[i] );
 	}
@@ -1134,7 +1116,7 @@ bool idRenderWorldLocal::CheckAreaForPortalSky( int areaNum )
 {
 	assert( areaNum >= 0 && areaNum < numPortalAreas );
 	
-	for( areaReference_t* ref = portalAreas[areaNum].entityRefs.areaNext; ref->entity; ref = ref->areaNext )
+	for( auto ref = portalAreas[areaNum].entityRefs.areaNext; ref->entity; ref = ref->areaNext )
 	{
 		assert( ref->area == &portalAreas[areaNum] );
 		
@@ -1154,5 +1136,6 @@ ResetLocalRenderModels
 */
 void idRenderWorldLocal::ResetLocalRenderModels()
 {
-	localModels.Clear();	// Clear out the list when switching between expansion packs, so InitFromMap doesn't try to delete the list whose content has already been deleted by the model manager being re-started
+	localModels.Clear();	// Clear out the list when switching between expansion packs, 
+	// so InitFromMap doesn't try to delete the list whose content has already been deleted by the model manager being re-started
 }

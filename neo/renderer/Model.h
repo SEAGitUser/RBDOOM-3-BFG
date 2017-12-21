@@ -190,6 +190,10 @@ public:
 
 	void						AddCubeFace( const idVec3& v1, const idVec3& v2, const idVec3& v3, const idVec3& v4 );
 
+	// Generate vertexes and indexes for a polytope, and optionally returns the polygon windings.
+	// The positive sides of the planes will be visible.
+	static idTriangles *		CreateTrianglesForPolytope( int numPlanes, const idPlane* planes, idWinding** windings );
+
 	size_t						CPUMemoryUsed() const;
 	//size_t						GPUMemoryUsed() const;
 

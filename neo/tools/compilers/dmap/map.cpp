@@ -594,11 +594,10 @@ static void CreateMapLight( const idMapEntity* mapEnt )
 	// we can use the same renderLight generation
 	gameEdit->ParseSpawnArgsToRenderLight( &mapEnt->epairs, &light->def.parms );
 	
-	R_DeriveLightData( &light->def );
+	light->def.DeriveData();
 	
 	// RB begin
-	idRenderMatrix::GetFrustumPlanes( light->frustumPlanes, light->def.baseLightProject, true, true );
-	
+	idRenderMatrix::GetFrustumPlanes( light->frustumPlanes, light->def.baseLightProject, true, true );	
 	// the DOOM 3 frustum planes point outside the frustum
 	for( int i = 0; i < 6; i++ )
 	{
@@ -608,21 +607,13 @@ static void CreateMapLight( const idMapEntity* mapEnt )
 	
 	// get the name for naming the shadow surfaces
 	const char*	name;
-	
 	mapEnt->epairs.GetString( "name", "", &name );
 	
 	idStr::Copynz( light->name, name, sizeof( light->name ) );
 	if( !light->name[0] )
 	{
-		common->Error( "Light at (%f,%f,%f) didn't have a name",
-					   light->def.parms.origin[0], light->def.parms.origin[1], light->def.parms.origin[2] );
+		common->Error( "Light at (%f,%f,%f) didn't have a name", light->def.GetOrigin().x, light->def.GetOrigin().y, light->def.GetOrigin().z );
 	}
-#if 0
-	// use the renderer code to get the bounding planes for the light
-	// based on all the parameters
-	R_RenderLightFrustum( light->parms, light->frustum );
-	light->lightShader = light->parms.shader;
-#endif
 	
 	dmapGlobals.mapLights.Append( light );
 	
@@ -776,10 +767,9 @@ void FreeDMapFile()
 	// free the entities and brushes
 	for( i = 0 ; i < dmapGlobals.num_entities ; i++ )
 	{
-		uEntity_t*	ent;
-		primitive_t*	prim, *nextPrim;
+		primitive_t *prim, *nextPrim;
 		
-		ent = &dmapGlobals.uEntities[i];
+		auto ent = &dmapGlobals.uEntities[i];
 		
 		FreeTree( ent->tree );
 		
@@ -811,9 +801,7 @@ void FreeDMapFile()
 		{
 			for( j = 0 ; j < ent->numAreas ; j++ )
 			{
-				uArea_t*	area;
-				
-				area = &ent->areas[j];
+				auto area = &ent->areas[j];
 				FreeOptimizeGroupList( area->groups );
 				
 			}
@@ -828,7 +816,7 @@ void FreeDMapFile()
 	// free the map lights
 	for( i = 0; i < dmapGlobals.mapLights.Num(); i++ )
 	{
-		R_FreeLightDefDerivedData( &dmapGlobals.mapLights[i]->def );
+		dmapGlobals.mapLights[ i ]->def.FreeDerivedData();
 	}
 	dmapGlobals.mapLights.DeleteContents( true );
 }

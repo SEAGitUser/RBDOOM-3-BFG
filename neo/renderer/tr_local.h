@@ -56,6 +56,10 @@ const float	DEFAULT_FOG_DISTANCE	= 500.0f;
 const int FOG_ENTER_SIZE			= 64;
 const float FOG_ENTER				= ( FOG_ENTER_SIZE + 1.0f ) / ( FOG_ENTER_SIZE * 2 );
 
+static const float CHECK_BOUNDS_EPSILON = 1.0f;
+
+typedef idHandle<qhandle_t, -1>	idRenderIndex;
+
 enum demoCommand_t
 {
 	DC_BAD,
@@ -82,6 +86,25 @@ enum demoCommand_t
 	DC_CACHE_MATERIALS,
 };
 
+template<typename _T_>
+class idRenderStat {
+/*
+	GetValueString();
+	GetAverage
+	Update
+	AppendValueString
+
+	STAT_AVERAGE_FRAMES
+	STAT_TEXT_BUFFER_SIZE
+
+	maxValue;
+	values;
+	deltaFromValue;
+	valueIndex;
+	valueString;
+*/
+};
+
 /*
 ==============================================================================
 
@@ -95,11 +118,11 @@ SURFACES
 #include "Interaction.h"
 
 class idRenderWorldLocal;
-struct viewEntity_t;
+struct viewModel_t;
 struct viewLight_t;
 
 // drawSurf_t structures command the back end to render surfaces
-// a given idTriangles may be used with multiple viewEntity_t,
+// a given idTriangles may be used with multiple viewModel_t,
 // as when viewed in a subview or multiple viewport render, or
 // with multiple shaders when skinned, or, possibly with multiple
 // lights, although currently each lighting interaction creates
@@ -108,13 +131,13 @@ struct viewLight_t;
 
 struct drawSurf_t
 {
-	const idTriangles* 	frontEndGeo;		// don't use on the back end, it may be updated by the front end!
+	const idTriangles* 		frontEndGeo;		// don't use on the back end, it may be updated by the front end!
 	int						numIndexes;
 	vertCacheHandle_t		indexCache;			// triIndex_t
 	vertCacheHandle_t		ambientCache;		// idDrawVert
 	vertCacheHandle_t		shadowCache;		// idShadowVert / idShadowVertSkinned
 	vertCacheHandle_t		jointCache;			// idJointMat
-	const viewEntity_t* 	space;
+	const viewModel_t* 		space;
 	const idMaterial* 		material;			// may be NULL for shadow volumes
 	uint64					extraGLState;		// Extra GL state |'d with material->stage[].drawStateBits
 	float					sort;				// material->sort, modified by gui / entity sort offsets
@@ -138,70 +161,22 @@ struct areaReference_t
 };
 
 
-// idRenderLight should become the new public interface replacing the qhandle_t to light defs in the idRenderWorld interface
-class idRenderLight
+class idRenderLightLocal 
 {
-public:
-	virtual					~idRenderLight() {}
-	
-	virtual void			FreeRenderLight() = 0;
-	virtual void			UpdateRenderLight( const renderLight_t* re, bool forceUpdate = false ) = 0;
-	virtual void			GetRenderLight( renderLight_t* re ) = 0;
-	virtual void			ForceUpdate() = 0;
-	virtual int				GetIndex() = 0;
-};
-
-
-// idRenderEntity should become the new public interface replacing the qhandle_t to entity defs in the idRenderWorld interface
-class idRenderEntity
-{
-public:
-	virtual					~idRenderEntity() {}
-	
-	virtual void			FreeRenderEntity() = 0;
-	virtual void			UpdateRenderEntity( const renderEntity_t* re, bool forceUpdate = false ) = 0;
-	virtual void			GetRenderEntity( renderEntity_t* re ) = 0;
-	virtual void			ForceUpdate() = 0;
-	virtual int				GetIndex() = 0;
-	
-	// overlays are extra polygons that deform with animating models for blood and damage marks
-	virtual void			ProjectOverlay( const idPlane localTextureAxis[2], const idMaterial* material ) = 0;
-	virtual void			RemoveDecals() = 0;
-};
-
-
-class idRenderLightLocal : public idRenderLight
-{
-public:
-	idRenderLightLocal();
-	
-	virtual void			FreeRenderLight();
-	virtual void			UpdateRenderLight( const renderLight_t*, bool forceUpdate = false );
-	virtual void			GetRenderLight( renderLight_t* );
-	virtual void			ForceUpdate();
-	virtual int				GetIndex();
-	
-	bool					LightCastsShadows() const
-	{
-		return parms.forceShadows || ( !parms.noShadows && lightShader->LightCastsShadows() );
-	}
-	
+	friend class idRenderWorldLocal;
+	friend void CreateMapLight( const idMapEntity* ); //SEA: temp temp
+private:
 	renderLight_t			parms;					// specification
 	
-	bool					lightHasMoved;			// the light has changed its position since it was
 	// first added, so the prelight model is not valid
 	idRenderWorldLocal* 	world;
 	int						index;					// in world lightdefs
-	
-	int						areaNum;				// if not -1, we may be able to cull all the light's
-	// interactions if !viewDef->connectedAreas[areaNum]
-	
+		
 	int						lastModifiedFrameNum;	// to determine if it is constantly changing,
-	// and should go in the dynamic frame memory, or kept
-	// in the cached memory
-	bool					archived;				// for demo writing
-	
-	
+													// and should go in the dynamic frame memory, or kept
+													// in the cached memory.
+	bool					archived;			// for demo writing
+public:
 	// derived information
 	ALIGNTYPE16 idPlane		lightProject[4];		// old style light projection where Z and W are flipped and projected lights lightProject[3] is divided by ( zNear + zFar )
 	idRenderMatrix			baseLightProject;		// global xyz1 to projected light strq
@@ -221,47 +196,65 @@ public:
 	idInteraction* 			lastInteraction;
 	
 	struct doublePortal_s* 	foggedPortals;
+
+	int						areaNum;				// if not -1, we may be able to cull all the light's
+													// interactions if !viewDef->connectedAreas[areaNum]
+
+	bool					lightHasMoved;			// the light has changed its position since it was
+
+public:
+	idRenderLightLocal();
+
+	ID_INLINE int						GetIndex() const { return index; }
+	ID_INLINE idRenderWorldLocal *		GetOwner() const { return world; }
+
+	ID_INLINE const renderLight_t &		GetParms() const { return parms; }
+	ID_INLINE const idVec3 &			GetOrigin() const { return parms.origin; }
+	ID_INLINE const idMat3 &			GetAxis() const { return parms.axis; }
+	ID_INLINE bool						LightCastsShadows() const { return parms.forceShadows || ( !parms.noShadows && lightShader->LightCastsShadows() ); }
+	ID_INLINE int						GetID() const { return parms.lightId; }
+	ID_INLINE bool						HasPreLightModel() const { return( parms.prelightModel != nullptr ); }
+
+	float								GetAxialSize() const;
+	void								DeriveData();
+	void								FreeDerivedData();
+	void								CreateReferences();
+
+	// Creates viewLight_t with an empty scissor rect and links it to the RenderView.
+	// Returns created viewLight_t pointer.
+	viewLight_t *						EmitToView( idRenderView* );
+
+	ID_INLINE bool CullModelBoundsToLight( const idBounds& localBounds, const idRenderMatrix& modelRenderMatrix ) const
+	{
+		idRenderMatrix modelLightProject;
+		idRenderMatrix::Multiply( baseLightProject, modelRenderMatrix, modelLightProject );
+		return idRenderMatrix::CullBoundsToMVP( modelLightProject, localBounds, true );
+	}
 };
 
-
-class idRenderEntityLocal : public idRenderEntity
+class idRenderEntityLocal 
 {
-public:
-	idRenderEntityLocal();
-	
-	virtual void			FreeRenderEntity();
-	virtual void			UpdateRenderEntity( const renderEntity_t*, bool forceUpdate = false );
-	virtual void			GetRenderEntity( renderEntity_t* );
-	virtual void			ForceUpdate();
-	virtual int				GetIndex();
-	
-	// overlays are extra polygons that deform with animating models for blood and damage marks
-	virtual void			ProjectOverlay( const idPlane localTextureAxis[2], const idMaterial* );
-	virtual void			RemoveDecals();
-	
-	bool					IsDirectlyVisible() const;
-	void					ReadFromDemoFile( class idDemoFile* );
-	void					WriteToDemoFile( class idDemoFile* ) const;
-	
+	friend class idRenderWorldLocal;
+private:
 	renderEntity_t			parms;
-			
-	// this is just a rearrangement of parms.axis and parms.origin
-	idRenderMatrix			modelRenderMatrix;
-	idRenderMatrix			inverseBaseModelProject;// transforms the unit cube to exactly cover the model in world space
 	
 	idRenderWorldLocal* 	world;
 	int						index;					// in world entityDefs
 	
 	int						lastModifiedFrameNum;	// to determine if it is constantly changing,
-	// and should go in the dynamic frame memory, or kept
-	// in the cached memory
-	bool					archived;				// for demo writing
-	
+													// and should go in the dynamic frame memory, or kept
+													// in the cached memory.
+	bool					archived;			// for demo writing
+
+public:	
 	idRenderModel* 			dynamicModel;			// if parms.model->IsDynamicModel(), this is the generated data
 	int						dynamicModelFrameCount;	// continuously animating dynamic models will recreate
 	// dynamicModel if this doesn't == tr.viewCount
 	idRenderModel* 			cachedDynamicModel;
 	
+	// this is just a rearrangement of parms.axis and parms.origin
+	idRenderMatrix			modelRenderMatrix;
+	idRenderMatrix			inverseBaseModelProject;// transforms the unit cube to exactly cover the model in world space
 	
 	// the local bounds used to place entityRefs, either from parms for dynamic entities, or a model bounds
 	idBounds				localReferenceBounds;
@@ -270,11 +263,11 @@ public:
 	// modelMatrix in R_CreateEntityRefs()
 	idBounds				globalReferenceBounds;
 	
-	// a viewEntity_t is created whenever a idRenderEntityLocal is considered for inclusion
+	// a viewModel_t is created whenever a idRenderEntityLocal is considered for inclusion
 	// in a given view, even if it turns out to not be visible
-	int						viewCount;				// if tr.viewCount == viewCount, viewEntity is valid,
+	int						viewCount;				// if tr.viewCount == viewCount, viewModel is valid,
 	// but the entity may still be off screen
-	viewEntity_t* 			viewEntity;				// in frame temporary memory
+	viewModel_t* 			viewModel;				// in frame temporary memory
 	
 	idRenderModelDecal* 	decals;					// decals that have been projected on this model
 	idRenderModelOverlay* 	overlays;				// blood overlays on animated models
@@ -284,12 +277,46 @@ public:
 	idInteraction* 			lastInteraction;
 	
 	bool					needsPortalSky;
+
+public:
+	idRenderEntityLocal();
+	
+	ID_INLINE int						GetIndex() const { return index; }
+	ID_INLINE idRenderWorldLocal *		GetOwner() const { return world; }
+
+	ID_INLINE const renderEntity_t &	GetParms() const { return parms; }
+	ID_INLINE const idVec3 &			GetOrigin() const { return parms.origin; }
+	ID_INLINE const idMat3 &			GetAxis() const { return parms.axis; }
+	ID_INLINE const idRenderModel *		GetModel() const { return parms.hModel; }
+
+	void								ReadFromDemoFile( class idDemoFile* );
+	void								WriteToDemoFile( class idDemoFile* ) const;
+
+	bool								IsDirectlyVisible() const;
+
+	void								DeriveData();
+	void								FreeDerivedData( bool keepDecals, bool keepCachedDynamicModel );
+	void								FreeDecals();
+	void								FreeFadedDecals( int time );
+	void								FreeOverlay();
+
+	void								CreateReferences();
+
+	void								ClearDynamicModel();
+	bool								IssueCallback();
+	idRenderModel *						EmitDynamicModel();
+	ID_INLINE bool						HasCallback() const { return( parms.callback != nullptr ); }
+
+
+	// Creates viewModel_t with an empty scissor rect and links it to the RenderView.
+	// Returns created viewModel_t pointer.
+	viewModel_t *						EmitToView( idRenderView* );
 };
 
 struct shadowOnlyEntity_t
 {
-	shadowOnlyEntity_t* 	next;
-	idRenderEntityLocal*	edef;
+	shadowOnlyEntity_t * 			next;
+	idRenderEntityLocal *			edef;
 };
 
 // viewLights are allocated on the frame temporary stack memory
@@ -299,23 +326,23 @@ struct shadowOnlyEntity_t
 // but should never exist if its volume does not intersect the view frustum
 struct viewLight_t
 {
-	viewLight_t* 			next;
+	viewLight_t* 					next;
 	
 	// back end should NOT reference the lightDef, because it can change when running SMP
-	idRenderLightLocal* 	lightDef;
+	idRenderLightLocal* 			lightDef;
 	
 	// for scissor clipping, local inside renderView viewport
-	// scissorRect.Empty() is true if the viewEntity_t was never actually
+	// scissorRect.Empty() is true if the viewModel_t was never actually
 	// seen through any portals
-	idScreenRect			scissorRect;
+	idScreenRect					scissorRect;
 	
 	// R_AddSingleLight() determined that the light isn't actually needed
-	bool					removeFromList;
+	bool							removeFromList;
 	
 	// R_AddSingleLight builds this list of entities that need to be added
 	// to the viewEntities list because they potentially cast shadows into
 	// the view, even though the aren't directly visible
-	shadowOnlyEntity_t* 	shadowOnlyViewEntities;
+	shadowOnlyEntity_t* 			shadowOnlyViewEntities;
 	
 	enum interactionState_t
 	{
@@ -323,50 +350,50 @@ struct viewLight_t
 		INTERACTION_NO,
 		INTERACTION_YES
 	};
-	byte* 					entityInteractionState;		// [numEntities]
+	byte* 							entityInteractionState;		// [numEntities]
 	
-	idVec3					globalLightOrigin;			// global light origin used by backend
-	ALIGNTYPE16 idPlane		lightProject[4];			// light project used by backend
-	ALIGNTYPE16 idPlane		fogPlane;					// fog plane for backend fog volume rendering
+	idVec3							globalLightOrigin;			// global light origin used by backend
+	ALIGNTYPE16 idPlane				lightProject[4];			// light project used by backend
+	///ALIGNTYPE16 idPlane		fogPlane;					// fog plane for backend fog volume rendering
 	// RB: added for shadow mapping
-	idRenderMatrix			baseLightProject;			// global xyz1 to projected light strq
-	bool					pointLight;					// otherwise a projection light (should probably invert the sense of this, because points are way more common)
-	bool					parallel;					// lightCenter gives the direction to the light at infinity
-	idVec3					lightCenter;				// offset the lighting direction for shading and
-	int						shadowLOD;					// level of detail for shadowmap selection
+	idRenderMatrix					baseLightProject;			// global xyz1 to projected light strq
+	bool							pointLight;					// otherwise a projection light (should probably invert the sense of this, because points are way more common)
+	bool							parallel;					// lightCenter gives the direction to the light at infinity
+	idVec3							lightCenter;				// offset the lighting direction for shading and
+	int								shadowLOD;					// level of detail for shadowmap selection
 	// RB end
-	idRenderMatrix			inverseBaseLightProject;	// the matrix for deforming the 'zeroOneCubeModel' to exactly cover the light volume in world space
-	const idMaterial* 		lightShader;				// light shader used by backend
-	const float*			shaderRegisters;			// shader registers used by backend
-	idImage* 				falloffImage;				// falloff image used by backend
+	idRenderMatrix					inverseBaseLightProject;	// the matrix for deforming the 'zeroOneCubeModel' to exactly cover the light volume in world space
+	const idMaterial* 				lightShader;				// light shader used by backend
+	const float*					shaderRegisters;			// shader registers used by backend
+	idImage* 						falloffImage;				// falloff image used by backend
 	
-	drawSurf_t* 			globalShadows;				// shadow everything
-	drawSurf_t* 			localInteractions;			// don't get local shadows
-	drawSurf_t* 			localShadows;				// don't shadow local surfaces
-	drawSurf_t* 			globalInteractions;			// get shadows from everything
-	drawSurf_t* 			translucentInteractions;	// translucent interactions don't get shadows
+	drawSurf_t* 					globalShadows;				// shadow everything
+	drawSurf_t* 					localInteractions;			// don't get local shadows
+	drawSurf_t* 					localShadows;				// don't shadow local surfaces
+	drawSurf_t* 					globalInteractions;			// get shadows from everything
+	drawSurf_t* 					translucentInteractions;	// translucent interactions don't get shadows
 	
 	// R_AddSingleLight will build a chain of parameters here to setup shadow volumes
 	preLightShadowVolumeParms_t* 	preLightShadowVolumes;
 };
 
-// a viewEntity is created whenever a idRenderEntityLocal is considered for inclusion
+// a viewModel is created whenever a idRenderEntityLocal is considered for inclusion
 // in the current view, but it may still turn out to be culled.
-// viewEntity are allocated on the frame temporary stack memory
-// a viewEntity contains everything that the back end needs out of a idRenderEntityLocal,
+// viewModel are allocated on the frame temporary stack memory
+// a viewModel contains everything that the back end needs out of a idRenderEntityLocal,
 // which the front end may be modifying simultaneously if running in SMP mode.
-// A single entityDef can generate multiple viewEntity_t in a single frame, as when seen in a mirror
-struct viewEntity_t
+// A single entityDef can generate multiple viewModel_t in a single frame, as when seen in a mirror
+struct viewModel_t
 {
-	viewEntity_t* 					next;
+	viewModel_t* 					next;
 	
 	// back end should NOT reference the entityDef, because it can change when running SMP
 	idRenderEntityLocal*			entityDef;
 	
 	// for scissor clipping, local inside renderView viewport
-	// scissorRect.Empty() is true if the viewEntity_t was never actually
+	// scissorRect.Empty() is true if the viewModel_t was never actually
 	// seen through any portals, but was created for shadow casting.
-	// a viewEntity can have a non-empty scissorRect, meaning that an area
+	// a viewModel can have a non-empty scissorRect, meaning that an area
 	// that it is in is visible, and still not be visible.
 	idScreenRect					scissorRect;
 	
@@ -454,7 +481,7 @@ private: // derived data is private ( its all should be private! )
 	idRenderMatrix			inverseViewProjectionMatrix;
 	
 	//TODO: get rid of this wordspace crap!
-	viewEntity_t			worldSpace;
+	viewModel_t				worldSpace;
 
 // RB begin
 	frustum_t				frustums[ MAX_FRUSTUMS ];					// positive sides face outward, [4] is the front clip plane
@@ -506,7 +533,7 @@ public:
 	int						maxDrawSurfs;			// may be resized
 	
 	viewLight_t*			viewLights;				// chain of all viewLights effecting view
-	viewEntity_t* 			viewEntitys;			// chain of all viewEntities effecting view, including off screen ones casting shadows
+	viewModel_t* 			viewEntitys;			// chain of all viewEntities effecting view, including off screen ones casting shadows
 	// we use viewEntities as a check to see if a given view consists solely
 	// of 2D rendering, which we can optimize in certain ways.  A 2D view will
 	// not have any viewEntities
@@ -525,14 +552,14 @@ public:
 	//void Init2DView();
 	//void Init( int stereoEye, bool 2DView );
 
-	const idRenderMatrix &	GetViewMatrix() const { return worldSpace.modelViewMatrix; }
-	const idRenderMatrix &	GetProjectionMatrix() const { return projectionMatrix; }
-	const idRenderMatrix &	GetMVPMatrix() const { return worldSpace.mvp; }	// modelmat is identity 
-	const idRenderMatrix &	GetInverseVPMatrix() const { return inverseViewProjectionMatrix; }	// modelmat is identity 
-	const idRenderMatrix &	GetInverseProjMatrix() const { return inverseProjectionMatrix; }
+	const idRenderMatrix &			GetViewMatrix() const { return worldSpace.modelViewMatrix; }
+	const idRenderMatrix &			GetProjectionMatrix() const { return projectionMatrix; }
+	const idRenderMatrix &			GetMVPMatrix() const { return worldSpace.mvp; }	// modelmat is identity 
+	const idRenderMatrix &			GetInverseVPMatrix() const { return inverseViewProjectionMatrix; }	// modelmat is identity 
+	const idRenderMatrix &			GetInverseProjMatrix() const { return inverseProjectionMatrix; }
 
 	//TODO: get rid of this wordspace crap!
-	const viewEntity_t &			GetWorldSpace() const { return worldSpace; }
+	const viewModel_t &				GetWorldSpace() const { return worldSpace; }
 
 	float							GetZNear() const;
 	ID_INLINE int					GetStereoEye() const { return parms.viewEyeBuffer; }
@@ -553,12 +580,12 @@ public:
 	ID_INLINE const float *			GetSplitFrustumDistances() const { return frustumSplitDistances; }
 	ID_INLINE const idRenderMatrix* GetSplitFrustumInvMVPMatrices() const { return frustumInvMVPs; }
 
-	void					DeriveData();
+	void							DeriveData();
 
 	// Transform global point to normalized device coordinates.
-	void					GlobalToNormalizedDeviceCoordinates( const idVec3& in_global, idVec3& out_ndc ) const;
+	void							GlobalToNormalizedDeviceCoordinates( const idVec3& in_global, idVec3& out_ndc ) const;
 	// Find the screen pixel bounding box of the given winding( global winding-> model space-> screen space ).
-	void					ScreenRectFromWinding( const idWinding &, const idRenderMatrix & modelMatrix, idScreenRect &/*OUT*/ ) const;
+	void							ScreenRectFromWinding( const idWinding &, const idRenderMatrix & modelMatrix, idScreenRect &/*OUT*/ ) const;
 };
 
 
@@ -806,7 +833,7 @@ struct backEndState_t
 	const idRenderView*		viewDef;
 	backEndCounters_t	pc;
 	
-	const viewEntity_t* currentSpace;			// for detecting when a matrix must change
+	const viewModel_t* currentSpace;			// for detecting when a matrix must change
 	idScreenRect		currentScissor;			// for scissor clipping, local inside renderView viewport
 	glstate_t			glState;				// for OpenGL state deltas
 	
@@ -958,11 +985,11 @@ public:
 	
 	idImage* 				ambientCubeImage;	// hack for testing dependent ambient lighting
 	
-	idRenderView* 				viewDef;
+	idRenderView* 			viewDef;
 	
 	performanceCounters_t	pc;					// performance counters
 	
-	viewEntity_t			identitySpace;		// can use if we don't know viewDef->worldSpace is valid
+	viewModel_t			identitySpace;		// can use if we don't know viewDef->worldSpace is valid
 	
 	idScreenRect			renderCrops[MAX_RENDER_CROPS];
 	int						currentRenderCrop;
@@ -971,15 +998,15 @@ public:
 	int						guiRecursionLevel;		// to prevent infinite overruns
 	uint32					currentColorNativeBytesOrder;
 	uint64					currentGLState;
-	class idRenderModelGui* 		guiModel;
+	class idRenderModelGui* guiModel;
 	
-	idList<idFont*, TAG_FONT>		fonts;
+	idList<idFont*, TAG_FONT> fonts;
 	
 	unsigned short			gammaTable[256];	// brightness / gamma modify this
 	
-	idTriangles* 		unitSquareTriangles;
-	idTriangles* 		zeroOneCubeTriangles;
-	idTriangles* 		testImageTriangles;
+	idTriangles* 			unitSquareTriangles;
+	idTriangles* 			zeroOneCubeTriangles;
+	idTriangles* 			testImageTriangles;
 	
 	// these are allocated at buffer swap time, but
 	// the back end should only use the ones in the backEnd stucture,
@@ -1293,40 +1320,10 @@ RENDERWORLD_DEFS
 ============================================================
 */
 
-void R_DeriveEntityData( idRenderEntityLocal* def );
-void R_CreateEntityRefs( idRenderEntityLocal* def );
-void R_FreeEntityDefDerivedData( idRenderEntityLocal* def, bool keepDecals, bool keepCachedDynamicModel );
-void R_FreeEntityDefCachedDynamicModel( idRenderEntityLocal* def );
-void R_FreeEntityDefDecals( idRenderEntityLocal* def );
-void R_FreeEntityDefOverlay( idRenderEntityLocal* def );
-void R_FreeEntityDefFadedDecals( idRenderEntityLocal* def, int time );
-
-// RB: for dmap
-void R_DeriveLightData( idRenderLightLocal* light );
-
-// Called by the editor and dmap to operate on light volumes
-void R_RenderLightFrustum( const renderLight_t& renderLight, idPlane lightFrustum[6] );
-
-idTriangles* R_PolytopeSurface( int numPlanes, const idPlane* planes, idWinding** windings );
-// RB end
-void R_CreateLightRefs( idRenderLightLocal* light );
-void R_FreeLightDefDerivedData( idRenderLightLocal* light );
-
 void R_FreeDerivedData();
 void R_ReCreateWorldReferences();
 void R_CheckForEntityDefsUsingModel( idRenderModel* model );
 void R_ModulateLights_f( const idCmdArgs& args );
-
-/*
-============================================================
-
-RENDERWORLD_PORTALS
-
-============================================================
-*/
-
-viewEntity_t* R_SetEntityDefViewEntity( idRenderEntityLocal* def );
-viewLight_t* R_SetLightDefViewLight( idRenderLightLocal* def );
 
 /*
 ====================================================================
@@ -1359,15 +1356,6 @@ TR_FRONTEND_ADDLIGHTS
 
 void R_ShadowBounds( const idBounds& modelBounds, const idBounds& lightBounds, const idVec3& lightOrigin, idBounds& shadowBounds );
 
-ID_INLINE bool R_CullModelBoundsToLight( const idRenderLightLocal* light, const idBounds& localBounds, const idRenderMatrix& modelRenderMatrix )
-{
-	idRenderMatrix modelLightProject;
-	idRenderMatrix::Multiply( light->baseLightProject, modelRenderMatrix, modelLightProject );
-	return idRenderMatrix::CullBoundsToMVP( modelLightProject, localBounds, true );
-}
-
-
-
 /*
 ============================================================
 
@@ -1375,10 +1363,6 @@ TR_FRONTEND_ADDMODELS
 
 ============================================================
 */
-
-bool R_IssueEntityDefCallback( idRenderEntityLocal* def );
-idRenderModel* R_EntityDefDynamicModel( idRenderEntityLocal* def );
-void R_ClearEntityDefDynamicModel( idRenderEntityLocal* def );
 
 void R_SetupDrawSurfShader( drawSurf_t* drawSurf, const idMaterial* shader, const renderEntity_t* renderEntity );
 void R_SetupDrawSurfJoints( drawSurf_t* drawSurf, const idTriangles* tri, const idMaterial* shader );

@@ -257,7 +257,7 @@ void RB_StereoRenderExecuteBackEndCommands( const emptyCommand_t* const allCmds 
 		
 		// resize the stereo render image if the main window has changed size
 		if( stereoRenderImages[i]->GetUploadWidth() != renderSystem->GetWidth() ||
-				stereoRenderImages[i]->GetUploadHeight() != renderSystem->GetHeight() )
+			stereoRenderImages[i]->GetUploadHeight() != renderSystem->GetHeight() )
 		{
 			stereoRenderImages[i]->Resize( renderSystem->GetWidth(), renderSystem->GetHeight() );
 		}

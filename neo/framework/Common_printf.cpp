@@ -117,7 +117,6 @@ void idCommonLocal::VPrintf( const char* fmt, va_list args )
 	}
 	// optionally put a timestamp at the beginning of each print,
 	// so we can see how long different init sections are taking
-	int timeLength = 0;
 	char msg[MAX_PRINT_MSG_SIZE];
 	msg[ 0 ] = '\0';
 	if( com_timestampPrints.GetInteger() )
@@ -125,25 +124,25 @@ void idCommonLocal::VPrintf( const char* fmt, va_list args )
 		int	t = Sys_Milliseconds();
 		if( com_timestampPrints.GetInteger() == 1 )
 		{
-			sprintf( msg, "[%5.2f]", t * 0.001f );
+			sprintf( msg, "[%5.2f]", MS2SEC( t ) );
 		}
 		else
 		{
 			sprintf( msg, "[%i]", t );
 		}
 	}
-	timeLength = strlen( msg );
+	int timeLength = idStr::Length( msg );
 	// don't overflow
 	if( idStr::vsnPrintf( msg + timeLength, MAX_PRINT_MSG_SIZE - timeLength - 1, fmt, args ) < 0 )
 	{
 		msg[sizeof( msg ) - 2] = '\n';
 		msg[sizeof( msg ) - 1] = '\0'; // avoid output garbling
-		Sys_Printf( "idCommon::VPrintf: truncated to %d characters\n", strlen( msg ) - 1 );
+		Sys_Printf( "idCommon::VPrintf: truncated to %d characters\n", idStr::Length( msg ) - 1 );
 	}
 	
 	if( rd_buffer )
 	{
-		if( ( int )( strlen( msg ) + strlen( rd_buffer ) ) > ( rd_buffersize - 1 ) )
+		if( ( int )( idStr::Length( msg ) + idStr::Length( rd_buffer ) ) > ( rd_buffersize - 1 ) )
 		{
 			rd_flush( rd_buffer );
 			*rd_buffer = 0;
@@ -175,8 +174,7 @@ void idCommonLocal::VPrintf( const char* fmt, va_list args )
 		}
 	}
 #endif
-	
-	
+		
 	if( !idLib::IsMainThread() )
 	{
 		// RB: printf should be thread-safe on Linux
@@ -203,7 +201,7 @@ void idCommonLocal::VPrintf( const char* fmt, va_list args )
 	
 #if 0	// !@#
 #if defined(_DEBUG) && defined(WIN32)
-	if( strlen( msg ) < 512 )
+	if( idStr::Length( msg ) < 512 )
 	{
 		TRACE( msg );
 	}
@@ -245,7 +243,7 @@ void idCommonLocal::VPrintf( const char* fmt, va_list args )
 		}
 		if( logFile )
 		{
-			logFile->Write( msg, strlen( msg ) );
+			logFile->Write( msg, idStr::Length( msg ) );
 			logFile->Flush();	// ForceFlush doesn't help a whole lot
 		}
 	}

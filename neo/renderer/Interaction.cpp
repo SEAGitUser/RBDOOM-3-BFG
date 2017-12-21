@@ -202,7 +202,8 @@ static idTriangles* R_CreateInteractionLightTris( const idRenderEntityLocal* ent
 	// it is debatable if non-shadowing lights should light back faces. we aren't at the moment
 	// RB: now we do with r_useHalfLambert, so don't cull back faces if we have smooth shadowing enabled
 	if( r_lightAllBackFaces.GetBool() || light->lightShader->LightEffectsBackSides()
-			|| shader->ReceivesLightingOnBackSides() || ent->parms.noSelfShadow || ent->parms.noShadow || ( r_useHalfLambertLighting.GetInteger() && r_useShadowMapping.GetBool() ) )
+		|| shader->ReceivesLightingOnBackSides() || ent->GetParms().noSelfShadow || ent->GetParms().noShadow || 
+		( r_useHalfLambertLighting.GetInteger() && r_useShadowMapping.GetBool() ) )
 	{
 		includeBackFaces = true;
 	}
@@ -530,7 +531,7 @@ idInteraction* idInteraction::AllocAndLink( idRenderEntityLocal* edef, idRenderL
 		return NULL;
 	}
 	
-	idRenderWorldLocal* renderWorld = edef->world;
+	idRenderWorldLocal* renderWorld = edef->GetOwner();
 	
 	idInteraction* interaction = renderWorld->interactionAllocator.Alloc();
 	
@@ -570,7 +571,7 @@ idInteraction* idInteraction::AllocAndLink( idRenderEntityLocal* edef, idRenderL
 	// update the interaction table
 	if( renderWorld->interactionTable != NULL )
 	{
-		int index = ldef->index * renderWorld->interactionTableWidth + edef->index;
+		int index = ldef->GetIndex() * renderWorld->interactionTableWidth + edef->GetIndex();
 		if( renderWorld->interactionTable[index] != NULL )
 		{
 			common->Error( "idInteraction::AllocAndLink: non NULL table entry" );
@@ -665,11 +666,11 @@ Removes links and puts it back on the free list.
 void idInteraction::UnlinkAndFree()
 {
 	// clear the table pointer
-	idRenderWorldLocal* renderWorld = this->lightDef->world;
+	idRenderWorldLocal* renderWorld = lightDef->GetOwner();
 	// RB: added check for NULL
 	if( renderWorld->interactionTable != NULL )
 	{
-		int index = this->lightDef->index * renderWorld->interactionTableWidth + this->entityDef->index;
+		int index = lightDef->GetIndex() * renderWorld->interactionTableWidth + this->entityDef->GetIndex();
 		if( renderWorld->interactionTable[index] != this && renderWorld->interactionTable[index] != INTERACTION_EMPTY )
 		{
 			common->Error( "idInteraction::UnlinkAndFree: interactionTable wasn't set" );
@@ -731,9 +732,10 @@ void idInteraction::MakeEmpty()
 	}
 	
 	// store the special marker in the interaction table
-	const int interactionIndex = lightDef->index * entityDef->world->interactionTableWidth + entityDef->index;
-	assert( entityDef->world->interactionTable[ interactionIndex ] == this );
-	entityDef->world->interactionTable[ interactionIndex ] = INTERACTION_EMPTY;
+	auto world = entityDef->GetOwner();
+	const int interactionIndex = lightDef->GetIndex() * world->interactionTableWidth + entityDef->GetIndex();
+	assert( world->interactionTable[ interactionIndex ] == this );
+	world->interactionTable[ interactionIndex ] = INTERACTION_EMPTY;
 }
 
 /*
@@ -743,7 +745,7 @@ idInteraction::HasShadows
 */
 bool idInteraction::HasShadows() const
 {
-	return !entityDef->parms.noShadow && lightDef->LightCastsShadows();
+	return !entityDef->GetParms().noShadow && lightDef->LightCastsShadows();
 }
 
 /*
@@ -757,17 +759,17 @@ void idInteraction::CreateStaticInteraction()
 {
 	// note that it is a static interaction
 	staticInteraction = true;
-	const idRenderModel* model = entityDef->parms.hModel;
+	const idRenderModel* model = entityDef->GetModel();
 	if( model == NULL || model->NumSurfaces() <= 0 || model->IsDynamicModel() != DM_STATIC )
 	{
 		MakeEmpty();
 		return;
 	}
 	
-	const idBounds bounds = model->Bounds( &entityDef->parms );
+	const idBounds bounds = model->Bounds( &entityDef->GetParms() );
 	
 	// if it doesn't contact the light frustum, none of the surfaces will
-	if( R_CullModelBoundsToLight( lightDef, bounds, entityDef->modelRenderMatrix ) )
+	if( lightDef->CullModelBoundsToLight( bounds, entityDef->modelRenderMatrix ) )
 	{
 		MakeEmpty();
 		return;
@@ -794,15 +796,14 @@ void idInteraction::CreateStaticInteraction()
 		// determine the shader for this surface, possibly by skinning
 		// Note that this will be wrong if customSkin/customShader are
 		// changed after map load time without invalidating the interaction!
-		const idMaterial* const shader = R_RemapShaderBySkin( surf->shader,
-										 entityDef->parms.customSkin, entityDef->parms.customShader );
+		const idMaterial* const shader = R_RemapShaderBySkin( surf->shader, entityDef->GetParms().customSkin, entityDef->GetParms().customShader );
 		if( shader == NULL )
 		{
 			continue;
 		}
 		
 		// try to cull each surface
-		if( R_CullModelBoundsToLight( lightDef, tri->bounds, entityDef->modelRenderMatrix ) )
+		if( lightDef->CullModelBoundsToLight( tri->bounds, entityDef->modelRenderMatrix ) )
 		{
 			continue;
 		}
@@ -830,7 +831,7 @@ void idInteraction::CreateStaticInteraction()
 		{
 		
 			// if the light has an optimized shadow volume, don't create shadows for any models that are part of the base areas
-			if( lightDef->parms.prelightModel == NULL || !model->IsStaticWorldModel() || r_skipPrelightShadows.GetBool() )
+			if( !lightDef->HasPreLightModel() || !model->IsStaticWorldModel() || r_skipPrelightShadows.GetBool() )
 			{
 				idTriangles* shadowTris = R_CreateInteractionShadowVolume( entityDef, tri, lightDef );
 				if( shadowTris != NULL )
@@ -838,10 +839,10 @@ void idInteraction::CreateStaticInteraction()
 					// make a static index cache
 					sint->shadowIndexCache = vertexCache.AllocStaticIndex( shadowTris->indexes, ALIGN( shadowTris->numIndexes * sizeof( shadowTris->indexes[0] ), INDEX_CACHE_ALIGN ) );
 					sint->numShadowIndexes = shadowTris->numIndexes;
-#if defined( KEEP_INTERACTION_CPU_DATA )
+				#if defined( KEEP_INTERACTION_CPU_DATA )
 					sint->shadowIndexes = shadowTris->indexes;
 					shadowTris->indexes = NULL;
-#endif
+				#endif
 					if( shader->Coverage() != MC_OPAQUE )
 					{
 						// if any surface is a shadow-casting perforated or translucent surface, or the

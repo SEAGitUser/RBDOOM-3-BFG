@@ -39,10 +39,7 @@ idStr::hmsFormat_t	idStr::defaultHMSFormat;
 struct strColor_t {
 	ALIGNTYPE16 idVec4 color;
 	const char* str;
-};
-
-
-strColor_t g_color_table[] = {
+} g_color_table[] = {
 	{	idVec4( 0.0f,  0.0f,  0.0f,  1.0f ), "^0" },			// 0 - S_COLOR_DEFAULT			0
 	{	idVec4( 1.0f,  0.0f,  0.0f,  1.0f ), "^1" }, 			// 1 - S_COLOR_RED				1
 	{	idVec4( 0.0f,  1.0f,  0.0f,  1.0f ), "^2" }, 			// 2 - S_COLOR_GREEN			2
@@ -53,20 +50,13 @@ strColor_t g_color_table[] = {
 	{	idVec4( 1.0f,  1.0f,  1.0f,  1.0f ), "^7" }, 			// 7 - S_COLOR_WHITE			7
 	{	idVec4( 0.5f,  0.5f,  0.5f,  1.0f ), "^8" }, 			// 8 - S_COLOR_GRAY				8
 	{	idVec4( 0.0f,  0.0f,  0.0f,  1.0f ), "^9" }, 			// 9 - S_COLOR_BLACK			9
-#if 1
-	{	idVec4( 0.0f,  0.0f,  0.0f,  1.0f ), "^:" }, 
-	{	idVec4( 0.0f,  0.0f,  0.0f,  1.0f ), "^;" }, 
-	{	idVec4( 0.0f,  0.0f,  0.0f,  1.0f ), "^<" }, 
-	{	idVec4( 0.0f,  0.0f,  0.0f,  1.0f ), "^=" }, 
-	{	idVec4( 0.0f,  0.0f,  0.0f,  1.0f ), "^>" }, 
-	{	idVec4( 0.0f,  0.0f,  0.0f,  1.0f ), "^?" }, 
-#else //SEA: Console colors gone mad with this :(	TOFIX!
 	{	idVec4( 0.75f, 0.75f, 0.75f, 1.0f ), "^:" }, 			// : - S_COLOR_LT_GREY			10
 	{	idVec4( 0.25f, 0.25f, 0.25f, 1.0f ), "^;" }, 			// ; - S_COLOR_DK_GREY			11
 	{	idVec4( 0.0f,  0.5f,  0.0f,  1.0f ), "^<" }, 			// < - S_COLOR_MD_GREEN			12
 	{	idVec4( 0.5f,  0.5f,  0.0f,  1.0f ), "^=" }, 			// = - S_COLOR_MD_YELLOW		13
 	{	idVec4( 0.0f,  0.0f,  0.5f,  1.0f ), "^>" }, 			// > - S_COLOR_MD_BLUE			14
 	{	idVec4( 0.5f,  0.0f,  0.0f,  1.0f ), "^?" }, 			// ? - S_COLOR_MD_RED			15
+#if 0 //SEA: Console colors gone mad with this :(	TOFIX!
 	{	idVec4( 0.5f,  0.25f, 0.0f,  1.0f ), "^@" }, 			// @ - md.orange				16
 	{	idVec4( 1.0f,  0.6f,  0.1f,  1.0f ), "^A" }, 			// A - lt.orange				17
 	{	idVec4( 0.0f,  0.5f,  0.5f,  1.0f ), "^B" }, 			// B - md.cyan					18

@@ -39,6 +39,8 @@ If you have questions concerning this license or the applicable additional terms
 
 #define	COMMAND_HISTORY			64
 
+#define CON_DEFAULT_COLOR		C_COLOR_CYAN
+
 struct overlayText_t
 {
 	idStr			text;
@@ -350,6 +352,21 @@ static void Con_Dump_f( const idCmdArgs& args )
 	localConsole.Dump( fileName.c_str() );
 }
 
+// Get the horizontal and vertical screen sizes in pixel
+void GetDesktopResolution( int& horizontal, int& vertical )
+{
+	RECT desktop;
+	// Get a handle to the desktop window
+	const HWND hDesktop = ::GetDesktopWindow();
+	// Get the size of screen to the variable desktop
+	::GetWindowRect( hDesktop, &desktop );
+	// The top left corner will have coordinates (0,0)
+	// and the bottom right corner will have coordinates
+	// (horizontal, vertical)
+	horizontal = desktop.right;
+	vertical = desktop.bottom;
+}
+
 /*
 ==============
 idConsoleLocal::Init
@@ -357,14 +374,18 @@ idConsoleLocal::Init
 */
 void idConsoleLocal::Init()
 {
-	int		i;
-	
+#if 1 //SEA: hack for fullscreen
+	int _width = 0;
+	int _height = 0;
+	GetDesktopResolution( _width, _height );
+#endif
+
 	keyCatching = false;
 	
-	LOCALSAFE_LEFT		= 32;
-	LOCALSAFE_RIGHT		= SCREEN_WIDTH - LOCALSAFE_LEFT;
+	LOCALSAFE_LEFT		= 2; //32;
+	LOCALSAFE_RIGHT		= _width - LOCALSAFE_LEFT;	// SCREEN_WIDTH
 	LOCALSAFE_TOP		= 24;
-	LOCALSAFE_BOTTOM	= SCREEN_HEIGHT - LOCALSAFE_TOP;
+	LOCALSAFE_BOTTOM	= _height - LOCALSAFE_TOP;	// SCREEN_HEIGHT
 	LOCALSAFE_WIDTH		= LOCALSAFE_RIGHT - LOCALSAFE_LEFT;
 	LOCALSAFE_HEIGHT	= LOCALSAFE_BOTTOM - LOCALSAFE_TOP;
 	
@@ -377,7 +398,7 @@ void idConsoleLocal::Init()
 	consoleField.Clear();
 	consoleField.SetWidthInChars( LINE_WIDTH );
 	
-	for( i = 0 ; i < COMMAND_HISTORY ; i++ )
+	for( int i = 0 ; i < COMMAND_HISTORY ; i++ )
 	{
 		historyEditLines[i].Clear();
 		historyEditLines[i].SetWidthInChars( LINE_WIDTH );
@@ -461,7 +482,7 @@ void idConsoleLocal::Clear()
 {
 	for( int i = 0 ; i < CON_TEXTSIZE ; i++ )
 	{
-		text[i] = ( idStr::ColorIndex( C_COLOR_CYAN ) << 8 ) | ' '; // C_COLOR_CYAN
+		text[i] = ( idStr::ColorIndex( CON_DEFAULT_COLOR ) << 8 ) | ' ';
 	}
 
 	Bottom();		// go to end
@@ -926,10 +947,9 @@ void idConsoleLocal::Linefeed()
 	for( i = 0; i < LINE_WIDTH; i++ )
 	{
 		int offset = ( ( unsigned int )current % TOTAL_LINES ) * LINE_WIDTH + i;
-		text[offset] = ( idStr::ColorIndex( C_COLOR_CYAN ) << 8 ) | ' ';
+		text[offset] = ( idStr::ColorIndex( CON_DEFAULT_COLOR ) << 8 ) | ' ';
 	}
 }
-
 
 /*
 ================
@@ -942,7 +962,6 @@ void idConsoleLocal::Print( const char* txt )
 {
 	int		y;
 	int		c, l;
-	int		color;
 	
 	if( TOTAL_LINES == 0 )
 	{
@@ -950,7 +969,7 @@ void idConsoleLocal::Print( const char* txt )
 		return;
 	}
 	
-	color = idStr::ColorIndex( C_COLOR_CYAN );
+	int color = idStr::ColorIndex( CON_DEFAULT_COLOR );
 	
 	while( ( c = *( const unsigned char* )txt ) != 0 )
 	{
@@ -958,7 +977,7 @@ void idConsoleLocal::Print( const char* txt )
 		{
 			if( *( txt + 1 ) == C_COLOR_DEFAULT )
 			{
-				color = idStr::ColorIndex( C_COLOR_CYAN );
+				color = idStr::ColorIndex( CON_DEFAULT_COLOR );
 			}
 			else
 			{
@@ -994,12 +1013,12 @@ void idConsoleLocal::Print( const char* txt )
 		
 		switch( c )
 		{
-			case '\n':
+			case '\n': 
 				Linefeed();
 				break;
+
 			case '\t':
-				do
-				{
+				do {
 					text[y * LINE_WIDTH + x] = ( color << 8 ) | ' ';
 					x++;
 					if( x >= LINE_WIDTH )
@@ -1010,9 +1029,11 @@ void idConsoleLocal::Print( const char* txt )
 				}
 				while( x & 3 );
 				break;
-			case '\r':
-				x = 0;
+
+			case '\r': 
+				x = 0; 
 				break;
+
 			default:	// display character and advance
 				text[y * LINE_WIDTH + x] = ( color << 8 ) | c;
 				x++;
@@ -1068,7 +1089,7 @@ void idConsoleLocal::DrawInput()
 		}
 	}
 	
-	renderSystem->SetColor( idStr::ColorForIndex( C_COLOR_CYAN ) );
+	renderSystem->SetColor( idStr::ColorForIndex( CON_DEFAULT_COLOR ) );
 	
 	renderSystem->DrawSmallChar( LOCALSAFE_LEFT + 1 * SMALLCHAR_WIDTH, y, ']' );
 	
@@ -1089,14 +1110,13 @@ void idConsoleLocal::DrawNotify()
 	short*	text_p;
 	int		i;
 	int		time;
-	int		currentColor;
 	
 	if( con_noPrint.GetBool() )
 	{
 		return;
 	}
 	
-	currentColor = idStr::ColorIndex( C_COLOR_WHITE );
+	int currentColor = idStr::ColorIndex( C_COLOR_WHITE );
 	renderSystem->SetColor( idStr::ColorForIndex( currentColor ) );
 	
 	v = 0;
@@ -1138,6 +1158,9 @@ void idConsoleLocal::DrawNotify()
 	renderSystem->SetColor( colorCyan );
 }
 
+
+idCVar con_trans( "con_trans", "0.75", CVAR_RENDERER | CVAR_FLOAT, "console transperensy 0 - 1", 0, 1 );
+
 /*
 ================
 DrawSolidConsole
@@ -1152,10 +1175,9 @@ void idConsoleLocal::DrawSolidConsole( float frac )
 	int				rows;
 	short*			text_p;
 	int				row;
-	int				lines;
 	int				currentColor;
 	
-	lines = idMath::Ftoi( renderSystem->GetVirtualHeight() * frac );
+	int lines = idMath::Ftoi( renderSystem->GetVirtualHeight() * frac );
 	if( lines <= 0 )
 	{
 		return;
@@ -1174,14 +1196,14 @@ void idConsoleLocal::DrawSolidConsole( float frac )
 	}
 	else
 	{
-		renderSystem->DrawFilled( idVec4( 0.0f, 0.0f, 0.0f, 0.75f ), 0, 0, renderSystem->GetVirtualWidth(), y );
+		renderSystem->DrawFilled( idVec4( 0.0f, 0.0f, 0.0f, con_trans.GetFloat() ), 0, 0, renderSystem->GetVirtualWidth(), y );
 	}
 	
 	renderSystem->DrawFilled( colorCyan, 0, y, renderSystem->GetVirtualWidth(), 2 );
 	
 	// draw the version number
 	
-	renderSystem->SetColor( idStr::ColorForIndex( C_COLOR_CYAN ) );
+	renderSystem->SetColor( idStr::ColorForIndex( CON_DEFAULT_COLOR ) );
 	
 	// RB begin
 	//idStr version = va( "%s.%i.%i", ENGINE_VERSION, BUILD_NUMBER, BUILD_NUMBER_MINOR );
@@ -1193,11 +1215,8 @@ void idConsoleLocal::DrawSolidConsole( float frac )
 	
 	for( x = 0; x < i; x++ )
 	{
-		renderSystem->DrawSmallChar( LOCALSAFE_WIDTH - ( i - x ) * SMALLCHAR_WIDTH,
-									 ( lines - ( SMALLCHAR_HEIGHT + SMALLCHAR_HEIGHT / 4 ) ), version[x] );
-									 
+		renderSystem->DrawSmallChar( LOCALSAFE_WIDTH - ( i - x ) * SMALLCHAR_WIDTH, ( lines - ( SMALLCHAR_HEIGHT + SMALLCHAR_HEIGHT / 4 ) ), version[x] );									 
 	}
-	
 	
 	// draw the text
 	vislines = lines;
@@ -1209,7 +1228,7 @@ void idConsoleLocal::DrawSolidConsole( float frac )
 	if( display != current )
 	{
 		// draw arrows to show the buffer is backscrolled
-		renderSystem->SetColor( idStr::ColorForIndex( C_COLOR_CYAN ) );
+		renderSystem->SetColor( idStr::ColorForIndex( CON_DEFAULT_COLOR ) );
 		for( x = 0; x < LINE_WIDTH; x += 4 )
 		{
 			renderSystem->DrawSmallChar( LOCALSAFE_LEFT + ( x + 1 )*SMALLCHAR_WIDTH, idMath::Ftoi( y ), '^' );

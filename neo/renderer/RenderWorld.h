@@ -162,6 +162,11 @@ typedef struct renderEntity_s
 	int						forceUpdate;			// force an update (NOTE: not a bool to keep this struct a multiple of 4 bytes)
 	int						timeGroup;
 	int						xrayIndex;
+
+	ID_INLINE void			Clear()
+	{
+		memset( this, 0, sizeof( *this ) );
+	}
 } renderEntity_t;
 
 
@@ -213,6 +218,11 @@ typedef struct renderLight_s
 	const idMaterial* 		shader;				// NULL = either lights/defaultPointLight or lights/defaultProjectedLight
 	float					shaderParms[MAX_ENTITY_SHADER_PARMS];		// can be used in any way by shader
 	idSoundEmitter* 		referenceSound;		// for shader sound tables, allowing effects to vary with sounds
+
+	ID_INLINE void			Clear()
+	{
+		memset( this, 0, sizeof( *this ) );
+	}
 } renderLight_t;
 
 
@@ -239,6 +249,11 @@ typedef struct renderView_s
 	// the viewEyeBuffer may be of a different polarity than stereoScreenSeparation if the eyes have been swapped
 	int						viewEyeBuffer;				// -1 = left eye, 1 = right eye, 0 = monoscopic view or GUI
 	float					stereoScreenSeparation;		// projection matrix horizontal offset, positive or negative based on camera eye
+
+	ID_INLINE void			Clear()
+	{
+		memset( this, 0, sizeof( *this ) );
+	}
 } renderView_t;
 
 
