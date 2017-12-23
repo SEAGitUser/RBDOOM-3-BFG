@@ -253,25 +253,21 @@ Debugging tool to see what values are in the stencil buffer
 */
 void RB_ScanStencilBuffer()
 {
-	int		counts[256];
-	int		i;
-	byte*	stencilReadback;
-	
+	int	counts[256];
 	memset( counts, 0, sizeof( counts ) );
-	
-	stencilReadback = ( byte* )R_StaticAlloc( renderSystem->GetWidth() * renderSystem->GetHeight(), TAG_RENDER_TOOLS );
-	glReadPixels( 0, 0, renderSystem->GetWidth(), renderSystem->GetHeight(), GL_STENCIL_INDEX, GL_UNSIGNED_BYTE, stencilReadback );
-	
-	for( i = 0; i < renderSystem->GetWidth() * renderSystem->GetHeight(); i++ )
 	{
-		counts[ stencilReadback[i] ]++;
-	}
-	
-	R_StaticFree( stencilReadback );
-	
+		idTempArray<byte> stencilReadback( renderSystem->GetWidth() * renderSystem->GetHeight() );
+
+		glReadPixels( 0, 0, renderSystem->GetWidth(), renderSystem->GetHeight(), GL_STENCIL_INDEX, GL_UNSIGNED_BYTE, stencilReadback.Ptr() );
+
+		for( int i = 0; i < renderSystem->GetWidth() * renderSystem->GetHeight(); ++i )
+		{
+			counts[ stencilReadback[ i ] ]++;
+		}
+	}	
 	// print some stats (not supposed to do from back end in SMP...)
 	common->Printf( "stencil values:\n" );
-	for( i = 0; i < 255; i++ )
+	for( int i = 0; i < 255; i++ )
 	{
 		if( counts[i] )
 		{
@@ -279,7 +275,6 @@ void RB_ScanStencilBuffer()
 		}
 	}
 }
-
 
 /*
 ===================
@@ -290,22 +285,17 @@ Print an overdraw count based on stencil index values
 */
 static void RB_CountStencilBuffer()
 {
-	int		count;
-	int		i;
-	byte*	stencilReadback;
-	
-	
-	stencilReadback = ( byte* )R_StaticAlloc( renderSystem->GetWidth() * renderSystem->GetHeight(), TAG_RENDER_TOOLS );
-	glReadPixels( 0, 0, renderSystem->GetWidth(), renderSystem->GetHeight(), GL_STENCIL_INDEX, GL_UNSIGNED_BYTE, stencilReadback );
-	
-	count = 0;
-	for( i = 0; i < renderSystem->GetWidth() * renderSystem->GetHeight(); i++ )
+	int count = 0;
 	{
-		count += stencilReadback[i];
+		idTempArray<byte> stencilReadback( renderSystem->GetWidth() * renderSystem->GetHeight() );
+
+		glReadPixels( 0, 0, renderSystem->GetWidth(), renderSystem->GetHeight(), GL_STENCIL_INDEX, GL_UNSIGNED_BYTE, stencilReadback.Ptr() );
+		
+		for( int i = 0; i < renderSystem->GetWidth() * renderSystem->GetHeight(); ++i )
+		{
+			count += stencilReadback[ i ];
+		}
 	}
-	
-	R_StaticFree( stencilReadback );
-	
 	// print some stats (not supposed to do from back end in SMP...)
 	common->Printf( "overdraw: %5.1f\n", ( float )count / ( renderSystem->GetWidth() * renderSystem->GetHeight() ) );
 }
@@ -394,7 +384,7 @@ void RB_ShowOverdraw()
 	}
 	
 	// FIXME: can't frame alloc from the renderer back-end
-	drawSurf_t** newDrawSurfs = ( drawSurf_t** )R_FrameAlloc( numDrawSurfs + interactions * sizeof( newDrawSurfs[0] ), FRAME_ALLOC_DRAW_SURFACE_POINTER );
+	auto newDrawSurfs = allocManager.FrameAlloc<drawSurf_t*, FRAME_ALLOC_DRAW_SURFACE_POINTER>( numDrawSurfs + interactions );
 	
 	for( i = 0; i < numDrawSurfs; i++ )
 	{
@@ -450,21 +440,19 @@ the resulting color shading from red at 0 to green at 128 to blue at 255
 */
 static void RB_ShowIntensity()
 {
-	byte*	colorReadback;
-	int		i, j, c;
-	
 	if( !r_showIntensity.GetBool() )
 	{
 		return;
 	}
+
+	idTempArray<byte> colorReadback( renderSystem->GetWidth() * renderSystem->GetHeight() * 4 );
+
+	glReadPixels( 0, 0, renderSystem->GetWidth(), renderSystem->GetHeight(), GL_RGBA, GL_UNSIGNED_BYTE, colorReadback.Ptr() );
 	
-	colorReadback = ( byte* )R_StaticAlloc( renderSystem->GetWidth() * renderSystem->GetHeight() * 4, TAG_RENDER_TOOLS );
-	glReadPixels( 0, 0, renderSystem->GetWidth(), renderSystem->GetHeight(), GL_RGBA, GL_UNSIGNED_BYTE, colorReadback );
-	
-	c = renderSystem->GetWidth() * renderSystem->GetHeight() * 4;
-	for( i = 0; i < c; i += 4 )
+	const int c = renderSystem->GetWidth() * renderSystem->GetHeight() * 4;
+	for( int i = 0; i < c; i += 4 )
 	{
-		j = colorReadback[i];
+		int j = colorReadback[i];
 		if( colorReadback[i + 1] > j )
 		{
 			j = colorReadback[i + 1];
@@ -500,9 +488,7 @@ static void RB_ShowIntensity()
 	globalImages->BindNull();
 	glMatrixMode( GL_MODELVIEW );
 	
-	glDrawPixels( renderSystem->GetWidth(), renderSystem->GetHeight(), GL_RGBA , GL_UNSIGNED_BYTE, colorReadback );
-	
-	R_StaticFree( colorReadback );
+	glDrawPixels( renderSystem->GetWidth(), renderSystem->GetHeight(), GL_RGBA , GL_UNSIGNED_BYTE, colorReadback.Ptr() );
 }
 
 
@@ -515,8 +501,6 @@ Draw the depth buffer as colors
 */
 static void RB_ShowDepthBuffer()
 {
-	void*	depthReadback;
-	
 	if( !r_showDepth.GetBool() )
 	{
 		return;
@@ -536,12 +520,11 @@ static void RB_ShowDepthBuffer()
 	GL_State( GLS_DEPTHFUNC_ALWAYS );
 	GL_Color( 1, 1, 1 );
 	globalImages->BindNull();
+
+	idTempArray<byte> depthReadback( renderSystem->GetWidth() * renderSystem->GetHeight() * 4 );
+	depthReadback.Zero();
 	
-	depthReadback = R_StaticAlloc( renderSystem->GetWidth() * renderSystem->GetHeight() * 4, TAG_RENDER_TOOLS );
-	memset( depthReadback, 0, renderSystem->GetWidth() * renderSystem->GetHeight() * 4 );
-	
-	glReadPixels( 0, 0, renderSystem->GetWidth(), renderSystem->GetHeight(), GL_DEPTH_COMPONENT , GL_FLOAT, depthReadback );
-	
+	glReadPixels( 0, 0, renderSystem->GetWidth(), renderSystem->GetHeight(), GL_DEPTH_COMPONENT , GL_FLOAT, depthReadback.Ptr() );	
 #if 0
 	for( i = 0; i < renderSystem->GetWidth() * renderSystem->GetHeight(); i++ )
 	{
@@ -550,10 +533,8 @@ static void RB_ShowDepthBuffer()
 				( ( byte* )depthReadback )[i * 4 + 2] = 255 * ( ( float* )depthReadback )[i];
 		( ( byte* )depthReadback )[i * 4 + 3] = 1;
 	}
-#endif
-	
-	glDrawPixels( renderSystem->GetWidth(), renderSystem->GetHeight(), GL_RGBA , GL_UNSIGNED_BYTE, depthReadback );
-	R_StaticFree( depthReadback );
+#endif	
+	glDrawPixels( renderSystem->GetWidth(), renderSystem->GetHeight(), GL_RGBA , GL_UNSIGNED_BYTE, depthReadback.Ptr() );
 }
 
 /*

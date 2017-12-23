@@ -114,6 +114,8 @@ If you have questions concerning this license or the applicable additional terms
 // instead of using the texture T vector, cross the normal and S vector for an orthogonal axis
 #define DERIVE_UNSMOOTHED_BITANGENT
 
+const triIndex_t idTriangles::quadIndexes[ 6 ] = { 0, 1, 2, 2, 3, 0 }; //{ 3, 0, 2, 2, 0, 1 };
+
 /*
 =================
 R_TriSurfMemory
@@ -135,14 +137,14 @@ size_t idTriangles::CPUMemoryUsed() const
 	}
 	if( this->verts != NULL )
 	{
-		if( this->ambientSurface == NULL || this->verts != this->ambientSurface->verts )
+		if( this->baseTriangles == NULL || this->verts != this->baseTriangles->verts )
 		{
 			total += this->numVerts * sizeof( this->verts[0] );
 		}
 	}
 	if( this->indexes != NULL )
 	{
-		if( this->ambientSurface == NULL || this->indexes != this->ambientSurface->indexes )
+		if( this->baseTriangles == NULL || this->indexes != this->baseTriangles->indexes )
 		{
 			total += this->numIndexes * sizeof( this->indexes[0] );
 		}
@@ -206,7 +208,7 @@ void idTriangles::FreeStatic( idTriangles* tri )
 		if( tri->verts != NULL )
 		{
 			// R_CreateLightTris points tri->verts at the verts of the ambient surface
-			if( tri->ambientSurface == NULL || tri->verts != tri->ambientSurface->verts )
+			if( tri->baseTriangles == NULL || tri->verts != tri->baseTriangles->verts )
 			{
 				Mem_Free( tri->verts );
 			}
@@ -218,7 +220,7 @@ void idTriangles::FreeStatic( idTriangles* tri )
 		if( tri->indexes != NULL )
 		{
 			// if a surface is completely inside a light volume R_CreateLightTris points tri->indexes at the indexes of the ambient surface
-			if( tri->ambientSurface == NULL || tri->indexes != tri->ambientSurface->indexes )
+			if( tri->baseTriangles == NULL || tri->indexes != tri->baseTriangles->indexes )
 			{
 				Mem_Free( tri->indexes );
 			}
@@ -257,7 +259,7 @@ void idTriangles::FreeStatic( idTriangles* tri )
 	// clear the tri out so we don't retain stale data
 	memset( tri, 0, sizeof( idTriangles ) );
 	
-	Mem_Free( tri );
+	allocManager.StaticFree( tri );
 }
 
 /*
@@ -274,7 +276,7 @@ void idTriangles::FreeStaticVerts()
 	if( this->verts != NULL )
 	{
 		// R_CreateLightTris points tri->verts at the verts of the ambient surface
-		if( this->ambientSurface == NULL || this->verts != this->ambientSurface->verts )
+		if( this->baseTriangles == NULL || this->verts != this->baseTriangles->verts )
 		{
 			Mem_Free( this->verts );
 		}
@@ -288,7 +290,7 @@ R_AllocStaticTriSurf
 */
 idTriangles * idTriangles::AllocStatic()
 {
-	return ( idTriangles* )Mem_ClearedAlloc( sizeof( idTriangles ), TAG_SRFTRIS );
+	return allocManager.StaticAlloc<idTriangles, TAG_SRFTRIS, true>();
 }
 
 /*
@@ -304,8 +306,10 @@ idTriangles * idTriangles::CopyStatic( const idTriangles* tri )
 
 	newTri->AllocStaticVerts( tri->numVerts );
 	newTri->AllocStaticIndexes( tri->numIndexes );
+
 	newTri->numVerts = tri->numVerts;
 	newTri->numIndexes = tri->numIndexes;
+
 	memcpy( newTri->verts, tri->verts, tri->numVerts * sizeof( newTri->verts[0] ) );
 	memcpy( newTri->indexes, tri->indexes, tri->numIndexes * sizeof( newTri->indexes[0] ) );
 	
@@ -519,20 +523,18 @@ void idTriangles::DeriveBounds()
 R_CreateSilRemap
 =================
 */
-static int* R_CreateSilRemap( const idTriangles* tri )
+static void R_CreateSilRemap( const idTriangles* tri, int *remap )
 {
 	int	i, j, hashKey;
 	const idDrawVert* v1, *v2;
-	
-	int *remap = ( int* )R_ClearedStaticAlloc( tri->numVerts * sizeof( remap[0] ) );
-	
+
 	if( !r_useSilRemap.GetBool() )
 	{
-		for( i = 0; i < tri->numVerts; i++ )
+		for( i = 0; i < tri->numVerts; ++i )
 		{
 			remap[i] = i;
 		}
-		return remap;
+		return;
 	}
 	
 	idHashIndex	hash( 1024, tri->numVerts );
@@ -540,7 +542,7 @@ static int* R_CreateSilRemap( const idTriangles* tri )
 	int c_removed = 0;
 	int c_unique = 0;
 
-	for( i = 0; i < tri->numVerts; i++ )
+	for( i = 0; i < tri->numVerts; ++i )
 	{
 		v1 = &tri->verts[i];
 		
@@ -565,8 +567,6 @@ static int* R_CreateSilRemap( const idTriangles* tri )
 			hash.Add( hashKey, i );
 		}
 	}
-	
-	return remap;
 }
 
 /*
@@ -584,18 +584,19 @@ void idTriangles::CreateSilIndexes()
 		Mem_Free( this->silIndexes );
 		this->silIndexes = NULL;
 	}
-	
-	int* remap = R_CreateSilRemap( this );
+
+	idTempArray<int> remap( this->numVerts );
+	remap.Zero();
+
+	R_CreateSilRemap( this, remap.Ptr() );
 	
 	// remap indexes to the first one
 	this->AllocStaticSilIndexes( this->numIndexes );
 	assert( this->silIndexes != NULL );
-	for( int i = 0; i < this->numIndexes; i++ )
+	for( int i = 0; i < this->numIndexes; ++i )
 	{
-		this->silIndexes[i] = remap[this->indexes[i]];
+		this->silIndexes[ i ] = remap[ this->indexes[ i ] ];
 	}
-	
-	R_StaticFree( remap );
 }
 
 /*
@@ -610,13 +611,13 @@ static void R_CreateDupVerts( idTriangles* tri )
 	idTempArray<int> remap( tri->numVerts );
 	
 	// initialize vertex remap in case there are unused verts
-	for( i = 0; i < tri->numVerts; i++ )
+	for( i = 0; i < tri->numVerts; ++i )
 	{
 		remap[i] = i;
 	}
 	
 	// set the remap based on how the silhouette indexes are remapped
-	for( i = 0; i < tri->numIndexes; i++ )
+	for( i = 0; i < tri->numIndexes; ++i )
 	{
 		remap[tri->indexes[i]] = tri->silIndexes[i];
 	}
@@ -624,7 +625,7 @@ static void R_CreateDupVerts( idTriangles* tri )
 	// create duplicate vertex index based on the vertex remap
 	idTempArray<int> tempDupVerts( tri->numVerts * 2 );
 	tri->numDupVerts = 0;
-	for( i = 0; i < tri->numVerts; i++ )
+	for( i = 0; i < tri->numVerts; ++i )
 	{
 		if( remap[i] != i )
 		{
@@ -644,7 +645,7 @@ R_DefineEdge
 ===============
 */
 static int c_duplicatedEdges, c_tripledEdges;
-static const int MAX_SIL_EDGES			= 0x7ffff;
+static const int MAX_SIL_EDGES = 0x7ffff;
 
 static void R_DefineEdge( const int v1, const int v2, const int planeNum, const int numPlanes,
 						  idList<silEdge_t>& silEdges, idHashIndex&	 silEdgeHash )
@@ -1444,33 +1445,32 @@ static int IndexSort( const void* a, const void* b )
 static void R_BuildDominantTris( idTriangles* tri )
 {
 	int i, j;
-	dominantTri_t* dt;
-	const int numIndexes = tri->numIndexes;
-	indexSort_t* ind = ( indexSort_t* )R_StaticAlloc( numIndexes * sizeof( indexSort_t ) );
-	if( ind == NULL )
+
+	idTempArray<indexSort_t> ind( tri->numIndexes );
+	if( ind.Ptr() == NULL )
 	{
 		idLib::Error( "Couldn't allocate index sort array" );
 		return;
 	}
 	
-	for( i = 0; i < tri->numIndexes; i++ )
+	for( i = 0; i < tri->numIndexes; ++i )
 	{
 		ind[i].vertexNum = tri->indexes[i];
 		ind[i].faceNum = i / 3;
 	}
-	qsort( ind, tri->numIndexes, sizeof( *ind ), IndexSort );
+	qsort( ind.Ptr(), tri->numIndexes, sizeof( indexSort_t ), IndexSort );
 	
 	tri->AllocStaticDominantTris( tri->numVerts );
-	dt = tri->dominantTris;
+	dominantTri_t * dt = tri->dominantTris;
 	memset( dt, 0, tri->numVerts * sizeof( dt[0] ) );
 	
-	for( i = 0; i < numIndexes; i += j )
+	for( i = 0; i < tri->numIndexes; i += j )
 	{
 		float	maxArea = 0;
 #pragma warning( disable: 6385 ) // This is simply to get pass a false defect for /analyze -- if you can figure out a better way, please let Shawn know...
 		int		vertNum = ind[i].vertexNum;
 #pragma warning( default: 6385 )
-		for( j = 0; i + j < tri->numIndexes && ind[i + j].vertexNum == vertNum; j++ )
+		for( j = 0; i + j < tri->numIndexes && ind[i + j].vertexNum == vertNum; ++j )
 		{
 			float		d0[5], d1[5];
 			idDrawVert*	a, *b, *c;
@@ -1564,8 +1564,6 @@ static void R_BuildDominantTris( idTriangles* tri )
 		#endif
 		}
 	}
-	
-	R_StaticFree( ind );
 }
 
 /*
@@ -1721,9 +1719,10 @@ void idTriangles::RemoveUnusedVerts()
 {
 	int	i, index, used;
 	
-	int *mark = ( int* )R_ClearedStaticAlloc( this->numVerts * sizeof( *mark ) );
+	idTempArray<int> mark( this->numVerts );
+	mark.Zero();
 	
-	for( i = 0; i < this->numIndexes; i++ )
+	for( i = 0; i < this->numIndexes; ++i )
 	{
 		index = this->indexes[i];
 		if( index < 0 || index >= this->numVerts )
@@ -1744,7 +1743,7 @@ void idTriangles::RemoveUnusedVerts()
 	}
 	
 	used = 0;
-	for( i = 0; i < this->numVerts; i++ )
+	for( i = 0; i < this->numVerts; ++i )
 	{
 		if( !mark[i] )
 		{
@@ -1756,7 +1755,7 @@ void idTriangles::RemoveUnusedVerts()
 	
 	if( used != this->numVerts )
 	{
-		for( i = 0; i < this->numIndexes; i++ )
+		for( i = 0; i < this->numIndexes; ++i )
 		{
 			this->indexes[i] = mark[ this->indexes[i] ] - 1;
 			if( this->silIndexes )
@@ -1766,7 +1765,7 @@ void idTriangles::RemoveUnusedVerts()
 		}
 		this->numVerts = used;
 		
-		for( i = 0; i < this->numVerts; i++ )
+		for( i = 0; i < this->numVerts; ++i )
 		{
 			index = mark[ i ];
 			if( !index )
@@ -1778,8 +1777,6 @@ void idTriangles::RemoveUnusedVerts()
 		
 		// this doesn't realloc the arrays to save the memory used by the unused verts
 	}
-	
-	R_StaticFree( mark );
 }
 
 /*
@@ -1931,21 +1928,20 @@ void idTriangles::CleanupTriangles( bool createNormals, bool identifySilEdges, b
  R_BuildDeformInfo
 ===================
 */
-deformInfo_t* R_BuildDeformInfo( int numVerts, const idDrawVert* verts, 
-	int numIndexes, const int* indexes, bool useUnsmoothedTangents )
+deformInfo_t* R_BuildDeformInfo( int numVerts, const idDrawVert* verts, int numIndexes, const int* indexes, bool useUnsmoothedTangents )
 {
 	idTriangles	tri;
 	tri.Clear();
 	
 	tri.numVerts = numVerts;
+	tri.numIndexes = numIndexes;
+
 	tri.AllocStaticVerts( tri.numVerts );
 	SIMDProcessor->Memcpy( tri.verts, verts, tri.numVerts * sizeof( tri.verts[0] ) );
 	
-	tri.numIndexes = numIndexes;
-	tri.AllocStaticIndexes( tri.numIndexes );
-	
+	tri.AllocStaticIndexes( tri.numIndexes );	
 	// don't memcpy, so we can change the index type from int to short without changing the interface
-	for( int i = 0; i < tri.numIndexes; i++ )
+	for( int i = 0; i < tri.numIndexes; ++i )
 	{
 		tri.indexes[i] = indexes[i];
 	}
@@ -1961,7 +1957,7 @@ deformInfo_t* R_BuildDeformInfo( int numVerts, const idDrawVert* verts,
 	}
 	tri.DeriveTangents();
 	
-	auto deform = ( deformInfo_t* )R_ClearedStaticAlloc( sizeof( deformInfo_t ) );
+	auto deform = allocManager.StaticAlloc<deformInfo_t, TAG_MODEL, true>();
 	
 	deform->numSourceVerts = numVerts;
 	deform->numOutputVerts = tri.numVerts;
@@ -2030,7 +2026,7 @@ void R_FreeDeformInfo( deformInfo_t* deformInfo )
 	{
 		Mem_Free( deformInfo->dupVerts );
 	}
-	R_StaticFree( deformInfo );
+	allocManager.StaticFree( deformInfo );
 }
 
 /*
@@ -2208,7 +2204,7 @@ void idTriangles::ReadFromFile( idFile *file )
 	{
 		tri.AllocStaticVerts( tri.numVerts );
 		assert( tri.verts != NULL );
-		for( int j = 0; j < tri.numVerts; j++ )
+		for( int j = 0; j < tri.numVerts; ++j )
 		{
 			tri.verts[ j ].ReadFromFile( file );
 		}
@@ -2222,7 +2218,7 @@ void idTriangles::ReadFromFile( idFile *file )
 	else
 	{
 		tri.AllocStaticPreLightShadowVerts( numInFile );
-		for( int j = 0; j < numInFile; j++ )
+		for( int j = 0; j < numInFile; ++j )
 		{
 			file->ReadVec4( tri.preLightShadowVertexes[ j ].xyzw );
 		}
@@ -2265,7 +2261,7 @@ void idTriangles::ReadFromFile( idFile *file )
 	{
 		tri.AllocStaticSilEdges( tri.numSilEdges );
 		assert( tri.silEdges != NULL );
-		for( int j = 0; j < tri.numSilEdges; j++ )
+		for( int j = 0; j < tri.numSilEdges; ++j )
 		{
 			file->ReadBig( tri.silEdges[ j ].p1 );
 			file->ReadBig( tri.silEdges[ j ].p2 );
@@ -2280,7 +2276,7 @@ void idTriangles::ReadFromFile( idFile *file )
 	{
 		tri.AllocStaticDominantTris( tri.numVerts );
 		assert( tri.dominantTris != NULL );
-		for( int j = 0; j < tri.numVerts; j++ )
+		for( int j = 0; j < tri.numVerts; ++j )
 		{
 			file->ReadBig( tri.dominantTris[ j ].v2 );
 			file->ReadBig( tri.dominantTris[ j ].v3 );
@@ -2294,7 +2290,7 @@ void idTriangles::ReadFromFile( idFile *file )
 	file->ReadBig( tri.numShadowIndexesNoCaps );
 	file->ReadBig( tri.shadowCapPlaneBits );
 
-	tri.ambientSurface = NULL;
+	tri.baseTriangles = NULL;
 	tri.nextDeferredFree = NULL;
 	tri.indexCache = 0;
 	tri.ambientCache = 0;
@@ -2467,13 +2463,13 @@ idTriangles * idTriangles::CreateTrianglesForPolytope( int numPlanes, const idPl
 
 	int numVerts = 0;
 	int numIndexes = 0;
-	for( int i = 0; i < numPlanes; i++ )
+	for( int i = 0; i < numPlanes; ++i )
 	{
 		const idPlane& plane = planes[ i ];
 		idFixedWinding& w = planeWindings[ i ];
 
 		w.BaseForPlane( plane );
-		for( int j = 0; j < numPlanes; j++ )
+		for( int j = 0; j < numPlanes; ++j )
 		{
 			const idPlane& plane2 = planes[ j ];
 			if( j == i )
@@ -2499,20 +2495,20 @@ idTriangles * idTriangles::CreateTrianglesForPolytope( int numPlanes, const idPl
 	tri->AllocStaticIndexes( numIndexes );
 
 	// copy the data from the windings
-	for( int i = 0; i < numPlanes; i++ )
+	for( int i = 0; i < numPlanes; ++i )
 	{
 		idFixedWinding& w = planeWindings[ i ];
 		if( !w.GetNumPoints() )
 		{
 			continue;
 		}
-		for( int j = 0; j < w.GetNumPoints(); j++ )
+		for( int j = 0; j < w.GetNumPoints(); ++j )
 		{
 			tri->verts[ tri->numVerts + j ].Clear();
 			tri->verts[ tri->numVerts + j ].xyz = w[ j ].ToVec3();
 		}
 
-		for( int j = 1; j < w.GetNumPoints() - 1; j++ )
+		for( int j = 1; j < w.GetNumPoints() - 1; ++j )
 		{
 			tri->indexes[ tri->numIndexes + 0 ] = tri->numVerts;
 			tri->indexes[ tri->numIndexes + 1 ] = tri->numVerts + j;

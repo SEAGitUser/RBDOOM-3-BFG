@@ -374,10 +374,13 @@ idConsoleLocal::Init
 */
 void idConsoleLocal::Init()
 {
-#if 1 //SEA: hack for fullscreen
+#if 0 //SEA: hack for fullscreen
 	int _width = 0;
 	int _height = 0;
 	GetDesktopResolution( _width, _height );
+#else
+	int _width = SCREEN_WIDTH;
+	int _height = SCREEN_HEIGHT;
 #endif
 
 	keyCatching = false;

@@ -89,7 +89,7 @@ static void R_PerformanceCounters()
 	}
 	if( r_showMemory.GetBool() )
 	{
-		common->Printf( "frameData: %i (%i)\n", frameData->frameMemoryAllocated.GetValue(), frameData->highWaterAllocated );
+		common->Printf( "frameData: %i (%i)\n", allocManager.GetCurrentFrame()->GetFrameMemoryAllocated(), allocManager.GetCurrentFrame()->GetHighWaterAllocated() );
 	}
 	
 	memset( &tr.pc, 0, sizeof( tr.pc ) );
@@ -104,7 +104,7 @@ RenderCommandBuffers
 void idRenderSystemLocal::RenderCommandBuffers( const emptyCommand_t* const cmdHead )
 {
 	// if there isn't a draw view command, do nothing to avoid swapping a bad frame
-	bool	hasView = false;
+	bool hasView = false;
 	for( const emptyCommand_t* cmd = cmdHead ; cmd ; cmd = ( const emptyCommand_t* )cmd->next )
 	{
 		if( cmd->commandId == RC_DRAW_VIEW_3D || cmd->commandId == RC_DRAW_VIEW_GUI )
@@ -117,7 +117,7 @@ void idRenderSystemLocal::RenderCommandBuffers( const emptyCommand_t* const cmdH
 	{
 		return;
 	}
-	
+
 	// r_skipBackEnd allows the entire time of the back end
 	// to be removed from performance measurements, although
 	// nothing will be drawn to the screen.  If the prints
@@ -152,27 +152,6 @@ void idRenderSystemLocal::RenderCommandBuffers( const emptyCommand_t* const cmdH
 }
 
 /*
-============
-R_GetCommandBuffer
-
-Returns memory for a command buffer (stretchPicCommand_t,
-drawSurfsCommand_t, etc) and links it to the end of the
-current command chain.
-============
-*/
-void* R_GetCommandBuffer( int bytes )
-{
-	emptyCommand_t*	cmd;
-	
-	cmd = ( emptyCommand_t* )R_FrameAlloc( bytes, FRAME_ALLOC_DRAW_COMMAND );
-	cmd->next = NULL;
-	frameData->cmdTail->next = &cmd->commandId;
-	frameData->cmdTail = cmd;
-	
-	return ( void* )cmd;
-}
-
-/*
 =================
 R_ViewStatistics
 =================
@@ -195,10 +174,10 @@ This is the main 3D rendering command.  A single scene may
 have multiple views if a mirror, portal, or dynamic texture is present.
 =============
 */
-void	R_AddDrawViewCmd( idRenderView* parms, bool guiOnly )
+void R_AddDrawViewCmd( idRenderView* parms, bool guiOnly )
 {
-	auto cmd = ( drawSurfsCommand_t* )R_GetCommandBuffer( sizeof( drawSurfsCommand_t ) );
-	cmd->commandId = ( guiOnly ) ? RC_DRAW_VIEW_GUI : RC_DRAW_VIEW_3D;
+	auto cmd = allocManager.GetEmptyFrameCmd<drawSurfsCommand_t>();
+	cmd->commandId = ( guiOnly )? RC_DRAW_VIEW_GUI : RC_DRAW_VIEW_3D;
 	
 	cmd->viewDef = parms;
 	
@@ -215,9 +194,9 @@ This issues the command to do a post process after all the views have
 been rendered.
 =============
 */
-void	R_AddDrawPostProcess( idRenderView* parms )
+void R_AddDrawPostProcess( idRenderView* parms )
 {
-	auto cmd = ( postProcessCommand_t* )R_GetCommandBuffer( sizeof( postProcessCommand_t ) );
+	auto cmd = allocManager.GetEmptyFrameCmd<postProcessCommand_t>();
 	cmd->commandId = RC_POST_PROCESS;
 	cmd->viewDef = parms;
 }
@@ -414,7 +393,7 @@ void idRenderSystemLocal::DrawStretchPic( float x, float y, float w, float h, fl
 idRenderSystemLocal::DrawStretchPic
 =============
 */
-static const triIndex_t quadPicIndexes[6] = { 0, 1, 2, 2, 3, 0 }; //{ 3, 0, 2, 2, 0, 1 };
+
 void idRenderSystemLocal::DrawStretchPic( const idVec4& topLeft, const idVec4& topRight, const idVec4& bottomRight, const idVec4& bottomLeft, const idMaterial* material )
 {
 	if( !R_IsInitialized() )
@@ -426,7 +405,7 @@ void idRenderSystemLocal::DrawStretchPic( const idVec4& topLeft, const idVec4& t
 		return;
 	}
 	
-	idDrawVert* verts = guiModel->AllocTris( 4, quadPicIndexes, 6, material, currentGLState, STEREO_DEPTH_TYPE_NONE );
+	idDrawVert* verts = guiModel->AllocTris( 4, idTriangles::quadIndexes, 6, material, currentGLState, STEREO_DEPTH_TYPE_NONE );
 	if( verts == NULL )
 	{
 		return;
@@ -481,7 +460,7 @@ void idRenderSystemLocal::DrawStretchTri( const idVec2& p1, const idVec2& p2, co
 		return;
 	}
 	
-	triIndex_t tempIndexes[3] = { 1, 0, 2 };
+	const triIndex_t tempIndexes[3] = { 1, 0, 2 };
 	
 	idDrawVert* verts = guiModel->AllocTris( 3, tempIndexes, 3, material, currentGLState, STEREO_DEPTH_TYPE_NONE );
 	if( verts == NULL )
@@ -748,7 +727,7 @@ void idRenderSystemLocal::SwapCommandBuffers_FinishRendering(
 	
 	
 	// After coming back from an autoswap, we won't have anything to render
-	if( frameData->cmdHead->next != NULL )
+	if( allocManager.GetCurrentFrame()->cmdHead->next != NULL )
 	{
 		// wait for our fence to hit, which means the swap has actually happened
 		// We must do this before clearing any resources the GPU may be using
@@ -823,7 +802,7 @@ const emptyCommand_t* idRenderSystemLocal::SwapCommandBuffers_FinishCommandBuffe
 	vertexCache.BeginBackEnd();
 	
 	// save off this command buffer
-	const emptyCommand_t* commandBufferHead = frameData->cmdHead;
+	const emptyCommand_t* commandBufferHead = allocManager.GetCurrentFrame()->cmdHead;
 	
 	// copy the code-used drawsurfs that were
 	// allocated at the start of the buffer memory to the backEnd referenced locations
@@ -833,7 +812,7 @@ const emptyCommand_t* idRenderSystemLocal::SwapCommandBuffers_FinishCommandBuffe
 	
 	// use the other buffers next frame, because another CPU
 	// may still be rendering into the current buffers
-	R_ToggleSmpFrame();
+	allocManager.ToggleFrame();
 	
 	// possibly change the stereo3D mode
 	// PC
@@ -877,7 +856,7 @@ const emptyCommand_t* idRenderSystemLocal::SwapCommandBuffers_FinishCommandBuffe
 	// set the time for shader effects in 2D rendering
 	frameShaderTime = Sys_Milliseconds() * 0.001;
 	
-	setBufferCommand_t* cmd2 = ( setBufferCommand_t* )R_GetCommandBuffer( sizeof( *cmd2 ) );
+	auto cmd2 = allocManager.GetEmptyFrameCmd<setBufferCommand_t>();
 	cmd2->commandId = RC_SET_BUFFER;
 	cmd2->buffer = ( int )GL_BACK;
 	
@@ -940,9 +919,9 @@ In split screen mode the rendering size is also smaller.
 */
 void idRenderSystemLocal::PerformResolutionScaling( int& newWidth, int& newHeight )
 {
-
 	float xScale = 1.0f;
 	float yScale = 1.0f;
+
 	resolutionScale.GetCurrentResolutionScale( xScale, yScale );
 	
 	newWidth = idMath::Ftoi( GetWidth() * xScale );
@@ -1064,7 +1043,7 @@ void idRenderSystemLocal::CaptureRenderToImage( const char* imageName, bool clea
 	
 	idScreenRect& rc = renderCrops[currentRenderCrop];
 	
-	copyRenderCommand_t* cmd = ( copyRenderCommand_t* )R_GetCommandBuffer( sizeof( *cmd ) );
+	auto cmd = allocManager.GetEmptyFrameCmd<copyRenderCommand_t>();
 	cmd->commandId = RC_COPY_RENDER;
 	cmd->x = rc.x1;
 	cmd->y = rc.y1;
@@ -1088,34 +1067,32 @@ void idRenderSystemLocal::CaptureRenderToFile( const char* fileName, bool fixAlp
 		return;
 	}
 	
-	idScreenRect& rc = renderCrops[currentRenderCrop];
+	idScreenRect & rc = renderCrops[ currentRenderCrop ];
 	
 	guiModel->EmitFullScreen();
 	guiModel->Clear();
-	RenderCommandBuffers( frameData->cmdHead );
+	RenderCommandBuffers( allocManager.GetCurrentFrame()->cmdHead );
 	
 	glReadBuffer( GL_BACK );
 	
 	// include extra space for OpenGL padding to word boundaries
-	int	c = ( rc.GetWidth() + 3 ) * rc.GetHeight();
-	byte* data = ( byte* )R_StaticAlloc( c * 3 );
+	const int c = ( rc.GetWidth() + 3 ) * rc.GetHeight();
+
+	idTempArray<byte> data( c * 3 );
 	
-	glReadPixels( rc.x1, rc.y1, rc.GetWidth(), rc.GetHeight(), GL_RGB, GL_UNSIGNED_BYTE, data );
+	glReadPixels( rc.x1, rc.y1, rc.GetWidth(), rc.GetHeight(), GL_RGB, GL_UNSIGNED_BYTE, data.Ptr() );
 	
-	byte* data2 = ( byte* )R_StaticAlloc( c * 4 );
+	idTempArray<byte> data2( c * 4 );
 	
-	for( int i = 0 ; i < c ; i++ )
+	for( int i = 0 ; i < c ; ++i )
 	{
-		data2[ i * 4 ] = data[ i * 3 ];
+		data2[ i * 4 + 0 ] = data[ i * 3 + 0 ];
 		data2[ i * 4 + 1 ] = data[ i * 3 + 1 ];
 		data2[ i * 4 + 2 ] = data[ i * 3 + 2 ];
 		data2[ i * 4 + 3 ] = 0xff;
 	}
 	
-	R_WriteTGA( fileName, data2, rc.GetWidth(), rc.GetHeight(), true );
-	
-	R_StaticFree( data );
-	R_StaticFree( data2 );
+	R_WriteTGA( fileName, data2.Ptr(), rc.GetWidth(), rc.GetHeight(), true );
 }
 
 

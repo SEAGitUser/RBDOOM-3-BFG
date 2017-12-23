@@ -79,26 +79,27 @@ We can assume constant and equal ST vectors for walls, but not for characters.
 */
 static void R_HeightmapToNormalMap( byte* data, int width, int height, float scale )
 {
-	int		i, j;
-	byte*	depth;
+	int	i, j;
 	
 	scale = scale / 256;
 	
 	// copy and convert to grey scale
 	j = width * height;
-	depth = ( byte* )R_StaticAlloc( j, TAG_IMAGE );
-	for( i = 0 ; i < j ; i++ )
+
+	idTempArray<byte> depth( j );
+
+	for( i = 0 ; i < j ; ++i )
 	{
 		depth[i] = ( data[i * 4] + data[i * 4 + 1] + data[i * 4 + 2] ) / 3;
 	}
 	
-	idVec3	dir, dir2;
-	for( i = 0 ; i < height ; i++ )
+	idVec3 dir, dir2;
+	for( i = 0 ; i < height ; ++i )
 	{
-		for( j = 0 ; j < width ; j++ )
+		for( j = 0 ; j < width ; ++j )
 		{
-			int		d1, d2, d3, d4;
-			int		a1, a2, a3, a4;
+			int	d1, d2, d3, d4;
+			int	a1, a2, a3, a4;
 			
 			// FIXME: look at five points?
 			
@@ -134,9 +135,6 @@ static void R_HeightmapToNormalMap( byte* data, int width, int height, float sca
 			data[ a1 + 3 ] = 255;
 		}
 	}
-	
-	
-	R_StaticFree( depth );
 }
 
 
@@ -147,14 +145,11 @@ R_ImageScale
 */
 static void R_ImageScale( byte* data, int width, int height, float scale[4] )
 {
-	int		i, j;
-	int		c;
+	int c = width * height * 4;
 	
-	c = width * height * 4;
-	
-	for( i = 0 ; i < c ; i++ )
+	for( int i = 0 ; i < c ; ++i )
 	{
-		j = ( byte )( data[i] * scale[i & 3] );
+		int j = ( byte )( data[i] * scale[i & 3] );
 		if( j < 0 )
 		{
 			j = 0;
@@ -174,12 +169,9 @@ R_InvertAlpha
 */
 static void R_InvertAlpha( byte* data, int width, int height )
 {
-	int		i;
-	int		c;
+	int c = width * height * 4;
 	
-	c = width * height * 4;
-	
-	for( i = 0 ; i < c ; i += 4 )
+	for( int i = 0 ; i < c ; i += 4 )
 	{
 		data[i + 3] = 255 - data[i + 3];
 	}
@@ -192,12 +184,9 @@ R_InvertColor
 */
 static void R_InvertColor( byte* data, int width, int height )
 {
-	int		i;
-	int		c;
+	int c = width * height * 4;
 	
-	c = width * height * 4;
-	
-	for( i = 0 ; i < c ; i += 4 )
+	for( int i = 0 ; i < c ; i += 4 )
 	{
 		data[i + 0] = 255 - data[i + 0];
 		data[i + 1] = 255 - data[i + 1];
@@ -229,16 +218,14 @@ static void R_AddNormalMaps( byte* data1, int width1, int height1, byte* data2, 
 	}
 	
 	// add the normal change from the second and renormalize
-	for( i = 0 ; i < height1 ; i++ )
+	for( i = 0 ; i < height1 ; ++i )
 	{
-		for( j = 0 ; j < width1 ; j++ )
+		for( j = 0 ; j < width1 ; ++j )
 		{
-			byte*	d1, *d2;
-			idVec3	n;
-			float   len;
+			idVec3 n;
 			
-			d1 = data1 + ( i * width1 + j ) * 4;
-			d2 = data2 + ( i * width1 + j ) * 4;
+			byte* d1 = data1 + ( i * width1 + j ) * 4;
+			byte* d2 = data2 + ( i * width1 + j ) * 4;
 			
 			n[0] = ( d1[0] - 128 ) / 127.0;
 			n[1] = ( d1[1] - 128 ) / 127.0;
@@ -246,7 +233,7 @@ static void R_AddNormalMaps( byte* data1, int width1, int height1, byte* data2, 
 			
 			// There are some normal maps that blend to 0,0,0 at the edges
 			// this screws up compression, so we try to correct that here by instead fading it to 0,0,1
-			len = n.LengthFast();
+			float len = n.LengthFast();
 			if( len < 1.0f )
 			{
 				n[2] = idMath::Sqrt( 1.0 - ( n[0] * n[0] ) - ( n[1] * n[1] ) );
@@ -265,7 +252,7 @@ static void R_AddNormalMaps( byte* data1, int width1, int height1, byte* data2, 
 	
 	if( newMap )
 	{
-		R_StaticFree( newMap );
+		allocManager.StaticFree( newMap );
 	}
 }
 
@@ -276,32 +263,28 @@ R_SmoothNormalMap
 */
 static void R_SmoothNormalMap( byte* data, int width, int height )
 {
-	byte*	orig;
-	int		i, j, k, l;
+	int	i, j, k, l;
 	idVec3	normal;
 	byte*	out;
-	static float	factors[3][3] =
-	{
+	static const float factors[3][3] = {
 		{ 1, 1, 1 },
 		{ 1, 1, 1 },
 		{ 1, 1, 1 }
 	};
 	
-	orig = ( byte* )R_StaticAlloc( width * height * 4, TAG_IMAGE );
-	memcpy( orig, data, width * height * 4 );
+	idTempArray<byte> orig( width * height * 4 );
+	memcpy( orig.Ptr(), data, width * height * 4 );
 	
-	for( i = 0 ; i < width ; i++ )
+	for( i = 0 ; i < width ; ++i )
 	{
-		for( j = 0 ; j < height ; j++ )
+		for( j = 0 ; j < height ; ++j )
 		{
 			normal = vec3_origin;
 			for( k = -1 ; k < 2 ; k++ )
 			{
 				for( l = -1 ; l < 2 ; l++ )
 				{
-					byte*	in;
-					
-					in = orig + ( ( ( j + l ) & ( height - 1 ) ) * width + ( ( i + k ) & ( width - 1 ) ) ) * 4;
+					byte* in = orig.Ptr() + ( ( ( j + l ) & ( height - 1 ) ) * width + ( ( i + k ) & ( width - 1 ) ) ) * 4;
 					
 					// ignore 000 and -1 -1 -1
 					if( in[0] == 0 && in[1] == 0 && in[2] == 0 )
@@ -325,8 +308,6 @@ static void R_SmoothNormalMap( byte* data, int width, int height )
 			out[2] = ( byte )( 128 + 127 * normal[2] );
 		}
 	}
-	
-	R_StaticFree( orig );
 }
 
 
@@ -356,7 +337,7 @@ static void R_ImageAdd( byte* data1, int width1, int height1, byte* data2, int w
 	
 	c = width1 * height1 * 4;
 	
-	for( i = 0 ; i < c ; i++ )
+	for( i = 0 ; i < c ; ++i )
 	{
 		j = data1[i] + data2[i];
 		if( j > 255 )
@@ -368,7 +349,7 @@ static void R_ImageAdd( byte* data1, int width1, int height1, byte* data2, int w
 	
 	if( newMap )
 	{
-		R_StaticFree( newMap );
+		allocManager.StaticFree( newMap );
 	}
 }
 
@@ -415,12 +396,11 @@ If both pic and timestamps are NULL, it will just advance past it, which can be
 used to parse an image program from a text stream.
 ===================
 */
-static bool R_ParseImageProgram_r( idLexer& src, byte** pic, int* width, int* height,
-								   ID_TIME_T* timestamps, textureUsage_t* usage )
+static bool R_ParseImageProgram_r( idLexer& src, byte** pic, int* width, int* height, ID_TIME_T* timestamps, textureUsage_t* usage )
 {
-	idToken		token;
-	float		scale;
-	ID_TIME_T		timestamp;
+	idToken	token;
+	float scale;
+	ID_TIME_T timestamp;
 	
 	src.ReadToken( &token );
 	
@@ -488,7 +468,7 @@ static bool R_ParseImageProgram_r( idLexer& src, byte** pic, int* width, int* he
 		{
 			if( pic )
 			{
-				R_StaticFree( *pic );
+				allocManager.StaticFree( *pic );
 				*pic = NULL;
 			}
 			return false;
@@ -498,7 +478,7 @@ static bool R_ParseImageProgram_r( idLexer& src, byte** pic, int* width, int* he
 		if( pic )
 		{
 			R_AddNormalMaps( *pic, *width, *height, pic2, width2, height2 );
-			R_StaticFree( pic2 );
+			allocManager.StaticFree( pic2 );
 			if( usage )
 			{
 				*usage = TD_BUMP;
@@ -549,7 +529,7 @@ static bool R_ParseImageProgram_r( idLexer& src, byte** pic, int* width, int* he
 		{
 			if( pic )
 			{
-				R_StaticFree( *pic );
+				allocManager.StaticFree( *pic );
 				*pic = NULL;
 			}
 			return false;
@@ -559,7 +539,7 @@ static bool R_ParseImageProgram_r( idLexer& src, byte** pic, int* width, int* he
 		if( pic )
 		{
 			R_ImageAdd( *pic, *width, *height, pic2, width2, height2 );
-			R_StaticFree( pic2 );
+			allocManager.StaticFree( pic2 );
 		}
 		
 		MatchAndAppendToken( src, ")" );
@@ -711,8 +691,7 @@ R_LoadImageProgram
 */
 void R_LoadImageProgram( const char* name, byte** pic, int* width, int* height, ID_TIME_T* timestamps, textureUsage_t* usage )
 {
-	idLexer src;
-	
+	idLexer src;	
 	src.LoadMemory( name, strlen( name ), name );
 	src.SetFlags( LEXFL_NOFATALERRORS | LEXFL_NOSTRINGCONCAT | LEXFL_NOSTRINGESCAPECHARS | LEXFL_ALLOWPATHNAMES );
 	

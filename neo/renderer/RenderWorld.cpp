@@ -62,7 +62,7 @@ idRenderWorldLocal::idRenderWorldLocal()
 	{
 		decals[i].entityHandle = -1;
 		decals[i].lastStartTime = 0;
-		decals[i].decals = new( TAG_MODEL ) idRenderModelDecal();
+		decals[i].decals = new ( TAG_MODEL ) idRenderModelDecal();
 		decals[i].decals->index = i;
 	}
 	
@@ -70,7 +70,7 @@ idRenderWorldLocal::idRenderWorldLocal()
 	{
 		overlays[i].entityHandle = -1;
 		overlays[i].lastStartTime = 0;
-		overlays[i].overlays = new( TAG_MODEL ) idRenderModelOverlay();
+		overlays[i].overlays = new ( TAG_MODEL ) idRenderModelOverlay();
 		overlays[ i ].overlays->index = i;
 	}
 }
@@ -119,8 +119,9 @@ void idRenderWorldLocal::ResizeInteractionTable()
 	// this will be dynamically resized if the entity / light counts grow too much
 	interactionTableWidth = entityDefs.Num() + 100;
 	interactionTableHeight = lightDefs.Num() + 100;
-	const int size =  interactionTableWidth * interactionTableHeight * sizeof( *interactionTable );
-	interactionTable = ( idInteraction** )R_ClearedStaticAlloc( size );
+
+	interactionTable = allocManager.StaticAlloc<idInteraction*, TAG_RENDER_INTERACTION, true>( interactionTableWidth * interactionTableHeight );
+
 	for( int l = 0; l < oldIinteractionTableHeight; ++l )
 	{
 		for( int e = 0; e < oldInteractionTableWidth; ++e )
@@ -129,7 +130,7 @@ void idRenderWorldLocal::ResizeInteractionTable()
 		}
 	}
 	
-	R_StaticFree( oldInteractionTable );
+	allocManager.StaticFree( oldInteractionTable );
 }
 
 /*
@@ -814,7 +815,8 @@ void idRenderWorldLocal::RenderScene( const renderView_t* renderViewParms )
 	int startTime = Sys_Microseconds();
 	
 	// setup view parms for the initial view
-	idRenderView* view = ( idRenderView* )R_ClearedFrameAlloc( sizeof( *view ), FRAME_ALLOC_VIEW_DEF );
+	auto view = allocManager.FrameAlloc<idRenderView, FRAME_ALLOC_VIEW_DEF, true>();
+
 	view->parms = *renderViewParms;
 
 	view->parms.forceUpdate = tr.takingScreenshot;
@@ -1644,11 +1646,11 @@ void idRenderWorldLocal::GenerateAllInteractions()
 	interactionTableWidth = entityDefs.Num() + 100;
 	interactionTableHeight = lightDefs.Num() + 100;
 	int	size =  interactionTableWidth * interactionTableHeight * sizeof( *interactionTable );
-	interactionTable = ( idInteraction** )R_ClearedStaticAlloc( size );
+	interactionTable = allocManager.StaticAlloc<idInteraction*, TAG_RENDER_INTERACTION, true>( interactionTableWidth * interactionTableHeight );
 	
 	// itterate through all lights
 	int	count = 0;
-	for( int i = 0; i < this->lightDefs.Num(); i++ )
+	for( int i = 0; i < this->lightDefs.Num(); ++i )
 	{
 		idRenderLightLocal*	ldef = this->lightDefs[i];
 		if( ldef == NULL )

@@ -1471,6 +1471,31 @@ EXCEPTION_DISPOSITION __cdecl _except_handler( struct _EXCEPTION_RECORD *Excepti
 							/*	FPU_EXCEPTION_INEXACT_RESULT |			*/	\
 								0
 
+int Sys_MessageBox()
+{
+	int msgboxID = MessageBox(
+		NULL,
+		TEXT("Attach Debuger now, if needed!"),
+		TEXT("Preliminary Setup"),
+		MB_ICONWARNING | MB_OKCANCEL | MB_DEFBUTTON1
+	);
+
+	switch( msgboxID )
+	{
+		case IDCANCEL:
+			// TODO: add code
+			break;
+		case IDTRYAGAIN:
+			// TODO: add code
+			break;
+		case IDCONTINUE:
+			// TODO: add code
+			break;
+	}
+
+	return msgboxID;
+}
+
 /*
 ==================
 WinMain
@@ -1544,8 +1569,9 @@ int WINAPI WinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLin
 	SetThreadAffinityMask( GetCurrentThread(), 1 );
 #endif
 
-	::SetCursor( hcurSave );
+	Sys_MessageBox();
 
+	::SetCursor( hcurSave );
 	::SetFocus( win32.hWnd );
 
 	// main game loop

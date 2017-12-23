@@ -88,7 +88,7 @@ idMD5Mesh::~idMD5Mesh()
 {
 	if( meshJoints != NULL )
 	{
-		Mem_Free( meshJoints );
+		allocManager.StaticFree( meshJoints );
 		meshJoints = NULL;
 	}
 	if( deformInfo != NULL )
@@ -398,7 +398,7 @@ void idMD5Mesh::ParseMesh( idLexer& parser, int numJoints, const idJointMat* joi
 			assert( dv.color2[j] == 0 );
 		}
 		
-		for( int j = 0; j < usedWeights; j++ )
+		for( int j = 0; j < usedWeights; ++j )
 		{
 			if( !jointIsUsed[finalJointIndecies[j]] )
 			{
@@ -414,9 +414,10 @@ void idMD5Mesh::ParseMesh( idLexer& parser, int numJoints, const idJointMat* joi
 		}
 	}
 	
-	meshJoints = ( byte* ) Mem_Alloc( numMeshJoints * sizeof( meshJoints[0] ), TAG_MODEL );
+	meshJoints = allocManager.StaticAlloc<byte, TAG_MODEL>( numMeshJoints );
+
 	numMeshJoints = 0;
-	for( int i = 0; i < numJoints; i++ )
+	for( int i = 0; i < numJoints; ++i )
 	{
 		if( jointIsUsed[i] )
 		{
@@ -426,10 +427,9 @@ void idMD5Mesh::ParseMesh( idLexer& parser, int numJoints, const idJointMat* joi
 	
 	// build the deformInfo and collect a final base pose with the mirror
 	// seam verts properly including the bone weights
-	deformInfo = R_BuildDeformInfo( texCoords.Num(), basePose, tris.Num(), tris.Ptr(),
-									shader->UseUnsmoothedTangents() );
+	deformInfo = R_BuildDeformInfo( texCoords.Num(), basePose, tris.Num(), tris.Ptr(), shader->UseUnsmoothedTangents() );
 									
-	for( int i = 0; i < deformInfo->numOutputVerts; i++ )
+	for( int i = 0; i < deformInfo->numOutputVerts; ++i )
 	{
 		for( int j = 0; j < 4; j++ )
 		{
@@ -573,7 +573,7 @@ void idMD5Mesh::CalculateBounds( const idJointMat* entJoints, idBounds& bounds )
 	__m128 maxZ = vector_float_negInfinity;
 	for( int i = 0; i < numMeshJoints; i++ )
 	{
-		const idJointMat& joint = entJoints[meshJoints[i]];
+		const idJointMat& joint = entJoints[ meshJoints[ i ] ];
 		__m128 x = _mm_load_ps( joint.ToFloatPtr() + 0 * 4 );
 		__m128 y = _mm_load_ps( joint.ToFloatPtr() + 1 * 4 );
 		__m128 z = _mm_load_ps( joint.ToFloatPtr() + 2 * 4 );
@@ -770,16 +770,14 @@ bool idRenderModelMD5::LoadBinaryModel( idFile* file, const ID_TIME_T sourceTime
 	file->ReadBig( tempNum );
 	meshes.SetNum( tempNum );
 	for( int i = 0; i < meshes.Num(); i++ )
-	{
-	
+	{	
 		idStr materialName;
 		file->ReadString( materialName );
 		if( materialName.IsEmpty() )
 		{
 			meshes[i].shader = NULL;
 		}
-		else
-		{
+		else {
 			meshes[i].shader = declManager->FindMaterial( materialName );
 		}
 		
@@ -787,11 +785,12 @@ bool idRenderModelMD5::LoadBinaryModel( idFile* file, const ID_TIME_T sourceTime
 		file->ReadBig( meshes[i].numTris );
 		
 		file->ReadBig( meshes[i].numMeshJoints );
-		meshes[i].meshJoints = ( byte* ) Mem_Alloc( meshes[i].numMeshJoints * sizeof( meshes[i].meshJoints[0] ), TAG_MODEL );
+		meshes[ i ].meshJoints = allocManager.StaticAlloc<byte, TAG_MODEL>( meshes[ i ].numMeshJoints );
 		file->ReadBigArray( meshes[i].meshJoints, meshes[i].numMeshJoints );
 		file->ReadBig( meshes[i].maxJointVertDist );
 		
-		meshes[i].deformInfo = ( deformInfo_t* )R_ClearedStaticAlloc( sizeof( deformInfo_t ) );
+		meshes[ i ].deformInfo = allocManager.StaticAlloc<deformInfo_t, TAG_MODEL, true>();
+
 		deformInfo_t& deform = *meshes[i].deformInfo;
 		
 		file->ReadBig( deform.numSourceVerts );
@@ -1585,7 +1584,7 @@ int	idRenderModelMD5::Memory() const
 	total += joints.MemoryUsed() + defaultPose.MemoryUsed() + meshes.MemoryUsed();
 	
 	// count up strings
-	for( int i = 0; i < joints.Num(); i++ )
+	for( int i = 0; i < joints.Num(); ++i )
 	{
 		total += joints[i].name.DynamicMemoryUsed();
 	}

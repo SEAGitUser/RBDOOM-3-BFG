@@ -112,8 +112,9 @@ struct idTriangles
 	idShadowVert* 				preLightShadowVertexes;	// shadow vertices in CPU memory for pre-light shadow volumes
 	idShadowVert* 				staticShadowVertexes;	// shadow vertices in CPU memory for static shadow volumes
 	
-	idTriangles* 				ambientSurface;			// for light interactions, point back at the original surface that generated
+	// for light interactions, point back at the original surface that generated
 	// the interaction, which we will get the ambientCache from
+	idTriangles* 				baseTriangles;			
 	
 	idTriangles* 				nextDeferredFree;		// chain of tris to free next frame
 	
@@ -126,6 +127,10 @@ struct idTriangles
 	vertCacheHandle_t			indexCache;				// GL_INDEX_TYPE
 	vertCacheHandle_t			ambientCache;			// idDrawVert
 	vertCacheHandle_t			shadowCache;			// idVec4
+
+public:
+
+	static const triIndex_t		quadIndexes[ 6 ];
 
 public:
 

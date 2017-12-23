@@ -820,7 +820,8 @@ drawSurf_t* idRenderModelDecal::CreateDecalDrawSurf( const viewModel_t* space, u
 	}
 	
 	// create a new triangle surface in frame memory so it gets automatically disposed of
-	idTriangles* newTri = ( idTriangles* )R_ClearedFrameAlloc( sizeof( *newTri ), FRAME_ALLOC_SURFACE_TRIANGLES );
+	auto newTri = allocManager.FrameAlloc<idTriangles, FRAME_ALLOC_SURFACE_TRIANGLES, true>();
+
 	newTri->numVerts = maxVerts;
 	newTri->numIndexes = maxIndexes;
 	
@@ -880,7 +881,7 @@ drawSurf_t* idRenderModelDecal::CreateDecalDrawSurf( const viewModel_t* space, u
 	newTri->numIndexes = numIndexes;
 	
 	// create the drawsurf
-	drawSurf_t* drawSurf = ( drawSurf_t* )R_FrameAlloc( sizeof( *drawSurf ), FRAME_ALLOC_DRAW_SURFACE );
+	auto drawSurf = allocManager.FrameAlloc<drawSurf_t, FRAME_ALLOC_DRAW_SURFACE>();
 	drawSurf->frontEndGeo = newTri;
 	drawSurf->numIndexes = newTri->numIndexes;
 	drawSurf->ambientCache = newTri->ambientCache;

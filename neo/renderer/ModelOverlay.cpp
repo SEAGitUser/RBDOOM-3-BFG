@@ -703,8 +703,9 @@ drawSurf_t* idRenderModelOverlay::CreateOverlayDrawSurf( const viewModel_t* spac
 	}
 	
 	// create a new triangle surface in frame memory so it gets automatically disposed of
-	idTriangles* newTri = ( idTriangles* )R_ClearedFrameAlloc( sizeof( *newTri ), FRAME_ALLOC_SURFACE_TRIANGLES );
-	newTri->staticModelWithJoints = ( staticModel->jointsInverted != NULL ) ? const_cast< idRenderModelStatic* >( staticModel ) : NULL;	// allow GPU skinning
+	auto newTri = allocManager.FrameAlloc<idTriangles, FRAME_ALLOC_SURFACE_TRIANGLES, true>();
+
+	newTri->staticModelWithJoints = ( staticModel->jointsInverted != NULL )? const_cast< idRenderModelStatic* >( staticModel ) : NULL;	// allow GPU skinning
 	
 	newTri->ambientCache = vertexCache.AllocVertex( NULL, ALIGN( maxVerts * sizeof( idDrawVert ), VERTEX_CACHE_ALIGN ) );
 	newTri->indexCache = vertexCache.AllocIndex( NULL, ALIGN( maxIndexes * sizeof( triIndex_t ), INDEX_CACHE_ALIGN ) );
@@ -781,7 +782,7 @@ drawSurf_t* idRenderModelOverlay::CreateOverlayDrawSurf( const viewModel_t* spac
 	newTri->numIndexes = numIndexes;
 	
 	// create the drawsurf
-	drawSurf_t* drawSurf = ( drawSurf_t* )R_FrameAlloc( sizeof( *drawSurf ), FRAME_ALLOC_DRAW_SURFACE );
+	auto drawSurf = allocManager.FrameAlloc<drawSurf_t, FRAME_ALLOC_DRAW_SURFACE>();
 	drawSurf->frontEndGeo = newTri;
 	drawSurf->numIndexes = newTri->numIndexes;
 	drawSurf->ambientCache = newTri->ambientCache;

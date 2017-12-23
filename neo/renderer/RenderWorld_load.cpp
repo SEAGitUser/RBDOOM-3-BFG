@@ -43,7 +43,7 @@ void idRenderWorldLocal::FreeWorld()
 	FreeDefs();
 	
 	// free all the portals and check light/model references
-	for( int i = 0; i < numPortalAreas; i++ )
+	for( int i = 0; i < numPortalAreas; ++i )
 	{
 		portalArea_t*	area;
 		portal_t*		portal, *nextPortal;
@@ -53,7 +53,7 @@ void idRenderWorldLocal::FreeWorld()
 		{
 			nextPortal = portal->next;
 			delete portal->w;
-			R_StaticFree( portal );
+			allocManager.StaticFree( portal );
 		}
 		
 		// there shouldn't be any remaining lightRefs or entityRefs
@@ -69,23 +69,23 @@ void idRenderWorldLocal::FreeWorld()
 	
 	if( portalAreas )
 	{
-		R_StaticFree( portalAreas );
+		allocManager.StaticFree( portalAreas );
 		portalAreas = NULL;
 		numPortalAreas = 0;
-		R_StaticFree( areaScreenRect );
+		allocManager.StaticFree( areaScreenRect );
 		areaScreenRect = NULL;
 	}
 	
 	if( doublePortals )
 	{
-		R_StaticFree( doublePortals );
+		allocManager.StaticFree( doublePortals );
 		doublePortals = NULL;
 		numInterAreaPortals = 0;
 	}
 	
 	if( areaNodes )
 	{
-		R_StaticFree( areaNodes );
+		allocManager.StaticFree( areaNodes );
 		areaNodes = NULL;
 	}
 	
@@ -110,7 +110,7 @@ idRenderWorldLocal::TouchWorldModels
 */
 void idRenderWorldLocal::TouchWorldModels()
 {
-	for( int i = 0; i < localModels.Num(); i++ )
+	for( int i = 0; i < localModels.Num(); ++i )
 	{
 		renderModelManager->CheckModel( localModels[i]->Name() );
 	}
@@ -443,10 +443,9 @@ void idRenderWorldLocal::ParseInterAreaPortals( idLexer* src, idFile* fileOut )
 		// write out the type so the binary reader knows what to instantiate
 		fileOut->WriteString( "interAreaPortals" );
 	}
-	
-	
-	portalAreas = ( portalArea_t* )R_ClearedStaticAlloc( numPortalAreas * sizeof( portalAreas[0] ) );
-	areaScreenRect = ( idScreenRect* ) R_ClearedStaticAlloc( numPortalAreas * sizeof( idScreenRect ) );
+		
+	portalAreas = allocManager.StaticAlloc<portalArea_t, TAG_RENDER_PVS, true>( numPortalAreas );
+	areaScreenRect = allocManager.StaticAlloc<idScreenRect, TAG_RENDER_PVS, true>( numPortalAreas );
 	
 	// set the doubly linked lists
 	SetupAreaRefs();
@@ -464,17 +463,13 @@ void idRenderWorldLocal::ParseInterAreaPortals( idLexer* src, idFile* fileOut )
 		fileOut->WriteBig( numInterAreaPortals );
 	}
 	
-	doublePortals = ( doublePortal_t* )R_ClearedStaticAlloc( numInterAreaPortals * sizeof( doublePortals [0] ) );
+	doublePortals = allocManager.StaticAlloc<doublePortal_t, TAG_RENDER_PVS, true>( numInterAreaPortals );
 					
-	for( int i = 0; i < numInterAreaPortals; i++ )
+	for( int i = 0; i < numInterAreaPortals; ++i )
 	{
-		int		numPoints, a1, a2;
-		idWinding*	w;
-		portal_t*	p;
-		
-		numPoints = src->ParseInt();
-		a1 = src->ParseInt();
-		a2 = src->ParseInt();
+		int numPoints = src->ParseInt();
+		int a1 = src->ParseInt();
+		int a2 = src->ParseInt();
 		
 		if( fileOut != NULL )
 		{
@@ -483,9 +478,9 @@ void idRenderWorldLocal::ParseInterAreaPortals( idLexer* src, idFile* fileOut )
 			fileOut->WriteBig( a2 );
 		}
 		
-		w = new( TAG_RENDER_WINDING ) idWinding( numPoints );
+		auto w = new( TAG_RENDER_WINDING ) idWinding( numPoints );
 		w->SetNumPoints( numPoints );
-		for( int j = 0; j < numPoints; j++ )
+		for( int j = 0; j < numPoints; ++j )
 		{
 			src->Parse1DMatrix( 3, ( *w )[j].ToFloatPtr() );
 			
@@ -500,8 +495,11 @@ void idRenderWorldLocal::ParseInterAreaPortals( idLexer* src, idFile* fileOut )
 			( *w )[j][4] = 0;
 		}
 		
+		portal_t *p = nullptr;
+
 		// add the portal to a1
-		p = ( portal_t* )R_ClearedStaticAlloc( sizeof( *p ) );
+		p = allocManager.StaticAlloc<portal_t, TAG_RENDER_PVS, true>();
+
 		p->intoArea = a2;
 		p->doublePortal = &doublePortals[i];
 		p->w = w;
@@ -513,7 +511,8 @@ void idRenderWorldLocal::ParseInterAreaPortals( idLexer* src, idFile* fileOut )
 		doublePortals[i].portals[0] = p;
 		
 		// reverse it for a2
-		p = ( portal_t* )R_ClearedStaticAlloc( sizeof( *p ) );
+		p = allocManager.StaticAlloc<portal_t, TAG_RENDER_PVS, true>();
+
 		p->intoArea = a1;
 		p->doublePortal = &doublePortals[i];
 		p->w = w->Reverse();
@@ -539,15 +538,15 @@ void idRenderWorldLocal::ReadBinaryAreaPortals( idFile* file )
 	file->ReadBig( numPortalAreas );
 	file->ReadBig( numInterAreaPortals );
 	
-	portalAreas = ( portalArea_t* )R_ClearedStaticAlloc( numPortalAreas * sizeof( portalAreas[0] ) );
-	areaScreenRect = ( idScreenRect* ) R_ClearedStaticAlloc( numPortalAreas * sizeof( idScreenRect ) );
+	portalAreas = allocManager.StaticAlloc<portalArea_t, TAG_RENDER_PVS, true>( numPortalAreas );
+	areaScreenRect = allocManager.StaticAlloc<idScreenRect, TAG_RENDER_PVS, true>( numPortalAreas );
 	
 	// set the doubly linked lists
 	SetupAreaRefs();
 	
-	doublePortals = ( doublePortal_t* )R_ClearedStaticAlloc( numInterAreaPortals * sizeof( doublePortals [0] ) );
+	doublePortals = allocManager.StaticAlloc<doublePortal_t, TAG_RENDER_PVS, true>( numInterAreaPortals );
 	
-	for( int i = 0; i < numInterAreaPortals; i++ )
+	for( int i = 0; i < numInterAreaPortals; ++i )
 	{
 		int		numPoints, a1, a2;
 		idWinding*	w;
@@ -558,7 +557,7 @@ void idRenderWorldLocal::ReadBinaryAreaPortals( idFile* file )
 		file->ReadBig( a2 );
 		w = new( TAG_RENDER_WINDING ) idWinding( numPoints );
 		w->SetNumPoints( numPoints );
-		for( int j = 0; j < numPoints; j++ )
+		for( int j = 0; j < numPoints; ++j )
 		{
 			file->ReadBig( ( *w )[ j ][ 0 ] );
 			file->ReadBig( ( *w )[ j ][ 1 ] );
@@ -567,9 +566,10 @@ void idRenderWorldLocal::ReadBinaryAreaPortals( idFile* file )
 			( *w )[ j ][ 3 ] = 0;
 			( *w )[ j ][ 4 ] = 0;
 		}
-		
+
 		// add the portal to a1
-		p = ( portal_t* )R_ClearedStaticAlloc( sizeof( *p ) );
+		p = allocManager.StaticAlloc<portal_t, TAG_RENDER_PVS, true>();
+
 		p->intoArea = a2;
 		p->doublePortal = &doublePortals[i];
 		p->w = w;
@@ -581,7 +581,8 @@ void idRenderWorldLocal::ReadBinaryAreaPortals( idFile* file )
 		doublePortals[i].portals[0] = p;
 		
 		// reverse it for a2
-		p = ( portal_t* )R_ClearedStaticAlloc( sizeof( *p ) );
+		p = allocManager.StaticAlloc<portal_t, TAG_RENDER_PVS, true>();
+
 		p->intoArea = a1;
 		p->doublePortal = &doublePortals[i];
 		p->w = w->Reverse();
@@ -609,7 +610,8 @@ void idRenderWorldLocal::ParseNodes( idLexer* src, idFile* fileOut )
 	{
 		src->Error( "R_ParseNodes: bad numAreaNodes" );
 	}
-	areaNodes = ( areaNode_t* )R_ClearedStaticAlloc( numAreaNodes * sizeof( areaNodes[0] ) );
+
+	areaNodes = allocManager.StaticAlloc<areaNode_t, TAG_RENDER_PVS, true>( numAreaNodes );
 	
 	if( fileOut != NULL )
 	{
@@ -622,7 +624,7 @@ void idRenderWorldLocal::ParseNodes( idLexer* src, idFile* fileOut )
 		fileOut->WriteBig( numAreaNodes );
 	}
 	
-	for( int i = 0; i < numAreaNodes; i++ )
+	for( int i = 0; i < numAreaNodes; ++i )
 	{
 		areaNode_t* node = &areaNodes[i];
 		
@@ -654,8 +656,10 @@ idRenderWorldLocal::ReadBinaryNodes
 void idRenderWorldLocal::ReadBinaryNodes( idFile* file )
 {
 	file->ReadBig( numAreaNodes );
-	areaNodes = ( areaNode_t* )R_ClearedStaticAlloc( numAreaNodes * sizeof( areaNodes[0] ) );
-	for( int i = 0; i < numAreaNodes; i++ )
+
+	areaNodes = allocManager.StaticAlloc<areaNode_t, TAG_RENDER_PVS, true>( numAreaNodes );
+
+	for( int i = 0; i < numAreaNodes; ++i )
 	{
 		areaNode_t* node = &areaNodes[ i ];
 		file->ReadBig( node->plane[ 0 ] );
@@ -723,15 +727,17 @@ Sets up for a single area world
 void idRenderWorldLocal::ClearWorld()
 {
 	numPortalAreas = 1;
-	portalAreas = ( portalArea_t* )R_ClearedStaticAlloc( sizeof( portalAreas[0] ) );
-	areaScreenRect = ( idScreenRect* ) R_ClearedStaticAlloc( sizeof( idScreenRect ) );
+
+	portalAreas = allocManager.StaticAlloc<portalArea_t, TAG_RENDER_PVS, true>( numPortalAreas );
+	areaScreenRect = allocManager.StaticAlloc<idScreenRect, TAG_RENDER_PVS, true>( numPortalAreas );
 	
 	SetupAreaRefs();
 	
 	// even though we only have a single area, create a node
 	// that has both children pointing at it so we don't need to
 	//
-	areaNodes = ( areaNode_t* )R_ClearedStaticAlloc( sizeof( areaNodes[0] ) );
+	areaNodes = allocManager.StaticAlloc<areaNode_t, TAG_RENDER_PVS, true>( numPortalAreas );
+
 	areaNodes[0].plane[3] = 1;
 	areaNodes[0].children[0] = -1;
 	areaNodes[0].children[1] = -1;
@@ -750,7 +756,7 @@ void idRenderWorldLocal::FreeDefs()
 	
 	if( interactionTable )
 	{
-		R_StaticFree( interactionTable );
+		allocManager.StaticFree( interactionTable );
 		interactionTable = NULL;
 	}
 	

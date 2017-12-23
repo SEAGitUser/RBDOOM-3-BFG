@@ -259,7 +259,7 @@ bool R_PreciseCullSurface( const drawSurf_t* const drawSurf, idBounds& ndcBounds
 */
 static idRenderView * R_AllocSubView( const idRenderView * baseView )
 {
-	auto view = ( idRenderView* )R_FrameAlloc( sizeof( idRenderView ) );
+	auto view = allocManager.FrameAlloc<idRenderView, FRAME_ALLOC_VIEW_DEF>();
 	assert( view );
 
 	// copy the viewport size from the original

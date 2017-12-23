@@ -92,7 +92,7 @@ void R_SetupDrawSurfShader( drawSurf_t* drawSurf, const idMaterial* shader, cons
 		}
 		
 		// allocate frame memory for the shader register values
-		float* regs = ( float* )R_FrameAlloc( shader->GetNumRegisters() * sizeof( float ), FRAME_ALLOC_SHADER_REGISTER );
+		auto regs = allocManager.FrameAlloc<float, FRAME_ALLOC_SHADER_REGISTER>( shader->GetNumRegisters() );
 		drawSurf->shaderRegisters = regs;
 		
 		// process the shader expressions for conditionals / color / texcoords
@@ -511,7 +511,7 @@ void R_AddSingleModel( viewModel_t* vEntity )
 				
 				// add the surface for drawing
 				// we can re-use some of the values for light interaction surfaces
-				baseDrawSurf = ( drawSurf_t* )R_FrameAlloc( sizeof( *baseDrawSurf ), FRAME_ALLOC_DRAW_SURFACE );
+				baseDrawSurf = allocManager.FrameAlloc<drawSurf_t, FRAME_ALLOC_DRAW_SURFACE>();
 				baseDrawSurf->frontEndGeo = tri;
 				baseDrawSurf->space = vEntity;
 				baseDrawSurf->scissorRect = vEntity->scissorRect;
@@ -629,7 +629,7 @@ void R_AddSingleModel( viewModel_t* vEntity )
 					if( shaderRegisters != NULL )
 					{
 						// create a drawSurf for this interaction
-						drawSurf_t* lightDrawSurf = ( drawSurf_t* )R_FrameAlloc( sizeof( *lightDrawSurf ), FRAME_ALLOC_DRAW_SURFACE );
+						auto lightDrawSurf = allocManager.FrameAlloc<drawSurf_t, FRAME_ALLOC_DRAW_SURFACE>();
 						
 						if( surfInter != NULL )
 						{
@@ -653,7 +653,7 @@ void R_AddSingleModel( viewModel_t* vEntity )
 								{
 									lightDrawSurf->indexCache = lightIndexCache;
 									
-									dynamicShadowParms = ( dynamicShadowVolumeParms_t* )R_FrameAlloc( sizeof( dynamicShadowParms[0] ), FRAME_ALLOC_SHADOW_VOLUME_PARMS );
+									dynamicShadowParms = allocManager.FrameAlloc<dynamicShadowVolumeParms_t, FRAME_ALLOC_SHADOW_VOLUME_PARMS>();
 									
 									dynamicShadowParms->verts = tri->verts;
 									dynamicShadowParms->numVerts = tri->numVerts;
@@ -818,8 +818,8 @@ void R_AddSingleModel( viewModel_t* vEntity )
 					if( surfInter == NULL || surfInter->lightTrisIndexCache > 0 )
 					{
 						// create a drawSurf for this interaction
-						drawSurf_t* shadowDrawSurf = ( drawSurf_t* )R_FrameAlloc( sizeof( *shadowDrawSurf ), FRAME_ALLOC_DRAW_SURFACE );
-						
+						auto shadowDrawSurf = allocManager.FrameAlloc<drawSurf_t, FRAME_ALLOC_DRAW_SURFACE>();
+
 						if( surfInter != NULL )
 						{
 							// optimized static interaction
@@ -900,7 +900,7 @@ void R_AddSingleModel( viewModel_t* vEntity )
 			// This happens for the player world weapon and possibly some animations in multiplayer.
 			const bool forceShadowCaps = !addInteractions || r_forceShadowCaps.GetBool();
 			
-			drawSurf_t* shadowDrawSurf = ( drawSurf_t* )R_FrameAlloc( sizeof( *shadowDrawSurf ), FRAME_ALLOC_DRAW_SURFACE );
+			auto shadowDrawSurf = allocManager.FrameAlloc<drawSurf_t, FRAME_ALLOC_DRAW_SURFACE>();
 			
 			if( surfInter != NULL )
 			{
@@ -912,7 +912,7 @@ void R_AddSingleModel( viewModel_t* vEntity )
 				
 				if( !r_skipStaticShadows.GetBool() && !r_useShadowMapping.GetBool() )
 				{
-					staticShadowVolumeParms_t* staticShadowParms = ( staticShadowVolumeParms_t* )R_FrameAlloc( sizeof( staticShadowParms[0] ), FRAME_ALLOC_SHADOW_VOLUME_PARMS );
+					auto staticShadowParms = allocManager.FrameAlloc<staticShadowVolumeParms_t, FRAME_ALLOC_SHADOW_VOLUME_PARMS>();
 					
 					staticShadowParms->verts = tri->staticShadowVertexes;
 					staticShadowParms->numVerts = tri->numVerts * 2;
@@ -971,7 +971,7 @@ void R_AddSingleModel( viewModel_t* vEntity )
 					// if the parms were not already allocated for culling interaction triangles to the light frustum
 					if( dynamicShadowParms == NULL )
 					{
-						dynamicShadowParms = ( dynamicShadowVolumeParms_t* )R_FrameAlloc( sizeof( dynamicShadowParms[0] ), FRAME_ALLOC_SHADOW_VOLUME_PARMS );
+						dynamicShadowParms = allocManager.FrameAlloc<dynamicShadowVolumeParms_t, FRAME_ALLOC_SHADOW_VOLUME_PARMS>();
 					}
 					else
 					{ // the shadow volume will be rendered first so when the interaction surface is drawn the triangles have been culled for sure
@@ -1133,7 +1133,7 @@ void R_LinkDrawSurfToView( drawSurf_t* drawSurf, idRenderView* viewDef )
 			count = viewDef->maxDrawSurfs * sizeof( viewDef->drawSurfs[0] );
 			viewDef->maxDrawSurfs *= 2;
 		}
-		viewDef->drawSurfs = ( drawSurf_t** )R_FrameAlloc( viewDef->maxDrawSurfs * sizeof( viewDef->drawSurfs[0] ), FRAME_ALLOC_DRAW_SURFACE_POINTER );
+		viewDef->drawSurfs = allocManager.FrameAlloc<drawSurf_t*, FRAME_ALLOC_DRAW_SURFACE_POINTER>( viewDef->maxDrawSurfs );
 		memcpy( viewDef->drawSurfs, old, count );
 	}
 	

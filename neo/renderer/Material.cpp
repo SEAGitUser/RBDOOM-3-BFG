@@ -166,12 +166,10 @@ idMaterial::FreeData
 */
 void idMaterial::FreeData()
 {
-	int i;
-	
 	if( stages )
 	{
 		// delete any idCinematic textures
-		for( i = 0; i < numStages; i++ )
+		for( int i = 0; i < numStages; i++ )
 		{
 			if( stages[i].texture.cinematic != NULL )
 			{
@@ -180,26 +178,26 @@ void idMaterial::FreeData()
 			}
 			if( stages[i].newStage != NULL )
 			{
-				Mem_Free( stages[i].newStage );
+				allocManager.StaticFree( stages[i].newStage );
 				stages[i].newStage = NULL;
 			}
 		}
-		R_StaticFree( stages );
+		allocManager.StaticFree( stages );
 		stages = NULL;
 	}
 	if( expressionRegisters != NULL )
 	{
-		R_StaticFree( expressionRegisters );
+		allocManager.StaticFree( expressionRegisters );
 		expressionRegisters = NULL;
 	}
 	if( constantRegisters != NULL )
 	{
-		R_StaticFree( constantRegisters );
+		allocManager.StaticFree( constantRegisters );
 		constantRegisters = NULL;
 	}
 	if( ops != NULL )
 	{
-		R_StaticFree( ops );
+		allocManager.StaticFree( ops );
 		ops = NULL;
 	}
 }
@@ -904,11 +902,13 @@ idMaterial::ClearStage
 void idMaterial::ClearStage( shaderStage_t* ss )
 {
 	ss->drawStateBits = 0;
+	
 	ss->conditionRegister = GetExpressionConstant( 1 );
+	
 	ss->color.registers[0] =
-		ss->color.registers[1] =
-			ss->color.registers[2] =
-				ss->color.registers[3] = GetExpressionConstant( 1 );
+	ss->color.registers[1] =
+	ss->color.registers[2] =
+	ss->color.registers[3] = GetExpressionConstant( 1 );
 }
 
 /*
@@ -1275,8 +1275,7 @@ void idMaterial::ParseFragmentMap( idLexer& src, newShaderStage_t* newStage )
 	}
 	str = R_ParsePastImageProgram( src );
 	
-	newStage->fragmentProgramImages[unit] =
-		globalImages->ImageFromFile( str, tf, trp, td, cubeMap );
+	newStage->fragmentProgramImages[unit] = globalImages->ImageFromFile( str, tf, trp, td, cubeMap );
 	if( !newStage->fragmentProgramImages[unit] )
 	{
 		newStage->fragmentProgramImages[unit] = globalImages->defaultImage;
@@ -1878,7 +1877,8 @@ void idMaterial::ParseStage( idLexer& src, const textureRepeat_t trpDefault )
 	if( newStage.fragmentProgram || newStage.vertexProgram )
 	{
 		newStage.glslProgram = renderProgManager.FindGLSLProgram( GetName(), newStage.vertexProgram, newStage.fragmentProgram );
-		ss->newStage = ( newShaderStage_t* )Mem_Alloc( sizeof( newStage ), TAG_MATERIAL );
+		///ss->newStage = ( newShaderStage_t* )Mem_Alloc( sizeof( newStage ), TAG_MATERIAL );
+		ss->newStage = allocManager.StaticAlloc<newShaderStage_t>();
 		*( ss->newStage ) = newStage;
 	}
 	
@@ -2843,19 +2843,19 @@ bool idMaterial::Parse( const char* text, const int textLength, bool allowBinary
 	
 	if( numStages )
 	{
-		stages = ( shaderStage_t* )R_StaticAlloc( numStages * sizeof( stages[0] ), TAG_MATERIAL );
+		stages = allocManager.StaticAlloc<shaderStage_t, TAG_MATERIAL>( numStages );
 		memcpy( stages, pd->parseStages, numStages * sizeof( stages[0] ) );
 	}
 	
 	if( numOps )
 	{
-		ops = ( expOp_t* )R_StaticAlloc( numOps * sizeof( ops[0] ), TAG_MATERIAL );
+		ops = allocManager.StaticAlloc<expOp_t, TAG_MATERIAL>( numOps );
 		memcpy( ops, pd->shaderOps, numOps * sizeof( ops[0] ) );
 	}
 	
 	if( numRegisters )
 	{
-		expressionRegisters = ( float* )R_StaticAlloc( numRegisters * sizeof( expressionRegisters[0] ), TAG_MATERIAL );
+		expressionRegisters = allocManager.StaticAlloc<float, TAG_MATERIAL>( numRegisters );
 		memcpy( expressionRegisters, pd->shaderRegisters, numRegisters * sizeof( expressionRegisters[0] ) );
 	}
 	
@@ -2902,14 +2902,12 @@ const char* opNames[] =
 
 void idMaterial::Print() const
 {
-	int			i;
-	
-	for( i = EXP_REG_NUM_PREDEFINED ; i < GetNumRegisters() ; i++ )
+	for( int i = EXP_REG_NUM_PREDEFINED ; i < GetNumRegisters() ; ++i )
 	{
 		common->Printf( "register %i: %f\n", i, expressionRegisters[i] );
 	}
 	common->Printf( "\n" );
-	for( i = 0 ; i < numOps ; i++ )
+	for( int i = 0 ; i < numOps ; ++i )
 	{
 		const expOp_t* op = &ops[i];
 		if( op->opType == OP_TYPE_TABLE )
@@ -3226,7 +3224,7 @@ void idMaterial::CheckForConstantRegisters()
 	}
 	
 	// evaluate the registers once, and save them
-	constantRegisters = ( float* )R_ClearedStaticAlloc( GetNumRegisters() * sizeof( float ) );
+	constantRegisters = allocManager.StaticAlloc<float, TAG_MATERIAL, true>( GetNumRegisters() );
 	
 	float shaderParms[MAX_ENTITY_SHADER_PARMS];
 	memset( shaderParms, 0, sizeof( shaderParms ) );

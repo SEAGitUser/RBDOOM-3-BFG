@@ -60,18 +60,17 @@ void R_CalcInteractionFacing( const idRenderEntityLocal* ent, const idTriangles*
 	}
 	
 	idVec3 localLightOrigin;
-	///R_GlobalPointToLocal( ent->modelMatrix, light->globalLightOrigin, localLightOrigin );
 	ent->modelRenderMatrix.InverseTransformPoint( light->globalLightOrigin, localLightOrigin );
 	
 	const int numFaces = tri->numIndexes / 3;
-	cullInfo.facing = ( byte* ) R_StaticAlloc( ( numFaces + 1 ) * sizeof( cullInfo.facing[0] ), TAG_RENDER_INTERACTION );
+	cullInfo.facing = allocManager.StaticAlloc<byte, TAG_RENDER_INTERACTION>( numFaces + 1 );
 	
 	// exact geometric cull against face
-	for( int i = 0, face = 0; i < tri->numIndexes; i += 3, face++ )
+	for( int i = 0, face = 0; i < tri->numIndexes; i += 3, ++face )
 	{
-		const idDrawVert& v0 = tri->verts[tri->indexes[i + 0]];
-		const idDrawVert& v1 = tri->verts[tri->indexes[i + 1]];
-		const idDrawVert& v2 = tri->verts[tri->indexes[i + 2]];
+		const idDrawVert& v0 = tri->verts[ tri->indexes[ i + 0 ] ];
+		const idDrawVert& v1 = tri->verts[ tri->indexes[ i + 1 ] ];
+		const idDrawVert& v2 = tri->verts[ tri->indexes[ i + 2 ] ];
 		
 		const idPlane plane( v0.xyz, v1.xyz, v2.xyz );
 		const float d = plane.Distance( localLightOrigin );
@@ -108,7 +107,6 @@ void R_CalcInteractionCullBits( const idRenderEntityLocal* ent, const idTriangle
 	// cull the triangle surface bounding box
 	for( int i = 0; i < 6; i++ )
 	{
-		///R_GlobalPlaneToLocal( ent->modelMatrix, frustumPlanes[i], cullInfo.localClipPlanes[i] );
 		ent->modelRenderMatrix.InverseTransformPlane( frustumPlanes[ i ], cullInfo.localClipPlanes[ i ] );
 		
 		// get front bits for the whole surface
@@ -125,8 +123,7 @@ void R_CalcInteractionCullBits( const idRenderEntityLocal* ent, const idTriangle
 		return;
 	}
 	
-	cullInfo.cullBits = ( byte* ) R_StaticAlloc( tri->numVerts * sizeof( cullInfo.cullBits[0] ), TAG_RENDER_INTERACTION );
-	memset( cullInfo.cullBits, 0, tri->numVerts * sizeof( cullInfo.cullBits[0] ) );
+	cullInfo.cullBits = allocManager.StaticAlloc<byte, TAG_RENDER_INTERACTION, true>( tri->numVerts );
 	
 	for( int i = 0; i < 6; i++ )
 	{
@@ -135,7 +132,7 @@ void R_CalcInteractionCullBits( const idRenderEntityLocal* ent, const idTriangle
 		{
 			continue;
 		}
-		for( int j = 0; j < tri->numVerts; j++ )
+		for( int j = 0; j < tri->numVerts; ++j )
 		{
 			float d = cullInfo.localClipPlanes[i].Distance( tri->verts[j].xyz );
 			cullInfo.cullBits[j] |= ( d < LIGHT_CLIP_EPSILON ) << i;
@@ -152,14 +149,14 @@ void R_FreeInteractionCullInfo( srfCullInfo_t& cullInfo )
 {
 	if( cullInfo.facing != NULL )
 	{
-		R_StaticFree( cullInfo.facing );
+		allocManager.StaticFree( cullInfo.facing );
 		cullInfo.facing = NULL;
 	}
 	if( cullInfo.cullBits != NULL )
 	{
 		if( cullInfo.cullBits != LIGHT_CULL_ALL_FRONT )
 		{
-			R_StaticFree( cullInfo.cullBits );
+			allocManager.StaticFree( cullInfo.cullBits );
 		}
 		cullInfo.cullBits = NULL;
 	}
@@ -176,28 +173,19 @@ The resulting surface will be a subset of the original triangles,
 it will never clip triangles, but it may cull on a per-triangle basis.
 ====================
 */
-static idTriangles* R_CreateInteractionLightTris( const idRenderEntityLocal* ent,
-		const idTriangles* tri, const idRenderLightLocal* light,
-		const idMaterial* shader )
+static idTriangles* R_CreateInteractionLightTris( const idRenderEntityLocal* ent, const idTriangles* tri, const idRenderLightLocal* light, const idMaterial* shader )
 {
-
 	SCOPED_PROFILE_EVENT( "R_CreateInteractionLightTris" );
 	
-	int			i;
-	int			numIndexes;
-	triIndex_t*	indexes;
-	idTriangles*	newTri;
-	int			c_backfaced;
-	int			c_distance;
-	idBounds	bounds;
-	bool		includeBackFaces;
-	int			faceNum;
+	idBounds bounds;
+	bool includeBackFaces;
+	int	i, faceNum;
 	
-	c_backfaced = 0;
-	c_distance = 0;
+	int c_backfaced = 0;
+	int c_distance = 0;
 	
-	numIndexes = 0;
-	indexes = NULL;
+	int numIndexes = 0;
+	triIndex_t * indexes = NULL;
 	
 	// it is debatable if non-shadowing lights should light back faces. we aren't at the moment
 	// RB: now we do with r_useHalfLambert, so don't cull back faces if we have smooth shadowing enabled
@@ -213,10 +201,10 @@ static idTriangles* R_CreateInteractionLightTris( const idRenderEntityLocal* ent
 	}
 	
 	// allocate a new surface for the lit triangles
-	newTri = idTriangles::AllocStatic();
+	auto newTri = idTriangles::AllocStatic();
 	
 	// save a reference to the original surface
-	newTri->ambientSurface = const_cast<idTriangles*>( tri );
+	newTri->baseTriangles = const_cast<idTriangles*>( tri );
 	
 	// the light surface references the verts of the ambient surface
 	newTri->numVerts = tri->numVerts;
@@ -233,25 +221,19 @@ static idTriangles* R_CreateInteractionLightTris( const idRenderEntityLocal* ent
 	
 	// if the surface is completely inside the light frustum
 	if( cullInfo.cullBits == LIGHT_CULL_ALL_FRONT )
-	{
-	
+	{	
 		// if we aren't self shadowing, let back facing triangles get
 		// through so the smooth shaded bump maps light all the way around
 		if( includeBackFaces )
-		{
-		
+		{		
 			// the whole surface is lit so the light surface just references the indexes of the ambient surface
-			newTri->indexes = tri->indexes;
 			newTri->indexCache = tri->indexCache;
-//			newTri->ReferenceStaticIndexes( tri );
+			newTri->ReferenceStaticIndexes( tri );
 
 			numIndexes = tri->numIndexes;
-			bounds = tri->bounds;
-			
+			bounds = tri->bounds;			
 		}
-		else
-		{
-		
+		else {		
 			// the light tris indexes are going to be a subset of the original indexes so we generally
 			// allocate too much memory here but we decrease the memory block when the number of indexes is known
 			newTri->AllocStaticIndexes( tri->numIndexes );
@@ -259,7 +241,7 @@ static idTriangles* R_CreateInteractionLightTris( const idRenderEntityLocal* ent
 			// back face cull the individual triangles
 			indexes = newTri->indexes;
 			const byte* facing = cullInfo.facing;
-			for( faceNum = i = 0; i < tri->numIndexes; i += 3, faceNum++ )
+			for( faceNum = i = 0; i < tri->numIndexes; i += 3, ++faceNum )
 			{
 				if( !facing[ faceNum ] )
 				{
@@ -278,12 +260,10 @@ static idTriangles* R_CreateInteractionLightTris( const idRenderEntityLocal* ent
 			// decrease the size of the memory block to the size of the number of used indexes
 			newTri->numIndexes = numIndexes;
 			newTri->ResizeStaticIndexes( numIndexes );
-		}
-		
+		}		
 	}
 	else
-	{
-	
+	{	
 		// the light tris indexes are going to be a subset of the original indexes so we generally
 		// allocate too much memory here but we decrease the memory block when the number of indexes is known
 		newTri->AllocStaticIndexes( tri->numIndexes );
@@ -292,7 +272,7 @@ static idTriangles* R_CreateInteractionLightTris( const idRenderEntityLocal* ent
 		indexes = newTri->indexes;
 		const byte* facing = cullInfo.facing;
 		const byte* cullBits = cullInfo.cullBits;
-		for( faceNum = i = 0; i < tri->numIndexes; i += 3, faceNum++ )
+		for( faceNum = i = 0; i < tri->numIndexes; i += 3, ++faceNum )
 		{
 			int i1, i2, i3;
 			
@@ -360,8 +340,7 @@ a triangle outside the light frustum is considered facing and the "fake triangle
 the outside of the dangling edge is also set to facing: cullInfo.facing[numFaces] = 1;
 =====================
 */
-static idTriangles* R_CreateInteractionShadowVolume( const idRenderEntityLocal* ent,
-		const idTriangles* tri, const idRenderLightLocal* light )
+static idTriangles* R_CreateInteractionShadowVolume( const idRenderEntityLocal* ent, const idTriangles* tri, const idRenderLightLocal* light )
 {
 	SCOPED_PROFILE_EVENT( "R_CreateInteractionShadowVolume" );
 	
@@ -376,19 +355,16 @@ static idTriangles* R_CreateInteractionShadowVolume( const idRenderEntityLocal* 
 	
 	// if all the triangles are inside the light frustum
 	if( cullInfo.cullBits == LIGHT_CULL_ALL_FRONT )
-	{
-	
+	{	
 		// count the number of shadowing faces
 		for( int i = 0; i < numFaces; i++ )
 		{
 			numShadowingFaces += facing[i];
 		}
-		numShadowingFaces = numFaces - numShadowingFaces;
-		
+		numShadowingFaces = numFaces - numShadowingFaces;		
 	}
 	else
 	{
-	
 		// make all triangles that are outside the light frustum "facing", so they won't cast shadows
 		const triIndex_t* indexes = tri->indexes;
 		byte* modifyFacing = cullInfo.facing;
@@ -597,13 +573,13 @@ void idInteraction::FreeSurfaces()
 	
 	if( this->surfaces != NULL )
 	{
-		for( int i = 0; i < this->numSurfaces; i++ )
+		for( int i = 0; i < this->numSurfaces; ++i )
 		{
 			surfaceInteraction_t& srf = this->surfaces[i];
 			Mem_Free( srf.shadowIndexes );
 			srf.shadowIndexes = NULL;
 		}
-		R_StaticFree( this->surfaces );
+		allocManager.StaticFree( this->surfaces );
 		this->surfaces = NULL;
 	}
 	this->numSurfaces = -1;
@@ -779,12 +755,12 @@ void idInteraction::CreateStaticInteraction()
 	// create slots for each of the model's surfaces
 	//
 	numSurfaces = model->NumSurfaces();
-	surfaces = ( surfaceInteraction_t* )R_ClearedStaticAlloc( sizeof( *surfaces ) * numSurfaces );
+	surfaces = allocManager.StaticAlloc<surfaceInteraction_t, TAG_RENDER_INTERACTION, true>( numSurfaces );
 	
 	bool interactionGenerated = false;
 	
 	// check each surface in the model
-	for( int c = 0 ; c < model->NumSurfaces() ; c++ )
+	for( int c = 0; c < model->NumSurfaces(); ++c )
 	{
 		const modelSurface_t* surf = model->Surface( c );
 		const idTriangles* tri = surf->geometry;
@@ -907,9 +883,9 @@ void R_ShowInteractionMemory_f( const idCmdArgs& args )
 		}
 	}
 	
-	for( int i = 0; i < tr.primaryWorld->entityDefs.Num(); i++ )
+	for( int i = 0; i < tr.primaryWorld->entityDefs.Num(); ++i )
 	{
-		idRenderEntityLocal*	def = tr.primaryWorld->entityDefs[i];
+		auto def = tr.primaryWorld->entityDefs[ i ];
 		if( def == NULL )
 		{
 			continue;
@@ -941,9 +917,9 @@ void R_ShowInteractionMemory_f( const idCmdArgs& args )
 				continue;
 			}
 			
-			for( int j = 0; j < inter->numSurfaces; j++ )
+			for( int j = 0; j < inter->numSurfaces; ++j )
 			{
-				surfaceInteraction_t* srf = &inter->surfaces[j];
+				auto srf = &inter->surfaces[ j ];
 				
 				if( srf->numLightTrisIndexes )
 				{

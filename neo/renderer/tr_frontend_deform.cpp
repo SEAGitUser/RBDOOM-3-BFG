@@ -99,7 +99,8 @@ static drawSurf_t* R_AutospriteDeform( drawSurf_t* surf )
 	}
 	
 	// the idTriangles are in frame memory and will be automatically disposed of
-	auto newTri = ( idTriangles* )R_ClearedFrameAlloc( sizeof( idTriangles ), FRAME_ALLOC_SURFACE_TRIANGLES );
+	auto newTri = allocManager.FrameAlloc<idTriangles, FRAME_ALLOC_SURFACE_TRIANGLES, true>();
+
 	newTri->numVerts = srcTri->numVerts;
 	newTri->numIndexes = srcTri->numIndexes;
 	
@@ -191,12 +192,13 @@ static drawSurf_t* R_TubeDeform( drawSurf_t* surf )
 	surf->space->modelMatrix.InverseTransformPoint( tr.viewDef->GetOrigin(), localView );
 	
 	// the idTriangles are in frame memory and will be automatically disposed of
-	idTriangles* newTri = ( idTriangles* )R_ClearedFrameAlloc( sizeof( *newTri ), FRAME_ALLOC_SURFACE_TRIANGLES );
+	auto newTri = allocManager.FrameAlloc<idTriangles, FRAME_ALLOC_SURFACE_TRIANGLES, true>();
+
 	newTri->numVerts = srcTri->numVerts;
 	newTri->numIndexes = srcTri->numIndexes;
 	
 	idDrawVert* newVerts = ( idDrawVert* )_alloca16( ALIGN( srcTri->numVerts * sizeof( idDrawVert ), 16 ) );
-	for( int i = 0; i < srcTri->numVerts; i++ )
+	for( int i = 0; i < srcTri->numVerts; ++i )
 	{
 		newVerts[i].Clear();
 	}
@@ -447,7 +449,8 @@ static drawSurf_t* R_FlareDeform( drawSurf_t* surf )
 	const int maxIndexes = 18 * 3;
 	
 	// the idTriangles are in frame memory and will be automatically disposed of
-	idTriangles* newTri = ( idTriangles* )R_ClearedFrameAlloc( sizeof( *newTri ), FRAME_ALLOC_SURFACE_TRIANGLES );
+	auto newTri = allocManager.FrameAlloc<idTriangles, FRAME_ALLOC_SURFACE_TRIANGLES, true>();
+
 	newTri->numVerts = maxVerts;
 	newTri->numIndexes = maxIndexes;
 	
@@ -534,7 +537,8 @@ static drawSurf_t* R_ExpandDeform( drawSurf_t* surf )
 	assert( srcTri->staticModelWithJoints == NULL );
 	
 	// the idTriangles are in frame memory and will be automatically disposed of
-	idTriangles* newTri = ( idTriangles* )R_ClearedFrameAlloc( sizeof( *newTri ), FRAME_ALLOC_SURFACE_TRIANGLES );
+	auto newTri = allocManager.FrameAlloc<idTriangles, FRAME_ALLOC_SURFACE_TRIANGLES, true>();
+
 	newTri->numVerts = srcTri->numVerts;
 	newTri->numIndexes = srcTri->numIndexes;
 	
@@ -564,7 +568,8 @@ static drawSurf_t* R_MoveDeform( drawSurf_t* surf )
 	assert( srcTri->staticModelWithJoints == NULL );
 	
 	// the idTriangles are in frame memory and will be automatically disposed of
-	idTriangles* newTri = ( idTriangles* )R_ClearedFrameAlloc( sizeof( *newTri ), FRAME_ALLOC_SURFACE_TRIANGLES );
+	auto newTri = allocManager.FrameAlloc<idTriangles, FRAME_ALLOC_SURFACE_TRIANGLES, true>();
+
 	newTri->numVerts = srcTri->numVerts;
 	newTri->numIndexes = srcTri->numIndexes;
 	
@@ -594,7 +599,8 @@ static drawSurf_t* R_TurbulentDeform( drawSurf_t* surf )
 	assert( srcTri->staticModelWithJoints == NULL );
 	
 	// the idTriangles are in frame memory and will be automatically disposed of
-	idTriangles* newTri = ( idTriangles* )R_ClearedFrameAlloc( sizeof( *newTri ), FRAME_ALLOC_SURFACE_TRIANGLES );
+	auto newTri = allocManager.FrameAlloc<idTriangles, FRAME_ALLOC_SURFACE_TRIANGLES, true>();
+
 	newTri->numVerts = srcTri->numVerts;
 	newTri->numIndexes = srcTri->numIndexes;
 	
@@ -748,7 +754,8 @@ static drawSurf_t* R_EyeballDeform( drawSurf_t* surf )
 	// RB end
 	
 	// the idTriangles are in frame memory and will be automatically disposed of
-	idTriangles* newTri = ( idTriangles* )R_ClearedFrameAlloc( sizeof( *newTri ), FRAME_ALLOC_SURFACE_TRIANGLES );
+	auto newTri = allocManager.FrameAlloc<idTriangles, FRAME_ALLOC_SURFACE_TRIANGLES, true>();
+
 	newTri->numVerts = srcTri->numVerts;
 	newTri->numIndexes = srcTri->numIndexes;
 	
@@ -1087,14 +1094,17 @@ static drawSurf_t* R_ParticleDeform( drawSurf_t* surf, bool useArea )
 		}
 		
 		// allocate a srfTriangles in temp memory that can hold all the particles
-		idTriangles* newTri = ( idTriangles* )R_ClearedFrameAlloc( sizeof( *newTri ), FRAME_ALLOC_SURFACE_TRIANGLES );
-		newTri->bounds = stage->bounds;		// just always draw the particles
+		auto newTri = allocManager.FrameAlloc<idTriangles, FRAME_ALLOC_SURFACE_TRIANGLES, true>();
+
 		newTri->numVerts = numVerts;
 		newTri->numIndexes = numIndexes;
+
+		newTri->bounds = stage->bounds;		// just always draw the particles
+
 		newTri->ambientCache = vertexCache.AllocVertex( newVerts, ALIGN( numVerts * sizeof( idDrawVert ), VERTEX_CACHE_ALIGN ) );
 		newTri->indexCache = vertexCache.AllocIndex( newIndexes, ALIGN( numIndexes * sizeof( triIndex_t ), INDEX_CACHE_ALIGN ) );
 		
-		drawSurf_t* drawSurf = ( drawSurf_t* )R_FrameAlloc( sizeof( *drawSurf ), FRAME_ALLOC_DRAW_SURFACE );
+		auto drawSurf = allocManager.FrameAlloc<drawSurf_t, FRAME_ALLOC_DRAW_SURFACE>();
 		drawSurf->frontEndGeo = newTri;
 		drawSurf->numIndexes = newTri->numIndexes;
 		drawSurf->ambientCache = newTri->ambientCache;

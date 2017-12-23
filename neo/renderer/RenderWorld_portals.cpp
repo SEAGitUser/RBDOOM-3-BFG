@@ -73,7 +73,7 @@ viewLight_t* idRenderLightLocal::EmitToView( idRenderView * view )
 	this->viewCount = tr.GetViewCount();
 	
 	// add to the view light chain
-	auto vLight = ( viewLight_t* )R_ClearedFrameAlloc( sizeof( viewLight_t ), FRAME_ALLOC_VIEW_LIGHT );
+	auto vLight = allocManager.FrameAlloc<viewLight_t, FRAME_ALLOC_VIEW_LIGHT, true>();
 	
 	vLight->lightDef = this;
 	this->viewLight = vLight;
@@ -106,7 +106,7 @@ viewModel_t* idRenderEntityLocal::EmitToView( idRenderView * view )
 	}
 	this->viewCount = tr.GetViewCount();
 	
-	auto vModel = ( viewModel_t* )R_ClearedFrameAlloc( sizeof( viewModel_t ), FRAME_ALLOC_VIEW_ENTITY );
+	auto vModel = allocManager.FrameAlloc<viewModel_t, FRAME_ALLOC_VIEW_ENTITY, true>();
 	
 	vModel->entityDef = this;
 	this->viewModel = vModel;
@@ -667,12 +667,12 @@ This is only valid for a given view, not all views in a frame
 */
 void idRenderWorldLocal::BuildConnectedAreas()
 {
-	tr.viewDef->connectedAreas = ( bool* )R_FrameAlloc( numPortalAreas * sizeof( tr.viewDef->connectedAreas[0] ) );
+	tr.viewDef->connectedAreas = allocManager.FrameAlloc<bool>( numPortalAreas );
 	
 	// if we are outside the world, we can see all areas
 	if( tr.viewDef->areaNum == -1 )
 	{
-		for( int i = 0; i < numPortalAreas; i++ )
+		for( int i = 0; i < numPortalAreas; ++i )
 		{
 			tr.viewDef->connectedAreas[i] = true;
 		}

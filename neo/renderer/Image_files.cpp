@@ -87,15 +87,13 @@ R_WriteTGA
 */
 void R_WriteTGA( const char* filename, const byte* data, int width, int height, bool flipVertical, const char* basePath )
 {
-	byte*	buffer;
-	int		i;
-	int		bufferSize = width * height * 4 + 18;
-	int     imgStart = 18;
+	const int bufferSize = width * height * 4 + 18;
+	const int imgStart = 18;
 	
-	idTempArray<byte> buf( bufferSize );
-	buffer = ( byte* )buf.Ptr();
-	memset( buffer, 0, 18 );
-	buffer[2] = 2;		// uncompressed type
+	idTempArray<byte> buffer( bufferSize );
+	memset( buffer.Ptr(), 0, imgStart );
+
+	buffer[ 2] = 2;		// uncompressed type
 	buffer[12] = width & 255;
 	buffer[13] = width >> 8;
 	buffer[14] = height & 255;
@@ -107,15 +105,15 @@ void R_WriteTGA( const char* filename, const byte* data, int width, int height, 
 	}
 	
 	// swap rgb to bgr
-	for( i = imgStart ; i < bufferSize ; i += 4 )
+	for( int i = imgStart ; i < bufferSize ; i += 4 )
 	{
-		buffer[i] = data[i - imgStart + 2];		// blue
+		buffer[i + 0] = data[i - imgStart + 2];		// blue
 		buffer[i + 1] = data[i - imgStart + 1];		// green
 		buffer[i + 2] = data[i - imgStart + 0];		// red
 		buffer[i + 3] = data[i - imgStart + 3];		// alpha
 	}
 	
-	fileSystem->WriteFile( filename, buffer, bufferSize, basePath );
+	fileSystem->WriteFile( filename, buffer.Ptr(), bufferSize, basePath );
 }
 
 static void LoadTGA( const char* name, byte** pic, int* width, int* height, ID_TIME_T* timestamp );
@@ -124,7 +122,7 @@ static void LoadJPG( const char* name, byte** pic, int* width, int* height, ID_T
 /*
 ========================================================================
 
-TGA files are used for 24/32 bit images
+	TGA files are used for 24/32 bit images
 
 ========================================================================
 */
@@ -142,7 +140,7 @@ typedef struct _TargaHeader
 /*
 =========================================================
 
-TARGA LOADING
+	TARGA LOADING
 
 =========================================================
 */
@@ -154,13 +152,11 @@ LoadTGA
 */
 static void LoadTGA( const char* name, byte** pic, int* width, int* height, ID_TIME_T* timestamp )
 {
-	int		columns, rows, numPixels, fileSize, numBytes;
+	int		columns, rows, numPixels, numBytes;
 	byte*	pixbuf;
 	int		row, column;
-	byte*	buf_p;
 	byte*	buffer;
 	TargaHeader	targa_header;
-	byte*		targa_rgba;
 	
 	if( !pic )
 	{
@@ -173,13 +169,13 @@ static void LoadTGA( const char* name, byte** pic, int* width, int* height, ID_T
 	//
 	// load the file
 	//
-	fileSize = fileSystem->ReadFile( name, ( void** )&buffer, timestamp );
+	int fileSize = fileSystem->ReadFile( name, ( void** )&buffer, timestamp );
 	if( !buffer )
 	{
 		return;
 	}
 	
-	buf_p = buffer;
+	byte* buf_p = buffer;
 	
 	targa_header.id_length = *buf_p++;
 	targa_header.colormap_type = *buf_p++;
@@ -238,7 +234,9 @@ static void LoadTGA( const char* name, byte** pic, int* width, int* height, ID_T
 		*height = rows;
 	}
 	
-	targa_rgba = ( byte* )R_StaticAlloc( numPixels * 4, TAG_IMAGE );
+	///byte* targa_rgba = ( byte* )R_StaticAlloc( numPixels * 4, TAG_IMAGE );
+	auto targa_rgba = allocManager.StaticAlloc<byte, TAG_IMAGE>( numPixels * 4 );
+
 	*pic = targa_rgba;
 	
 	if( targa_header.id_length != 0 )
@@ -418,9 +416,9 @@ breakOut:
 /*
 =========================================================
 
-JPG LOADING
+	JPG LOADING
 
-Interfaces with the huge libjpeg
+	Interfaces with the huge libjpeg
 =========================================================
 */
 
@@ -452,7 +450,6 @@ static void LoadJPG( const char* filename, unsigned char** pic, int* width, int*
 	JSAMPARRAY buffer;		/* Output row buffer */
 	int row_stride;		/* physical row width in output buffer */
 	unsigned char* out;
-	byte*	fbuffer;
 	byte*  bbuf;
 	int     len;
 	
@@ -468,30 +465,26 @@ static void LoadJPG( const char* filename, unsigned char** pic, int* width, int*
 	{
 		*pic = NULL;		// until proven otherwise
 	}
+
+	idFile* f = fileSystem->OpenFileRead( filename );
+	if( !f )
 	{
-		idFile* f;
-		
-		f = fileSystem->OpenFileRead( filename );
-		if( !f )
-		{
-			return;
-		}
-		len = f->Length();
-		if( timestamp )
-		{
-			*timestamp = f->Timestamp();
-		}
-		if( !pic )
-		{
-			fileSystem->CloseFile( f );
-			return;	// just getting timestamp
-		}
-		fbuffer = ( byte* )Mem_ClearedAlloc( len + 4096, TAG_JPG );
-		f->Read( fbuffer, len );
-		fileSystem->CloseFile( f );
+		return;
 	}
-	
-	
+	len = f->Length();
+	if( timestamp )
+	{
+		*timestamp = f->Timestamp();
+	}
+	if( !pic )
+	{
+		fileSystem->CloseFile( f );
+		return;	// just getting timestamp
+	}
+	idTempArray<byte> fbuffer( len + 4096 );
+	f->Read( fbuffer.Ptr(), len );
+	fileSystem->CloseFile( f );
+		
 	/* Step 1: allocate and initialize JPEG decompression object */
 	
 	/* We have to set up the error handler first, in case the initialization
@@ -507,9 +500,9 @@ static void LoadJPG( const char* filename, unsigned char** pic, int* width, int*
 	/* Step 2: specify data source (eg, a file) */
 	
 #ifdef USE_NEWER_JPEG
-	jpeg_mem_src( &cinfo, fbuffer, len );
+	jpeg_mem_src( &cinfo, fbuffer.Ptr(), len );
 #else
-	jpeg_stdio_src( &cinfo, fbuffer );
+	jpeg_stdio_src( &cinfo, fbuffer.Ptr() );
 #endif
 	/* Step 3: read file parameters with jpeg_read_header() */
 	
@@ -544,10 +537,10 @@ static void LoadJPG( const char* filename, unsigned char** pic, int* width, int*
 	
 	if( cinfo.output_components != 4 )
 	{
-		common->DWarning( "JPG %s is unsupported color depth (%d)",
-						  filename, cinfo.output_components );
+		common->DWarning( "JPG %s is unsupported color depth (%d)", filename, cinfo.output_components );
 	}
-	out = ( byte* )R_StaticAlloc( cinfo.output_width * cinfo.output_height * 4, TAG_IMAGE );
+	///out = ( byte* )R_StaticAlloc( cinfo.output_width * cinfo.output_height * 4, TAG_IMAGE );
+	out = allocManager.StaticAlloc<byte, TAG_IMAGE>( cinfo.output_width * cinfo.output_height * 4 );
 	
 	*pic = out;
 	*width = cinfo.output_width;
@@ -601,7 +594,6 @@ static void LoadJPG( const char* filename, unsigned char** pic, int* width, int*
 	 * so as to simplify the setjmp error logic above.  (Actually, I don't
 	 * think that jpeg_destroy can do an error exit, but why assume anything...)
 	 */
-	Mem_Free( fbuffer );
 	
 	/* At this point you may want to check to see whether any corrupt-data
 	 * warnings occurred (test whether jerr.pub.num_warnings is nonzero).
@@ -739,27 +731,23 @@ static void LoadPNG( const char* filename, unsigned char** pic, int* width, int*
 	
 	png_read_update_info( pngPtr, infoPtr );
 	
-	byte* out = ( byte* )R_StaticAlloc( pngWidth * pngHeight * 4 );
+	///byte* out = ( byte* )R_StaticAlloc( pngWidth * pngHeight * 4 );
+	auto out = allocManager.StaticAlloc<byte, TAG_IMAGE>( pngWidth * pngHeight * 4 );
 	
 	*pic = out;
 	*width = pngWidth;
 	*height = pngHeight;
 	
-	png_uint_32 rowBytes = png_get_rowbytes( pngPtr, infoPtr );
-	
-	png_bytep* rowPointers = ( png_bytep* ) R_StaticAlloc( sizeof( png_bytep ) * pngHeight );
-	for( png_uint_32 row = 0; row < pngHeight; row++ )
+	png_get_rowbytes( pngPtr, infoPtr );
 	{
-		rowPointers[row] = ( png_bytep )( out + ( row * pngWidth * 4 ) );
+		idTempArray<png_bytep> rowPointers( pngHeight );
+		for( png_uint_32 row = 0; row < pngHeight; ++row ) {
+			rowPointers[ row ] = ( png_bytep )( out + ( row * pngWidth * 4 ) );
+		}
+		png_read_image( pngPtr, rowPointers.Ptr() );
+		png_read_end( pngPtr, infoPtr );
+		png_destroy_read_struct( &pngPtr, &infoPtr, NULL );
 	}
-	
-	png_read_image( pngPtr, rowPointers );
-	
-	png_read_end( pngPtr, infoPtr );
-	
-	png_destroy_read_struct( &pngPtr, &infoPtr, NULL );
-	
-	R_StaticFree( rowPointers );
 	Mem_Free( fbuffer );
 }
 
@@ -872,24 +860,24 @@ static const int numImageLoaders = sizeof( imageLoaders ) / sizeof( imageLoaders
 =================
 R_LoadImage
 
-Loads any of the supported image types into a cannonical
-32 bit format.
+	Loads any of the supported image types into a cannonical
+	32 bit format.
 
-Automatically attempts to load .jpg files if .tga files fail to load.
+	Automatically attempts to load .jpg files if .tga files fail to load.
 
-*pic will be NULL if the load failed.
+	*pic will be NULL if the load failed.
 
-Anything that is going to make this into a texture would use
-makePowerOf2 = true, but something loading an image as a lookup
-table of some sort would leave it in identity form.
+	Anything that is going to make this into a texture would use
+	makePowerOf2 = true, but something loading an image as a lookup
+	table of some sort would leave it in identity form.
 
-It is important to do this at image load time instead of texture load
-time for bump maps.
+	It is important to do this at image load time instead of texture load
+	time for bump maps.
 
-Timestamp may be NULL if the value is going to be ignored
+	Timestamp may be NULL if the value is going to be ignored
 
-If pic is NULL, the image won't actually be loaded, it will just find the
-timestamp.
+	If pic is NULL, the image won't actually be loaded, it will just find the
+	timestamp.
 =================
 */
 void R_LoadImage( const char* cname, byte** pic, int* width, int* height, ID_TIME_T* timestamp, bool makePowerOf2 )
@@ -929,7 +917,7 @@ void R_LoadImage( const char* cname, byte** pic, int* width, int* height, ID_TIM
 	if( !ext.IsEmpty() )
 	{
 		int i;
-		for( i = 0; i < numImageLoaders; i++ )
+		for( i = 0; i < numImageLoaders; ++i )
 		{
 			if( !ext.Icmp( imageLoaders[i].ext ) )
 			{
@@ -943,7 +931,7 @@ void R_LoadImage( const char* cname, byte** pic, int* width, int* height, ID_TIM
 			if( pic && *pic == NULL )
 			{
 				// image with the specified extension was not found so try all formats
-				for( i = 0; i < numImageLoaders; i++ )
+				for( i = 0; i < numImageLoaders; ++i )
 				{
 					name.SetFileExtension( imageLoaders[i].ext );
 					imageLoaders[i].ImageLoader( name.c_str(), pic, width, height, timestamp );
@@ -963,7 +951,7 @@ void R_LoadImage( const char* cname, byte** pic, int* width, int* height, ID_TIM
 	{
 		if( pic && *pic )
 		{
-			R_StaticFree( *pic );
+			allocManager.StaticFree( *pic );
 			*pic = 0;
 		}
 	}
@@ -987,7 +975,7 @@ void R_LoadImage( const char* cname, byte** pic, int* width, int* height, ID_TIM
 	
 		if ( scaled_width != w || scaled_height != h ) {
 			resampledBuffer = R_ResampleTexture( *pic, w, h, scaled_width, scaled_height );
-			R_StaticFree( *pic );
+			allocManager.StaticFree( *pic );
 			*pic = resampledBuffer;
 			*width = scaled_width;
 			*height = scaled_height;
@@ -1001,21 +989,17 @@ void R_LoadImage( const char* cname, byte** pic, int* width, int* height, ID_TIM
 =======================
 R_LoadCubeImages
 
-Loads six files with proper extensions
+	Loads six files with proper extensions
 =======================
 */
 bool R_LoadCubeImages( const char* imgName, cubeFiles_t extensions, byte* pics[6], int* outSize, ID_TIME_T* timestamp )
 {
-	int		i, j;
-	const char*	cameraSides[6] =  { "_forward.tga", "_back.tga", "_left.tga", "_right.tga",
-									"_up.tga", "_down.tga"
-								  };
-	const char*	axisSides[6] =  { "_px.tga", "_nx.tga", "_py.tga", "_ny.tga",
-								  "_pz.tga", "_nz.tga"
-								};
-	const char**	sides;
-	char	fullName[MAX_IMAGE_NAME];
-	int		width, height, size = 0;
+	int	i, j;
+	const char*	cameraSides[6] =  { "_forward.tga", "_back.tga", "_left.tga", "_right.tga", "_up.tga", "_down.tga"  };
+	const char*	axisSides[6] =  { "_px.tga", "_nx.tga", "_py.tga", "_ny.tga", "_pz.tga", "_nz.tga" };
+	const char** sides;
+	char fullName[MAX_IMAGE_NAME];
+	int	width, height, size = 0;
 	
 	if( extensions == CF_CAMERA )
 	{
@@ -1104,9 +1088,9 @@ bool R_LoadCubeImages( const char* imgName, cubeFiles_t extensions, byte* pics[6
 		// we had an error, so free everything
 		if( pics )
 		{
-			for( j = 0 ; j < i ; j++ )
+			for( j = 0 ; j < i ; ++j )
 			{
-				R_StaticFree( pics[j] );
+				allocManager.StaticFree( pics[j] );
 			}
 		}
 		

@@ -40,7 +40,7 @@ typedef struct portal_s
 {
 	int						intoArea;		// area this portal leads to
 	idWinding* 				w;				// winding points have counter clockwise ordering seen this area
-	idPlane					plane;			// view must be on the positive side of the plane to cross
+	ALIGNTYPE16 idPlane		plane;			// view must be on the positive side of the plane to cross
 	struct portal_s* 		next;			// next portal of the area
 	struct doublePortal_s* 	doublePortal;
 } portal_t;

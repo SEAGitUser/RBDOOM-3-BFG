@@ -113,7 +113,7 @@ static void R_AddSingleLight( viewLight_t* vLight )
 	}
 	
 	// evaluate the light shader registers
-	float* lightRegs = ( float* )R_FrameAlloc( lightShader->GetNumRegisters() * sizeof( float ), FRAME_ALLOC_SHADER_REGISTER );
+	auto lightRegs = allocManager.FrameAlloc<float, FRAME_ALLOC_SHADER_REGISTER>( lightShader->GetNumRegisters() );
 	lightShader->EvaluateRegisters( lightRegs, light->GetParms().shaderParms, viewDef->GetMaterialParms(), viewDef->GetGameTimeSec(), light->GetParms().referenceSound );
 									
 	// if this is a purely additive light and no stage in the light shader evaluates
@@ -319,7 +319,7 @@ static void R_AddSingleLight( viewLight_t* vLight )
 	auto world = light->GetOwner();
 	
 	// this bool array will be set true whenever the entity will visibly interact with the light
-	vLight->entityInteractionState = ( byte* )R_ClearedFrameAlloc( world->entityDefs.Num() * sizeof( vLight->entityInteractionState[0] ), FRAME_ALLOC_INTERACTION_STATE );
+	vLight->entityInteractionState = allocManager.FrameAlloc<byte, FRAME_ALLOC_INTERACTION_STATE, true>( world->entityDefs.Num() );
 	
 	idInteraction** const interactionTableRow = world->interactionTable + light->GetIndex() * world->interactionTableWidth;
 	
@@ -463,7 +463,7 @@ static void R_AddSingleLight( viewLight_t* vLight )
 			vLight->entityInteractionState[ edef->GetIndex() ] = viewLight_t::INTERACTION_YES;
 			
 			// we will need to create a viewModel_t for it in the serial code section
-			shadowOnlyEntity_t* shadEnt = ( shadowOnlyEntity_t* )R_FrameAlloc( sizeof( shadowOnlyEntity_t ), FRAME_ALLOC_SHADOW_ONLY_ENTITY );
+			auto shadEnt = allocManager.FrameAlloc<shadowOnlyEntity_t, FRAME_ALLOC_SHADOW_ONLY_ENTITY>();
 			shadEnt->next = vLight->shadowOnlyViewEntities;
 			shadEnt->edef = edef;
 			vLight->shadowOnlyViewEntities = shadEnt;
@@ -488,7 +488,7 @@ static void R_AddSingleLight( viewLight_t* vLight )
 		assert( vertexCache.CacheIsCurrent( tri->shadowCache ) );
 		assert( vertexCache.CacheIsCurrent( tri->indexCache ) );
 		
-		drawSurf_t* shadowDrawSurf = ( drawSurf_t* )R_FrameAlloc( sizeof( *shadowDrawSurf ), FRAME_ALLOC_DRAW_SURFACE );
+		auto shadowDrawSurf = allocManager.FrameAlloc<drawSurf_t, FRAME_ALLOC_DRAW_SURFACE>();
 		
 		shadowDrawSurf->frontEndGeo = tri;
 		shadowDrawSurf->ambientCache = 0;
@@ -505,7 +505,7 @@ static void R_AddSingleLight( viewLight_t* vLight )
 		
 		if( !r_skipPrelightShadows.GetBool() )
 		{
-			preLightShadowVolumeParms_t* shadowParms = ( preLightShadowVolumeParms_t* )R_FrameAlloc( sizeof( shadowParms[0] ), FRAME_ALLOC_SHADOW_VOLUME_PARMS );
+			auto shadowParms = allocManager.FrameAlloc<preLightShadowVolumeParms_t, FRAME_ALLOC_SHADOW_VOLUME_PARMS>();
 			
 			shadowParms->verts = tri->preLightShadowVertexes;
 			shadowParms->numVerts = tri->numVerts * 2;

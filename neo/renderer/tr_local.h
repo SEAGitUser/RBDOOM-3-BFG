@@ -633,6 +633,8 @@ enum renderCommand_t
 
 struct emptyCommand_t
 {
+	//idQueueNode<emptyCommand_t> queueNode;
+
 	renderCommand_t		commandId;
 	renderCommand_t* 	next;
 };
@@ -641,6 +643,7 @@ struct setBufferCommand_t
 {
 	renderCommand_t		commandId;
 	renderCommand_t* 	next;
+
 	GLenum	buffer;
 };
 
@@ -648,18 +651,20 @@ struct drawSurfsCommand_t
 {
 	renderCommand_t		commandId;
 	renderCommand_t* 	next;
-	idRenderView* 			viewDef;
+
+	idRenderView* 		viewDef;
 };
 
 struct copyRenderCommand_t
 {
 	renderCommand_t		commandId;
 	renderCommand_t* 	next;
+
 	int					x;
 	int					y;
 	int					imageWidth;
 	int					imageHeight;
-	idImage*				image;
+	idImage*			image;
 	int					cubeFace;					// when copying to a cubeMap
 	bool				clearColorAfterCopy;
 };
@@ -668,7 +673,8 @@ struct postProcessCommand_t
 {
 	renderCommand_t		commandId;
 	renderCommand_t* 	next;
-	idRenderView* 			viewDef;
+
+	idRenderView* 		viewDef;
 };
 
 //=======================================================================
@@ -700,7 +706,9 @@ enum frameAllocType_t
 // on an SMP machine.
 class idFrameData
 {
-public:
+	friend class idRenderAllocManager;
+	friend class idRenderSystemLocal;
+
 	idSysInterlockedInteger	frameMemoryAllocated;
 	idSysInterlockedInteger	frameMemoryUsed;
 	byte* 					frameMemory;
@@ -712,9 +720,15 @@ public:
 	// at the front if needed, as required for dynamically generated textures
 	emptyCommand_t* 		cmdHead;	// may be of other command type based on commandId
 	emptyCommand_t* 		cmdTail;
-};
 
-extern	idFrameData*	frameData;
+	//idQueue<emptyCommand_t, &emptyCommand_t::queueNode> cmdQueue;
+public:
+
+	ID_INLINE int GetFrameMemoryAllocated() const { return frameMemoryAllocated.GetValue(); }
+	ID_INLINE int GetFrameMemoryUsed() const { return frameMemoryUsed.GetValue(); }
+	ID_INLINE int GetHighWaterAllocated() const { return highWaterAllocated; }
+	ID_INLINE int GetHighWaterUsed() const { return highWaterUsed; }
+};
 
 //=======================================================================
 
@@ -723,8 +737,6 @@ void R_AddDrawPostProcess( idRenderView* parms );
 
 void R_ReloadGuis_f( const idCmdArgs& args );
 void R_ListGuis_f( const idCmdArgs& args );
-
-void* R_GetCommandBuffer( int bytes );
 
 // this allows a global override of all materials
 bool R_GlobalShaderOverride( const idMaterial** shader );
@@ -1333,18 +1345,86 @@ TR_FRONTEND_MAIN
 ====================================================================
 */
 
-void R_InitFrameData();
-void R_ShutdownFrameData();
-void R_ToggleSmpFrame();
-void* R_FrameAlloc( int bytes, frameAllocType_t type = FRAME_ALLOC_UNKNOWN );
-void* R_ClearedFrameAlloc( int bytes, frameAllocType_t type = FRAME_ALLOC_UNKNOWN );
-
-void* R_StaticAlloc( int bytes, const memTag_t tag = TAG_RENDER_STATIC );		// just malloc with error checking
-void* R_ClearedStaticAlloc( int bytes );	// with memset
-void R_StaticFree( void* data );
-
 void R_RenderView( idRenderView* );
 void R_RenderPostProcess( idRenderView* );
+
+//#define TRACK_FRAME_ALLOCS
+
+class idRenderAllocManager 
+{
+	static const unsigned int NUM_FRAME_DATA = 2;
+	static const unsigned int FRAME_ALLOC_ALIGNMENT = 128;
+	static const unsigned int MAX_FRAME_MEMORY = 64 * 1024 * 1024;	// larger so that we can noclip on PC for dev purposes
+
+	idFrameData		frameData[ NUM_FRAME_DATA ];
+	idFrameData* 	currentFrameData;
+	unsigned int	currentFrame;
+
+#if defined( TRACK_FRAME_ALLOCS )
+	idSysInterlockedInteger frameAllocTypeCount[ FRAME_ALLOC_MAX ];
+	int frameHighWaterTypeCount[ FRAME_ALLOC_MAX ];
+#endif
+
+	void *	_FrameAlloc( int bytes, frameAllocType_t type = FRAME_ALLOC_UNKNOWN );
+	void *	_ClearedFrameAlloc( int bytes, frameAllocType_t type = FRAME_ALLOC_UNKNOWN );
+
+	void *	_StaticAlloc( int bytes, const memTag_t tag = TAG_RENDER_STATIC );		// just malloc with error checking
+	void *	_ClearedStaticAlloc( int bytes, const memTag_t tag = TAG_RENDER_STATIC );	// with memset
+	void	_StaticFree( void* data );
+
+	void *	_GetCommandBuffer( int bytes );
+
+public:
+
+	void	InitFrameData();
+	void	ShutdownFrameData();
+	void	ToggleFrame();
+
+	ID_INLINE const idFrameData * GetCurrentFrame() const { return currentFrameData; }
+
+	template< typename _T_, frameAllocType_t frameAllocType = FRAME_ALLOC_UNKNOWN, bool bCleared = false >
+	_T_ * FrameAlloc( uint32 count = 1 )
+	{
+		const size_t bytes = sizeof( _T_ ) * count;
+		if( bCleared )
+		{
+			return reinterpret_cast< _T_* >( _ClearedFrameAlloc( bytes, frameAllocType ) );
+		}
+		else
+		{
+			return reinterpret_cast< _T_* >( _FrameAlloc( bytes, frameAllocType ) );
+		}
+	}
+
+	template< typename _T_, memTag_t memTag = TAG_RENDER_STATIC, bool bCleared = false >
+	_T_ * StaticAlloc( uint32 count = 1 )
+	{
+		const size_t bytes = sizeof( _T_ ) * count;
+		if( bCleared )
+		{
+			return reinterpret_cast< _T_* >( _ClearedStaticAlloc( bytes, memTag ) );
+		}
+		else
+		{
+			return reinterpret_cast< _T_* >( _StaticAlloc( bytes, memTag ) );
+		}
+	}
+
+	void StaticFree( void* data )
+	{
+		_StaticFree( data );
+	}
+
+	template< typename _T_ >
+	_T_ * GetEmptyFrameCmd()
+	{
+		return reinterpret_cast< _T_* >( _GetCommandBuffer( sizeof( _T_ ) ) );
+	}
+};
+extern idRenderAllocManager allocManager;
+
+//template  idTriangles* idRenderAllocManager::FrameAlloc<idTriangles>( uint32 count );
+//template  drawSurf_t* idRenderAllocManager::FrameAlloc<drawSurf_t>( uint32 count );
 
 /*
 ============================================================
@@ -1506,12 +1586,11 @@ void RB_SetVertexColorParms( stageVertexColor_t svc );
 #include "GraphicsAPIWrapper.h"
 ///#include "GLMatrix.h"
 
-
-
 #include "BufferObject.h"
 #include "RenderProgs.h"
 #include "RenderWorld_local.h"
 #include "GuiModel.h"
 #include "VertexCache.h"
+
 
 #endif /* !__TR_LOCAL_H__ */

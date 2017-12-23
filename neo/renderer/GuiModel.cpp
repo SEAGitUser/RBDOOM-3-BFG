@@ -108,7 +108,7 @@ void idRenderModelGui::EmitSurfaces( idRenderView * view,
 	const idRenderMatrix & modelMatrix, const idRenderMatrix & modelViewMatrix,
 	bool depthHack, bool allowFullScreenStereoDepth, bool linkAsEntity )
 {
-	viewModel_t* guiSpace = ( viewModel_t* )R_ClearedFrameAlloc( sizeof( *guiSpace ), FRAME_ALLOC_VIEW_ENTITY );
+	auto guiSpace = allocManager.FrameAlloc<viewModel_t, FRAME_ALLOC_VIEW_ENTITY, true>();
 
 	guiSpace->modelMatrix.Copy( modelMatrix );
 	guiSpace->modelViewMatrix.Copy( modelViewMatrix );
@@ -149,8 +149,7 @@ void idRenderModelGui::EmitSurfaces( idRenderView * view,
 			continue;
 		}
 		
-		drawSurf_t* drawSurf = ( drawSurf_t* )R_FrameAlloc( sizeof( *drawSurf ), FRAME_ALLOC_DRAW_SURFACE );
-		
+		auto drawSurf = allocManager.FrameAlloc<drawSurf_t, FRAME_ALLOC_DRAW_SURFACE>();	
 		drawSurf->numIndexes = guiSurf.numIndexes;
 		drawSurf->ambientCache = vertexBlock;
 		// build a vertCacheHandle_t that points inside the allocated block
@@ -171,9 +170,8 @@ void idRenderModelGui::EmitSurfaces( idRenderView * view,
 			// shader only uses constant values
 			drawSurf->shaderRegisters = constRegs;
 		}
-		else
-		{
-			float* regs = ( float* )R_FrameAlloc( guiSurf.material->GetNumRegisters() * sizeof( float ), FRAME_ALLOC_SHADER_REGISTER );
+		else {
+			auto regs = allocManager.FrameAlloc<float, FRAME_ALLOC_SHADER_REGISTER>( guiSurf.material->GetNumRegisters() );
 			drawSurf->shaderRegisters = regs;
 			guiSurf.material->EvaluateRegisters( regs, shaderParms, view->GetMaterialParms(), view->GetGameTimeSec( 1 ), NULL );
 		}
@@ -240,7 +238,8 @@ void idRenderModelGui::EmitFullScreen()
 	
 	SCOPED_PROFILE_EVENT( "Gui::EmitFullScreen" );
 	
-	idRenderView* viewDef = ( idRenderView* )R_ClearedFrameAlloc( sizeof( *viewDef ), FRAME_ALLOC_VIEW_DEF );
+	auto viewDef = allocManager.FrameAlloc<idRenderView, FRAME_ALLOC_VIEW_DEF, true>();
+
 	viewDef->is2Dgui = true;
 	
 	tr.GetCroppedViewport( &viewDef->viewport );
@@ -269,7 +268,7 @@ void idRenderModelGui::EmitFullScreen()
 	viewDef->DeriveData();
 
 	viewDef->maxDrawSurfs = surfaces.Num();
-	viewDef->drawSurfs = ( drawSurf_t** )R_FrameAlloc( viewDef->maxDrawSurfs * sizeof( viewDef->drawSurfs[0] ), FRAME_ALLOC_DRAW_SURFACE_POINTER );
+	viewDef->drawSurfs = allocManager.FrameAlloc<drawSurf_t*, FRAME_ALLOC_DRAW_SURFACE_POINTER>( viewDef->maxDrawSurfs );
 	viewDef->numDrawSurfs = 0;
 
 	// RB: give renderView the current time to calculate 2D shader effects

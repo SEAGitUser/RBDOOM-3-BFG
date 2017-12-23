@@ -913,7 +913,7 @@ void R_InitOpenGL()
 	vertexCache.Init();
 	
 	// allocate the frame data, which may be more if smp is enabled
-	R_InitFrameData();
+	allocManager.InitFrameData();
 	
 	// Reset our gamma
 	R_SetColorMappings();
@@ -1123,8 +1123,7 @@ void R_TestVideo_f( const idCmdArgs& args )
 	tr.testVideo = idCinematic::Alloc();
 	tr.testVideo->InitFromFile( args.Argv( 1 ), true );
 	
-	cinData_t	cin;
-	cin = tr.testVideo->ImageForTime( 0 );
+	cinData_t cin = tr.testVideo->ImageForTime( 0 );
 	if( cin.imageY == NULL )
 	{
 		delete tr.testVideo;
@@ -1194,8 +1193,8 @@ Prints a list of the materials sorted by surface area
 #pragma warning( disable: 6385 ) // This is simply to get pass a false defect for /analyze -- if you can figure out a better way, please let Shawn know...
 void R_ReportSurfaceAreas_f( const idCmdArgs& args )
 {
-	unsigned int		i;
-	idMaterial**	list;
+	unsigned int i;
+	idMaterial ** list;
 	
 	const unsigned int count = declManager->GetNumDecls( DECL_MATERIAL );
 	if( count == 0 )
@@ -1205,7 +1204,7 @@ void R_ReportSurfaceAreas_f( const idCmdArgs& args )
 	
 	list = ( idMaterial** )_alloca( count * sizeof( *list ) );
 	
-	for( i = 0 ; i < count ; i++ )
+	for( i = 0 ; i < count ; ++i )
 	{
 		list[i] = ( idMaterial* )declManager->DeclByIndex( DECL_MATERIAL, i, false );
 	}
@@ -1213,7 +1212,7 @@ void R_ReportSurfaceAreas_f( const idCmdArgs& args )
 	qsort( list, count, sizeof( list[0] ), R_QsortSurfaceAreas );
 	
 	// skip over ones with 0 area
-	for( i = 0 ; i < count ; i++ )
+	for( i = 0 ; i < count ; ++i )
 	{
 		if( list[i]->GetSurfaceArea() > 0 )
 		{
@@ -1221,7 +1220,7 @@ void R_ReportSurfaceAreas_f( const idCmdArgs& args )
 		}
 	}
 	
-	for( ; i < count ; i++ )
+	for( ; i < count ; ++i )
 	{
 		// report size in "editor blocks"
 		int	blocks = list[i]->GetSurfaceArea() / 4096.0;
@@ -1243,12 +1242,12 @@ void R_ReportSurfaceAreas_f( const idCmdArgs& args )
 ====================
 R_ReadTiledPixels
 
-NO LONGER SUPPORTED (FIXME: make standard case work)
+	NO LONGER SUPPORTED (FIXME: make standard case work)
 
-Used to allow the rendering of an image larger than the actual window by
-tiling it into window-sized chunks and rendering each chunk separately
+	Used to allow the rendering of an image larger than the actual window by
+	tiling it into window-sized chunks and rendering each chunk separately
 
-If ref isn't specified, the full session UpdateScreen will be done.
+	If ref isn't specified, the full session UpdateScreen will be done.
 ====================
 */
 void R_ReadTiledPixels( int width, int height, byte* buffer, renderView_t* ref = NULL )
@@ -1256,7 +1255,8 @@ void R_ReadTiledPixels( int width, int height, byte* buffer, renderView_t* ref =
 	// include extra space for OpenGL padding to word boundaries
 	int sysWidth = renderSystem->GetWidth();
 	int sysHeight = renderSystem->GetHeight();
-	byte* temp = ( byte* )R_StaticAlloc( ( sysWidth + 3 ) * sysHeight * 3 );
+
+	idTempArray<byte> temp( ( sysWidth + 3 ) * sysHeight * 3 );
 	
 	// foresthale 2014-03-01: fixed custom screenshot resolution by doing a more direct render path
 #ifdef BUGFIXEDSCREENSHOTRESOLUTION
@@ -1343,13 +1343,13 @@ void R_ReadTiledPixels( int width, int height, byte* buffer, renderView_t* ref =
 			}
 			
 			glReadBuffer( GL_FRONT );
-			glReadPixels( 0, 0, w, h, GL_RGB, GL_UNSIGNED_BYTE, temp );
+			glReadPixels( 0, 0, w, h, GL_RGB, GL_UNSIGNED_BYTE, temp.Ptr() );
 			
 			int	row = ( w * 3 + 3 ) & ~3;		// OpenGL pads to dword boundaries
 			
-			for( int y = 0 ; y < h ; y++ )
+			for( int y = 0 ; y < h ; ++y )
 			{
-				memcpy( buffer + ( ( yo + y )* width + xo ) * 3, temp + y * row, w * 3 );
+				memcpy( buffer + ( ( yo + y )* width + xo ) * 3, temp.Ptr() + y * row, w * 3 );
 			}
 		}
 	}
@@ -1364,8 +1364,6 @@ void R_ReadTiledPixels( int width, int height, byte* buffer, renderView_t* ref =
 #endif
 	
 	r_useScissor.SetBool( true );
-	
-	R_StaticFree( temp );
 }
 
 
@@ -1382,10 +1380,10 @@ If ref == NULL, common->UpdateScreen will be used
 // RB: changed .tga to .png
 void idRenderSystemLocal::TakeScreenshot( int width, int height, const char* fileName, int blends, renderView_t* ref, int exten )
 {
-	byte*		buffer;
-	int			i, j, c, temp;
+	byte* buffer = nullptr;
+	int	i, j, c, temp;
+
 	idStr finalFileName;
-	
 	finalFileName.Format( "%s.%s", fileName, fileExten[exten] );
 	
 	takingScreenshot = true;
@@ -1395,13 +1393,13 @@ void idRenderSystemLocal::TakeScreenshot( int width, int height, const char* fil
 	
 	if( exten == PNG )
 	{
-		buffer = ( byte* )R_StaticAlloc( pix * 3 );
+		buffer = ( byte* )Mem_Alloc( pix * 3, TAG_TEMP );
 	}
 	else if( exten == TGA )
 	{
-		buffer = ( byte* )R_StaticAlloc( bufferSize );
-		memset( buffer, 0, bufferSize );
+		buffer = ( byte* )Mem_ClearedAlloc( bufferSize, TAG_TEMP );
 	}
+	assert( buffer );
 	
 	if( blends <= 1 )
 	{
@@ -1416,13 +1414,13 @@ void idRenderSystemLocal::TakeScreenshot( int width, int height, const char* fil
 	}
 	else
 	{
-		unsigned short* shortBuffer = ( unsigned short* )R_StaticAlloc( pix * 2 * 3 );
-		memset( shortBuffer, 0, pix * 2 * 3 );
+		idTempArray<unsigned short> shortBuffer( pix * 2 * 3 );
+		shortBuffer.Zero();
 		
 		// enable anti-aliasing jitter
 		r_jitter.SetBool( true );
 		
-		for( i = 0 ; i < blends ; i++ )
+		for( i = 0 ; i < blends ; ++i )
 		{
 			if( exten == PNG )
 			{
@@ -1433,7 +1431,7 @@ void idRenderSystemLocal::TakeScreenshot( int width, int height, const char* fil
 				R_ReadTiledPixels( width, height, buffer + 18, ref );
 			}
 			
-			for( j = 0 ; j < pix * 3 ; j++ )
+			for( j = 0 ; j < pix * 3 ; ++j )
 			{
 				if( exten == PNG )
 				{
@@ -1445,9 +1443,9 @@ void idRenderSystemLocal::TakeScreenshot( int width, int height, const char* fil
 				}
 			}
 		}
-		
+
 		// divide back to bytes
-		for( i = 0 ; i < pix * 3 ; i++ )
+		for( i = 0 ; i < pix * 3 ; ++i )
 		{
 			if( exten == PNG )
 			{
@@ -1458,10 +1456,10 @@ void idRenderSystemLocal::TakeScreenshot( int width, int height, const char* fil
 				buffer[18 + i] = shortBuffer[i] / blends;
 			}
 		}
-		
-		R_StaticFree( shortBuffer );
+
 		r_jitter.SetBool( false );
 	}
+
 	if( exten == PNG )
 	{
 		R_WritePNG( finalFileName, buffer, 3, width, height, false, "fs_basepath" );
@@ -1469,7 +1467,7 @@ void idRenderSystemLocal::TakeScreenshot( int width, int height, const char* fil
 	else
 	{
 		// fill in the header (this is vertically flipped, which qglReadPixels emits)
-		buffer[2] = 2;	// uncompressed type
+		buffer[ 2] = 2;	// uncompressed type
 		buffer[12] = width & 255;
 		buffer[13] = width >> 8;
 		buffer[14] = height & 255;
@@ -1489,7 +1487,7 @@ void idRenderSystemLocal::TakeScreenshot( int width, int height, const char* fil
 		fileSystem->WriteFile( finalFileName, buffer, c, "fs_basepath" );
 	}
 	
-	R_StaticFree( buffer );
+	Mem_Free( buffer );
 	
 	takingScreenshot = false;
 }
@@ -2983,7 +2981,7 @@ void idRenderSystemLocal::Shutdown()
 	// RB end
 	
 	// free frame memory
-	R_ShutdownFrameData();
+	allocManager.ShutdownFrameData();
 	
 	UnbindBufferObjects();
 	
@@ -3153,7 +3151,7 @@ idRenderSystemLocal::ShutdownOpenGL
 void idRenderSystemLocal::ShutdownOpenGL()
 {
 	// free the context and close the window
-	R_ShutdownFrameData();
+	allocManager.ShutdownFrameData();
 	GLimp_Shutdown();
 	r_initialized = false;
 }
