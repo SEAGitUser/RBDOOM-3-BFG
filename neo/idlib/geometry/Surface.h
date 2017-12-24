@@ -230,7 +230,7 @@ ID_INLINE void idSurface::TranslateSelf( const idVec3& translation )
 {
 	for( int i = 0; i < verts.Num(); i++ )
 	{
-		verts[i].xyz += translation;
+		verts[ i ].SetPosition( verts[ i ].GetPosition() + translation );
 	}
 }
 
@@ -241,9 +241,9 @@ idSurface::RotateSelf
 */
 ID_INLINE void idSurface::RotateSelf( const idMat3& rotation )
 {
-	for( int i = 0; i < verts.Num(); i++ )
+	for( int i = 0; i < verts.Num(); ++i )
 	{
-		verts[i].xyz *= rotation;
+		verts[i].SetPosition( verts[i].GetPosition() * rotation );
 		verts[i].SetNormal( verts[i].GetNormal() * rotation );
 		verts[i].SetTangent( verts[i].GetTangent() * rotation );
 	}

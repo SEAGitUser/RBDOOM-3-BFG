@@ -444,19 +444,21 @@ void R_AddSingleModel( viewModel_t* vEntity )
 		// debugging tool to make sure we have the correct pre-calculated bounds
 		if( r_checkBounds.GetBool() )
 		{
-			for( int j = 0; j < tri->numVerts; j++ )
+			for( int j = 0; j < tri->numVerts; ++j )
 			{
+				auto pos = tri->verts[ j ].GetPosition();
+
 				int k;
 				for( k = 0; k < 3; k++ )
 				{
-					if( tri->verts[j].xyz[k] > tri->bounds[1][k] + CHECK_BOUNDS_EPSILON
-						|| tri->verts[j].xyz[k] < tri->bounds[0][k] - CHECK_BOUNDS_EPSILON )
+					if( pos[k] > tri->GetBounds()[1][k] + CHECK_BOUNDS_EPSILON ||
+						pos[k] < tri->GetBounds()[0][k] - CHECK_BOUNDS_EPSILON )
 					{
 						common->Printf( "bad tri->bounds on %s:%s\n", entityDef->GetModel()->Name(), shader->GetName() );
 						break;
 					}
-					if( tri->verts[j].xyz[k] > entityDef->localReferenceBounds[1][k] + CHECK_BOUNDS_EPSILON
-						|| tri->verts[j].xyz[k] < entityDef->localReferenceBounds[0][k] - CHECK_BOUNDS_EPSILON )
+					if( pos[k] > entityDef->localReferenceBounds[1][k] + CHECK_BOUNDS_EPSILON ||
+						pos[k] < entityDef->localReferenceBounds[0][k] - CHECK_BOUNDS_EPSILON )
 					{
 						common->Printf( "bad referenceBounds on %s:%s\n", entityDef->GetModel()->Name(), shader->GetName() );
 						break;
@@ -473,7 +475,7 @@ void R_AddSingleModel( viewModel_t* vEntity )
 		// than the entire entity reference bounds
 		// If the entire model wasn't visible, there is no need to check the
 		// individual surfaces.
-		const bool surfaceDirectlyVisible = modelIsVisible && !idRenderMatrix::CullBoundsToMVP( vEntity->mvp, tri->bounds );
+		const bool surfaceDirectlyVisible = modelIsVisible && !idRenderMatrix::CullBoundsToMVP( vEntity->mvp, tri->GetBounds() );
 		
 		// RB: added check wether GPU skinning is available at all
 		const bool gpuSkinned = ( tri->staticModelWithJoints != NULL && r_useGPUSkinning.GetBool() && glConfig.gpuSkinningAvailable );

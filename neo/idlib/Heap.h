@@ -125,6 +125,42 @@ ID_INLINE void operator delete[]( void* p, memTag_t tag ) throw() // DG: delete 
 // Without these, allocations of objects with 32 byte or greater alignment
 // may not go through our memory system.
 
+namespace idMem
+{
+	template< typename _T_, memTag_t tag >
+	_T_ * Alloc( size_t size )
+	{
+		return reinterpret_cast<_T_*>( Mem_Alloc( size, tag ) );
+	}
+
+	template< typename _T_, memTag_t tag >
+	_T_ * AllocCount( size_t count )
+	{
+		const size_t size = count * sizeof( _T_ );
+		return reinterpret_cast<_T_*>( Mem_Alloc( size, tag ) );
+	}
+
+	template< typename _T_, memTag_t tag >
+	_T_ * ClearedAlloc( size_t size )
+	{
+		return reinterpret_cast<_T_*>( Mem_ClearedAlloc( size, tag ) );
+	}
+
+	template< typename _T_, memTag_t tag >
+	_T_ * ClearedAllocCount( size_t count )
+	{
+		const size_t size = count * sizeof( _T_ );
+		return reinterpret_cast<_T_*>( Mem_ClearedAlloc( size, tag ) );
+	}
+
+	ID_INLINE void Free( void* ptr )
+	{
+		Mem_Free( ptr );
+	}
+}
+
+#define ID_MEM_SAFE_FREE( PTR ) ( if( PTR != NULL ) { idMem::Free( PTR ); PTR = NULL; } )
+
 /*
 ================================================
 idTempArray is an array that is automatically free'd when it goes out of scope.

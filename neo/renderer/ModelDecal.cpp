@@ -244,8 +244,9 @@ void idRenderModelDecal::CreateDecalFromWinding( const idWinding& w, const idMat
 			&& decals[decalIndex].material == decalMaterial
 			&& decals[decalIndex].startTime == startTime
 			&& decals[decalIndex].numVerts + w.GetNumPoints() <= MAX_DECAL_VERTS
-			&& decals[decalIndex].numIndexes + 3 * ( w.GetNumPoints() - 2 ) <= MAX_DECAL_INDEXES )
+			&& decals[decalIndex].numIndexes + 3 * ( w.GetNumPoints() - 2 ) <= MAX_DECAL_INDEXES ) 
 	{
+		/*...*/
 	}
 	else
 	{
@@ -270,7 +271,7 @@ void idRenderModelDecal::CreateDecalFromWinding( const idWinding& w, const idMat
 	int firstVert = decal.numVerts;
 	
 	// create the vertices
-	for( int i = 0; i < w.GetNumPoints(); i++ )
+	for( int i = 0; i < w.GetNumPoints(); ++i )
 	{
 		float depthFade = fadePlanes[0].Distance( w[i].ToVec3() ) * invFadeDepth;
 		if( depthFade < 0.0f )
@@ -287,13 +288,13 @@ void idRenderModelDecal::CreateDecalFromWinding( const idWinding& w, const idMat
 		}
 		decal.vertDepthFade[decal.numVerts] = 1.0f - depthFade;
 		decal.verts[decal.numVerts].Clear();
-		decal.verts[decal.numVerts].xyz = w[i].ToVec3();
+		decal.verts[decal.numVerts].SetPosition( w[i].ToVec3() );
 		decal.verts[decal.numVerts].SetTexCoord( w[i].s, w[i].t );
 		decal.numVerts++;
 	}
 	
 	// create the indexes
-	for( int i = 2; i < w.GetNumPoints(); i++ )
+	for( int i = 2; i < w.GetNumPoints(); ++i )
 	{
 		assert( decal.numIndexes + 3 <= MAX_DECAL_INDEXES );
 		decal.indexes[decal.numIndexes + 0] = firstVert;
@@ -379,10 +380,10 @@ static void R_DecalPointCullStatic( byte* cullBits, const idPlane* planes, const
 		
 		for( ; i <= nextNumVerts; i += 4 )
 		{
-			const __m128 v0 = _mm_load_ps( vertsODS[i + 0].xyz.ToFloatPtr() );
-			const __m128 v1 = _mm_load_ps( vertsODS[i + 1].xyz.ToFloatPtr() );
-			const __m128 v2 = _mm_load_ps( vertsODS[i + 2].xyz.ToFloatPtr() );
-			const __m128 v3 = _mm_load_ps( vertsODS[i + 3].xyz.ToFloatPtr() );
+			const __m128 v0 = _mm_load_ps( vertsODS[i + 0].GetPosition().ToFloatPtr() );
+			const __m128 v1 = _mm_load_ps( vertsODS[i + 1].GetPosition().ToFloatPtr() );
+			const __m128 v2 = _mm_load_ps( vertsODS[i + 2].GetPosition().ToFloatPtr() );
+			const __m128 v3 = _mm_load_ps( vertsODS[i + 3].GetPosition().ToFloatPtr() );
 			
 			const __m128 r0 = _mm_unpacklo_ps( v0, v2 );	// v0.x, v2.x, v0.z, v2.z
 			const __m128 r1 = _mm_unpackhi_ps( v0, v2 );	// v0.y, v2.y, v0.w, v2.w
@@ -439,7 +440,7 @@ static void R_DecalPointCullStatic( byte* cullBits, const idPlane* planes, const
 	
 		for( ; i <= nextNumVerts; i++ )
 		{
-			const idVec3& v = vertsODS[i].xyz;
+			const idVec3& v = vertsODS[i].GetPosition();
 	
 			const float d0 = planes[0].Distance( v );
 			const float d1 = planes[1].Distance( v );
@@ -534,15 +535,14 @@ void idRenderModelDecal::CreateDecal( const idRenderModel* model, const decalPro
 					continue;
 				}
 				
-				const idDrawVert* verts[3] =
-				{
+				const idDrawVert* verts[3] = {
 					&tri->verts[i0],
 					&tri->verts[i1],
 					&tri->verts[i2]
 				};
 				
 				// skip back facing triangles
-				const idPlane plane( verts[0]->xyz, verts[1]->xyz, verts[2]->xyz );
+				const idPlane plane( verts[0]->GetPosition(), verts[1]->GetPosition(), verts[2]->GetPosition() );
 				if( plane.Normal() * localParms.boundingPlanes[NUM_DECAL_BOUNDING_PLANES - 2].Normal() < -0.1f )
 				{
 					continue;
@@ -555,21 +555,23 @@ void idRenderModelDecal::CreateDecal( const idRenderModel* model, const decalPro
 				{
 					for( int j = 0; j < 3; j++ )
 					{
-						fw[j] = verts[j]->xyz;
-						fw[j].s = localParms.textureAxis[0].Distance( verts[j]->xyz );
-						fw[j].t = localParms.textureAxis[1].Distance( verts[j]->xyz );
+						fw[j] = verts[ j ]->GetPosition();
+						fw[j].s = localParms.textureAxis[0].Distance( fw[j].ToVec3() );
+						fw[j].t = localParms.textureAxis[1].Distance( fw[j].ToVec3() );
 					}
 				}
 				else
 				{
 					for( int j = 0; j < 3; j++ )
 					{
-						const idVec3 dir = verts[j]->xyz - localParms.projectionOrigin;
+						auto pos = verts[ j ]->GetPosition();
+
+						const idVec3 dir = pos - localParms.projectionOrigin;
 						float scale;
-						localParms.boundingPlanes[NUM_DECAL_BOUNDING_PLANES - 1].RayIntersection( verts[j]->xyz, dir, scale );
-						const idVec3 intersection = verts[j]->xyz + scale * dir;
+						localParms.boundingPlanes[NUM_DECAL_BOUNDING_PLANES - 1].RayIntersection( pos, dir, scale );
+						const idVec3 intersection = pos + scale * dir;
 						
-						fw[j] = verts[j]->xyz;
+						fw[j] = pos;
 						fw[j].s = localParms.textureAxis[0].Distance( intersection );
 						fw[j].t = localParms.textureAxis[1].Distance( intersection );
 					}

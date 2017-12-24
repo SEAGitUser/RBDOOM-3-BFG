@@ -76,9 +76,9 @@ int idSurface::Split( const idPlane& plane, const float epsilon, idSurface** fro
 	counts[0] = counts[1] = counts[2] = 0;
 	
 	// determine side for each vertex
-	for( i = 0; i < verts.Num(); i++ )
+	for( i = 0; i < verts.Num(); ++i )
 	{
-		dists[i] = f = plane.Distance( verts[i].xyz );
+		dists[i] = f = plane.Distance( verts[i].GetPosition() );
 		if( f > epsilon )
 		{
 			sides[i] = SIDE_FRONT;
@@ -100,7 +100,7 @@ int idSurface::Split( const idPlane& plane, const float epsilon, idSurface** fro
 	if( !counts[SIDE_FRONT] && !counts[SIDE_BACK] )
 	{
 	
-		f = ( verts[indexes[1]].xyz - verts[indexes[0]].xyz ).Cross( verts[indexes[0]].xyz - verts[indexes[2]].xyz ) * plane.Normal();
+		f = ( verts[indexes[1]].GetPosition() - verts[indexes[0]].GetPosition() ).Cross( verts[indexes[0]].GetPosition() - verts[indexes[2]].GetPosition() ) * plane.Normal();
 		if( IEEE_FLT_SIGNBITSET( f ) )
 		{
 			*back = new( TAG_IDLIB_SURFACE ) idSurface( *this );
@@ -206,7 +206,7 @@ int idSurface::Split( const idPlane& plane, const float epsilon, idSurface** fro
 				if( ( sides[v0] & sides[v1] & sides[v2] ) & SIDE_ON )
 				{
 					// coplanar
-					f = ( verts[v1].xyz - verts[v0].xyz ).Cross( verts[v0].xyz - verts[v2].xyz ) * plane.Normal();
+					f = ( verts[v1].GetPosition() - verts[v0].GetPosition() ).Cross( verts[v0].GetPosition() - verts[v2].GetPosition() ) * plane.Normal();
 					s = IEEE_FLT_SIGNBITSET( f );
 				}
 				else
@@ -426,7 +426,7 @@ bool idSurface::ClipInPlace( const idPlane& plane, const float epsilon, const bo
 	// determine side for each vertex
 	for( i = 0; i < verts.Num(); i++ )
 	{
-		dists[i] = f = plane.Distance( verts[i].xyz );
+		dists[i] = f = plane.Distance( verts[i].GetPosition() );
 		if( f > epsilon )
 		{
 			sides[i] = SIDE_FRONT;
@@ -446,7 +446,7 @@ bool idSurface::ClipInPlace( const idPlane& plane, const float epsilon, const bo
 	if( !counts[SIDE_FRONT] && !counts[SIDE_BACK] )
 	{
 	
-		f = ( verts[indexes[1]].xyz - verts[indexes[0]].xyz ).Cross( verts[indexes[0]].xyz - verts[indexes[2]].xyz ) * plane.Normal();
+		f = ( verts[indexes[1]].GetPosition() - verts[indexes[0]].GetPosition() ).Cross( verts[indexes[0]].GetPosition() - verts[indexes[2]].GetPosition() ) * plane.Normal();
 		if( IEEE_FLT_SIGNBITSET( f ) )
 		{
 			Clear();
@@ -539,7 +539,7 @@ bool idSurface::ClipInPlace( const idPlane& plane, const float epsilon, const bo
 					{
 						break;
 					}
-					f = ( verts[v1].xyz - verts[v0].xyz ).Cross( verts[v0].xyz - verts[v2].xyz ) * plane.Normal();
+					f = ( verts[v1].GetPosition() - verts[v0].GetPosition() ).Cross( verts[v0].GetPosition() - verts[v2].GetPosition() ) * plane.Normal();
 					if( IEEE_FLT_SIGNBITSET( f ) )
 					{
 						break;
@@ -775,11 +775,11 @@ bool idSurface::IsPolytope( const float epsilon ) const
 	
 	for( i = 0; i < indexes.Num(); i += 3 )
 	{
-		plane.FromPoints( verts[indexes[i + 0]].xyz, verts[indexes[i + 1]].xyz, verts[indexes[i + 2]].xyz );
+		plane.FromPoints( verts[indexes[i + 0]].GetPosition(), verts[indexes[i + 1]].GetPosition(), verts[indexes[i + 2]].GetPosition() );
 		
-		for( j = 0; j < verts.Num(); j++ )
+		for( j = 0; j < verts.Num(); ++j )
 		{
-			if( plane.Side( verts[j].xyz, epsilon ) == SIDE_FRONT )
+			if( plane.Side( verts[j].GetPosition(), epsilon ) == SIDE_FRONT )
 			{
 				return false;
 			}
@@ -802,7 +802,7 @@ float idSurface::PlaneDistance( const idPlane& plane ) const
 	max = -min;
 	for( i = 0; i < verts.Num(); i++ )
 	{
-		d = plane.Distance( verts[i].xyz );
+		d = plane.Distance( verts[i].GetPosition() );
 		if( d < min )
 		{
 			min = d;
@@ -844,9 +844,9 @@ int idSurface::PlaneSide( const idPlane& plane, const float epsilon ) const
 	
 	front = false;
 	back = false;
-	for( i = 0; i < verts.Num(); i++ )
+	for( i = 0; i < verts.Num(); ++i )
 	{
-		d = plane.Distance( verts[i].xyz );
+		d = plane.Distance( verts[i].GetPosition() );
 		if( d < -epsilon )
 		{
 			if( front )
@@ -910,9 +910,9 @@ bool idSurface::RayIntersection( const idVec3& start, const idVec3& dir, float& 
 	rayPl.FromRay( start, dir );
 	
 	// ray sidedness for edges
-	for( i = 0; i < edges.Num(); i++ )
+	for( i = 0; i < edges.Num(); ++i )
 	{
-		pl.FromLine( verts[ edges[i].verts[1] ].xyz, verts[ edges[i].verts[0] ].xyz );
+		pl.FromLine( verts[ edges[i].verts[1] ].GetPosition(), verts[ edges[i].verts[0] ].GetPosition() );
 		d = pl.PermutedInnerProduct( rayPl );
 		sidedness[ i ] = IEEE_FLT_SIGNBITSET( d );
 	}
@@ -929,7 +929,7 @@ bool idSurface::RayIntersection( const idVec3& start, const idVec3& dir, float& 
 		
 		if( s0 & s1 & s2 )
 		{
-			plane.FromPoints( verts[indexes[i + 0]].xyz, verts[indexes[i + 1]].xyz, verts[indexes[i + 2]].xyz );
+			plane.FromPoints( verts[indexes[i + 0]].GetPosition(), verts[indexes[i + 1]].GetPosition(), verts[indexes[i + 2]].GetPosition() );
 			plane.RayIntersection( start, dir, s );
 			if( idMath::Fabs( s ) < idMath::Fabs( scale ) )
 			{
@@ -938,7 +938,7 @@ bool idSurface::RayIntersection( const idVec3& start, const idVec3& dir, float& 
 		}
 		else if( !backFaceCull && !( s0 | s1 | s2 ) )
 		{
-			plane.FromPoints( verts[indexes[i + 0]].xyz, verts[indexes[i + 1]].xyz, verts[indexes[i + 2]].xyz );
+			plane.FromPoints( verts[indexes[i + 0]].GetPosition(), verts[indexes[i + 1]].GetPosition(), verts[indexes[i + 2]].GetPosition() );
 			plane.RayIntersection( start, dir, s );
 			if( idMath::Fabs( s ) < idMath::Fabs( scale ) )
 			{

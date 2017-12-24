@@ -167,7 +167,7 @@ MapTriArea
 */
 float MapTriArea( const mapTri_t* tri )
 {
-	return idWinding::TriangleArea( tri->v[0].xyz, tri->v[1].xyz, tri->v[2].xyz );
+	return idWinding::TriangleArea( tri->v[0].GetPosition(), tri->v[1].GetPosition(), tri->v[2].GetPosition() );
 }
 
 /*
@@ -208,9 +208,9 @@ void BoundTriList( const mapTri_t* list, idBounds& b )
 	b.Clear();
 	for( ; list ; list = list->next )
 	{
-		b.AddPoint( list->v[0].xyz );
-		b.AddPoint( list->v[1].xyz );
-		b.AddPoint( list->v[2].xyz );
+		b.AddPoint( list->v[0].GetPosition() );
+		b.AddPoint( list->v[1].GetPosition() );
+		b.AddPoint( list->v[2].GetPosition() );
 	}
 }
 
@@ -221,12 +221,11 @@ DrawTri
 */
 void DrawTri( const mapTri_t* tri )
 {
-	idWinding w;
-	
+	idWinding w;	
 	w.SetNumPoints( 3 );
-	w[0] = tri->v[0].xyz;
-	w[1] = tri->v[1].xyz;
-	w[2] = tri->v[2].xyz;
+	w[0] = tri->v[0].GetPosition();
+	w[1] = tri->v[1].GetPosition();
+	w[2] = tri->v[2].GetPosition();
 	DrawWinding( &w );
 }
 
@@ -269,13 +268,11 @@ WindingForTri
 */
 idWinding* WindingForTri( const mapTri_t* tri )
 {
-	idWinding*	w;
-	
-	w = new idWinding( 3 );
+	idWinding* w = new idWinding( 3 );
 	w->SetNumPoints( 3 );
-	( *w )[0] = tri->v[0].xyz;
-	( *w )[1] = tri->v[1].xyz;
-	( *w )[2] = tri->v[2].xyz;
+	( *w )[0] = tri->v[0].GetPosition();
+	( *w )[1] = tri->v[1].GetPosition();
+	( *w )[2] = tri->v[2].GetPosition();
 	return w;
 }
 
@@ -291,7 +288,7 @@ void		TriVertsFromOriginal( mapTri_t* tri, const mapTri_t* original )
 	int		i, j;
 	float	denom;
 	
-	denom = idWinding::TriangleArea( original->v[0].xyz, original->v[1].xyz, original->v[2].xyz );
+	denom = idWinding::TriangleArea( original->v[0].GetPosition(), original->v[1].GetPosition(), original->v[2].GetPosition() );
 	if( denom == 0 )
 	{
 		return;		// original was degenerate, so it doesn't matter
@@ -299,12 +296,10 @@ void		TriVertsFromOriginal( mapTri_t* tri, const mapTri_t* original )
 	
 	for( i = 0 ; i < 3 ; i++ )
 	{
-		float	a, b, c;
-		
 		// find the barycentric coordinates
-		a = idWinding::TriangleArea( tri->v[i].xyz, original->v[1].xyz, original->v[2].xyz ) / denom;
-		b = idWinding::TriangleArea( tri->v[i].xyz, original->v[2].xyz, original->v[0].xyz ) / denom;
-		c = idWinding::TriangleArea( tri->v[i].xyz, original->v[0].xyz, original->v[1].xyz ) / denom;
+		float a = idWinding::TriangleArea( tri->v[i].GetPosition(), original->v[1].GetPosition(), original->v[2].GetPosition() ) / denom;
+		float b = idWinding::TriangleArea( tri->v[i].GetPosition(), original->v[2].GetPosition(), original->v[0].GetPosition() ) / denom;
+		float c = idWinding::TriangleArea( tri->v[i].GetPosition(), original->v[0].GetPosition(), original->v[1].GetPosition() ) / denom;
 		
 		// regenerate the interpolated values
 		
@@ -378,7 +373,7 @@ mapTri_t* WindingToTriList( const idWinding* w, const mapTri_t* originalTri )
 			{
 				vec = &( ( *w )[i] ).ToVec3();
 			}
-			tri->v[j].xyz = *vec;
+			tri->v[j].SetPosition( *vec );
 		}
 		if( originalTri )
 		{
@@ -428,5 +423,5 @@ PlaneForTri
 */
 void	PlaneForTri( const mapTri_t* tri, idPlane& plane )
 {
-	plane.FromPoints( tri->v[0].xyz, tri->v[1].xyz, tri->v[2].xyz );
+	plane.FromPoints( tri->v[0].GetPosition(), tri->v[1].GetPosition(), tri->v[2].GetPosition() );
 }

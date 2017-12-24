@@ -130,7 +130,7 @@ static void R_PlaneForSurface( const idTriangles* tri, idPlane& plane )
 	idDrawVert* v1 = tri->verts + tri->indexes[0];
 	idDrawVert* v2 = tri->verts + tri->indexes[1];
 	idDrawVert* v3 = tri->verts + tri->indexes[2];
-	plane.FromPoints( v1->xyz, v2->xyz, v3->xyz );
+	plane.FromPoints( v1->GetPosition(), v2->GetPosition(), v3->GetPosition() );
 }
 
 /*

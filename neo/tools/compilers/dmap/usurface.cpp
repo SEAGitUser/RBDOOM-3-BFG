@@ -119,29 +119,24 @@ static void TexVecForTri( textureVectors_t* texVec, mapTri_t* tri )
 	float	area, inva;
 	idVec3	temp;
 	idVec5	d0, d1;
-	idDrawVert*	a, *b, *c;
+
+	idDrawVert* a = &tri->v[0];
+	idDrawVert* b = &tri->v[1];
+	idDrawVert* c = &tri->v[2];
 	
-	a = &tri->v[0];
-	b = &tri->v[1];
-	c = &tri->v[2];
-	
-	d0[0] = b->xyz[0] - a->xyz[0];
-	d0[1] = b->xyz[1] - a->xyz[1];
-	d0[2] = b->xyz[2] - a->xyz[2];
+	d0 = b->GetPosition() - a->GetPosition();
 	
 	// RB begin
 	const idVec2 aST = a->GetTexCoord();
 	const idVec2 bST = b->GetTexCoord();
-	d0[3] = bST.x - aST.x;
-	d0[4] = bST.y - aST.y;
+	d0.s = bST.x - aST.x;
+	d0.t = bST.y - aST.y;
 	
-	d1[0] = c->xyz[0] - a->xyz[0];
-	d1[1] = c->xyz[1] - a->xyz[1];
-	d1[2] = c->xyz[2] - a->xyz[2];
+	d1 = c->GetPosition() - a->GetPosition();
 	
 	const idVec2 cST = c->GetTexCoord();
-	d1[3] = cST.x - aST.x;
-	d1[4] = cST.y - aST.y;
+	d1.s = cST.x - aST.x;
+	d1.t = cST.y - aST.y;
 	
 	area = d0[3] * d1[4] - d0[4] * d1[3];
 	inva = 1.0 / area;
@@ -151,14 +146,14 @@ static void TexVecForTri( textureVectors_t* texVec, mapTri_t* tri )
 	temp[2] = ( d0[2] * d1[4] - d0[4] * d1[2] ) * inva;
 	temp.Normalize();
 	texVec->v[0].ToVec3() = temp;
-	texVec->v[0][3] = tri->v[0].xyz * texVec->v[0].ToVec3() - tri->v[0].GetTexCoord().x;
+	texVec->v[0][3] = tri->v[0].GetPosition() * texVec->v[0].ToVec3() - tri->v[0].GetTexCoord().x;
 	
 	temp[0] = ( d0[3] * d1[0] - d0[0] * d1[3] ) * inva;
 	temp[1] = ( d0[3] * d1[1] - d0[1] * d1[3] ) * inva;
 	temp[2] = ( d0[3] * d1[2] - d0[2] * d1[3] ) * inva;
 	temp.Normalize();
 	texVec->v[1].ToVec3() = temp;
-	texVec->v[1][3] = tri->v[0].xyz * texVec->v[0].ToVec3() - tri->v[0].GetTexCoord().y;
+	texVec->v[1][3] = tri->v[0].GetPosition() * texVec->v[0].ToVec3() - tri->v[0].GetTexCoord().y;
 	// RB end
 }
 
@@ -230,13 +225,13 @@ mapTri_t* TriListForSide( const side_t* s, const idWinding* w )
 					dv->xyz[k] = SNAP_INT_TO_FLOAT * floor( vec[k] * SNAP_FLOAT_TO_INT + 0.5 );
 				}
 #else
-				dv->xyz = *vec;
+				dv->SetPosition( *vec );
 #endif
 				
 				// calculate texture s/t from brush primitive texture matrix
 				idVec2 st;
-				st.x = ( dv->xyz * s->texVec.v[0].ToVec3() ) + s->texVec.v[0][3];
-				st.y = ( dv->xyz * s->texVec.v[1].ToVec3() ) + s->texVec.v[1][3];
+				st.x = ( dv->GetPosition() * s->texVec.v[0].ToVec3() ) + s->texVec.v[0][3];
+				st.y = ( dv->GetPosition() * s->texVec.v[1].ToVec3() ) + s->texVec.v[1][3];
 				
 				dv->SetTexCoord( st );
 				
@@ -280,11 +275,11 @@ mapTri_t* TriListForSide( const side_t* s, const idWinding* w )
 				}
 				
 				dv = tri->v + j;
-				dv->xyz = *vec;
+				dv->SetPosition( *vec );
 				
 				idVec2 st;
-				st.x = ( dv->xyz * s->texVec.v[0].ToVec3() ) + s->texVec.v[0][3];
-				st.y = ( dv->xyz * s->texVec.v[1].ToVec3() ) + s->texVec.v[1][3];
+				st.x = ( dv->GetPosition() * s->texVec.v[0].ToVec3() ) + s->texVec.v[0][3];
+				st.y = ( dv->GetPosition() * s->texVec.v[1].ToVec3() ) + s->texVec.v[1][3];
 				dv->SetTexCoord( st );
 				
 				// copy normal
@@ -804,12 +799,10 @@ void PutPrimitivesInAreas( uEntity_t* e )
 				{
 					for( int k = 0 ; k < 3 ; k++ )
 					{
-						idVec3 v = tri->verts[tri->indexes[j + k]].xyz;
-						
-						mapTri.v[k].xyz = v * axis + origin;
-						
-						mapTri.v[k].SetNormal( tri->verts[tri->indexes[j + k]].GetNormal() * axis );
-						mapTri.v[k].SetTexCoord( tri->verts[tri->indexes[j + k]].GetTexCoord() );
+						idVec3 v = tri->verts[ tri->indexes[ j + k ] ].GetPosition();
+						mapTri.v[ k ].SetPosition( v * axis + origin );
+						mapTri.v[ k ].SetNormal( tri->verts[ tri->indexes[ j + k ] ].GetNormal() * axis );
+						mapTri.v[ k ].SetTexCoord( tri->verts[ tri->indexes[ j + k ] ].GetTexCoord() );
 					}
 					AddMapTriToAreas( &mapTri, e );
 				}
@@ -1023,9 +1016,9 @@ static void BoundOptimizeGroup( optimizeGroup_t* group )
 	group->bounds.Clear();
 	for( mapTri_t* tri = group->triList ; tri ; tri = tri->next )
 	{
-		group->bounds.AddPoint( tri->v[0].xyz );
-		group->bounds.AddPoint( tri->v[1].xyz );
-		group->bounds.AddPoint( tri->v[2].xyz );
+		group->bounds.AddPoint( tri->v[0].GetPosition() );
+		group->bounds.AddPoint( tri->v[1].GetPosition() );
+		group->bounds.AddPoint( tri->v[2].GetPosition() );
 	}
 }
 
@@ -1067,7 +1060,8 @@ static void CarveGroupsByLight( uEntity_t* e, mapLight_t* light )
 			
 			if( group->numGroupLights == MAX_GROUP_LIGHTS )
 			{
-				common->Error( "MAX_GROUP_LIGHTS around %f %f %f", group->triList->v[0].xyz[0], group->triList->v[0].xyz[1], group->triList->v[0].xyz[2] );
+				auto & pos = group->triList->v[ 0 ].GetPosition();
+				common->Error( "MAX_GROUP_LIGHTS around %f %f %f", pos[0], pos[1], pos[2] );
 			}
 			
 			// if the group doesn't face the light,

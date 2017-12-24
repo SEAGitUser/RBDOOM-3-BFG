@@ -195,7 +195,7 @@ idMapPatch* idMapPatch::Parse( idLexer& src, const idVec3& origin, bool patchDef
 			delete patch;
 			return NULL;
 		}
-		for( i = 0; i < patch->GetHeight(); i++ )
+		for( i = 0; i < patch->GetHeight(); ++i )
 		{
 			float v[5];
 			
@@ -207,9 +207,7 @@ idMapPatch* idMapPatch::Parse( idLexer& src, const idVec3& origin, bool patchDef
 			}
 			
 			vert = &( ( *patch )[i * patch->GetWidth() + j] );
-			vert->xyz[0] = v[0] - origin[0];
-			vert->xyz[1] = v[1] - origin[1];
-			vert->xyz[2] = v[2] - origin[2];
+			vert->SetPosition( v[ 0 ] - origin[ 0 ], v[ 1 ] - origin[ 1 ], v[ 2 ] - origin[ 2 ] );
 			vert->SetTexCoord( v[3], v[4] );
 		}
 		if( !src.ExpectTokenString( ")" ) )
@@ -268,16 +266,20 @@ bool idMapPatch::Write( idFile* fp, int primitiveNum, const idVec3& origin ) con
 	}
 	
 	fp->WriteFloatString( "  (\n" );
-	idVec2 st;
-	for( i = 0; i < GetWidth(); i++ )
+	idVec3 pos; idVec2 st;
+	for( i = 0; i < GetWidth(); ++i )
 	{
 		fp->WriteFloatString( "   ( " );
-		for( j = 0; j < GetHeight(); j++ )
+		for( j = 0; j < GetHeight(); ++j )
 		{
 			v = &verts[ j * GetWidth() + i ];
+			
+			pos = v->GetPosition();
 			st = v->GetTexCoord();
-			fp->WriteFloatString( " ( %f %f %f %f %f )", v->xyz[0] + origin[0],
-								  v->xyz[1] + origin[1], v->xyz[2] + origin[2], st[0], st[1] );
+
+			fp->WriteFloatString( " ( %f %f %f %f %f )", 
+				pos[0] + origin[0], pos[1] + origin[1], pos[2] + origin[2],
+				st[0], st[1] );
 		}
 		fp->WriteFloatString( " )\n" );
 	}
@@ -297,13 +299,13 @@ unsigned int idMapPatch::GetGeometryCRC() const
 	unsigned int crc;
 	
 	crc = GetHorzSubdivisions() ^ GetVertSubdivisions();
-	for( i = 0; i < GetWidth(); i++ )
+	for( i = 0; i < GetWidth(); ++i )
 	{
-		for( j = 0; j < GetHeight(); j++ )
+		for( j = 0; j < GetHeight(); ++j )
 		{
-			crc ^= FloatCRC( verts[j * GetWidth() + i].xyz.x );
-			crc ^= FloatCRC( verts[j * GetWidth() + i].xyz.y );
-			crc ^= FloatCRC( verts[j * GetWidth() + i].xyz.z );
+			crc ^= FloatCRC( verts[j * GetWidth() + i].GetPosition().x );
+			crc ^= FloatCRC( verts[j * GetWidth() + i].GetPosition().y );
+			crc ^= FloatCRC( verts[j * GetWidth() + i].GetPosition().z );
 		}
 	}
 	
@@ -1660,7 +1662,7 @@ void MapPolygonMesh::ConvertFromBrush( const idMapBrush* mapBrush, int entityNum
 			
 			const idVec3& xyz = w[j].ToVec3();
 			
-			dv.xyz = xyz;
+			dv.SetPosition( xyz );
 			
 			// calculate texture s/t from brush primitive texture matrix
 			idVec4 texVec[2];
@@ -1734,15 +1736,16 @@ bool MapPolygonMesh::Write( idFile* fp, int primitiveNum, const idVec3& origin )
 	
 	fp->WriteFloatString( "  (\n" );
 	idVec2 st;
-	idVec3 n;
+	idVec3 n, pos;
 	for( int i = 0; i < verts.Num(); i++ )
 	{
 		const idDrawVert* v = &verts[ i ];
+		pos = v->GetPosition();
 		st = v->GetTexCoord();
 		n = v->GetNormalRaw();
 		
 		//fp->WriteFloatString( "   ( %f %f %f %f %f %f %f %f )\n", v->xyz[0] + origin[0], v->xyz[1] + origin[1], v->xyz[2] + origin[2], st[0], st[1], n[0], n[1], n[2] );
-		fp->WriteFloatString( "   ( %f %f %f %f %f %f %f %f )\n", v->xyz[0], v->xyz[1], v->xyz[2], st[0], st[1], n[0], n[1], n[2] );
+		fp->WriteFloatString( "   ( %f %f %f %f %f %f %f %f )\n", pos[0], pos[1], pos[2], st[0], st[1], n[0], n[1], n[2] );
 	}
 	fp->WriteFloatString( "  )\n" );
 	
@@ -1781,10 +1784,11 @@ bool MapPolygonMesh::WriteJSON( idFile* fp, int primitiveNum, const idVec3& orig
 	
 	fp->WriteFloatString( "\t\t\t\t\t\"verts\":\n\t\t\t\t\t[\n" );
 	idVec2 st;
-	idVec3 n;
-	for( int i = 0; i < verts.Num(); i++ )
+	idVec3 n, pos;
+	for( int i = 0; i < verts.Num(); ++i )
 	{
 		const idDrawVert& v = verts[ i ];
+		pos = v.GetPosition();
 		st = v.GetTexCoord();
 		n = v.GetNormalRaw();
 		
@@ -1794,12 +1798,13 @@ bool MapPolygonMesh::WriteJSON( idFile* fp, int primitiveNum, const idVec3& orig
 		//}
 		
 		//idVec3 xyz = v.xyz - origin;
-		fp->WriteFloatString( "\t\t\t\t\t\t{ \"xyz\": [%f, %f, %f], \"st\": [%f, %f], \"normal\": [%f, %f, %f] }%s\n", v.xyz[0], v.xyz[1], v.xyz[2], st[0], st[1], n[0], n[1], n[2], ( i == ( verts.Num() - 1 ) ) ? "" : "," );
+		fp->WriteFloatString( "\t\t\t\t\t\t{ \"xyz\": [%f, %f, %f], \"st\": [%f, %f], \"normal\": [%f, %f, %f] }%s\n", 
+			pos[0], pos[1], pos[2], st[0], st[1], n[0], n[1], n[2], ( i == ( verts.Num() - 1 ) ) ? "" : "," );
 	}
 	fp->WriteFloatString( "\t\t\t\t\t],\n" );
 	
 	fp->WriteFloatString( "\t\t\t\t\t\"polygons\":\n\t\t\t\t\t[\n" );
-	for( int i = 0; i < polygons.Num(); i++ )
+	for( int i = 0; i < polygons.Num(); ++i )
 	{
 		const MapPolygon& poly = polygons[ i ];
 		
@@ -1872,13 +1877,12 @@ MapPolygonMesh* MapPolygonMesh::Parse( idLexer& src, const idVec3& origin, float
 		
 		idDrawVert vert;
 		
-		vert.xyz[0] = v[0];// - origin[0];
-		vert.xyz[1] = v[1];// - origin[1];
-		vert.xyz[2] = v[2];// - origin[2];
-		vert.SetTexCoord( v[3], v[4] );
-		
-		idVec3 n( v[5], v[6], v[7] );
-		vert.SetNormal( n );
+		///vert.xyz[0] = v[0];// - origin[0];
+		///vert.xyz[1] = v[1];// - origin[1];
+		///vert.xyz[2] = v[2];// - origin[2];
+		vert.SetPosition( v[ 0 ], v[ 1 ], v[ 2 ] );
+		vert.SetTexCoord( v[3], v[4] );		
+		vert.SetNormal( v[5], v[6], v[7] );
 		
 		mesh->AddVertex( vert );
 	}
@@ -2031,9 +2035,7 @@ MapPolygonMesh* MapPolygonMesh::ParseJSON( idLexer& src )
 						return NULL;
 					}
 					
-					vert.xyz[0] = v[0];
-					vert.xyz[1] = v[1];
-					vert.xyz[2] = v[2];
+					vert.SetPosition( v[0], v[1], v[2] );
 				}
 				else if( token == "st" )
 				{
@@ -2209,14 +2211,14 @@ unsigned int MapPolygonMesh::GetGeometryCRC() const
 	unsigned int crc;
 	
 	crc = 0;
-	for( i = 0; i < verts.Num(); i++ )
+	for( i = 0; i < verts.Num(); ++i )
 	{
-		crc ^= FloatCRC( verts[i].xyz.x );
-		crc ^= FloatCRC( verts[i].xyz.y );
-		crc ^= FloatCRC( verts[i].xyz.z );
+		crc ^= FloatCRC( verts[i].GetPosition().x );
+		crc ^= FloatCRC( verts[i].GetPosition().y );
+		crc ^= FloatCRC( verts[i].GetPosition().z );
 	}
 	
-	for( i = 0; i < polygons.Num(); i++ )
+	for( i = 0; i < polygons.Num(); ++i )
 	{
 		const MapPolygon& poly = polygons[i];
 		
@@ -2240,10 +2242,10 @@ void MapPolygonMesh::GetBounds( idBounds& bounds ) const
 	}
 	
 	
-	bounds[0] = bounds[1] = verts[0].xyz;
-	for( int i = 1; i < verts.Num(); i++ )
+	bounds[0] = bounds[1] = verts[0].GetPosition();
+	for( int i = 1; i < verts.Num(); ++i )
 	{
-		const idVec3& p = verts[i].xyz;
+		const idVec3& p = verts[i].GetPosition();
 		
 		if( p.x < bounds[0].x )
 		{

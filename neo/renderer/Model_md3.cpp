@@ -255,15 +255,15 @@ void idRenderModelMD3::LerpMeshVertexes( idTriangles* tri, const struct md3Surfa
 		//
 		// just copy the vertexes
 		//
-		for( vertNum = 0 ; vertNum < numVerts ; vertNum++, newXyz += 4 )
-		{
-		
-			idDrawVert* outvert = &tri->verts[tri->numVerts];
-			
-			outvert->xyz.x = newXyz[0] * newXyzScale;
-			outvert->xyz.y = newXyz[1] * newXyzScale;
-			outvert->xyz.z = newXyz[2] * newXyzScale;
-			
+		for( vertNum = 0 ; vertNum < numVerts; vertNum++, newXyz += 4 )
+		{		
+			idDrawVert* outvert = &tri->verts[ tri->numVerts ];
+
+			outvert->SetPosition(
+				newXyz[ 0 ] * newXyzScale,
+				newXyz[ 1 ] * newXyzScale,
+				newXyz[ 2 ] * newXyzScale );
+
 			tri->numVerts++;
 		}
 	}
@@ -277,14 +277,14 @@ void idRenderModelMD3::LerpMeshVertexes( idTriangles* tri, const struct md3Surfa
 		oldXyzScale = MD3_XYZ_SCALE * backlerp;
 		
 		for( vertNum = 0 ; vertNum < numVerts ; vertNum++, oldXyz += 4, newXyz += 4 )
-		{
-		
-			idDrawVert* outvert = &tri->verts[tri->numVerts];
-			
+		{	
+			idDrawVert* outvert = &tri->verts[ tri->numVerts ];
+
 			// interpolate the xyz
-			outvert->xyz.x = oldXyz[0] * oldXyzScale + newXyz[0] * newXyzScale;
-			outvert->xyz.y = oldXyz[1] * oldXyzScale + newXyz[1] * newXyzScale;
-			outvert->xyz.z = oldXyz[2] * oldXyzScale + newXyz[2] * newXyzScale;
+			outvert->SetPosition(
+				oldXyz[ 0 ] * oldXyzScale + newXyz[ 0 ] * newXyzScale,
+				oldXyz[ 1 ] * oldXyzScale + newXyz[ 1 ] * newXyzScale,
+				oldXyz[ 2 ] * oldXyzScale + newXyz[ 2 ] * newXyzScale );
 			
 			tri->numVerts++;
 		}

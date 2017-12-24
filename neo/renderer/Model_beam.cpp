@@ -164,25 +164,25 @@ idRenderModel* idRenderModelBeam::InstantiateDynamicModel( const struct renderEn
 	int blue	= idMath::Ftoi( renderEntity->shaderParms[SHADERPARM_BLUE] * 255.0f );
 	int alpha	= idMath::Ftoi( renderEntity->shaderParms[SHADERPARM_ALPHA] * 255.0f );
 	
-	tri->verts[0].xyz = minor;
+	tri->verts[0].SetPosition( minor );
 	tri->verts[0].color[0] = red;
 	tri->verts[0].color[1] = green;
 	tri->verts[0].color[2] = blue;
 	tri->verts[0].color[3] = alpha;
 	
-	tri->verts[1].xyz = -minor;
+	tri->verts[1].SetPosition(-minor );
 	tri->verts[1].color[0] = red;
 	tri->verts[1].color[1] = green;
 	tri->verts[1].color[2] = blue;
 	tri->verts[1].color[3] = alpha;
 	
-	tri->verts[2].xyz = localTarget + minor;
+	tri->verts[2].SetPosition( localTarget + minor );
 	tri->verts[2].color[0] = red;
 	tri->verts[2].color[1] = green;
 	tri->verts[2].color[2] = blue;
 	tri->verts[2].color[3] = alpha;
 	
-	tri->verts[3].xyz = localTarget - minor;
+	tri->verts[3].SetPosition( localTarget - minor );
 	tri->verts[3].color[0] = red;
 	tri->verts[3].color[1] = green;
 	tri->verts[3].color[2] = blue;

@@ -87,7 +87,7 @@ struct idTriangles
 	
 	int							numIndexes;				// for shadows, this has both front and rear end caps and silhouette planes
 	triIndex_t* 				indexes;				// indexes, allocated with special allocator
-	
+//private:	
 	triIndex_t* 				silIndexes;				// indexes changed to be the first vertex with same XYZ, ignoring normal and texcoords
 	
 	int							numMirroredVerts;		// this many verts at the end of the vert list are tangent mirrors
@@ -100,14 +100,14 @@ struct idTriangles
 	silEdge_t* 					silEdges;				// silhouette edges
 	
 	dominantTri_t* 				dominantTris;			// [numVerts] for deformed surface fast tangent calculation
-	
+//public:	
 	int							numShadowIndexesNoFrontCaps;	// shadow volumes with front caps omitted
 	int							numShadowIndexesNoCaps;			// shadow volumes with the front and rear caps omitted
 	
 	int							shadowCapPlaneBits;		// bits 0-5 are set when that plane of the interacting light has triangles
-	// projected on it, which means that if the view is on the outside of that
-	// plane, we need to draw the rear caps of the shadow volume
-	// dynamic shadows will have SHADOW_CAP_INFINITE
+														// projected on it, which means that if the view is on the outside of that
+														// plane, we need to draw the rear caps of the shadow volume
+														// dynamic shadows will have SHADOW_CAP_INFINITE
 	
 	idShadowVert* 				preLightShadowVertexes;	// shadow vertices in CPU memory for pre-light shadow volumes
 	idShadowVert* 				staticShadowVertexes;	// shadow vertices in CPU memory for static shadow volumes
@@ -128,9 +128,17 @@ struct idTriangles
 	vertCacheHandle_t			ambientCache;			// idDrawVert
 	vertCacheHandle_t			shadowCache;			// idVec4
 
-public:
+	static const ALIGNTYPE16 triIndex_t	quadIndexes[ 6 ];
 
-	static const triIndex_t		quadIndexes[ 6 ];
+private:
+
+	void CreateDupVerts();
+	void IdentifySilEdges( bool omitCoplanarEdges );
+	void DuplicateMirroredVertexes();
+	void DeriveNormalsAndTangents();
+	void DeriveUnsmoothedNormalsAndTangents();
+	void DeriveTangentsWithoutNormals();
+	void BuildDominantTris();
 
 public:
 
@@ -212,6 +220,9 @@ public:
 
 	localTrace_t				LocalTrace( const idVec3& start, const idVec3& end, const float radius  ) const;
 
+	// If outputVertexes is not NULL, it will point to a newly allocated set of verts that includes the mirrored ones.
+	static struct deformInfo_t * BuildDeformInfo( int numVerts, const idDrawVert* verts, int numIndexes, const int* indexes, bool useUnsmoothedTangents );
+
 	/*
 	GetSurfaceArea();
 	OptimizeIndexOrder();
@@ -267,8 +278,9 @@ public:
 	*/
 
 	// Get indexed vertex
-	const idDrawVert &			GetIVertex( triIndex_t index ) const { return verts[ indexes[ index ] ]; }
-	const idDrawVert &			GetVertex( int ivert ) const { return verts[ ivert ]; }
+	ID_INLINE const idDrawVert & GetIVertex( triIndex_t index ) const { return verts[ indexes[ index ] ]; }
+	ID_INLINE const idDrawVert & GetVertex( int ivert ) const { return verts[ ivert ]; }
+	ID_INLINE const idBounds &	GetBounds() const { return bounds; }
 
 	DISALLOW_COPY_AND_ASSIGN( idTriangles );
 };

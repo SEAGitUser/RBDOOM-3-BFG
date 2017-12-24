@@ -1177,9 +1177,9 @@ static void RB_ShowTexturePolarity( drawSurf_t** drawSurfs, int numDrawSurfs )
 			{
 				GL_Color( 0, 1, 0, 0.5 );
 			}
-			glVertex3fv( a->xyz.ToFloatPtr() );
-			glVertex3fv( b->xyz.ToFloatPtr() );
-			glVertex3fv( c->xyz.ToFloatPtr() );
+			glVertex3fv( a->GetPosition().ToFloatPtr() );
+			glVertex3fv( b->GetPosition().ToFloatPtr() );
+			glVertex3fv( c->GetPosition().ToFloatPtr() );
 		}
 		glEnd();
 	}
@@ -1236,9 +1236,9 @@ static void RB_ShowUnsmoothedTangents( drawSurf_t** drawSurfs, int numDrawSurfs 
 			b = tri->verts + tri->indexes[j + 1];
 			c = tri->verts + tri->indexes[j + 2];
 			
-			glVertex3fv( a->xyz.ToFloatPtr() );
-			glVertex3fv( b->xyz.ToFloatPtr() );
-			glVertex3fv( c->xyz.ToFloatPtr() );
+			glVertex3fv( a->GetPosition().ToFloatPtr() );
+			glVertex3fv( b->GetPosition().ToFloatPtr() );
+			glVertex3fv( c->GetPosition().ToFloatPtr() );
 		}
 		glEnd();
 	}
@@ -1307,7 +1307,7 @@ static void RB_ShowTangentSpace( drawSurf_t** drawSurfs, int numDrawSurfs )
 				GL_Color( 0.5 + 0.5 * vertexNormal[0],  0.5 + 0.5 * vertexNormal[1],
 						  0.5 + 0.5 * vertexNormal[2], 0.5 );
 			}
-			glVertex3fv( v->xyz.ToFloatPtr() );
+			glVertex3fv( v->GetPosition().ToFloatPtr() );
 		}
 		glEnd();
 	}
@@ -1360,7 +1360,7 @@ static void RB_ShowVertexColor( drawSurf_t** drawSurfs, int numDrawSurfs )
 			
 			v = &tri->verts[tri->indexes[j]];
 			glColor4ubv( v->color );
-			glVertex3fv( v->xyz.ToFloatPtr() );
+			glVertex3fv( v->GetPosition().ToFloatPtr() );
 		}
 		glEnd();
 	}
@@ -1432,23 +1432,24 @@ static void RB_ShowNormals( drawSurf_t** drawSurfs, int numDrawSurfs )
 		glBegin( GL_LINES );
 		for( j = 0; j < tri->numVerts; j++ )
 		{
-			const idVec3 normal = tri->verts[j].GetNormal();
-			const idVec3 tangent = tri->verts[j].GetTangent();
-			const idVec3 bitangent = tri->verts[j].GetBiTangent();
+			const idVec3 position = tri->verts[ j ].GetPosition();
+			const idVec3 normal = tri->verts[ j ].GetNormal();
+			const idVec3 tangent = tri->verts[ j ].GetTangent();
+			const idVec3 bitangent = tri->verts[ j ].GetBiTangent();
 			
 			glColor3f( 0, 0, 1 );
-			glVertex3fv( tri->verts[j].xyz.ToFloatPtr() );
-			VectorMA( tri->verts[j].xyz, size, normal, end );
+			glVertex3fv( position.ToFloatPtr() );
+			VectorMA( position, size, normal, end );
 			glVertex3fv( end.ToFloatPtr() );
 			
 			glColor3f( 1, 0, 0 );
-			glVertex3fv( tri->verts[j].xyz.ToFloatPtr() );
-			VectorMA( tri->verts[j].xyz, size, tangent, end );
+			glVertex3fv( position.ToFloatPtr() );
+			VectorMA( position, size, tangent, end );
 			glVertex3fv( end.ToFloatPtr() );
 			
 			glColor3f( 0, 1, 0 );
-			glVertex3fv( tri->verts[j].xyz.ToFloatPtr() );
-			VectorMA( tri->verts[j].xyz, size, bitangent, end );
+			glVertex3fv( position.ToFloatPtr() );
+			VectorMA( position, size, bitangent, end );
 			glVertex3fv( end.ToFloatPtr() );
 		}
 		glEnd();
@@ -1472,14 +1473,19 @@ static void RB_ShowNormals( drawSurf_t** drawSurfs, int numDrawSurfs )
 			{
 				const idVec3 normal = tri->verts[j].GetNormal();
 				const idVec3 tangent = tri->verts[j].GetTangent();
-				drawSurf->space->modelMatrix.TransformPoint( tri->verts[ j ].xyz + tangent + normal * 0.2f, pos );
+				drawSurf->space->modelMatrix.TransformPoint( tri->verts[ j ].GetPosition() + tangent + normal * 0.2f, pos );
 				RB_DrawText( va( "%d", j ), pos, 0.01f, colorWhite, backEnd.viewDef->GetAxis(), 1 );
 			}
 			
 			for( j = 0; j < tri->numIndexes; j += 3 )
 			{
 				const idVec3 normal = tri->verts[ tri->indexes[ j + 0 ] ].GetNormal();
-				drawSurf->space->modelMatrix.TransformPoint( ( tri->verts[ tri->indexes[ j + 0 ] ].xyz + tri->verts[ tri->indexes[ j + 1 ] ].xyz + tri->verts[ tri->indexes[ j + 2 ] ].xyz ) * ( 1.0f / 3.0f ) + normal * 0.2f, pos );
+				drawSurf->space->modelMatrix.TransformPoint( 
+					( tri->verts[ tri->indexes[ j + 0 ] ].GetPosition() + 
+					  tri->verts[ tri->indexes[ j + 1 ] ].GetPosition() + 
+					  tri->verts[ tri->indexes[ j + 2 ] ].GetPosition() ) 
+					* ( 1.0f / 3.0f ) + normal * 0.2f, pos 
+				);
 				RB_DrawText( va( "%d", j / 3 ), pos, 0.01f, colorCyan, backEnd.viewDef->GetAxis(), 1 );
 			}
 		}
@@ -1600,29 +1606,33 @@ static void RB_ShowTextureVectors( drawSurf_t** drawSurfs, int numDrawSurfs )
 			idVec3 temp;
 			idVec3 tangents[2];
 			
-			const idDrawVert* a = &tri->verts[tri->indexes[j + 0]];
-			const idDrawVert* b = &tri->verts[tri->indexes[j + 1]];
-			const idDrawVert* c = &tri->verts[tri->indexes[j + 2]];
+			const idDrawVert* a = &tri->verts[ tri->indexes[ j + 0 ] ];
+			const idDrawVert* b = &tri->verts[ tri->indexes[ j + 1 ] ];
+			const idDrawVert* c = &tri->verts[ tri->indexes[ j + 2 ] ];
+
+			const idVec3& a_pos = a->GetPosition();
+			const idVec3& b_pos = b->GetPosition();
+			const idVec3& c_pos = c->GetPosition();
 			
-			const idPlane plane( a->xyz, b->xyz, c->xyz );
+			const idPlane plane( a_pos, b_pos, c_pos );
 			
 			// make the midpoint slightly above the triangle
-			const idVec3 mid = ( a->xyz + b->xyz + c->xyz ) * ( 1.0f / 3.0f ) + 0.1f * plane.Normal();
+			const idVec3 mid = ( a_pos + b_pos + c_pos ) * ( 1.0f / 3.0f ) + 0.1f * plane.Normal();
 			
 			// calculate the texture vectors
 			const idVec2 aST = a->GetTexCoord();
 			const idVec2 bST = b->GetTexCoord();
 			const idVec2 cST = c->GetTexCoord();
 			
-			d0[0] = b->xyz[0] - a->xyz[0];
-			d0[1] = b->xyz[1] - a->xyz[1];
-			d0[2] = b->xyz[2] - a->xyz[2];
+			d0[0] = b_pos[0] - a_pos[0];
+			d0[1] = b_pos[1] - a_pos[1];
+			d0[2] = b_pos[2] - a_pos[2];
 			d0[3] = bST[0] - aST[0];
 			d0[4] = bST[1] - aST[1];
 			
-			d1[0] = c->xyz[0] - a->xyz[0];
-			d1[1] = c->xyz[1] - a->xyz[1];
-			d1[2] = c->xyz[2] - a->xyz[2];
+			d1[0] = c_pos[0] - a_pos[0];
+			d1[1] = c_pos[1] - a_pos[1];
+			d1[2] = c_pos[2] - a_pos[2];
 			d1[3] = cST[0] - aST[0];
 			d1[4] = cST[1] - aST[1];
 			
@@ -1717,10 +1727,10 @@ static void RB_ShowDominantTris( drawSurf_t** drawSurfs, int numDrawSurfs )
 			b = &tri->verts[tri->dominantTris[j].v2];
 			c = &tri->verts[tri->dominantTris[j].v3];
 			
-			mid = ( a->xyz + b->xyz + c->xyz ) * ( 1.0f / 3.0f );
+			mid = ( a->GetPosition() + b->GetPosition() + c->GetPosition() ) * ( 1.0f / 3.0f );
 			
 			glVertex3fv( mid.ToFloatPtr() );
-			glVertex3fv( a->xyz.ToFloatPtr() );
+			glVertex3fv( a->GetPosition().ToFloatPtr() );
 		}
 		
 		glEnd();
@@ -1799,8 +1809,8 @@ static void RB_ShowEdges( drawSurf_t** drawSurfs, int numDrawSurfs )
 				// if we didn't find a backwards listing, draw it in yellow
 				if( m == tri->numIndexes )
 				{
-					glVertex3fv( ac[ i1 ].xyz.ToFloatPtr() );
-					glVertex3fv( ac[ i2 ].xyz.ToFloatPtr() );
+					glVertex3fv( ac[ i1 ].GetPosition().ToFloatPtr() );
+					glVertex3fv( ac[ i2 ].GetPosition().ToFloatPtr() );
 				}
 				
 			}
@@ -1830,8 +1840,8 @@ static void RB_ShowEdges( drawSurf_t** drawSurfs, int numDrawSurfs )
 				continue;
 			}
 			
-			glVertex3fv( ac[ edge->v1 ].xyz.ToFloatPtr() );
-			glVertex3fv( ac[ edge->v2 ].xyz.ToFloatPtr() );
+			glVertex3fv( ac[ edge->v1 ].GetPosition().ToFloatPtr() );
+			glVertex3fv( ac[ edge->v2 ].GetPosition().ToFloatPtr() );
 		}
 		glEnd();
 	}
@@ -3044,7 +3054,11 @@ void RB_DrawExpandedTriangles( const idTriangles* tri, const float radius, const
 	for( i = 0; i < tri->numIndexes; i += 3 )
 	{
 	
-		idVec3 p[3] = { tri->verts[ tri->indexes[ i + 0 ] ].xyz, tri->verts[ tri->indexes[ i + 1 ] ].xyz, tri->verts[ tri->indexes[ i + 2 ] ].xyz };
+		const idVec3 p[3] = { 
+			tri->verts[ tri->indexes[ i + 0 ] ].GetPosition(), 
+			tri->verts[ tri->indexes[ i + 1 ] ].GetPosition(), 
+			tri->verts[ tri->indexes[ i + 2 ] ].GetPosition() 
+		};
 		
 		dir[0] = p[0] - p[1];
 		dir[1] = p[1] - p[2];

@@ -1487,14 +1487,13 @@ int	idParticleStage::ParticleVerts( particleGen_t* g, idVec3 origin, idDrawVert*
 			
 			up = stepOrigin - oldOrigin;	// along the direction of travel
 			
-			idVec3	forwardDir;
+			idVec3 forwardDir;
 			g->renderEnt->axis.ProjectVector( g->renderView->viewaxis[0], forwardDir );
 			
 			up -= ( up * forwardDir ) * forwardDir;
 			
 			up.Normalize();
-			
-			
+						
 			left = up.Cross( forwardDir );
 			left *= psize;
 			
@@ -1505,16 +1504,16 @@ int	idParticleStage::ParticleVerts( particleGen_t* g, idVec3 origin, idDrawVert*
 			
 			if( i == 0 )
 			{
-				verts_p[0].xyz = stepOrigin - left;
-				verts_p[1].xyz = stepOrigin + left;
+				verts_p[0].SetPosition( stepOrigin - left );
+				verts_p[1].SetPosition( stepOrigin + left );
 			}
 			else
 			{
-				verts_p[0].xyz = stepOrigin - stepLeft;
-				verts_p[1].xyz = stepOrigin + stepLeft;
+				verts_p[0].SetPosition( stepOrigin - stepLeft );
+				verts_p[1].SetPosition( stepOrigin + stepLeft );
 			}
-			verts_p[2].xyz = oldOrigin - left;
-			verts_p[3].xyz = oldOrigin + left;
+			verts_p[2].SetPosition( oldOrigin - left );
+			verts_p[3].SetPosition( oldOrigin + left );
 			
 			// modify texcoords
 			verts_p[0].SetTexCoordT( t );
@@ -1604,10 +1603,10 @@ int	idParticleStage::ParticleVerts( particleGen_t* g, idVec3 origin, idDrawVert*
 	left *= width;
 	up *= height;
 	
-	verts[0].xyz = origin - left + up;
-	verts[1].xyz = origin + left + up;
-	verts[2].xyz = origin - left - up;
-	verts[3].xyz = origin + left - up;
+	verts[0].SetPosition( origin - left + up );
+	verts[1].SetPosition( origin + left + up );
+	verts[2].SetPosition( origin - left - up );
+	verts[3].SetPosition( origin + left - up );
 	
 	return 4;
 }

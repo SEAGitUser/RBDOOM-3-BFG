@@ -262,7 +262,7 @@ idRenderModel* idRenderWorldLocal::ParseModel( idLexer* src, const char* mapName
 			}
 			const float averageS = idMath::Ftoi( ( minS + maxS ) * 0.5f );
 			const float averageT = idMath::Ftoi( ( minT + maxT ) * 0.5f );
-			for( int k = 0; k < tri->numVerts; k++ )
+			for( int k = 0; k < tri->numVerts; ++k )
 			{
 				if( vertIslands[k] == j )
 				{
@@ -274,17 +274,15 @@ idRenderModel* idRenderWorldLocal::ParseModel( idLexer* src, const char* mapName
 #endif
 		
 		tri->AllocStaticVerts( tri->numVerts );
-		for( int j = 0; j < tri->numVerts; j++ )
+		for( int j = 0; j < tri->numVerts; ++j )
 		{
-			tri->verts[j].xyz[0] = verts[j * 8 + 0];
-			tri->verts[j].xyz[1] = verts[j * 8 + 1];
-			tri->verts[j].xyz[2] = verts[j * 8 + 2];
-			tri->verts[j].SetTexCoord( verts[j * 8 + 3], verts[j * 8 + 4] );
-			tri->verts[j].SetNormal( verts[j * 8 + 5], verts[j * 8 + 6], verts[j * 8 + 7] );
+			tri->verts[ j ].SetPosition( verts[ j * 8 + 0 ], verts[ j * 8 + 1 ], verts[ j * 8 + 2 ] );
+			tri->verts[ j ].SetTexCoord( verts[ j * 8 + 3 ], verts[ j * 8 + 4 ] );
+			tri->verts[ j ].SetNormal( verts[ j * 8 + 5 ], verts[ j * 8 + 6 ], verts[ j * 8 + 7 ] );
 		}
 		
 		tri->AllocStaticIndexes( tri->numIndexes );
-		for( int j = 0; j < tri->numIndexes; j++ )
+		for( int j = 0; j < tri->numIndexes; ++j )
 		{
 			tri->indexes[j] = indexes[j];
 		}

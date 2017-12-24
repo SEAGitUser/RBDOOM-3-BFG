@@ -147,10 +147,10 @@ static void R_OverlayPointCullStatic( byte* cullBits, halfFloat_t* texCoordS, ha
 		
 		for( ; i <= nextNumVerts; i += 4 )
 		{
-			const __m128 v0 = _mm_load_ps( vertsODS[i + 0].xyz.ToFloatPtr() );
-			const __m128 v1 = _mm_load_ps( vertsODS[i + 1].xyz.ToFloatPtr() );
-			const __m128 v2 = _mm_load_ps( vertsODS[i + 2].xyz.ToFloatPtr() );
-			const __m128 v3 = _mm_load_ps( vertsODS[i + 3].xyz.ToFloatPtr() );
+			const __m128 v0 = _mm_load_ps( vertsODS[i + 0].GetPosition().ToFloatPtr() );
+			const __m128 v1 = _mm_load_ps( vertsODS[i + 1].GetPosition().ToFloatPtr() );
+			const __m128 v2 = _mm_load_ps( vertsODS[i + 2].GetPosition().ToFloatPtr() );
+			const __m128 v3 = _mm_load_ps( vertsODS[i + 3].GetPosition().ToFloatPtr() );
 			
 			const __m128 r0 = _mm_unpacklo_ps( v0, v2 );	// v0.x, v2.x, v0.z, v2.z
 			const __m128 r1 = _mm_unpackhi_ps( v0, v2 );	// v0.y, v2.y, v0.w, v2.w
@@ -204,7 +204,7 @@ static void R_OverlayPointCullStatic( byte* cullBits, halfFloat_t* texCoordS, ha
 	
 		for( ; i <= nextNumVerts; i++ )
 		{
-			const idVec3& v = vertsODS[i].xyz;
+			const idVec3& v = vertsODS[i].GetPosition();
 	
 			const float d0 = planes[0].Distance( v );
 			const float d1 = planes[1].Distance( v );

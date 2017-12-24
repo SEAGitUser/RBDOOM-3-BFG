@@ -991,8 +991,20 @@ public:
 	{
 		Set( x, y, z, w );
 	}
+	explicit idVec4( const idVec3 &xyz, const float w )
+	{
+		Set( xyz.x, xyz.y, xyz.z, w );
+	}
+	explicit idVec4( const idVec2 &xy, const idVec2 &zw )
+	{
+		Set( xy.x, xy.y, zw.x, zw.y );
+	}
+
 	
 	void 			Set( const float x, const float y, const float z, const float w );
+	void			Set( const idVec3 &xyz, const float w );
+	void			Set( const idVec2 &xy, const idVec2 &zw );
+
 	void			Zero();
 	
 	float			operator[]( const int index ) const;
@@ -1045,6 +1057,14 @@ ID_INLINE void idVec4::Set( const float x, const float y, const float z, const f
 	this->y = y;
 	this->z = z;
 	this->w = w;
+}
+ID_INLINE void idVec4::Set( const idVec3 &xyz, const float w )
+{
+	Set( xyz.x, xyz.y, xyz.z, w );
+}
+ID_INLINE void idVec4::Set( const idVec2 &xy, const idVec2 &zw )
+{
+	Set( xy.x, xy.y, zw.x, zw.y );
 }
 
 ID_INLINE void idVec4::Zero()

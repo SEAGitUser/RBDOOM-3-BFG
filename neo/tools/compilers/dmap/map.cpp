@@ -489,7 +489,7 @@ static int ParsePolygonMesh( const MapPolygonMesh* mesh, int primitiveNum, int n
 #endif
 			
 			idPlane plane;
-			plane.FromPoints( tri->v[0].xyz, tri->v[1].xyz, tri->v[2].xyz );
+			plane.FromPoints( tri->v[0].GetPosition(), tri->v[1].GetPosition(), tri->v[2].GetPosition() );
 			
 			bool fixedDegeneracies = false;
 			tri->planeNum = FindFloatPlane( plane, &fixedDegeneracies );
@@ -713,9 +713,9 @@ bool LoadDMapFile( const char* filename )
 		{
 			for( mapTri_t* tri = prim->bsptris ; tri ; tri = tri->next )
 			{
-				mapBounds.AddPoint( tri->v[0].xyz );
-				mapBounds.AddPoint( tri->v[1].xyz );
-				mapBounds.AddPoint( tri->v[2].xyz );
+				mapBounds.AddPoint( tri->v[0].GetPosition() );
+				mapBounds.AddPoint( tri->v[1].GetPosition() );
+				mapBounds.AddPoint( tri->v[2].GetPosition() );
 			}
 			
 			triSurfs++;

@@ -67,30 +67,25 @@ idRenderModelLiquid::GenerateSurface
 */
 modelSurface_t idRenderModelLiquid::GenerateSurface( float lerp )
 {
-	idTriangles*	tri;
-	int				i, base;
-	idDrawVert*		vert;
-	modelSurface_t	surf;
-	float			inv_lerp;
-	
-	inv_lerp = 1.0f - lerp;
-	vert = verts.Ptr();
-	for( i = 0; i < verts.Num(); i++, vert++ )
+	float inv_lerp = 1.0f - lerp;
+	idDrawVert* vert = verts.Ptr();
+	for( int i = 0; i < verts.Num(); ++i, vert++ )
 	{
-		vert->xyz.z = page1[ i ] * lerp + page2[ i ] * inv_lerp;
+		auto pos = vert->GetPosition();
+		vert->SetPosition( pos.x, pos.y, page1[ i ] * lerp + page2[ i ] * inv_lerp );
 	}
 	
 	tr.pc.c_deformedSurfaces++;
 	tr.pc.c_deformedVerts += deformInfo->numOutputVerts;
 	tr.pc.c_deformedIndexes += deformInfo->numIndexes;
 	
-	tri = idTriangles::AllocStatic();
+	auto tri = idTriangles::AllocStatic();
 	
 	// note that some of the data is references, and should not be freed
-	tri->referencedIndexes = true;
-	
+	tri->referencedIndexes = true;	
 	tri->numIndexes = deformInfo->numIndexes;
 	tri->indexes = deformInfo->indexes;
+
 	tri->silIndexes = deformInfo->silIndexes;
 	tri->numMirroredVerts = deformInfo->numMirroredVerts;
 	tri->mirroredVerts = deformInfo->mirroredVerts;
@@ -101,19 +96,22 @@ modelSurface_t idRenderModelLiquid::GenerateSurface( float lerp )
 	
 	tri->numVerts = deformInfo->numOutputVerts;
 	tri->AllocStaticVerts( tri->numVerts );
+	assert( tri->verts != NULL );
+
 	SIMDProcessor->Memcpy( tri->verts, verts.Ptr(), deformInfo->numSourceVerts * sizeof( tri->verts[0] ) );
 	
 	// replicate the mirror seam vertexes
-	base = deformInfo->numOutputVerts - deformInfo->numMirroredVerts;
-	for( i = 0 ; i < deformInfo->numMirroredVerts ; i++ )
+	int base = deformInfo->numOutputVerts - deformInfo->numMirroredVerts;
+	for( int i = 0; i < deformInfo->numMirroredVerts; ++i )
 	{
-		tri->verts[base + i] = tri->verts[deformInfo->mirroredVerts[i]];
+		tri->verts[ base + i ] = tri->verts[ deformInfo->mirroredVerts[ i ] ];
 	}
 	
 	tri->DeriveBounds();
 	
-	surf.geometry	= tri;
-	surf.shader		= shader;
+	modelSurface_t surf;
+	surf.geometry = tri;
+	surf.shader	= shader;
 	
 	return surf;
 }
@@ -125,12 +123,8 @@ idRenderModelLiquid::WaterDrop
 */
 void idRenderModelLiquid::WaterDrop( int x, int y, float* page )
 {
-	int		cx, cy;
-	int		left, top, right, bottom;
-	int		square;
-	int		radsquare = drop_radius * drop_radius;
-	float	invlength = 1.0f / ( float )radsquare;
-	float	dist;
+	int	radsquare = drop_radius * drop_radius;
+	float invlength = 1.0f / ( float )radsquare;
 	
 	if( x < 0 )
 	{
@@ -141,10 +135,10 @@ void idRenderModelLiquid::WaterDrop( int x, int y, float* page )
 		y = 1 + drop_radius + random.RandomInt( verts_y - 2 * drop_radius - 1 );
 	}
 	
-	left = -drop_radius;
-	right = drop_radius;
-	top = -drop_radius;
-	bottom = drop_radius;
+	int left = -drop_radius;
+	int right = drop_radius;
+	int top = -drop_radius;
+	int bottom = drop_radius;
 	
 	// Perform edge clipping...
 	if( x - drop_radius < 1 )
@@ -164,14 +158,14 @@ void idRenderModelLiquid::WaterDrop( int x, int y, float* page )
 		bottom -= ( y + drop_radius - verts_y + 1 );
 	}
 	
-	for( cy = top; cy < bottom; cy++ )
+	for( int cy = top; cy < bottom; ++cy )
 	{
-		for( cx = left; cx < right; cx++ )
+		for( int cx = left; cx < right; ++cx )
 		{
-			square = cy * cy + cx * cx;
+			int square = cy * cy + cx * cx;
 			if( square < radsquare )
 			{
-				dist = idMath::Sqrt( ( float )square * invlength );
+				float dist = idMath::Sqrt( ( float )square * invlength );
 				page[verts_x * ( cy + y ) + cx + x] += idMath::Cos16( dist * idMath::PI * 0.5f ) * drop_height;
 			}
 		}
@@ -185,17 +179,13 @@ idRenderModelLiquid::IntersectBounds
 */
 void idRenderModelLiquid::IntersectBounds( const idBounds& bounds, float displacement )
 {
-	int		cx, cy;
-	int		left, top, right, bottom;
-	float	up, down;
-	float*	pos;
+	int left	= ( int )( bounds[ 0 ].x / scale_x );
+	int right	= ( int )( bounds[ 1 ].x / scale_x );
+	int top		= ( int )( bounds[ 0 ].y / scale_y );
+	int bottom	= ( int )( bounds[ 1 ].y / scale_y );
 	
-	left	= ( int )( bounds[ 0 ].x / scale_x );
-	right	= ( int )( bounds[ 1 ].x / scale_x );
-	top		= ( int )( bounds[ 0 ].y / scale_y );
-	bottom	= ( int )( bounds[ 1 ].y / scale_y );
-	down	= bounds[ 0 ].z;
-	up		= bounds[ 1 ].z;
+	float down	= bounds[ 0 ].z;
+	float up	= bounds[ 1 ].z;
 	
 	if( ( right < 1 ) || ( left >= verts_x ) || ( bottom < 1 ) || ( top >= verts_x ) )
 	{
@@ -220,11 +210,11 @@ void idRenderModelLiquid::IntersectBounds( const idBounds& bounds, float displac
 		bottom = verts_y - 1;
 	}
 	
-	for( cy = top; cy < bottom; cy++ )
+	for( int cy = top; cy < bottom; ++cy )
 	{
-		for( cx = left; cx < right; cx++ )
+		for( int cx = left; cx < right; ++cx )
 		{
-			pos = &page1[ verts_x * cy + cx ];
+			float* pos = &page1[ verts_x * cy + cx ];
 			if( *pos > down )   //&& ( *pos < up ) ) {
 			{
 				*pos = down;
@@ -357,13 +347,15 @@ void idRenderModelLiquid::Reset()
 	page1 = pages.Ptr();
 	page2 = page1 + verts_x * verts_y;
 	
-	for( i = 0, y = 0; y < verts_y; y++ )
+	for( i = 0, y = 0; y < verts_y; ++y )
 	{
-		for( x = 0; x < verts_x; x++, i++ )
+		for( x = 0; x < verts_x; ++x, ++i )
 		{
 			page1[ i ] = 0.0f;
 			page2[ i ] = 0.0f;
-			verts[ i ].xyz.z = 0.0f;
+
+			auto& pos = verts[ i ].GetPosition();
+			verts[ i ].SetPosition( pos.x, pos.y, 0.0f );
 		}
 	}
 }
@@ -492,7 +484,7 @@ void idRenderModelLiquid::InitFromFile( const char* fileName )
 			page1[ i ] = 0.0f;
 			page2[ i ] = 0.0f;
 			verts[ i ].Clear();
-			verts[ i ].xyz.Set( x * scale_x, y * scale_y, 0.0f );
+			verts[ i ].SetPosition( x * scale_x, y * scale_y, 0.0f );
 			verts[ i ].SetTexCoord( ( float ) x / ( float )( verts_x - 1 ), ( float ) - y / ( float )( verts_y - 1 ) );
 		}
 	}
@@ -514,7 +506,7 @@ void idRenderModelLiquid::InitFromFile( const char* fileName )
 	
 	// build the information that will be common to all animations of this mesh:
 	// sil edge connectivity and normal / tangent generation information
-	deformInfo = R_BuildDeformInfo( verts.Num(), verts.Ptr(), tris.Num(), tris.Ptr(), true );
+	deformInfo = idTriangles::BuildDeformInfo( verts.Num(), verts.Ptr(), tris.Num(), tris.Ptr(), true );
 	
 	bounds.Clear();
 	bounds.AddPoint( idVec3( 0.0f, 0.0f, drop_height * -10.0f ) );
@@ -533,11 +525,6 @@ idRenderModelLiquid::InstantiateDynamicModel
 */
 idRenderModel* idRenderModelLiquid::InstantiateDynamicModel( const struct renderEntity_s* ent, const idRenderView* view, idRenderModel* cachedModel )
 {
-	idRenderModelStatic*	staticModel;
-	int		frames;
-	int		t;
-	float	lerp;
-	
 	if( cachedModel )
 	{
 		delete cachedModel;
@@ -549,17 +536,10 @@ idRenderModel* idRenderModelLiquid::InstantiateDynamicModel( const struct render
 		return NULL;
 	}
 	
-	if( !view )
-	{
-		t = 0;
-	}
-	else
-	{
-		t = view->GetGameTimeMS();
-	}
-	
+	int	t = ( view )? view->GetGameTimeMS() : 0;
+
 	// update the liquid model
-	frames = ( t - time ) / update_tics;
+	int frames = ( t - time ) / update_tics;
 	if( frames > LIQUID_MAX_SKIP_FRAMES )
 	{
 		// don't let time accumalate when skipping frames
@@ -575,10 +555,10 @@ idRenderModel* idRenderModelLiquid::InstantiateDynamicModel( const struct render
 	}
 	
 	// create the surface
-	lerp = ( float )( t - time ) / ( float )update_tics;
+	float lerp = ( float )( t - time ) / ( float )update_tics;
 	modelSurface_t surf = GenerateSurface( lerp );
 	
-	staticModel = new( TAG_MODEL ) idRenderModelStatic;
+	auto staticModel = new( TAG_MODEL ) idRenderModelStatic;
 	staticModel->AddSurface( surf );
 	staticModel->bounds = surf.geometry->bounds;
 	

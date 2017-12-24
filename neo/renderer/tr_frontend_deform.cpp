@@ -110,38 +110,35 @@ static drawSurf_t* R_AutospriteDeform( drawSurf_t* surf )
 	for( int i = 0; i < srcTri->numVerts; i += 4 )
 	{
 		// find the midpoint
-		newVerts[i + 0] = idDrawVert::GetSkinnedDrawVert( srcTri->verts[i + 0], joints );
-		newVerts[i + 1] = idDrawVert::GetSkinnedDrawVert( srcTri->verts[i + 1], joints );
-		newVerts[i + 2] = idDrawVert::GetSkinnedDrawVert( srcTri->verts[i + 2], joints );
-		newVerts[i + 3] = idDrawVert::GetSkinnedDrawVert( srcTri->verts[i + 3], joints );
+		newVerts[ i + 0 ] = idDrawVert::GetSkinnedDrawVert( srcTri->verts[ i + 0 ], joints );
+		newVerts[ i + 1 ] = idDrawVert::GetSkinnedDrawVert( srcTri->verts[ i + 1 ], joints );
+		newVerts[ i + 2 ] = idDrawVert::GetSkinnedDrawVert( srcTri->verts[ i + 2 ], joints );
+		newVerts[ i + 3 ] = idDrawVert::GetSkinnedDrawVert( srcTri->verts[ i + 3 ], joints );
 		
-		idVec3 mid;
-		mid[0] = 0.25f * ( newVerts[i + 0].xyz[0] + newVerts[i + 1].xyz[0] + newVerts[i + 2].xyz[0] + newVerts[i + 3].xyz[0] );
-		mid[1] = 0.25f * ( newVerts[i + 0].xyz[1] + newVerts[i + 1].xyz[1] + newVerts[i + 2].xyz[1] + newVerts[i + 3].xyz[1] );
-		mid[2] = 0.25f * ( newVerts[i + 0].xyz[2] + newVerts[i + 1].xyz[2] + newVerts[i + 2].xyz[2] + newVerts[i + 3].xyz[2] );
+		idVec3 mid = 0.25f * ( newVerts[ i + 0 ].GetPosition() + newVerts[ i + 1 ].GetPosition() + newVerts[ i + 2 ].GetPosition() + newVerts[ i + 3 ].GetPosition() );
 		
-		const idVec3 delta = newVerts[i + 0].xyz - mid;
+		const idVec3 delta = newVerts[i + 0].GetPosition() - mid;
 		const float radius = delta.Length() * idMath::SQRT_1OVER2;
 		
 		const idVec3 left = leftDir * radius;
 		const idVec3 up = upDir * radius;
 		
-		newVerts[i + 0].xyz = mid + left + up;
+		newVerts[i + 0].SetPosition( mid + left + up );
 		newVerts[i + 0].SetTexCoord( 0, 0 );
-		newVerts[i + 1].xyz = mid - left + up;
+		newVerts[i + 1].SetPosition( mid - left + up );
 		newVerts[i + 1].SetTexCoord( 1, 0 );
-		newVerts[i + 2].xyz = mid - left - up;
+		newVerts[i + 2].SetPosition( mid - left - up );
 		newVerts[i + 2].SetTexCoord( 1, 1 );
-		newVerts[i + 3].xyz = mid + left - up;
+		newVerts[i + 3].SetPosition( mid + left - up );
 		newVerts[i + 3].SetTexCoord( 0, 1 );
 		
-		newIndexes[6 * ( i >> 2 ) + 0] = i + 0;
-		newIndexes[6 * ( i >> 2 ) + 1] = i + 1;
-		newIndexes[6 * ( i >> 2 ) + 2] = i + 2;
-		
-		newIndexes[6 * ( i >> 2 ) + 3] = i + 0;
-		newIndexes[6 * ( i >> 2 ) + 4] = i + 2;
-		newIndexes[6 * ( i >> 2 ) + 5] = i + 3;
+		newIndexes[ 6 * ( i >> 2 ) + 0 ] = i + 0;
+		newIndexes[ 6 * ( i >> 2 ) + 1 ] = i + 1;
+		newIndexes[ 6 * ( i >> 2 ) + 2 ] = i + 2;
+
+		newIndexes[ 6 * ( i >> 2 ) + 3 ] = i + 0;
+		newIndexes[ 6 * ( i >> 2 ) + 4 ] = i + 2;
+		newIndexes[ 6 * ( i >> 2 ) + 5 ] = i + 3;
 	}
 	
 	return R_FinishDeform( surf, newTri, newVerts, newIndexes );
@@ -266,13 +263,13 @@ static drawSurf_t* R_TubeDeform( drawSurf_t* surf )
 			
 			if( j )
 			{
-				newVerts[i1].xyz = mid[j] - l * minor;
-				newVerts[i2].xyz = mid[j] + l * minor;
+				newVerts[i1].SetPosition( mid[j] - l * minor );
+				newVerts[i2].SetPosition( mid[j] + l * minor );
 			}
 			else
 			{
-				newVerts[i1].xyz = mid[j] + l * minor;
-				newVerts[i2].xyz = mid[j] - l * minor;
+				newVerts[i1].SetPosition( mid[j] + l * minor );
+				newVerts[i2].SetPosition( mid[j] - l * minor );
 			}
 		}
 	}
@@ -406,7 +403,10 @@ static drawSurf_t* R_FlareDeform( drawSurf_t* surf )
 	
 	// find the plane
 	idPlane	plane;
-	plane.FromPoints( srcTri->verts[srcTri->indexes[0]].xyz, srcTri->verts[srcTri->indexes[1]].xyz, srcTri->verts[srcTri->indexes[2]].xyz );
+	plane.FromPoints( 
+		srcTri->verts[ srcTri->indexes[ 0 ] ].GetPosition(),
+		srcTri->verts[ srcTri->indexes[ 1 ] ].GetPosition(),
+		srcTri->verts[ srcTri->indexes[ 2 ] ].GetPosition() );
 
 	// if viewer is behind the plane, draw nothing
 	idVec3 localViewer;
@@ -417,10 +417,10 @@ static drawSurf_t* R_FlareDeform( drawSurf_t* surf )
 		return NULL;
 	}
 	
-	idVec3 center = srcTri->verts[0].xyz;
-	for( int i = 1; i < srcTri->numVerts; i++ )
+	idVec3 center = srcTri->verts[0].GetPosition();
+	for( int i = 1; i < srcTri->numVerts; ++i )
 	{
-		center += srcTri->verts[i].xyz;
+		center += srcTri->verts[i].GetPosition();
 	}
 	center *= 1.0f / srcTri->numVerts;
 	
@@ -462,23 +462,23 @@ static drawSurf_t* R_FlareDeform( drawSurf_t* surf )
 	for( int i = 0; i < 4; i++ )
 	{
 		newVerts[i].Clear();
-		newVerts[i].xyz = srcTri->verts[ indexes[i] ].xyz;
+		newVerts[i].SetPosition( srcTri->verts[ indexes[i] ].GetPosition() );
 		newVerts[i].SetTexCoord( 0.5f, 0.5f );
 		newVerts[i].color[0] = color;
 		newVerts[i].color[1] = color;
 		newVerts[i].color[2] = color;
 		newVerts[i].color[3] = 255;
 		
-		idVec3 toEye = srcTri->verts[ indexes[i] ].xyz - localViewer;
+		idVec3 toEye = srcTri->verts[ indexes[i] ].GetPosition() - localViewer;
 		toEye.Normalize();
 		
-		idVec3 d1 = srcTri->verts[ indexes[( i + 1 ) % 4] ].xyz - localViewer;
+		idVec3 d1 = srcTri->verts[ indexes[( i + 1 ) % 4] ].GetPosition() - localViewer;
 		d1.Normalize();
 		edgeDir[i][2].Cross( toEye, d1 );
 		edgeDir[i][2].Normalize();
 		edgeDir[i][2] = vec3_origin - edgeDir[i][2];
 		
-		idVec3 d2 = srcTri->verts[ indexes[( i + 3 ) % 4] ].xyz - localViewer;
+		idVec3 d2 = srcTri->verts[ indexes[( i + 3 ) % 4] ].GetPosition() - localViewer;
 		d2.Normalize();
 		edgeDir[i][0].Cross( toEye, d2 );
 		edgeDir[i][0].Normalize();
@@ -492,7 +492,7 @@ static drawSurf_t* R_FlareDeform( drawSurf_t* surf )
 	for( int i = 4; i < 16; i++ )
 	{
 		const int index = ( i - 4 ) / 3;
-		idVec3 v = srcTri->verts[indexes[index]].xyz + spread * edgeDir[index][( i - 4 ) % 3];
+		idVec3 v = srcTri->verts[indexes[index]].GetPosition() + spread * edgeDir[index][( i - 4 ) % 3];
 		
 		idVec3 dir = v - localViewer;
 		const float len = dir.Normalize();
@@ -504,7 +504,7 @@ static drawSurf_t* R_FlareDeform( drawSurf_t* surf )
 		}
 		
 		newVerts[i].Clear();
-		newVerts[i].xyz = v;
+		newVerts[i].SetPosition( v );
 		newVerts[i].SetTexCoord( 0.0f, 0.5f );
 		newVerts[i].color[0] = color;
 		newVerts[i].color[1] = color;
@@ -512,7 +512,7 @@ static drawSurf_t* R_FlareDeform( drawSurf_t* surf )
 		newVerts[i].color[3] = 255;
 	}
 	
-	ALIGNTYPE16 static triIndex_t triIndexes[18 * 3 + 10] =
+	ALIGNTYPE16 static const triIndex_t triIndexes[18 * 3 + 10] =
 	{
 		0, 4, 5,  0, 5, 6,  0, 6, 7,  0, 7, 1,  1, 7, 8,  1, 8, 9,
 		15, 4, 0, 15, 0, 3,  3, 0, 1,  3, 1, 2,  2, 1, 9,  2, 9, 10,
@@ -548,7 +548,7 @@ static drawSurf_t* R_ExpandDeform( drawSurf_t* surf )
 	for( int i = 0; i < srcTri->numVerts; i++ )
 	{
 		newVerts[i] = srcTri->verts[i];
-		newVerts[i].xyz = srcTri->verts[i].xyz + srcTri->verts[i].GetNormal() * dist;
+		newVerts[i].SetPosition( srcTri->verts[i].GetPosition() + srcTri->verts[i].GetNormal() * dist );
 	}
 	
 	return R_FinishDeform( surf, newTri, newVerts, srcTri->indexes );
@@ -576,10 +576,12 @@ static drawSurf_t* R_MoveDeform( drawSurf_t* surf )
 	idDrawVert* newVerts = ( idDrawVert* )_alloca16( ALIGN( newTri->numVerts * sizeof( idDrawVert ), 16 ) );
 	
 	const float dist = surf->shaderRegisters[ surf->material->GetDeformRegister( 0 ) ];
-	for( int i = 0; i < srcTri->numVerts; i++ )
+	for( int i = 0; i < srcTri->numVerts; ++i )
 	{
-		newVerts[i] = srcTri->verts[i];
-		newVerts[i].xyz[0] += dist;
+		newVerts[ i ] = srcTri->verts[ i ];
+		///newVerts[ i ].xyz.x += dist;
+		auto pos = newVerts[ i ].GetPosition();
+		newVerts[ i ].SetPosition( pos.x + dist, pos.y, pos.z );
 	}
 	
 	return R_FinishDeform( surf, newTri, newVerts, srcTri->indexes );
@@ -612,9 +614,10 @@ static drawSurf_t* R_TurbulentDeform( drawSurf_t* surf )
 	const float domain = surf->shaderRegisters[ surf->material->GetDeformRegister( 2 ) ];
 	const float tOfs = 0.5f;
 	
-	for( int i = 0; i < srcTri->numVerts; i++ )
+	for( int i = 0; i < srcTri->numVerts; ++i )
 	{
-		float f = srcTri->verts[i].xyz[0] * 0.003f + srcTri->verts[i].xyz[1] * 0.007f + srcTri->verts[i].xyz[2] * 0.011f;
+		auto & pos = srcTri->verts[ i ].GetPosition();
+		float f = pos[0] * 0.003f + pos[1] * 0.007f + pos[2] * 0.011f;
 		
 		f = timeOfs + domain * f;
 		f += timeOfs;
@@ -638,13 +641,13 @@ AddTriangleToIsland_r
 #define	MAX_EYEBALL_TRIS	10
 #define	MAX_EYEBALL_ISLANDS	6
 
-typedef struct
+struct eyeIsland_t
 {
 	int			tris[MAX_EYEBALL_TRIS];
 	int			numTris;
 	idBounds	bounds;
 	idVec3		mid;
-} eyeIsland_t;
+};
 
 static void AddTriangleToIsland_r( const idTriangles* tri, int triangleNum, bool* usedList, eyeIsland_t* island )
 {
@@ -664,9 +667,9 @@ static void AddTriangleToIsland_r( const idTriangles* tri, int triangleNum, bool
 	// RB end
 	
 	// recurse into all neighbors
-	const int a = tri->indexes[triangleNum * 3 + 0];
-	const int b = tri->indexes[triangleNum * 3 + 1];
-	const int c = tri->indexes[triangleNum * 3 + 2];
+	const int a = tri->indexes[ triangleNum * 3 + 0 ];
+	const int b = tri->indexes[ triangleNum * 3 + 1 ];
+	const int c = tri->indexes[ triangleNum * 3 + 2 ];
 	
 	const idVec3 va = idDrawVert::GetSkinnedDrawVertPosition( tri->verts[a], joints );
 	const idVec3 vb = idDrawVert::GetSkinnedDrawVertPosition( tri->verts[b], joints );
@@ -677,21 +680,21 @@ static void AddTriangleToIsland_r( const idTriangles* tri, int triangleNum, bool
 	island->bounds.AddPoint( vc );
 	
 	int	numTri = tri->numIndexes / 3;
-	for( int i = 0; i < numTri; i++ )
+	for( int i = 0; i < numTri; ++i )
 	{
 		if( usedList[i] )
 		{
 			continue;
 		}
-		if( tri->indexes[i * 3 + 0] == a
-				|| tri->indexes[i * 3 + 1] == a
-				|| tri->indexes[i * 3 + 2] == a
-				|| tri->indexes[i * 3 + 0] == b
-				|| tri->indexes[i * 3 + 1] == b
-				|| tri->indexes[i * 3 + 2] == b
-				|| tri->indexes[i * 3 + 0] == c
-				|| tri->indexes[i * 3 + 1] == c
-				|| tri->indexes[i * 3 + 2] == c )
+		if(    tri->indexes[i * 3 + 0] == a
+			|| tri->indexes[i * 3 + 1] == a
+			|| tri->indexes[i * 3 + 2] == a
+			|| tri->indexes[i * 3 + 0] == b
+			|| tri->indexes[i * 3 + 1] == b
+			|| tri->indexes[i * 3 + 2] == b
+			|| tri->indexes[i * 3 + 0] == c
+			|| tri->indexes[i * 3 + 1] == c
+			|| tri->indexes[i * 3 + 2] == c )
 		{
 			AddTriangleToIsland_r( tri, i, usedList, island );
 		}
@@ -814,9 +817,9 @@ static drawSurf_t* R_EyeballDeform( drawSurf_t* surf )
 		idVec3 dir = focus - origin;
 		dir.Normalize();
 		
-		const idVec3 p1 = idDrawVert::GetSkinnedDrawVertPosition( srcTri->verts[srcTri->indexes[islands[originIsland].tris[0] + 0]], joints );
-		const idVec3 p2 = idDrawVert::GetSkinnedDrawVertPosition( srcTri->verts[srcTri->indexes[islands[originIsland].tris[0] + 1]], joints );
-		const idVec3 p3 = idDrawVert::GetSkinnedDrawVertPosition( srcTri->verts[srcTri->indexes[islands[originIsland].tris[0] + 2]], joints );
+		const idVec3 p1 = idDrawVert::GetSkinnedDrawVertPosition( srcTri->verts[ srcTri->indexes[ islands[ originIsland ].tris[ 0 ] + 0 ] ], joints );
+		const idVec3 p2 = idDrawVert::GetSkinnedDrawVertPosition( srcTri->verts[ srcTri->indexes[ islands[ originIsland ].tris[ 0 ] + 1 ] ], joints );
+		const idVec3 p3 = idDrawVert::GetSkinnedDrawVertPosition( srcTri->verts[ srcTri->indexes[ islands[ originIsland ].tris[ 0 ] + 2 ] ], joints );
 		
 		idVec3 v1 = p2 - p1;
 		v1.Normalize();
@@ -835,7 +838,7 @@ static drawSurf_t* R_EyeballDeform( drawSurf_t* surf )
 		}
 		
 		// emit these triangles, generating the projected texcoords
-		for( int j = 0; j < islands[i].numTris; j++ )
+		for( int j = 0; j < islands[i].numTris; ++j )
 		{
 			for( int k = 0; k < 3; k++ )
 			{
@@ -846,7 +849,7 @@ static drawSurf_t* R_EyeballDeform( drawSurf_t* surf )
 				
 				newVerts[index] = idDrawVert::GetSkinnedDrawVert( srcTri->verts[index], joints );
 				
-				const idVec3 local = newVerts[index].xyz - origin;
+				const idVec3 local = newVerts[index].GetPosition() - origin;
 				newVerts[index].SetTexCoord( 0.5f + local * texVec[0], 0.5f + local * texVec[1] );
 			}
 		}
@@ -1059,7 +1062,7 @@ static drawSurf_t* R_ParticleDeform( drawSurf_t* surf, bool useArea )
 				f2 *= ft;
 				f3 *= ft;
 				
-				g.origin = v1.xyz * f1 + v2.xyz * f2 + v3.xyz * f3;
+				g.origin = v1.GetPosition() * f1 + v2.GetPosition() * f2 + v3.GetPosition() * f3;
 				g.axis[0] = v1.GetTangent() * f1 + v2.GetTangent() * f2 + v3.GetTangent() * f3;
 				g.axis[1] = v1.GetBiTangent() * f1 + v2.GetBiTangent() * f2 + v3.GetBiTangent() * f3;
 				g.axis[2] = v1.GetNormal() * f1 + v2.GetNormal() * f2 + v3.GetNormal() * f3;

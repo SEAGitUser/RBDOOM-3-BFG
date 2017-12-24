@@ -276,7 +276,7 @@ void TestMinMax()
 		v3src0[i][0] = srnd.CRandomFloat() * 10.0f;
 		v3src0[i][1] = srnd.CRandomFloat() * 10.0f;
 		v3src0[i][2] = srnd.CRandomFloat() * 10.0f;
-		drawVerts[i].xyz = v3src0[i];
+		drawVerts[i].SetPosition( v3src0[i] );
 		indexes[i] = i;
 	}
 	

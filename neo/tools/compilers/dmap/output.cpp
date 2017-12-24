@@ -168,15 +168,15 @@ MatchVert
 
 static bool MatchVert( const idDrawVert* a, const idDrawVert* b )
 {
-	if( idMath::Fabs( a->xyz[0] - b->xyz[0] ) > XYZ_EPSILON )
+	if( idMath::Fabs( a->GetPosition()[0] - b->GetPosition()[0] ) > XYZ_EPSILON )
 	{
 		return false;
 	}
-	if( idMath::Fabs( a->xyz[1] - b->xyz[1] ) > XYZ_EPSILON )
+	if( idMath::Fabs( a->GetPosition()[1] - b->GetPosition()[1] ) > XYZ_EPSILON )
 	{
 		return false;
 	}
-	if( idMath::Fabs( a->xyz[2] - b->xyz[2] ) > XYZ_EPSILON )
+	if( idMath::Fabs( a->GetPosition()[2] - b->GetPosition()[2] ) > XYZ_EPSILON )
 	{
 		return false;
 	}
@@ -253,7 +253,7 @@ idTriangles*	ShareMapTriVerts( const mapTri_t* tris )
 			if( j == numVerts )
 			{
 				numVerts++;
-				uTri->verts[j].xyz = dv->xyz;
+				uTri->verts[j].SetPosition( dv->GetPosition() );
 				//uTri->verts[j].SetNormal( dv->normal[0], dv->normal[1], dv->normal[2] );
 				uTri->verts[j].SetNormal( dv->GetNormal() );
 				uTri->verts[j].SetTexCoordS( dv->GetTexCoordS() );
@@ -313,9 +313,9 @@ static void WriteUTriangles( const idTriangles* uTris )
 		
 		dv = &uTris->verts[i];
 		
-		vec[0] = dv->xyz[0];
-		vec[1] = dv->xyz[1];
-		vec[2] = dv->xyz[2];
+		vec[0] = dv->GetPosition()[0];
+		vec[1] = dv->GetPosition()[1];
+		vec[2] = dv->GetPosition()[2];
 		
 		idVec2 st = dv->GetTexCoord();
 		vec[3] = st.x;

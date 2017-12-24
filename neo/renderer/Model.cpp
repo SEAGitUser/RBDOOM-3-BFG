@@ -494,7 +494,8 @@ void idRenderModelStatic::ExportOBJ( idFile* objFile, idFile* mtlFile, ID_TIME_T
 			{
 				for( int j = 0; j < tri.numVerts; ++j )
 				{
-					objFile->Printf( "v %1.6f %1.6f %1.6f\n", tri.verts[j].xyz.x, tri.verts[j].xyz.y, tri.verts[j].xyz.z );
+					auto pos = tri.verts[ j ].GetPosition();
+					objFile->Printf( "v %1.6f %1.6f %1.6f\n", pos.x, pos.y, pos.z );
 				}
 				
 				for( int j = 0; j < tri.numVerts; ++j )
@@ -960,9 +961,9 @@ void idRenderModelStatic::FinishSurfaces()
 		for( int j = 0; j < tri->numIndexes; j += 3 )
 		{
 			float area = idWinding::TriangleArea( 
-				tri->verts[tri->indexes[j]].xyz,
-				tri->verts[tri->indexes[j + 1]].xyz,  
-				tri->verts[tri->indexes[j + 2]].xyz 
+				tri->verts[ tri->indexes[ j + 0 ] ].GetPosition(),
+				tri->verts[ tri->indexes[ j + 1 ] ].GetPosition(),
+				tri->verts[ tri->indexes[ j + 2 ] ].GetPosition()
 			);
 			const_cast<idMaterial*>( surf->shader )->AddToSurfaceArea( area );
 		}
@@ -1487,7 +1488,7 @@ bool idRenderModelStatic::ConvertDAEToModelSurfaces( const ColladaParser* dae )
 			{
 				mv = &mvTable[ j ];
 				tri->verts[ j ].Clear();
-				tri->verts[ j ].xyz = ( *mesh )->mPositions[ mv->v ];
+				tri->verts[ j ].SetPosition( ( *mesh )->mPositions[ mv->v ] );
 				tri->verts[ j ].SetNormal( mv->normal );
 				*( unsigned* )tri->verts[ j ].color = *( unsigned* )mv->color;
 
@@ -1848,7 +1849,7 @@ bool idRenderModelStatic::ConvertASEToModelSurfaces( const struct aseModel_s* as
 			{
 				mv = &mvTable[ j ];
 				tri->verts[ j ].Clear();
-				tri->verts[ j ].xyz = mesh->vertexes[ mv->v ];
+				tri->verts[ j ].SetPosition( mesh->vertexes[ mv->v ] );
 				tri->verts[ j ].SetNormal( mv->normal );
 				*( unsigned* )tri->verts[ j ].color = *( unsigned* )mv->color;
 				if( mesh->numTVFaces == mesh->numFaces && mesh->numTVertexes != 0 )
@@ -2267,7 +2268,7 @@ bool idRenderModelStatic::ConvertLWOToModelSurfaces( const struct st_lwObject* l
 			{
 				mv = &mvTable[ j ];
 				tri->verts[ j ].Clear();
-				tri->verts[ j ].xyz = vList[ mv->v ];
+				tri->verts[ j ].SetPosition( vList[ mv->v ] );
 				tri->verts[ j ].SetTexCoord( tvList[ mv->tv ] );
 				tri->verts[ j ].SetNormal( mv->normal );
 				*( unsigned* )tri->verts[ j ].color = *( unsigned* )mv->color;
@@ -2839,12 +2840,12 @@ bool idRenderModelStatic::ConvertMAToModelSurfaces( const struct maModel_s* ma )
 			{
 				mv = &mvTable[ j ];
 				tri->verts[ j ].Clear();
-				tri->verts[ j ].xyz = mesh->vertexes[ mv->v ];
+				tri->verts[ j ].SetPosition( mesh->vertexes[ mv->v ] );
 				tri->verts[ j ].SetNormal( mv->normal );
 				*( unsigned* )tri->verts[ j ].color = *( unsigned* )mv->color;
 				if( mesh->numTVertexes != 0 )
 				{
-					const idVec2& tv = mesh->tvertexes[ mv->tv ];
+					const idVec2 & tv = mesh->tvertexes[ mv->tv ];
 					float u = tv.x * uTiling + uOffset;
 					float v = tv.y * vTiling + vOffset;
 					tri->verts[ j ].SetTexCoord( u * textureCos + v * textureSin, u * -textureSin + v * textureCos );
@@ -3028,7 +3029,7 @@ void idRenderModelStatic::ReadFromDemoFile( class idDemoFile* f )
 	
 	for( i = 0; i < numSurfaces; i++ )
 	{
-		modelSurface_t	surf;
+		modelSurface_t surf;
 		
 		surf.shader = declManager->FindMaterial( f->ReadHashString() );
 		
@@ -3045,14 +3046,7 @@ void idRenderModelStatic::ReadFromDemoFile( class idDemoFile* f )
 		idVec3 tNormal, tTangent, tBiTangent;
 		for( j = 0; j < tri->numVerts; ++j )
 		{
-			f->ReadVec3( tri->verts[j].xyz );
-			f->ReadBigArray( tri->verts[j].st, 2 );
-			f->ReadBigArray( tri->verts[j].normal, 4 );
-			f->ReadBigArray( tri->verts[j].tangent, 4 );
-			f->ReadUnsignedChar( tri->verts[j].color[0] );
-			f->ReadUnsignedChar( tri->verts[j].color[1] );
-			f->ReadUnsignedChar( tri->verts[j].color[2] );
-			f->ReadUnsignedChar( tri->verts[j].color[3] );
+			tri->verts[ j ].ReadFromFile_NoWeights( f );
 		}
 		
 		surf.geometry = tri;
@@ -3079,7 +3073,7 @@ void idRenderModelStatic::WriteToDemoFile( class idDemoFile* f )
 	
 	for( i = 0; i < surfaces.Num(); i++ )
 	{
-		const modelSurface_t*	surf = &surfaces[i];
+		const modelSurface_t* surf = &surfaces[i];
 		
 		f->WriteHashString( surf->shader->GetName() );
 		
@@ -3090,14 +3084,7 @@ void idRenderModelStatic::WriteToDemoFile( class idDemoFile* f )
 		f->WriteInt( tri->numVerts );
 		for( j = 0; j < tri->numVerts; ++j )
 		{
-			f->WriteVec3( tri->verts[j].xyz );
-			f->WriteBigArray( tri->verts[j].st, 2 );
-			f->WriteBigArray( tri->verts[j].normal, 4 );
-			f->WriteBigArray( tri->verts[j].tangent, 4 );
-			f->WriteUnsignedChar( tri->verts[j].color[0] );
-			f->WriteUnsignedChar( tri->verts[j].color[1] );
-			f->WriteUnsignedChar( tri->verts[j].color[2] );
-			f->WriteUnsignedChar( tri->verts[j].color[3] );
+			tri->verts[ j ].WriteToFile_NoWeights( f );
 		}
 	}
 }

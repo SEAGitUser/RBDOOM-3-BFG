@@ -2569,9 +2569,9 @@ void Cmd_NextGUI_f( const idCmdArgs& args )
 		return;
 	}
 	
-	const idVec3& v0 = geom->verts[geom->indexes[0]].xyz;
-	const idVec3& v1 = geom->verts[geom->indexes[1]].xyz;
-	const idVec3& v2 = geom->verts[geom->indexes[2]].xyz;
+	const idVec3& v0 = geom->verts[geom->indexes[0]].GetPosition();
+	const idVec3& v1 = geom->verts[geom->indexes[1]].GetPosition();
+	const idVec3& v2 = geom->verts[geom->indexes[2]].GetPosition();
 	
 	const idPlane plane( v0, v1, v2 );
 	

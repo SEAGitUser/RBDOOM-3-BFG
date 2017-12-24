@@ -53,9 +53,9 @@ If you have questions concerning this license or the applicable additional terms
 
   A case that causes recursive overflow with point to triangle fixing:
 
-               A
+			   A
 	C            D
-	           B
+			   B
 
   Triangle ABC tests against point D and splits into triangles ADC and DBC
   Triangle DBC then tests against point A again and splits into ABC and ADB
@@ -119,7 +119,7 @@ struct hashVert_s*	GetHashVert( idVec3& v )
 	// snap the vert to integral values
 	for( i = 0 ; i < 3 ; i++ )
 	{
-		iv[i] = floor( ( v[i] + 0.5 / SNAP_FRACTIONS ) * SNAP_FRACTIONS );
+		iv[i] = idMath::Floor( ( v[i] + 0.5 / SNAP_FRACTIONS ) * SNAP_FRACTIONS );
 		block[i] = ( iv[i] - hashIntMins[i] ) / hashIntScale[i];
 		if( block[i] < 0 )
 		{
@@ -187,9 +187,9 @@ static void HashBlocksForTri( const mapTri_t* tri, int blocks[2][3] )
 	int			i;
 	
 	bounds.Clear();
-	bounds.AddPoint( tri->v[0].xyz );
-	bounds.AddPoint( tri->v[1].xyz );
-	bounds.AddPoint( tri->v[2].xyz );
+	bounds.AddPoint( tri->v[0].GetPosition() );
+	bounds.AddPoint( tri->v[1].GetPosition() );
+	bounds.AddPoint( tri->v[2].GetPosition() );
 	
 	// add a 1.0 slop margin on each side
 	for( i = 0 ; i < 3 ; i++ )
@@ -243,17 +243,17 @@ void HashTriangles( optimizeGroup_t* groupList )
 	{
 		for( a = group->triList ; a ; a = a->next )
 		{
-			hashBounds.AddPoint( a->v[0].xyz );
-			hashBounds.AddPoint( a->v[1].xyz );
-			hashBounds.AddPoint( a->v[2].xyz );
+			hashBounds.AddPoint( a->v[0].GetPosition() );
+			hashBounds.AddPoint( a->v[1].GetPosition() );
+			hashBounds.AddPoint( a->v[2].GetPosition() );
 		}
 	}
 	
 	// spread the bounds so it will never have a zero size
 	for( i = 0 ; i < 3 ; i++ )
 	{
-		hashBounds[0][i] = floor( hashBounds[0][i] - 1 );
-		hashBounds[1][i] = ceil( hashBounds[1][i] + 1 );
+		hashBounds[0][i] = idMath::Floor( hashBounds[0][i] - 1 );
+		hashBounds[1][i] = idMath::Ceil( hashBounds[1][i] + 1 );
 		hashIntMins[i] = hashBounds[0][i] * SNAP_FRACTIONS;
 		
 		hashScale[i] = ( hashBounds[1][i] - hashBounds[0][i] ) / HASH_BINS;
@@ -276,7 +276,9 @@ void HashTriangles( optimizeGroup_t* groupList )
 		{
 			for( vert = 0 ; vert < 3 ; vert++ )
 			{
-				a->hashVert[vert] = GetHashVert( a->v[vert].xyz );
+				auto pos = a->v[ vert ].GetPosition();
+				a->hashVert[ vert ] = GetHashVert( pos );
+				a->v[ vert ].SetPosition( pos );
 			}
 		}
 	}
@@ -352,12 +354,12 @@ static mapTri_t* FixTriangleAgainstHashVert( const mapTri_t* a, const hashVert_t
 		v1 = &a->v[i];
 		v2 = &a->v[( i + 1 ) % 3];
 		v3 = &a->v[( i + 2 ) % 3];
-		dir = v2->xyz - v1->xyz;
+		dir = v2->GetPosition() - v1->GetPosition();
 		
 		len = dir.Normalize();
 		
 		// if it is close to one of the edge vertexes, skip it
-		temp = *v - v1->xyz;
+		temp = *v - v1->GetPosition();
 		d = temp * dir;
 		if( d <= 0 || d >= len )
 		{
@@ -365,7 +367,7 @@ static mapTri_t* FixTriangleAgainstHashVert( const mapTri_t* a, const hashVert_t
 		}
 		
 		// make sure it is on the line
-		VectorMA( v1->xyz, d, dir, temp );
+		VectorMA( v1->GetPosition(), d, dir, temp );
 		temp = *v - temp;
 		off = temp.Length();
 		if( off <= -COLINEAR_EPSILON || off >= COLINEAR_EPSILON )
@@ -375,7 +377,7 @@ static mapTri_t* FixTriangleAgainstHashVert( const mapTri_t* a, const hashVert_t
 		
 		// take the x/y/z from the splitter,
 		// but interpolate everything else from the original tri
-		split.xyz = *v;
+		split.SetPosition( *v );
 		frac = d / len;
 		
 		// RB begin
@@ -619,9 +621,9 @@ void	FixGlobalTjunctions( uEntity_t* e )
 		{
 			for( a = group->triList ; a ; a = a->next )
 			{
-				hashBounds.AddPoint( a->v[0].xyz );
-				hashBounds.AddPoint( a->v[1].xyz );
-				hashBounds.AddPoint( a->v[2].xyz );
+				hashBounds.AddPoint( a->v[0].GetPosition() );
+				hashBounds.AddPoint( a->v[1].GetPosition() );
+				hashBounds.AddPoint( a->v[2].GetPosition() );
 			}
 		}
 	}
@@ -642,7 +644,7 @@ void	FixGlobalTjunctions( uEntity_t* e )
 	}
 	
 	// add all the points to the hash buckets
-	for( areaNum = 0 ; areaNum < e->numAreas ; areaNum++ )
+	for( areaNum = 0 ; areaNum < e->numAreas ; ++areaNum )
 	{
 		for( group = e->areas[areaNum].groups ; group ; group = group->nextGroup )
 		{
@@ -656,7 +658,9 @@ void	FixGlobalTjunctions( uEntity_t* e )
 			{
 				for( vert = 0 ; vert < 3 ; vert++ )
 				{
-					a->hashVert[vert] = GetHashVert( a->v[vert].xyz );
+					idVec3 pos = a->v[ vert ].GetPosition();
+					a->hashVert[vert] = GetHashVert( pos );
+					a->v[ vert ].SetPosition( pos );
 				}
 			}
 		}
@@ -666,7 +670,7 @@ void	FixGlobalTjunctions( uEntity_t* e )
 	// optionally inline some of the func_static models
 	if( dmapGlobals.entityNum == 0 )
 	{
-		for( int eNum = 1 ; eNum < dmapGlobals.num_entities ; eNum++ )
+		for( int eNum = 1 ; eNum < dmapGlobals.num_entities ; ++eNum )
 		{
 			uEntity_t* entity = &dmapGlobals.uEntities[eNum];
 			const char* className = entity->mapEntity->epairs.GetString( "classname" );
@@ -712,7 +716,7 @@ void	FixGlobalTjunctions( uEntity_t* e )
 				const modelSurface_t* surface = model->Surface( i );
 				const idTriangles* tri = surface->geometry;
 				
-				mapTri_t	mapTri;
+				mapTri_t mapTri;
 				memset( &mapTri, 0, sizeof( mapTri ) );
 				mapTri.material = surface->shader;
 				// don't let discretes (autosprites, etc) merge together
@@ -722,7 +726,7 @@ void	FixGlobalTjunctions( uEntity_t* e )
 				}
 				for( int j = 0 ; j < tri->numVerts ; j += 3 )
 				{
-					idVec3 v = tri->verts[j].xyz * axis + origin;
+					idVec3 v = tri->verts[j].GetPosition() * axis + origin;
 					GetHashVert( v );
 				}
 			}

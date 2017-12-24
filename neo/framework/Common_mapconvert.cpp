@@ -90,25 +90,25 @@ void OBJExporter::Write( const char* relativePath, const char* basePath )
 			//objFile->Printf( "g %s\n", group.name.c_str() );
 			//objFile->Printf( "o %s\n", geometry.name.c_str() );
 			
-			for( int i = 0; i < geometry.faces.Num(); i++ )
+			for( int i = 0; i < geometry.faces.Num(); ++i )
 			{
 				const OBJFace& face = geometry.faces[i];
 				
-				for( int j = 0; j < face.verts.Num(); j++ )
+				for( int j = 0; j < face.verts.Num(); ++j )
 				{
-					const idVec3& v = face.verts[j].xyz;
+					const idVec3& v = face.verts[j].GetPosition();
 					
 					objFile->Printf( "v %1.6f %1.6f %1.6f\n", v.x, v.y, v.z );
 				}
 				
-				for( int j = 0; j < face.verts.Num(); j++ )
+				for( int j = 0; j < face.verts.Num(); ++j )
 				{
 					const idVec2& vST = face.verts[j].GetTexCoord();
 					
 					objFile->Printf( "vt %1.6f %1.6f\n", vST.x, vST.y );
 				}
 				
-				for( int j = 0; j < face.verts.Num(); j++ )
+				for( int j = 0; j < face.verts.Num(); ++j )
 				{
 					const idVec3& n = face.verts[j].GetNormal();
 					
@@ -194,10 +194,8 @@ void OBJExporter::ConvertBrushToOBJ( OBJGroup& group, const idMapBrush* mapBrush
 	int numIndexes = 0;
 	
 	bool badBrush = false;
-	
-	
-	
-	for( int i = 0; i < mapBrush->GetNumSides(); i++ )
+		
+	for( int i = 0; i < mapBrush->GetNumSides(); ++i )
 	{
 		idMapBrushSide* mapSide = mapBrush->GetSide( i );
 		
@@ -215,14 +213,13 @@ void OBJExporter::ConvertBrushToOBJ( OBJGroup& group, const idMapBrush* mapBrush
 			badBrush = true;
 		}
 		
-		for( int j = 0; j < mapBrush->GetNumSides() && w.GetNumPoints(); j++ )
+		for( int j = 0; j < mapBrush->GetNumSides() && w.GetNumPoints(); ++j )
 		{
 			if( i == j )
 			{
 				continue;
 			}
-			
-			
+					
 			if( !w.ClipInPlace( -planes[j], 0 ) )
 			{
 				// no intersection
@@ -247,7 +244,7 @@ void OBJExporter::ConvertBrushToOBJ( OBJGroup& group, const idMapBrush* mapBrush
 	// allocate the surface
 	
 	// copy the data from the windings and build polygons
-	for( int i = 0; i < mapBrush->GetNumSides(); i++ )
+	for( int i = 0; i < mapBrush->GetNumSides(); ++i )
 	{
 		idMapBrushSide* mapSide = mapBrush->GetSide( i );
 		
@@ -261,13 +258,13 @@ void OBJExporter::ConvertBrushToOBJ( OBJGroup& group, const idMapBrush* mapBrush
 		
 		face.material = declManager->FindMaterial( mapSide->GetMaterial() );
 		
-		for( int j = 0; j < w.GetNumPoints(); j++ )
+		for( int j = 0; j < w.GetNumPoints(); ++j )
 		{
-			idDrawVert& dv = face.verts.Alloc();
+			idDrawVert & dv = face.verts.Alloc();
 			
-			const idVec3& xyz = w[j].ToVec3();
+			const idVec3 & xyz = w[j].ToVec3();
 			
-			dv.xyz = ( transform * idVec4( xyz.x, xyz.y, xyz.z, 1 ) ).ToVec3();
+			dv.SetPosition( ( transform * idVec4( xyz.x, xyz.y, xyz.z, 1.0f ) ).ToVec3() );
 			
 			// calculate texture s/t from brush primitive texture matrix
 			idVec4 texVec[2];
@@ -291,7 +288,7 @@ void OBJExporter::ConvertBrushToOBJ( OBJGroup& group, const idMapBrush* mapBrush
 			//}
 		}
 		
-#if 0
+	#if 0
 		// triangulate
 		for( int j = 1; j < w.GetNumPoints() - 1; j++ )
 		{
@@ -299,7 +296,7 @@ void OBJExporter::ConvertBrushToOBJ( OBJGroup& group, const idMapBrush* mapBrush
 			face.indexes.Append( numVerts + j );
 			face.indexes.Append( numVerts + j + 1 );
 		}
-#else
+	#else
 		// export n-gon
 		
 		//for( int j = 0; j < w.GetNumPoints(); j++ )
@@ -309,8 +306,7 @@ void OBJExporter::ConvertBrushToOBJ( OBJGroup& group, const idMapBrush* mapBrush
 		{
 			face.indexes.Append( numVerts + j );
 		}
-#endif
-		
+	#endif		
 		numVerts += w.GetNumPoints();
 	}
 }
@@ -338,20 +334,20 @@ void OBJExporter::ConvertPatchToOBJ( OBJGroup& group, const idMapPatch* patch, i
 	
 	for( int i = 0; i < cp->GetNumIndexes(); i += 3 )
 	{
-		OBJExporter::OBJFace& face = geometry.faces.Alloc();
+		OBJExporter::OBJFace & face = geometry.faces.Alloc();
 		face.material = material;
 		
-		idDrawVert& dv0 = face.verts.Alloc();
-		idDrawVert& dv1 = face.verts.Alloc();
-		idDrawVert& dv2 = face.verts.Alloc();
+		idDrawVert & dv0 = face.verts.Alloc();
+		idDrawVert & dv1 = face.verts.Alloc();
+		idDrawVert & dv2 = face.verts.Alloc();
 		
-		dv0 = ( *cp )[cp->GetIndexes()[i + 1]];
-		dv1 = ( *cp )[cp->GetIndexes()[i + 2]];
-		dv2 = ( *cp )[cp->GetIndexes()[i + 0]];
+		dv0 = ( *cp )[ cp->GetIndexes()[ i + 1 ] ];
+		dv1 = ( *cp )[ cp->GetIndexes()[ i + 2 ] ];
+		dv2 = ( *cp )[ cp->GetIndexes()[ i + 0 ] ];
 		
-		dv0.xyz = ( transform * idVec4( dv0.xyz.x, dv0.xyz.y, dv0.xyz.z, 1 ) ).ToVec3();
-		dv1.xyz = ( transform * idVec4( dv1.xyz.x, dv1.xyz.y, dv1.xyz.z, 1 ) ).ToVec3();
-		dv2.xyz = ( transform * idVec4( dv2.xyz.x, dv2.xyz.y, dv2.xyz.z, 1 ) ).ToVec3();
+		dv0.SetPosition( ( transform * idVec4( dv0.GetPosition(), 1.0f ) ).ToVec3() );
+		dv1.SetPosition( ( transform * idVec4( dv1.GetPosition(), 1.0f ) ).ToVec3() );
+		dv2.SetPosition( ( transform * idVec4( dv2.GetPosition(), 1.0f ) ).ToVec3() );
 		
 		//face.indexes.Append( cp->GetIndexes()[i + 0] );
 		//face.indexes.Append( cp->GetIndexes()[i + 1] );
@@ -387,18 +383,16 @@ void OBJExporter::ConvertMeshToOBJ( OBJGroup& group, const MapPolygonMesh* mesh,
 		
 		const idList<int>& indexes = poly.GetIndexes();
 		
-		for( int j = 0; j < verts.Num(); j++ )
+		for( int j = 0; j < verts.Num(); ++j )
 		{
-			idDrawVert& dv = face.verts.Alloc();
-			
-			dv = verts[j];
-			
-			dv.xyz = ( transform * idVec4( dv.xyz.x, dv.xyz.y, dv.xyz.z, 1 ) ).ToVec3();
+			idDrawVert& dv = face.verts.Alloc();			
+			dv = verts[ j ];
+			dv.SetPosition( ( transform * idVec4( dv.GetPosition(), 1.0f ) ).ToVec3() );
 		}
 		
 #if 0
 		//for( int j = 0; j < indexes.Num(); j++ )
-		for( int j = 1; j < indexes.Num() - 1; j++ )
+		for( int j = 1; j < indexes.Num() - 1; ++j )
 		{
 			int index = indexes[j];
 			
@@ -409,7 +403,7 @@ void OBJExporter::ConvertMeshToOBJ( OBJGroup& group, const MapPolygonMesh* mesh,
 			face.indexes.Append( numVerts );
 		}
 #else
-		for( int j = 0; j < indexes.Num(); j++ )
+		for( int j = 0; j < indexes.Num(); ++j )
 		{
 			int index = indexes[j];
 		

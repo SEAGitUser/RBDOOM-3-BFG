@@ -72,7 +72,7 @@ void R_CalcInteractionFacing( const idRenderEntityLocal* ent, const idTriangles*
 		const idDrawVert& v1 = tri->verts[ tri->indexes[ i + 1 ] ];
 		const idDrawVert& v2 = tri->verts[ tri->indexes[ i + 2 ] ];
 		
-		const idPlane plane( v0.xyz, v1.xyz, v2.xyz );
+		const idPlane plane( v0.GetPosition(), v1.GetPosition(), v2.GetPosition() );
 		const float d = plane.Distance( localLightOrigin );
 		
 		cullInfo.facing[face] = ( d >= 0.0f );
@@ -134,7 +134,7 @@ void R_CalcInteractionCullBits( const idRenderEntityLocal* ent, const idTriangle
 		}
 		for( int j = 0; j < tri->numVerts; ++j )
 		{
-			float d = cullInfo.localClipPlanes[i].Distance( tri->verts[j].xyz );
+			float d = cullInfo.localClipPlanes[i].Distance( tri->verts[j].GetPosition() );
 			cullInfo.cullBits[j] |= ( d < LIGHT_CLIP_EPSILON ) << i;
 		}
 	}

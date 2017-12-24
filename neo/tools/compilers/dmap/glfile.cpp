@@ -90,11 +90,7 @@ void OutputWinding( idWinding* w, OBJGroup& group )
 	for( i = w->GetNumPoints() - 1; i >= 0; i-- )
 	{
 		idDrawVert& dv = face.verts.Alloc();
-		
-		dv.xyz.x = ( *w )[i][0];
-		dv.xyz.y = ( *w )[i][1];
-		dv.xyz.z = ( *w )[i][2];
-		
+		dv.SetPosition( ( *w )[ i ].ToVec3() );
 		dv.SetColor( level & 255 );
 		
 		//dv.SetNormal( w->GetPlane() )
@@ -119,10 +115,7 @@ void OutputWinding( const idFixedWinding& w, OBJGroup& group )
 	{
 		idDrawVert& dv = face.verts.Alloc();
 
-		dv.xyz.x = ( w )[i][0];
-		dv.xyz.y = ( w )[i][1];
-		dv.xyz.z = ( w )[i][2];
-
+		dv.SetPosition( ( w )[i].ToVec3() );
 		dv.SetColor( level & 255 );
 
 		//dv.SetNormal( w->GetPlane() )
@@ -194,27 +187,26 @@ void CollectPortals_r( node_t* node, OBJGroup& group )
 
 void OutputQuad( const idVec3 verts[4], OBJGroup* group, bool reverse )
 {
-	OBJFace& face = group->faces.Alloc();
-	
-	
-	idDrawVert& dv0 = face.verts.Alloc();
-	idDrawVert& dv1 = face.verts.Alloc();
-	idDrawVert& dv2 = face.verts.Alloc();
-	idDrawVert& dv3 = face.verts.Alloc();
+	OBJFace & face = group->faces.Alloc();
+		
+	idDrawVert & dv0 = face.verts.Alloc();
+	idDrawVert & dv1 = face.verts.Alloc();
+	idDrawVert & dv2 = face.verts.Alloc();
+	idDrawVert & dv3 = face.verts.Alloc();
 	
 	if( reverse )
 	{
-		dv0.xyz = verts[3];
-		dv1.xyz = verts[2];
-		dv2.xyz = verts[1];
-		dv3.xyz = verts[0];
+		dv0.SetPosition( verts[ 3 ] );
+		dv1.SetPosition( verts[ 2 ] );
+		dv2.SetPosition( verts[ 1 ] );
+		dv3.SetPosition( verts[ 0 ] );
 	}
 	else
 	{
-		dv0.xyz = verts[0];
-		dv1.xyz = verts[1];
-		dv2.xyz = verts[2];
-		dv3.xyz = verts[3];
+		dv0.SetPosition( verts[ 0 ] );
+		dv1.SetPosition( verts[ 1 ] );
+		dv2.SetPosition( verts[ 2 ] );
+		dv3.SetPosition( verts[ 3 ] );
 	}
 }
 
@@ -495,7 +487,7 @@ void WriteGLView( tree_t* tree, const char* source, int entityNum, bool force )
 			
 			for( int j = 0; j < face.verts.Num(); j++ )
 			{
-				const idVec3& v = face.verts[j].xyz;
+				const idVec3& v = face.verts[j].GetPosition();
 				
 				objFile->Printf( "v %1.6f %1.6f %1.6f\n", v.x, v.y, v.z );
 			}
@@ -554,14 +546,11 @@ void WriteGLView( bspface_t* list, const char* source )
 	{
 		OBJFace& objFace = faces.Alloc();
 		
-		for( int i = 0; i < face->w->GetNumPoints(); i++ )
+		for( int i = 0; i < face->w->GetNumPoints(); ++i )
 			//for( int i = face->w->GetNumPoints() - 1; i >= 0; i-- )
 		{
 			idDrawVert& dv = objFace.verts.Alloc();
-			
-			dv.xyz.x = ( *face->w )[i][0];
-			dv.xyz.y = ( *face->w )[i][1];
-			dv.xyz.z = ( *face->w )[i][2];
+			dv.SetPosition( ( *face->w )[ i ].ToVec3() );
 			
 			//dv.SetColor( level & 255 );
 		}
@@ -571,19 +560,19 @@ void WriteGLView( bspface_t* list, const char* source )
 	
 	int numVerts = 0;
 	
-	for( int i = 0; i < faces.Num(); i++ )
+	for( int i = 0; i < faces.Num(); ++i )
 	{
 		OBJFace& face = faces[i];
 		
-		for( int j = 0; j < face.verts.Num(); j++ )
+		for( int j = 0; j < face.verts.Num(); ++j )
 		{
-			const idVec3& v = face.verts[j].xyz;
+			const idVec3& v = face.verts[j].GetPosition();
 			
 			objFile->Printf( "v %1.6f %1.6f %1.6f\n", v.x, v.y, v.z );
 		}
 		
 		objFile->Printf( "f " );
-		for( int j = 0; j < face.verts.Num(); j++ )
+		for( int j = 0; j < face.verts.Num(); ++j )
 		{
 			objFile->Printf( "%i// ", numVerts + 1 + j );
 		}

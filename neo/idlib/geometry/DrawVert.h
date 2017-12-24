@@ -119,8 +119,6 @@ class idDrawVert
 	friend class idRenderModelStatic;
 	friend class idTriangles;
 	
-	friend void TransformVertsAndTangents( idDrawVert*, const int, const idDrawVert*, const idJointMat* );
-	
 public:
 	idVec3				xyz;			// 12 bytes
 private:
@@ -136,6 +134,12 @@ public:
 	float& 				operator[]( const int index );
 	
 	void				Clear();
+
+	ID_INLINE void		SetPosition( const idVec2 & posXY, float posZ ) { xyz.x = posXY.x; xyz.y = posXY.y; xyz.z = posZ; }
+	ID_INLINE void		SetPosition( const idVec3 & pos ) { xyz = pos; }
+	ID_INLINE void		SetPosition( float x, float y, float z ) { xyz.x = x; xyz.y = y; xyz.z = z; }
+
+	ID_INLINE const idVec3 & GetPosition() const { return xyz; }
 	
 	const idVec3		GetNormal() const;
 	const idVec3		GetNormalRaw() const;		// not re-normalized for renderbump
@@ -190,11 +194,14 @@ public:
 
 	// Read the contents of idDrawVert from the given file
 	void				ReadFromFile( idFile * );
+	void				ReadFromFile_NoWeights( idFile * );
 	// Write the contents of idDrawVert to the given file
 	void				WriteToFile( idFile * ) const;
+	void				WriteToFile_NoWeights( idFile * ) const;
 	
 	static idDrawVert	GetSkinnedDrawVert( const idDrawVert& vert, const idJointMat* joints );
 	static idVec3		GetSkinnedDrawVertPosition( const idDrawVert& vert, const idJointMat* joints );
+	static void			TransformVertsAndTangents( idDrawVert* out, const int numVerts, const idDrawVert* src, const idJointMat* joints );
 };
 
 #define DRAWVERT_SIZE				32
@@ -485,7 +492,7 @@ idDrawVert::Lerp
 */
 ID_INLINE void idDrawVert::Lerp( const idDrawVert& a, const idDrawVert& b, const float f )
 {
-	xyz = a.xyz + f * ( b.xyz - a.xyz );
+	SetPosition( a.xyz + f * ( b.GetPosition() - a.xyz ) );
 	SetTexCoord( ::Lerp( a.GetTexCoord(), b.GetTexCoord(), f ) );
 }
 
@@ -496,7 +503,7 @@ idDrawVert::LerpAll
 */
 ID_INLINE void idDrawVert::LerpAll( const idDrawVert& a, const idDrawVert& b, const float f )
 {
-	xyz = ::Lerp( a.xyz, b.xyz, f );
+	SetPosition( ::Lerp( a.GetPosition(), b.GetPosition(), f ) );
 	SetTexCoord( ::Lerp( a.GetTexCoord(), b.GetTexCoord(), f ) );
 	
 	idVec3 normal = ::Lerp( a.GetNormal(), b.GetNormal(), f );
@@ -735,10 +742,10 @@ ID_INLINE idDrawVert idDrawVert::GetSkinnedDrawVert( const idDrawVert& vert, con
 		return vert;
 	}
 	
-	const idJointMat& j0 = joints[vert.color[0]];
-	const idJointMat& j1 = joints[vert.color[1]];
-	const idJointMat& j2 = joints[vert.color[2]];
-	const idJointMat& j3 = joints[vert.color[3]];
+	const idJointMat & j0 = joints[ vert.color[ 0 ] ];
+	const idJointMat & j1 = joints[ vert.color[ 1 ] ];
+	const idJointMat & j2 = joints[ vert.color[ 2 ] ];
+	const idJointMat & j3 = joints[ vert.color[ 3 ] ];
 	
 	const float w0 = vert.color2[0] * ( 1.0f / 255.0f );
 	const float w1 = vert.color2[1] * ( 1.0f / 255.0f );
@@ -752,7 +759,8 @@ ID_INLINE idDrawVert idDrawVert::GetSkinnedDrawVert( const idDrawVert& vert, con
 	idJointMat::Mad( accum, j3, w3 );
 	
 	idDrawVert outVert;
-	outVert.xyz = accum * idVec4( vert.xyz.x, vert.xyz.y, vert.xyz.z, 1.0f );
+	auto & v = vert.GetPosition();
+	outVert.SetPosition( accum * idVec4( v.x, v.y, v.z, 1.0f ) );
 	outVert.SetTexCoordNative( vert.GetTexCoordNativeS(), vert.GetTexCoordNativeT() );
 	outVert.SetNormal( accum * vert.GetNormal() );
 	outVert.SetTangent( accum * vert.GetTangent() );
@@ -774,26 +782,27 @@ ID_INLINE idVec3 idDrawVert::GetSkinnedDrawVertPosition( const idDrawVert& vert,
 {
 	if( joints == NULL )
 	{
-		return vert.xyz;
+		return vert.GetPosition();
 	}
 	
-	const idJointMat& j0 = joints[vert.color[0]];
-	const idJointMat& j1 = joints[vert.color[1]];
-	const idJointMat& j2 = joints[vert.color[2]];
-	const idJointMat& j3 = joints[vert.color[3]];
-	
-	const float w0 = vert.color2[0] * ( 1.0f / 255.0f );
-	const float w1 = vert.color2[1] * ( 1.0f / 255.0f );
-	const float w2 = vert.color2[2] * ( 1.0f / 255.0f );
-	const float w3 = vert.color2[3] * ( 1.0f / 255.0f );
-	
+	const idJointMat & j0 = joints[ vert.color[ 0 ] ];
+	const idJointMat & j1 = joints[ vert.color[ 1 ] ];
+	const idJointMat & j2 = joints[ vert.color[ 2 ] ];
+	const idJointMat & j3 = joints[ vert.color[ 3 ] ];
+
+	const float w0 = vert.color2[ 0 ] * ( 1.0f / 255.0f );
+	const float w1 = vert.color2[ 1 ] * ( 1.0f / 255.0f );
+	const float w2 = vert.color2[ 2 ] * ( 1.0f / 255.0f );
+	const float w3 = vert.color2[ 3 ] * ( 1.0f / 255.0f );
+
 	idJointMat accum;
 	idJointMat::Mul( accum, j0, w0 );
 	idJointMat::Mad( accum, j1, w1 );
 	idJointMat::Mad( accum, j2, w2 );
 	idJointMat::Mad( accum, j3, w3 );
 	
-	return accum * idVec4( vert.xyz.x, vert.xyz.y, vert.xyz.z, 1.0f );
+	auto & v = vert.GetPosition();
+	return accum * idVec4( v.x, v.y, v.z, 1.0f );
 }
 
 /*

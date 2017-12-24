@@ -279,9 +279,9 @@ void GLS_Triangle( const mapTri_t* tri, int code )
 	idWinding w;
 	
 	w.SetNumPoints( 3 );
-	w[0] = tri->v[0].xyz;
-	w[1] = tri->v[1].xyz;
-	w[2] = tri->v[2].xyz;
+	w[0] = tri->v[0].GetPosition();
+	w[1] = tri->v[1].GetPosition();
+	w[2] = tri->v[2].GetPosition();
 	GLS_Winding( &w, code );
 }
 

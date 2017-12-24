@@ -119,9 +119,11 @@ void idSurface_Patch::RemoveLinearColumnsRows()
 		maxLength = 0;
 		for( i = 0; i < height; i++ )
 		{
-			idSurface_Patch::ProjectPointOntoVector( verts[i * maxWidth + j].xyz,
-					verts[i * maxWidth + j - 1].xyz, verts[i * maxWidth + j + 1].xyz, proj );
-			dir = verts[i * maxWidth + j].xyz - proj;
+			idSurface_Patch::ProjectPointOntoVector( 
+				verts[i * maxWidth + j].GetPosition(), 
+				verts[i * maxWidth + j - 1].GetPosition(), 
+				verts[i * maxWidth + j + 1].GetPosition(), proj );
+			dir = verts[i * maxWidth + j].GetPosition() - proj;
 			len = dir.LengthSqr();
 			if( len > maxLength )
 			{
@@ -146,9 +148,9 @@ void idSurface_Patch::RemoveLinearColumnsRows()
 		maxLength = 0;
 		for( i = 0; i < width; i++ )
 		{
-			idSurface_Patch::ProjectPointOntoVector( verts[j * maxWidth + i].xyz,
-					verts[( j - 1 )*maxWidth + i].xyz, verts[( j + 1 )*maxWidth + i].xyz, proj );
-			dir = verts[j * maxWidth + i].xyz - proj;
+			idSurface_Patch::ProjectPointOntoVector( verts[j * maxWidth + i].GetPosition(),
+					verts[( j - 1 )*maxWidth + i].GetPosition(), verts[( j + 1 )*maxWidth + i].GetPosition(), proj );
+			dir = verts[j * maxWidth + i].GetPosition() - proj;
 			len = dir.LengthSqr();
 			if( len > maxLength )
 			{
@@ -261,9 +263,7 @@ idSurface_Patch::LerpVert
 */
 void idSurface_Patch::LerpVert( const idDrawVert& a, const idDrawVert& b, idDrawVert& out ) const
 {
-	out.xyz[0] = 0.5f * ( a.xyz[0] + b.xyz[0] );
-	out.xyz[1] = 0.5f * ( a.xyz[1] + b.xyz[1] );
-	out.xyz[2] = 0.5f * ( a.xyz[2] + b.xyz[2] );
+	out.SetPosition( ( a.GetPosition() + b.GetPosition() ) * 0.5f );
 	out.SetNormal( ( a.GetNormal() + b.GetNormal() ) * 0.5f );
 	out.SetTexCoord( ( a.GetTexCoord() + b.GetTexCoord() ) * 0.5f );
 }
@@ -290,7 +290,7 @@ void idSurface_Patch::GenerateNormals()
 	idVec3		around[8], temp;
 	bool		good[8];
 	bool		wrapWidth, wrapHeight;
-	static int	neighbors[8][2] =
+	static const int neighbors[8][2] =
 	{
 		{0, 1}, {1, 1}, {1, 0}, {1, -1}, {0, -1}, { -1, -1}, { -1, 0}, { -1, 1}
 	};
@@ -303,9 +303,9 @@ void idSurface_Patch::GenerateNormals()
 	idVec3		extent[3];
 	float		offset;
 	
-	extent[0] = verts[width - 1].xyz - verts[0].xyz;
-	extent[1] = verts[( height - 1 ) * width + width - 1].xyz - verts[0].xyz;
-	extent[2] = verts[( height - 1 ) * width].xyz - verts[0].xyz;
+	extent[0] = verts[width - 1].GetPosition() - verts[0].GetPosition();
+	extent[1] = verts[( height - 1 ) * width + width - 1].GetPosition() - verts[0].GetPosition();
+	extent[2] = verts[( height - 1 ) * width].GetPosition() - verts[0].GetPosition();
 	
 	norm = extent[0].Cross( extent[1] );
 	if( norm.LengthSqr() == 0.0f )
@@ -321,10 +321,10 @@ void idSurface_Patch::GenerateNormals()
 	if( norm.Normalize() != 0.0f )
 	{
 	
-		offset = verts[0].xyz * norm;
+		offset = verts[0].GetPosition() * norm;
 		for( i = 1; i < width * height; i++ )
 		{
-			float d = verts[i].xyz * norm;
+			float d = verts[i].GetPosition() * norm;
 			if( idMath::Fabs( d - offset ) > COPLANAR_EPSILON )
 			{
 				break;
@@ -346,7 +346,7 @@ void idSurface_Patch::GenerateNormals()
 	wrapWidth = false;
 	for( i = 0; i < height; i++ )
 	{
-		delta = verts[i * width].xyz - verts[i * width + width - 1].xyz;
+		delta = verts[i * width].GetPosition() - verts[i * width + width - 1].GetPosition();
 		if( delta.LengthSqr() > Square( 1.0f ) )
 		{
 			break;
@@ -360,7 +360,7 @@ void idSurface_Patch::GenerateNormals()
 	wrapHeight = false;
 	for( i = 0; i < width; i++ )
 	{
-		delta = verts[i].xyz - verts[( height - 1 ) * width + i].xyz;
+		delta = verts[i].GetPosition() - verts[( height - 1 ) * width + i].GetPosition();
 		if( delta.LengthSqr() > Square( 1.0f ) )
 		{
 			break;
@@ -376,7 +376,7 @@ void idSurface_Patch::GenerateNormals()
 		for( j = 0; j < height; j++ )
 		{
 			count = 0;
-			base = verts[j * width + i].xyz;
+			base = verts[j * width + i].GetPosition();
 			for( k = 0; k < 8; k++ )
 			{
 				around[k] = vec3_origin;
@@ -413,7 +413,7 @@ void idSurface_Patch::GenerateNormals()
 					{
 						break;					// edge of patch
 					}
-					temp = verts[y * width + x].xyz - base;
+					temp = verts[y * width + x].GetPosition() - base;
 					if( temp.Normalize() == 0.0f )
 					{
 						continue;				// degenerate edge, get more dist
@@ -504,57 +504,54 @@ void idSurface_Patch::SampleSinglePatchPoint( const idDrawVert ctrl[3][3], float
 			float qA, qB, qC;
 			if( axis < 3 )
 			{
-				a = ctrl[0][vPoint].xyz[axis];
-				b = ctrl[1][vPoint].xyz[axis];
-				c = ctrl[2][vPoint].xyz[axis];
+				a = ctrl[ 0 ][ vPoint ].GetPosition()[ axis ];
+				b = ctrl[ 1 ][ vPoint ].GetPosition()[ axis ];
+				c = ctrl[ 2 ][ vPoint ].GetPosition()[ axis ];
 			}
 			else if( axis < 6 )
 			{
-				a = ctrl[0][vPoint].GetNormal()[axis - 3];
-				b = ctrl[1][vPoint].GetNormal()[axis - 3];
-				c = ctrl[2][vPoint].GetNormal()[axis - 3];
+				a = ctrl[ 0 ][ vPoint ].GetNormal()[ axis - 3 ];
+				b = ctrl[ 1 ][ vPoint ].GetNormal()[ axis - 3 ];
+				c = ctrl[ 2 ][ vPoint ].GetNormal()[ axis - 3 ];
 			}
 			else
 			{
-				a = ctrl[0][vPoint].GetTexCoord()[axis - 6];
-				b = ctrl[1][vPoint].GetTexCoord()[axis - 6];
-				c = ctrl[2][vPoint].GetTexCoord()[axis - 6];
+				a = ctrl[ 0 ][ vPoint ].GetTexCoord()[ axis - 6 ];
+				b = ctrl[ 1 ][ vPoint ].GetTexCoord()[ axis - 6 ];
+				c = ctrl[ 2 ][ vPoint ].GetTexCoord()[ axis - 6 ];
 			}
 			qA = a - 2.0f * b + c;
 			qB = 2.0f * b - 2.0f * a;
 			qC = a;
-			vCtrl[vPoint][axis] = qA * u * u + qB * u + qC;
+			vCtrl[ vPoint ][ axis ] = qA * u * u + qB * u + qC;
 		}
 	}
 	
 	// interpolate the v value
 	for( axis = 0; axis < 8; axis++ )
 	{
-		float a, b, c;
-		float qA, qB, qC;
-		
-		a = vCtrl[0][axis];
-		b = vCtrl[1][axis];
-		c = vCtrl[2][axis];
-		qA = a - 2.0f * b + c;
-		qB = 2.0f * b - 2.0f * a;
-		qC = a;
-		
+		float a = vCtrl[ 0 ][ axis ];
+		float b = vCtrl[ 1 ][ axis ];
+		float c = vCtrl[ 2 ][ axis ];
+		float qA = a - 2.0f * b + c;
+		float qB = 2.0f * b - 2.0f * a;
+		float qC = a;
+
 		if( axis < 3 )
 		{
-			out->xyz[axis] = qA * v * v + qB * v + qC;
+			out->xyz[ axis ] = qA * v * v + qB * v + qC;
 		}
 		else if( axis < 6 )
 		{
 			idVec3 tempNormal = out->GetNormal();
-			tempNormal[axis - 3] = qA * v * v + qB * v + qC;
+			tempNormal[ axis - 3 ] = qA * v * v + qB * v + qC;
 			out->SetNormal( tempNormal );
 			//out->normal[axis-3] = qA * v * v + qB * v + qC;
 		}
 		else
 		{
 			idVec2 tempST = out->GetTexCoord();
-			tempST[axis - 6] = qA * v * v + qB * v + qC;
+			tempST[ axis - 6 ] = qA * v * v + qB * v + qC;
 			out->SetTexCoord( tempST );
 		}
 	}
@@ -687,10 +684,10 @@ void idSurface_Patch::Subdivide( float maxHorizontalError, float maxVerticalErro
 		{
 			for( l = 0; l < 3; l++ )
 			{
-				prevxyz[l] = verts[i * maxWidth + j + 1].xyz[l] - verts[i * maxWidth + j  ].xyz[l];
-				nextxyz[l] = verts[i * maxWidth + j + 2].xyz[l] - verts[i * maxWidth + j + 1].xyz[l];
-				midxyz[l] = ( verts[i * maxWidth + j  ].xyz[l] + verts[i * maxWidth + j + 1].xyz[l] * 2.0f +
-							  verts[i * maxWidth + j + 2].xyz[l] ) * 0.25f;
+				prevxyz[l] = verts[i * maxWidth + j + 1].GetPosition()[l] - verts[i * maxWidth + j  ].GetPosition()[l];
+				nextxyz[l] = verts[i * maxWidth + j + 2].GetPosition()[l] - verts[i * maxWidth + j + 1].GetPosition()[l];
+				midxyz[l] = ( verts[i * maxWidth + j  ].GetPosition()[l] + verts[i * maxWidth + j + 1].GetPosition()[l] * 2.0f +
+							  verts[i * maxWidth + j + 2].GetPosition()[l] ) * 0.25f;
 			}
 			
 			if( maxLength > 0.0f )
@@ -702,7 +699,7 @@ void idSurface_Patch::Subdivide( float maxHorizontalError, float maxVerticalErro
 				}
 			}
 			// see if this midpoint is off far enough to subdivide
-			delta = verts[i * maxWidth + j + 1].xyz - midxyz;
+			delta = verts[i * maxWidth + j + 1].GetPosition() - midxyz;
 			if( delta.LengthSqr() > maxHorizontalErrorSqr )
 			{
 				break;
@@ -749,10 +746,10 @@ void idSurface_Patch::Subdivide( float maxHorizontalError, float maxVerticalErro
 		{
 			for( l = 0; l < 3; l++ )
 			{
-				prevxyz[l] = verts[( j + 1 ) * maxWidth + i].xyz[l] - verts[j * maxWidth + i].xyz[l];
-				nextxyz[l] = verts[( j + 2 ) * maxWidth + i].xyz[l] - verts[( j + 1 ) * maxWidth + i].xyz[l];
-				midxyz[l] = ( verts[j * maxWidth + i].xyz[l] + verts[( j + 1 ) * maxWidth + i].xyz[l] * 2.0f +
-							  verts[( j + 2 ) * maxWidth + i].xyz[l] ) * 0.25f;
+				prevxyz[l] = verts[( j + 1 ) * maxWidth + i].GetPosition()[l] - verts[j * maxWidth + i].GetPosition()[l];
+				nextxyz[l] = verts[( j + 2 ) * maxWidth + i].GetPosition()[l] - verts[( j + 1 ) * maxWidth + i].GetPosition()[l];
+				midxyz[l] = ( verts[j * maxWidth + i].GetPosition()[l] + verts[( j + 1 ) * maxWidth + i].GetPosition()[l] * 2.0f +
+							  verts[( j + 2 ) * maxWidth + i].GetPosition()[l] ) * 0.25f;
 			}
 			
 			if( maxLength > 0.0f )
@@ -764,7 +761,7 @@ void idSurface_Patch::Subdivide( float maxHorizontalError, float maxVerticalErro
 				}
 			}
 			// see if this midpoint is off far enough to subdivide
-			delta = verts[( j + 1 ) * maxWidth + i].xyz - midxyz;
+			delta = verts[( j + 1 ) * maxWidth + i].GetPosition() - midxyz;
 			if( delta.LengthSqr() > maxVerticalErrorSqr )
 			{
 				break;

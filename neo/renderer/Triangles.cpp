@@ -547,13 +547,13 @@ static void R_CreateSilRemap( const idTriangles* tri, int *remap )
 		v1 = &tri->verts[i];
 		
 		// see if there is an earlier vert that it can map to
-		hashKey = hash.GenerateKey( v1->xyz );
+		hashKey = hash.GenerateKey( v1->GetPosition() );
 		for( j = hash.First( hashKey ); j >= 0; j = hash.Next( j ) )
 		{
 			v2 = &tri->verts[j];
-			if( v2->xyz[0] == v1->xyz[0]
-					&& v2->xyz[1] == v1->xyz[1]
-					&& v2->xyz[2] == v1->xyz[2] )
+			if( v2->GetPosition()[0] == v1->GetPosition()[0] &&
+				v2->GetPosition()[1] == v1->GetPosition()[1] && 
+				v2->GetPosition()[2] == v1->GetPosition()[2] )
 			{
 				c_removed++;
 				remap[i] = j;
@@ -604,39 +604,37 @@ void idTriangles::CreateSilIndexes()
 R_CreateDupVerts
 =====================
 */
-static void R_CreateDupVerts( idTriangles* tri )
+void idTriangles::CreateDupVerts()
 {
-	int i;
-	
-	idTempArray<int> remap( tri->numVerts );
+	idTempArray<int> remap( this->numVerts );
 	
 	// initialize vertex remap in case there are unused verts
-	for( i = 0; i < tri->numVerts; ++i )
+	for( int i = 0; i < this->numVerts; ++i )
 	{
 		remap[i] = i;
 	}
 	
 	// set the remap based on how the silhouette indexes are remapped
-	for( i = 0; i < tri->numIndexes; ++i )
+	for( int i = 0; i < this->numIndexes; ++i )
 	{
-		remap[tri->indexes[i]] = tri->silIndexes[i];
+		remap[ this->indexes[i]] = this->silIndexes[i];
 	}
 	
 	// create duplicate vertex index based on the vertex remap
-	idTempArray<int> tempDupVerts( tri->numVerts * 2 );
-	tri->numDupVerts = 0;
-	for( i = 0; i < tri->numVerts; ++i )
+	idTempArray<int> tempDupVerts( this->numVerts * 2 );
+	this->numDupVerts = 0;
+	for( int i = 0; i < this->numVerts; ++i )
 	{
 		if( remap[i] != i )
 		{
-			tempDupVerts[tri->numDupVerts * 2 + 0] = i;
-			tempDupVerts[tri->numDupVerts * 2 + 1] = remap[i];
-			tri->numDupVerts++;
+			tempDupVerts[ this->numDupVerts * 2 + 0] = i;
+			tempDupVerts[ this->numDupVerts * 2 + 1] = remap[i];
+			this->numDupVerts++;
 		}
 	}
 	
-	tri->AllocStaticDupVerts( tri->numDupVerts );
-	memcpy( tri->dupVerts, tempDupVerts.Ptr(), tri->numDupVerts * 2 * sizeof( tri->dupVerts[0] ) );
+	this->AllocStaticDupVerts( this->numDupVerts );
+	memcpy( this->dupVerts, tempDupVerts.Ptr(), this->numDupVerts * 2 * sizeof( this->dupVerts[0] ) );
 }
 
 /*
@@ -647,10 +645,9 @@ R_DefineEdge
 static int c_duplicatedEdges, c_tripledEdges;
 static const int MAX_SIL_EDGES = 0x7ffff;
 
-static void R_DefineEdge( const int v1, const int v2, const int planeNum, const int numPlanes,
-						  idList<silEdge_t>& silEdges, idHashIndex&	 silEdgeHash )
+static void R_DefineEdge( const int v1, const int v2, const int planeNum, const int numPlanes, idList<silEdge_t>& silEdges, idHashIndex&	 silEdgeHash )
 {
-	int		i, hashKey;
+	int	i, hashKey;
 	
 	// check for degenerate edge
 	if( v1 == v2 )
@@ -731,7 +728,7 @@ R_IdentifySilEdges
 */
 int	c_coplanarSilEdges;
 int	c_totalSilEdges;
-static void R_IdentifySilEdges( idTriangles* tri, bool omitCoplanarEdges )
+void idTriangles::IdentifySilEdges( bool omitCoplanarEdges )
 {
 	int	i;
 	int	shared, single;
@@ -740,7 +737,7 @@ static void R_IdentifySilEdges( idTriangles* tri, bool omitCoplanarEdges )
 	
 	static const int SILEDGE_HASH_SIZE		= 1024;
 	
-	const int numTris = tri->numIndexes / 3;
+	const int numTris = this->numIndexes / 3;
 	
 	idList<silEdge_t>	silEdges( MAX_SIL_EDGES );
 	idHashIndex	silEdgeHash( SILEDGE_HASH_SIZE, MAX_SIL_EDGES );
@@ -753,9 +750,9 @@ static void R_IdentifySilEdges( idTriangles* tri, bool omitCoplanarEdges )
 	
 	for( i = 0; i < numTris; i++ )
 	{
-		int i1 = tri->silIndexes[ i * 3 + 0 ];
-		int i2 = tri->silIndexes[ i * 3 + 1 ];
-		int i3 = tri->silIndexes[ i * 3 + 2 ];
+		int i1 = this->silIndexes[ i * 3 + 0 ];
+		int i2 = this->silIndexes[ i * 3 + 1 ];
+		int i3 = this->silIndexes[ i * 3 + 2 ];
 		
 		// create the edges
 		R_DefineEdge( i1, i2, i, numPlanes, silEdges, silEdgeHash );
@@ -792,18 +789,18 @@ static void R_IdentifySilEdges( idTriangles* tri, bool omitCoplanarEdges )
 			}
 			
 			base = silEdges[i].p1 * 3;
-			i1 = tri->silIndexes[ base + 0 ];
-			i2 = tri->silIndexes[ base + 1 ];
-			i3 = tri->silIndexes[ base + 2 ];
+			i1 = this->silIndexes[ base + 0 ];
+			i2 = this->silIndexes[ base + 1 ];
+			i3 = this->silIndexes[ base + 2 ];
 			
-			plane.FromPoints( tri->verts[i1].xyz, tri->verts[i2].xyz, tri->verts[i3].xyz );
+			plane.FromPoints( this->verts[i1].GetPosition(), this->verts[i2].GetPosition(), this->verts[i3].GetPosition() );
 			
 			// check to see if points of second triangle are not coplanar
 			base = silEdges[i].p2 * 3;
 			for( j = 0; j < 3; j++ )
 			{
-				i1 = tri->silIndexes[ base + j ];
-				d = plane.Distance( tri->verts[i1].xyz );
+				i1 = this->silIndexes[ base + j ];
+				d = plane.Distance( this->verts[i1].GetPosition() );
 				if( d != 0 )  		// even a small epsilon causes problems
 				{
 					break;
@@ -851,16 +848,16 @@ static void R_IdentifySilEdges( idTriangles* tri, bool omitCoplanarEdges )
 	
 	if( !single )
 	{
-		tri->perfectHull = true;
+		this->perfectHull = true;
 	}
 	else
 	{
-		tri->perfectHull = false;
+		this->perfectHull = false;
 	}
 	
-	tri->numSilEdges = silEdges.Num();
-	tri->AllocStaticSilEdges( silEdges.Num() );
-	memcpy( tri->silEdges, silEdges.Ptr(), silEdges.Num() * sizeof( tri->silEdges[0] ) );
+	this->numSilEdges = silEdges.Num();
+	this->AllocStaticSilEdges( silEdges.Num() );
+	memcpy( this->silEdges, silEdges.Ptr(), silEdges.Num() * sizeof( this->silEdges[0] ) );
 }
 
 /*
@@ -919,72 +916,72 @@ struct tangentVert_t
 	int		negativeRemap;
 };
 
-static void	R_DuplicateMirroredVertexes( idTriangles* tri )
+void idTriangles::DuplicateMirroredVertexes()
 {
 	tangentVert_t*	vert;
 	int				i, j;
 	int				totalVerts;
 	int				numMirror;
-	
-	idTempArray<tangentVert_t> tverts( tri->numVerts );
+
+	idTempArray<tangentVert_t> tverts( this->numVerts );
 	tverts.Zero();
-	
+
 	// determine texture polarity of each surface
-	
+
 	// mark each vert with the polarities it uses
-	for( i = 0; i < tri->numIndexes; i += 3 )
+	for( i = 0; i < this->numIndexes; i += 3 )
 	{
-		int	polarity = R_FaceNegativePolarity( tri, i );
+		int	polarity = R_FaceNegativePolarity( this, i );
 		for( j = 0; j < 3; j++ )
 		{
-			tverts[tri->indexes[i + j]].polarityUsed[ polarity ] = true;
+			tverts[ this->indexes[ i + j ] ].polarityUsed[ polarity ] = true;
 		}
 	}
-	
+
 	// now create new vertex indices as needed
-	totalVerts = tri->numVerts;
-	for( i = 0; i < tri->numVerts; i++ )
+	totalVerts = this->numVerts;
+	for( i = 0; i < this->numVerts; i++ )
 	{
-		vert = &tverts[i];
-		if( vert->polarityUsed[0] && vert->polarityUsed[1] )
+		vert = &tverts[ i ];
+		if( vert->polarityUsed[ 0 ] && vert->polarityUsed[ 1 ] )
 		{
 			vert->negativeRemap = totalVerts;
 			totalVerts++;
 		}
 	}
-	
-	tri->numMirroredVerts = totalVerts - tri->numVerts;
-	
-	if( tri->numMirroredVerts == 0 )
+
+	this->numMirroredVerts = totalVerts - this->numVerts;
+
+	if( this->numMirroredVerts == 0 )
 	{
-		tri->mirroredVerts = NULL;
+		this->mirroredVerts = NULL;
 		return;
 	}
-	
+
 	// now create the new list
-	 tri->AllocStaticMirroredVerts( tri->numMirroredVerts );
-	 tri->ResizeStaticVerts( totalVerts );
-	
+	this->AllocStaticMirroredVerts( this->numMirroredVerts );
+	this->ResizeStaticVerts( totalVerts );
+
 	// create the duplicates
 	numMirror = 0;
-	for( i = 0; i < tri->numVerts; i++ )
+	for( i = 0; i < this->numVerts; ++i )
 	{
-		j = tverts[i].negativeRemap;
+		j = tverts[ i ].negativeRemap;
 		if( j )
 		{
-			tri->verts[j] = tri->verts[i];
-			tri->mirroredVerts[numMirror] = i;
+			this->verts[ j ] = this->verts[ i ];
+			this->mirroredVerts[ numMirror ] = i;
 			numMirror++;
 		}
 	}
-	tri->numVerts = totalVerts;
-	
+	this->numVerts = totalVerts;
+
 	// change the indexes
-	for( i = 0; i < tri->numIndexes; i++ )
+	for( i = 0; i < this->numIndexes; ++i )
 	{
-		if( tverts[tri->indexes[i]].negativeRemap && R_FaceNegativePolarity( tri, 3 * ( i / 3 ) ) )
+		if( tverts[ this->indexes[ i ] ].negativeRemap && R_FaceNegativePolarity( this, 3 * ( i / 3 ) ) )
 		{
-			tri->indexes[i] = tverts[tri->indexes[i]].negativeRemap;
+			this->indexes[ i ] = tverts[ this->indexes[ i ] ].negativeRemap;
 		}
 	}
 }
@@ -998,41 +995,45 @@ R_DeriveNormalsAndTangents
 	using the vertex which results in smooth tangents across the mesh.
 ============
 */
-static void R_DeriveNormalsAndTangents( idTriangles* tri )
+void idTriangles::DeriveNormalsAndTangents()
 {
-	idTempArray< idVec3 > vertexNormals( tri->numVerts );
-	idTempArray< idVec3 > vertexTangents( tri->numVerts );
-	idTempArray< idVec3 > vertexBitangents( tri->numVerts );
+	idTempArray< idVec3 > vertexNormals( this->numVerts );
+	idTempArray< idVec3 > vertexTangents( this->numVerts );
+	idTempArray< idVec3 > vertexBitangents( this->numVerts );
 	
 	vertexNormals.Zero();
 	vertexTangents.Zero();
 	vertexBitangents.Zero();
 	
-	for( int i = 0; i < tri->numIndexes; i += 3 )
+	for( int i = 0; i < this->numIndexes; i += 3 )
 	{
-		const int v0 = tri->indexes[i + 0];
-		const int v1 = tri->indexes[i + 1];
-		const int v2 = tri->indexes[i + 2];
+		const int v0 = this->indexes[i + 0];
+		const int v1 = this->indexes[i + 1];
+		const int v2 = this->indexes[i + 2];
 		
-		const idDrawVert* a = tri->verts + v0;
-		const idDrawVert* b = tri->verts + v1;
-		const idDrawVert* c = tri->verts + v2;
+		const idDrawVert* a = this->verts + v0;
+		const idDrawVert* b = this->verts + v1;
+		const idDrawVert* c = this->verts + v2;
 		
 		const idVec2 aST = a->GetTexCoord();
 		const idVec2 bST = b->GetTexCoord();
 		const idVec2 cST = c->GetTexCoord();
+
+		const idVec3 & a_pos = a->GetPosition();
+		const idVec3 & b_pos = b->GetPosition();
+		const idVec3 & c_pos = c->GetPosition();
 		
 		float d0[5];
-		d0[0] = b->xyz[0] - a->xyz[0];
-		d0[1] = b->xyz[1] - a->xyz[1];
-		d0[2] = b->xyz[2] - a->xyz[2];
+		d0[0] = b_pos[0] - a_pos[0];
+		d0[1] = b_pos[1] - a_pos[1];
+		d0[2] = b_pos[2] - a_pos[2];
 		d0[3] = bST[0] - aST[0];
 		d0[4] = bST[1] - aST[1];
 		
 		float d1[5];
-		d1[0] = c->xyz[0] - a->xyz[0];
-		d1[1] = c->xyz[1] - a->xyz[1];
-		d1[2] = c->xyz[2] - a->xyz[2];
+		d1[0] = c_pos[0] - a_pos[0];
+		d1[1] = c_pos[1] - a_pos[1];
+		d1[2] = c_pos[2] - a_pos[2];
 		d1[3] = cST[0] - aST[0];
 		d1[4] = cST[1] - aST[1];
 		
@@ -1089,21 +1090,21 @@ static void R_DeriveNormalsAndTangents( idTriangles* tri )
 	}
 	
 	// add the normal of a duplicated vertex to the normal of the first vertex with the same XYZ
-	for( int i = 0; i < tri->numDupVerts; i++ )
+	for( int i = 0; i < this->numDupVerts; ++i )
 	{
-		vertexNormals[tri->dupVerts[i * 2 + 0]] += vertexNormals[tri->dupVerts[i * 2 + 1]];
+		vertexNormals[this->dupVerts[i * 2 + 0]] += vertexNormals[this->dupVerts[i * 2 + 1]];
 	}
 	
 	// copy vertex normals to duplicated vertices
-	for( int i = 0; i < tri->numDupVerts; i++ )
+	for( int i = 0; i < this->numDupVerts; ++i )
 	{
-		vertexNormals[tri->dupVerts[i * 2 + 1]] = vertexNormals[tri->dupVerts[i * 2 + 0]];
+		vertexNormals[this->dupVerts[i * 2 + 1]] = vertexNormals[this->dupVerts[i * 2 + 0]];
 	}
 	
 	// Project the summed vectors onto the normal plane and normalize.
 	// The tangent vectors will not necessarily be orthogonal to each
 	// other, but they will be orthogonal to the surface normal.
-	for( int i = 0; i < tri->numVerts; i++ )
+	for( int i = 0; i < this->numVerts; ++i )
 	{
 		const float normalScale = idMath::InvSqrt( vertexNormals[i].x * vertexNormals[i].x + vertexNormals[i].y * vertexNormals[i].y + vertexNormals[i].z * vertexNormals[i].z );
 		vertexNormals[i].x *= normalScale;
@@ -1125,11 +1126,11 @@ static void R_DeriveNormalsAndTangents( idTriangles* tri )
 	}
 	
 	// compress the normals and tangents
-	for( int i = 0; i < tri->numVerts; i++ )
+	for( int i = 0; i < this->numVerts; ++i )
 	{
-		tri->verts[i].SetNormal( vertexNormals[i] );
-		tri->verts[i].SetTangent( vertexTangents[i] );
-		tri->verts[i].SetBiTangent( vertexBitangents[i] );
+		this->verts[ i ].SetNormal( vertexNormals[ i ] );
+		this->verts[ i ].SetTangent( vertexTangents[ i ] );
+		this->verts[ i ].SetBiTangent( vertexBitangents[ i ] );
 	}
 }
 
@@ -1138,9 +1139,9 @@ static void R_DeriveNormalsAndTangents( idTriangles* tri )
 R_DeriveUnsmoothedNormalsAndTangents
 ============
 */
-static void R_DeriveUnsmoothedNormalsAndTangents( idTriangles* tri )
+void idTriangles::DeriveUnsmoothedNormalsAndTangents()
 {
-	for( int i = 0; i < tri->numVerts; i++ )
+	for( int i = 0; i < this->numVerts; i++ )
 	{
 		float d0, d1, d2, d3, d4;
 		float d5, d6, d7, d8, d9;
@@ -1149,25 +1150,29 @@ static void R_DeriveUnsmoothedNormalsAndTangents( idTriangles* tri )
 		float t0, t1, t2;
 		float t3, t4, t5;
 		
-		const dominantTri_t& dt = tri->dominantTris[i];
+		const dominantTri_t& dt = this->dominantTris[i];
 		
-		idDrawVert* a = tri->verts + i;
-		idDrawVert* b = tri->verts + dt.v2;
-		idDrawVert* c = tri->verts + dt.v3;
+		idDrawVert* a = this->verts + i;
+		idDrawVert* b = this->verts + dt.v2;
+		idDrawVert* c = this->verts + dt.v3;
 		
 		const idVec2 aST = a->GetTexCoord();
 		const idVec2 bST = b->GetTexCoord();
 		const idVec2 cST = c->GetTexCoord();
+
+		const idVec3 & a_pos = a->GetPosition();
+		const idVec3 & b_pos = b->GetPosition();
+		const idVec3 & c_pos = c->GetPosition();
 		
-		d0 = b->xyz[0] - a->xyz[0];
-		d1 = b->xyz[1] - a->xyz[1];
-		d2 = b->xyz[2] - a->xyz[2];
+		d0 = b_pos[0] - a_pos[0];
+		d1 = b_pos[1] - a_pos[1];
+		d2 = b_pos[2] - a_pos[2];
 		d3 = bST[0] - aST[0];
 		d4 = bST[1] - aST[1];
 		
-		d5 = c->xyz[0] - a->xyz[0];
-		d6 = c->xyz[1] - a->xyz[1];
-		d7 = c->xyz[2] - a->xyz[2];
+		d5 = c_pos[0] - a_pos[0];
+		d6 = c_pos[1] - a_pos[1];
+		d7 = c_pos[2] - a_pos[2];
 		d8 = cST[0] - aST[0];
 		d9 = cST[1] - aST[1];
 		
@@ -1220,19 +1225,19 @@ void idTriangles::CreateVertexNormals()
 	assert( this->silIndexes != NULL );
 	for( int i = 0; i < this->numIndexes; i += 3 )
 	{
-		const int i0 = this->silIndexes[i + 0];
-		const int i1 = this->silIndexes[i + 1];
-		const int i2 = this->silIndexes[i + 2];
-		
-		const idDrawVert& v0 = this->verts[i0];
-		const idDrawVert& v1 = this->verts[i1];
-		const idDrawVert& v2 = this->verts[i2];
-		
-		const idPlane plane( v0.xyz, v1.xyz, v2.xyz );
-		
-		vertexNormals[i0] += plane.Normal();
-		vertexNormals[i1] += plane.Normal();
-		vertexNormals[i2] += plane.Normal();
+		const int i0 = this->silIndexes[ i + 0 ];
+		const int i1 = this->silIndexes[ i + 1 ];
+		const int i2 = this->silIndexes[ i + 2 ];
+
+		const idDrawVert& v0 = this->verts[ i0 ];
+		const idDrawVert& v1 = this->verts[ i1 ];
+		const idDrawVert& v2 = this->verts[ i2 ];
+
+		const idPlane plane( v0.GetPosition(), v1.GetPosition(), v2.GetPosition() );
+
+		vertexNormals[ i0 ] += plane.Normal();
+		vertexNormals[ i1 ] += plane.Normal();
+		vertexNormals[ i2 ] += plane.Normal();
 	}
 	
 	// replicate from silIndexes to all indexes
@@ -1288,10 +1293,10 @@ R_DeriveTangentsWithoutNormals
 	this version only handles bilateral symetry
 =================
 */
-static void R_DeriveTangentsWithoutNormals( idTriangles* tri )
+void idTriangles::DeriveTangentsWithoutNormals()
 {
-	idTempArray< idVec3 > triangleTangents( tri->numIndexes / 3 );
-	idTempArray< idVec3 > triangleBitangents( tri->numIndexes / 3 );
+	idTempArray< idVec3 > triangleTangents( this->numIndexes / 3 );
+	idTempArray< idVec3 > triangleBitangents( this->numIndexes / 3 );
 	
 	//
 	// calculate tangent vectors for each face in isolation
@@ -1299,29 +1304,33 @@ static void R_DeriveTangentsWithoutNormals( idTriangles* tri )
 	int c_positive = 0;
 	int c_negative = 0;
 	int c_textureDegenerateFaces = 0;
-	for( int i = 0; i < tri->numIndexes; i += 3 )
+	for( int i = 0; i < this->numIndexes; i += 3 )
 	{
 		idVec3	temp;
 		
-		idDrawVert* a = tri->verts + tri->indexes[i + 0];
-		idDrawVert* b = tri->verts + tri->indexes[i + 1];
-		idDrawVert* c = tri->verts + tri->indexes[i + 2];
+		idDrawVert* a = this->verts + this->indexes[i + 0];
+		idDrawVert* b = this->verts + this->indexes[i + 1];
+		idDrawVert* c = this->verts + this->indexes[i + 2];
 		
 		const idVec2 aST = a->GetTexCoord();
 		const idVec2 bST = b->GetTexCoord();
 		const idVec2 cST = c->GetTexCoord();
+
+		const idVec3 & a_pos = a->GetPosition();
+		const idVec3 & b_pos = b->GetPosition();
+		const idVec3 & c_pos = c->GetPosition();
 		
 		float d0[5];
-		d0[0] = b->xyz[0] - a->xyz[0];
-		d0[1] = b->xyz[1] - a->xyz[1];
-		d0[2] = b->xyz[2] - a->xyz[2];
+		d0[0] = b_pos[0] - a_pos[0];
+		d0[1] = b_pos[1] - a_pos[1];
+		d0[2] = b_pos[2] - a_pos[2];
 		d0[3] = bST[0] - aST[0];
 		d0[4] = bST[1] - aST[1];
 		
 		float d1[5];
-		d1[0] = c->xyz[0] - a->xyz[0];
-		d1[1] = c->xyz[1] - a->xyz[1];
-		d1[2] = c->xyz[2] - a->xyz[2];
+		d1[0] = c_pos[0] - a_pos[0];
+		d1[1] = c_pos[1] - a_pos[1];
+		d1[2] = c_pos[2] - a_pos[2];
 		d1[3] = cST[0] - aST[0];
 		d1[4] = cST[1] - aST[1];
 		
@@ -1371,33 +1380,33 @@ static void R_DeriveTangentsWithoutNormals( idTriangles* tri )
 #endif
 	}
 	
-	idTempArray< idVec3 > vertexTangents( tri->numVerts );
-	idTempArray< idVec3 > vertexBitangents( tri->numVerts );
+	idTempArray< idVec3 > vertexTangents( this->numVerts );
+	idTempArray< idVec3 > vertexBitangents( this->numVerts );
 	
 	// clear the tangents
-	for( int i = 0; i < tri->numVerts; ++i )
+	for( int i = 0; i < this->numVerts; ++i )
 	{
 		vertexTangents[i].Zero();
 		vertexBitangents[i].Zero();
 	}
 	
 	// sum up the neighbors
-	for( int i = 0; i < tri->numIndexes; i += 3 )
+	for( int i = 0; i < this->numIndexes; i += 3 )
 	{
 		// for each vertex on this face
 		for( int j = 0; j < 3; j++ )
 		{
-			vertexTangents[tri->indexes[i + j]] += triangleTangents[i / 3];
-			vertexBitangents[tri->indexes[i + j]] += triangleBitangents[i / 3];
+			vertexTangents[this->indexes[i + j]] += triangleTangents[i / 3];
+			vertexBitangents[this->indexes[i + j]] += triangleBitangents[i / 3];
 		}
 	}
 	
 	// Project the summed vectors onto the normal plane and normalize.
 	// The tangent vectors will not necessarily be orthogonal to each
 	// other, but they will be orthogonal to the surface normal.
-	for( int i = 0; i < tri->numVerts; i++ )
+	for( int i = 0; i < this->numVerts; ++i )
 	{
-		idVec3 normal = tri->verts[i].GetNormal();
+		idVec3 normal = this->verts[i].GetNormal();
 		normal.Normalize();
 		
 		vertexTangents[i] -= ( vertexTangents[i] * normal ) * normal;
@@ -1407,13 +1416,13 @@ static void R_DeriveTangentsWithoutNormals( idTriangles* tri )
 		vertexBitangents[i].Normalize();
 	}
 	
-	for( int i = 0; i < tri->numVerts; i++ )
+	for( int i = 0; i < this->numVerts; ++i )
 	{
-		tri->verts[i].SetTangent( vertexTangents[i] );
-		tri->verts[i].SetBiTangent( vertexBitangents[i] );
+		this->verts[i].SetTangent( vertexTangents[i] );
+		this->verts[i].SetBiTangent( vertexBitangents[i] );
 	}
 	
-	tri->tangentsCalculated = true;
+	this->tangentsCalculated = true;
 }
 
 /*
@@ -1442,61 +1451,65 @@ static int IndexSort( const void* a, const void* b )
 	return 0;
 }
 
-static void R_BuildDominantTris( idTriangles* tri )
+void idTriangles::BuildDominantTris()
 {
 	int i, j;
 
-	idTempArray<indexSort_t> ind( tri->numIndexes );
+	idTempArray<indexSort_t> ind( this->numIndexes );
 	if( ind.Ptr() == NULL )
 	{
 		idLib::Error( "Couldn't allocate index sort array" );
 		return;
 	}
 	
-	for( i = 0; i < tri->numIndexes; ++i )
+	for( i = 0; i < this->numIndexes; ++i )
 	{
-		ind[i].vertexNum = tri->indexes[i];
+		ind[i].vertexNum = this->indexes[i];
 		ind[i].faceNum = i / 3;
 	}
-	qsort( ind.Ptr(), tri->numIndexes, sizeof( indexSort_t ), IndexSort );
+	qsort( ind.Ptr(), this->numIndexes, sizeof( indexSort_t ), IndexSort );
 	
-	tri->AllocStaticDominantTris( tri->numVerts );
-	dominantTri_t * dt = tri->dominantTris;
-	memset( dt, 0, tri->numVerts * sizeof( dt[0] ) );
+	this->AllocStaticDominantTris( this->numVerts );
+	dominantTri_t * dt = this->dominantTris;
+	memset( dt, 0, this->numVerts * sizeof( dt[0] ) );
 	
-	for( i = 0; i < tri->numIndexes; i += j )
+	for( i = 0; i < this->numIndexes; i += j )
 	{
 		float	maxArea = 0;
 #pragma warning( disable: 6385 ) // This is simply to get pass a false defect for /analyze -- if you can figure out a better way, please let Shawn know...
 		int		vertNum = ind[i].vertexNum;
 #pragma warning( default: 6385 )
-		for( j = 0; i + j < tri->numIndexes && ind[i + j].vertexNum == vertNum; ++j )
+		for( j = 0; i + j < this->numIndexes && ind[i + j].vertexNum == vertNum; ++j )
 		{
-			float		d0[5], d1[5];
+			float	d0[5], d1[5];
 			idDrawVert*	a, *b, *c;
-			idVec3		normal, tangent, bitangent;
+			idVec3	normal, tangent, bitangent;
 			
-			int	i1 = tri->indexes[ind[i + j].faceNum * 3 + 0];
-			int	i2 = tri->indexes[ind[i + j].faceNum * 3 + 1];
-			int	i3 = tri->indexes[ind[i + j].faceNum * 3 + 2];
+			int	i1 = this->indexes[ ind[ i + j ].faceNum * 3 + 0 ];
+			int	i2 = this->indexes[ ind[ i + j ].faceNum * 3 + 1 ];
+			int	i3 = this->indexes[ ind[ i + j ].faceNum * 3 + 2 ];
 			
-			a = tri->verts + i1;
-			b = tri->verts + i2;
-			c = tri->verts + i3;
+			a = this->verts + i1;
+			b = this->verts + i2;
+			c = this->verts + i3;
 			
 			const idVec2 aST = a->GetTexCoord();
 			const idVec2 bST = b->GetTexCoord();
 			const idVec2 cST = c->GetTexCoord();
+
+			const idVec3 & a_pos = a->GetPosition();
+			const idVec3 & b_pos = b->GetPosition();
+			const idVec3 & c_pos = c->GetPosition();
 			
-			d0[0] = b->xyz[0] - a->xyz[0];
-			d0[1] = b->xyz[1] - a->xyz[1];
-			d0[2] = b->xyz[2] - a->xyz[2];
+			d0[0] = b_pos[0] - a_pos[0];
+			d0[1] = b_pos[1] - a_pos[1];
+			d0[2] = b_pos[2] - a_pos[2];
 			d0[3] = bST[0] - aST[0];
 			d0[4] = bST[1] - aST[1];
 			
-			d1[0] = c->xyz[0] - a->xyz[0];
-			d1[1] = c->xyz[1] - a->xyz[1];
-			d1[2] = c->xyz[2] - a->xyz[2];
+			d1[0] = c_pos[0] - a_pos[0];
+			d1[1] = c_pos[1] - a_pos[1];
+			d1[2] = c_pos[2] - a_pos[2];
 			d1[3] = cST[0] - aST[0];
 			d1[4] = cST[1] - aST[1];
 			
@@ -1586,11 +1599,11 @@ void idTriangles::DeriveTangents()
 	
 	if( this->dominantTris != NULL )
 	{
-		R_DeriveUnsmoothedNormalsAndTangents( this );
+		DeriveUnsmoothedNormalsAndTangents();
 	}
 	else
 	{
-		R_DeriveNormalsAndTangents( this );
+		DeriveNormalsAndTangents();
 	}
 	this->tangentsCalculated = true;
 }
@@ -1890,24 +1903,24 @@ void idTriangles::CleanupTriangles( bool createNormals, bool identifySilEdges, b
 
 	if( identifySilEdges )
 	{
-		R_IdentifySilEdges( this, true );	// assume it is non-deformable, and omit coplanar edges
+		IdentifySilEdges( true );	// assume it is non-deformable, and omit coplanar edges
 	}
 	
 	// bust vertexes that share a mirrored edge into separate vertexes
-	R_DuplicateMirroredVertexes( this );
+	DuplicateMirroredVertexes();
 	
-	R_CreateDupVerts( this );
+	CreateDupVerts();
 	
 	this->DeriveBounds();
 	
 	if( useUnsmoothedTangents )
 	{
-		R_BuildDominantTris( this );
+		BuildDominantTris();
 		this->DeriveTangents();
 	}
 	else if( !createNormals )
 	{
-		R_DeriveTangentsWithoutNormals( this );
+		DeriveTangentsWithoutNormals();
 	}
 	else
 	{
@@ -1928,7 +1941,7 @@ void idTriangles::CleanupTriangles( bool createNormals, bool identifySilEdges, b
  R_BuildDeformInfo
 ===================
 */
-deformInfo_t* R_BuildDeformInfo( int numVerts, const idDrawVert* verts, int numIndexes, const int* indexes, bool useUnsmoothedTangents )
+deformInfo_t* idTriangles::BuildDeformInfo( int numVerts, const idDrawVert* verts, int numIndexes, const int* indexes, bool useUnsmoothedTangents )
 {
 	idTriangles	tri;
 	tri.Clear();
@@ -1948,12 +1961,12 @@ deformInfo_t* R_BuildDeformInfo( int numVerts, const idDrawVert* verts, int numI
 	
 	tri.RangeCheckIndexes();
 	tri.CreateSilIndexes();
-	R_IdentifySilEdges( &tri, false );			// we cannot remove coplanar edges, because they can deform to silhouettes
-	R_DuplicateMirroredVertexes( &tri );		// split mirror points into multiple points
-	R_CreateDupVerts( &tri );
+	tri.IdentifySilEdges( false );			// we cannot remove coplanar edges, because they can deform to silhouettes
+	tri.DuplicateMirroredVertexes();		// split mirror points into multiple points
+	tri.CreateDupVerts();
 	if( useUnsmoothedTangents )
 	{
-		R_BuildDominantTris( &tri );
+		tri.BuildDominantTris();
 	}
 	tri.DeriveTangents();
 	
@@ -1964,35 +1977,42 @@ deformInfo_t* R_BuildDeformInfo( int numVerts, const idDrawVert* verts, int numI
 	deform->verts = tri.verts;
 	
 	deform->numIndexes = numIndexes;
-	deform->indexes = tri.indexes;
+	deform->indexes = tri.indexes;	
 	
-	deform->silIndexes = tri.silIndexes;
-	
-	deform->numSilEdges = tri.numSilEdges;
-	deform->silEdges = tri.silEdges;
-	
+	deform->silIndexes = tri.silIndexes;		
 	deform->numMirroredVerts = tri.numMirroredVerts;
-	deform->mirroredVerts = tri.mirroredVerts;
-	
+	deform->mirroredVerts = tri.mirroredVerts;	
 	deform->numDupVerts = tri.numDupVerts;
 	deform->dupVerts = tri.dupVerts;
+	deform->numSilEdges = tri.numSilEdges;
+	deform->silEdges = tri.silEdges;
 	
 	if( tri.dominantTris != NULL )
 	{
 		Mem_Free( tri.dominantTris );
 		tri.dominantTris = NULL;
 	}
-	
-	idShadowVertSkinned* shadowVerts = ( idShadowVertSkinned* ) Mem_Alloc16( ALIGN( deform->numOutputVerts * 2 * sizeof( idShadowVertSkinned ), 16 ), TAG_MODEL );
-	idShadowVertSkinned::CreateShadowCache( shadowVerts, deform->verts, deform->numOutputVerts );
-	
-	deform->staticAmbientCache = vertexCache.AllocStaticVertex( deform->verts, ALIGN( deform->numOutputVerts * sizeof( idDrawVert ), VERTEX_CACHE_ALIGN ) );
-	deform->staticIndexCache = vertexCache.AllocStaticIndex( deform->indexes, ALIGN( deform->numIndexes * sizeof( triIndex_t ), INDEX_CACHE_ALIGN ) );
-	deform->staticShadowCache = vertexCache.AllocStaticVertex( shadowVerts, ALIGN( deform->numOutputVerts * 2 * sizeof( idShadowVertSkinned ), VERTEX_CACHE_ALIGN ) );
-	
-	Mem_Free( shadowVerts );
-	
+
+	deform->CreateStaticCache();
+
 	return deform;
+}
+
+/*
+===================
+ R_CreateDeformInfoStaticCache
+===================
+*/
+void deformInfo_t::CreateStaticCache()
+{
+	idShadowVertSkinned* shadowVerts = ( idShadowVertSkinned* )Mem_Alloc16( ALIGN( numOutputVerts * 2 * sizeof( idShadowVertSkinned ), 16 ), TAG_MODEL );
+	idShadowVertSkinned::CreateShadowCache( shadowVerts, verts, numOutputVerts );
+
+	staticAmbientCache = vertexCache.AllocStaticVertex( verts, ALIGN( numOutputVerts * sizeof( idDrawVert ), VERTEX_CACHE_ALIGN ) );
+	staticIndexCache = vertexCache.AllocStaticIndex( indexes, ALIGN( numIndexes * sizeof( triIndex_t ), INDEX_CACHE_ALIGN ) );
+	staticShadowCache = vertexCache.AllocStaticVertex( shadowVerts, ALIGN( numOutputVerts * 2 * sizeof( idShadowVertSkinned ), VERTEX_CACHE_ALIGN ) );
+
+	Mem_Free( shadowVerts );
 }
 
 /*
@@ -2000,33 +2020,38 @@ deformInfo_t* R_BuildDeformInfo( int numVerts, const idDrawVert* verts, int numI
  R_FreeDeformInfo
 ===================
 */
-void R_FreeDeformInfo( deformInfo_t* deformInfo )
+void deformInfo_t::Free()
 {
-	if( deformInfo->verts != NULL )
+	if( verts != NULL )
 	{
-		Mem_Free( deformInfo->verts );
+		Mem_Free( verts );
+		verts = NULL;
 	}
-	if( deformInfo->indexes != NULL )
+	if( indexes != NULL )
 	{
-		Mem_Free( deformInfo->indexes );
+		Mem_Free( indexes );
+		indexes = NULL;
 	}
-	if( deformInfo->silIndexes != NULL )
+	if( silIndexes != NULL )
 	{
-		Mem_Free( deformInfo->silIndexes );
+		Mem_Free( silIndexes );
+		silIndexes = NULL;
 	}
-	if( deformInfo->silEdges != NULL )
+	if( silEdges != NULL )
 	{
-		Mem_Free( deformInfo->silEdges );
+		Mem_Free( silEdges );
+		silEdges = NULL;
 	}
-	if( deformInfo->mirroredVerts != NULL )
+	if( mirroredVerts != NULL )
 	{
-		Mem_Free( deformInfo->mirroredVerts );
+		Mem_Free( mirroredVerts );
+		mirroredVerts = NULL;
 	}
-	if( deformInfo->dupVerts != NULL )
+	if( dupVerts != NULL )
 	{
-		Mem_Free( deformInfo->dupVerts );
+		Mem_Free( dupVerts );
+		dupVerts = NULL;
 	}
-	allocManager.StaticFree( deformInfo );
 }
 
 /*
@@ -2034,36 +2059,36 @@ void R_FreeDeformInfo( deformInfo_t* deformInfo )
  R_DeformInfoMemoryUsed
 ===================
 */
-int R_DeformInfoMemoryUsed( deformInfo_t* deformInfo )
+size_t deformInfo_t::CPUMemoryUsed()
 {
-	int total = 0;
+	size_t total = 0;
 	
-	if( deformInfo->verts != NULL )
+	if( verts != NULL )
 	{
-		total += deformInfo->numOutputVerts * sizeof( deformInfo->verts[0] );
+		total += numOutputVerts * sizeof( verts[0] );
 	}
-	if( deformInfo->indexes != NULL )
+	if( indexes != NULL )
 	{
-		total += deformInfo->numIndexes * sizeof( deformInfo->indexes[0] );
+		total += numIndexes * sizeof( indexes[0] );
 	}
-	if( deformInfo->mirroredVerts != NULL )
+	if( mirroredVerts != NULL )
 	{
-		total += deformInfo->numMirroredVerts * sizeof( deformInfo->mirroredVerts[0] );
+		total += numMirroredVerts * sizeof( mirroredVerts[0] );
 	}
-	if( deformInfo->dupVerts != NULL )
+	if( dupVerts != NULL )
 	{
-		total += deformInfo->numDupVerts * sizeof( deformInfo->dupVerts[0] );
+		total += numDupVerts * sizeof( dupVerts[0] );
 	}
-	if( deformInfo->silIndexes != NULL )
+	if( silIndexes != NULL )
 	{
-		total += deformInfo->numIndexes * sizeof( deformInfo->silIndexes[0] );
+		total += numIndexes * sizeof( silIndexes[0] );
 	}
-	if( deformInfo->silEdges != NULL )
+	if( silEdges != NULL )
 	{
-		total += deformInfo->numSilEdges * sizeof( deformInfo->silEdges[0] );
+		total += numSilEdges * sizeof( silEdges[0] );
 	}
 	
-	total += sizeof( *deformInfo );
+	total += sizeof( *this );
 	return total;
 }
 
@@ -2418,19 +2443,19 @@ void idTriangles::WriteToFile( idFile *file ) const
 void idTriangles::AddCubeFace( const idVec3& v1, const idVec3& v2, const idVec3& v3, const idVec3& v4 )
 {
 	this->verts[ this->numVerts + 0 ].Clear();
-	this->verts[ this->numVerts + 0 ].xyz = v1 * 8;
+	this->verts[ this->numVerts + 0 ].SetPosition( v1 * 8 );
 	this->verts[ this->numVerts + 0 ].SetTexCoord( 0, 0 );
 
 	this->verts[ this->numVerts + 1 ].Clear();
-	this->verts[ this->numVerts + 1 ].xyz = v2 * 8;
+	this->verts[ this->numVerts + 1 ].SetPosition( v2 * 8 );
 	this->verts[ this->numVerts + 1 ].SetTexCoord( 1, 0 );
 
 	this->verts[ this->numVerts + 2 ].Clear();
-	this->verts[ this->numVerts + 2 ].xyz = v3 * 8;
+	this->verts[ this->numVerts + 2 ].SetPosition( v3 * 8 );
 	this->verts[ this->numVerts + 2 ].SetTexCoord( 1, 1 );
 
 	this->verts[ this->numVerts + 3 ].Clear();
-	this->verts[ this->numVerts + 3 ].xyz = v4 * 8;
+	this->verts[ this->numVerts + 3 ].SetPosition( v4 * 8 );
 	this->verts[ this->numVerts + 3 ].SetTexCoord( 0, 1 );
 
 	this->indexes[ this->numIndexes + 0 ] = this->numVerts + 0;
@@ -2505,7 +2530,7 @@ idTriangles * idTriangles::CreateTrianglesForPolytope( int numPlanes, const idPl
 		for( int j = 0; j < w.GetNumPoints(); ++j )
 		{
 			tri->verts[ tri->numVerts + j ].Clear();
-			tri->verts[ tri->numVerts + j ].xyz = w[ j ].ToVec3();
+			tri->verts[ tri->numVerts + j ].SetPosition( w[ j ].ToVec3() );
 		}
 
 		for( int j = 1; j < w.GetNumPoints() - 1; ++j )

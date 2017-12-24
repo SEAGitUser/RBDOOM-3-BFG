@@ -174,7 +174,7 @@ void idSurface_SweptSpline::Tessellate( const int splineSubdivisions, const int 
 		t = totalTime * i / sweptSplineDiv;
 		splinePos = sweptSpline->GetCurrentValue( t );
 		splineD1 = sweptSpline->GetCurrentFirstDerivative( t );
-		verts[baseOffset + i].xyz = splinePos.ToVec3();
+		verts[baseOffset + i].SetPosition( splinePos.ToVec3() );
 		verts[baseOffset + i].SetTexCoordS( splinePos.w );
 		verts[baseOffset + i].SetTangent( splineD1.ToVec3() );
 	}
@@ -197,7 +197,7 @@ void idSurface_SweptSpline::Tessellate( const int splineSubdivisions, const int 
 		for( j = 0; j < sweptSplineSubdivisions; j++ )
 		{
 			idDrawVert* v = &verts[offset + j];
-			v->xyz = splinePos.ToVec3() + verts[baseOffset + j].xyz * splineMat;
+			v->SetPosition( splinePos.ToVec3() + verts[baseOffset + j].GetPosition() * splineMat );
 			v->SetTexCoord( verts[baseOffset + j].GetTexCoord().x, splinePos.w );
 			v->SetTangent( verts[baseOffset + j].GetTangent() * splineMat );
 			v->SetBiTangent( splineD1.ToVec3() );

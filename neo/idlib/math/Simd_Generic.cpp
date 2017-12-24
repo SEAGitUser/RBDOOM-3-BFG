@@ -110,7 +110,7 @@ void VPCALL idSIMD_Generic::MinMax( idVec3& min, idVec3& max, const idDrawVert* 
 {
 	min[0] = min[1] = min[2] = idMath::INFINITY;
 	max[0] = max[1] = max[2] = -idMath::INFINITY;
-#define OPER(X) const idVec3 &v = src[(X)].xyz; if ( v[0] < min[0] ) { min[0] = v[0]; } if ( v[0] > max[0] ) { max[0] = v[0]; } if ( v[1] < min[1] ) { min[1] = v[1]; } if ( v[1] > max[1] ) { max[1] = v[1]; } if ( v[2] < min[2] ) { min[2] = v[2]; } if ( v[2] > max[2] ) { max[2] = v[2]; }
+#define OPER(X) const idVec3 &v = src[(X)].GetPosition(); if ( v[0] < min[0] ) { min[0] = v[0]; } if ( v[0] > max[0] ) { max[0] = v[0]; } if ( v[1] < min[1] ) { min[1] = v[1]; } if ( v[1] > max[1] ) { max[1] = v[1]; } if ( v[2] < min[2] ) { min[2] = v[2]; } if ( v[2] > max[2] ) { max[2] = v[2]; }
 	UNROLL1( OPER )
 #undef OPER
 }
@@ -124,7 +124,7 @@ void VPCALL idSIMD_Generic::MinMax( idVec3& min, idVec3& max, const idDrawVert* 
 {
 	min[0] = min[1] = min[2] = idMath::INFINITY;
 	max[0] = max[1] = max[2] = -idMath::INFINITY;
-#define OPER(X) const idVec3 &v = src[indexes[(X)]].xyz; if ( v[0] < min[0] ) { min[0] = v[0]; } if ( v[0] > max[0] ) { max[0] = v[0]; } if ( v[1] < min[1] ) { min[1] = v[1]; } if ( v[1] > max[1] ) { max[1] = v[1]; } if ( v[2] < min[2] ) { min[2] = v[2]; } if ( v[2] > max[2] ) { max[2] = v[2]; }
+#define OPER(X) const idVec3 &v = src[indexes[(X)]].GetPosition(); if ( v[0] < min[0] ) { min[0] = v[0]; } if ( v[0] > max[0] ) { max[0] = v[0]; } if ( v[1] < min[1] ) { min[1] = v[1]; } if ( v[1] > max[1] ) { max[1] = v[1]; } if ( v[2] < min[2] ) { min[2] = v[2]; } if ( v[2] > max[2] ) { max[2] = v[2]; }
 	UNROLL1( OPER )
 #undef OPER
 }

@@ -631,7 +631,7 @@ void idSWF::RenderMorphShape( idRenderSystem* gui, const idSWFShape* shape, cons
 			continue;
 		}
 		
-		for( int j = 0; j < fill.startVerts.Num(); j++ )
+		for( int j = 0; j < fill.startVerts.Num(); ++j )
 		{
 			idVec2 xy = Lerp( fill.startVerts[j], fill.endVerts[j], renderState.ratio );
 			
@@ -643,8 +643,7 @@ void idSWF::RenderMorphShape( idRenderSystem* gui, const idSWFShape* shape, cons
 			ALIGNTYPE16 idDrawVert tempVert;
 			
 			tempVert.Clear();
-			tempVert.xyz.ToVec2() = renderState.matrix.Transform( xy ).Scale( scaleToVirtual );
-			tempVert.xyz.z = 0.0f;
+			tempVert.SetPosition( renderState.matrix.Transform( xy ).Scale( scaleToVirtual ), 0.0f );
 			tempVert.SetTexCoord( invMatrix.Transform( st ) + adjust );
 			tempVert.SetNativeOrderColor( packedColorM );
 			tempVert.SetNativeOrderColor2( packedColorA );
@@ -667,7 +666,7 @@ void idSWF::RenderShape( idRenderSystem* gui, const idSWFShape* shape, const swf
 		return;
 	}
 	
-	for( int i = 0; i < shape->fillDraws.Num(); i++ )
+	for( int i = 0; i < shape->fillDraws.Num(); ++i )
 	{
 		const idSWFShapeDrawFill& fill = shape->fillDraws[i];
 		const idMaterial* material = NULL;
@@ -775,8 +774,7 @@ void idSWF::RenderShape( idRenderSystem* gui, const idSWFShape* shape, const swf
 			idDrawVert& vert = tempVerts[j & 3];
 			
 			vert.Clear();
-			vert.xyz.ToVec2() = renderState.matrix.Transform( xy ).Scale( scaleToVirtual );
-			vert.xyz.z = 0.0f;
+			vert.SetPosition( renderState.matrix.Transform( xy ).Scale( scaleToVirtual ), 0.0f );
 			vert.SetNativeOrderColor( packedColorM );
 			vert.SetNativeOrderColor2( packedColorA );
 			
@@ -842,15 +840,14 @@ void idSWF::RenderShape( idRenderSystem* gui, const idSWFShape* shape, const swf
 				continue;
 			}
 			
-			for( int j = 0; j < line.startVerts.Num(); j++ )
+			for( int j = 0; j < line.startVerts.Num(); ++j )
 			{
-				const idVec2& xy = line.startVerts[j];
+				const idVec2 & xy = line.startVerts[j];
 				
 				ALIGNTYPE16 idDrawVert tempVert;
 				
 				tempVert.Clear();
-				tempVert.xyz.ToVec2() = renderState.matrix.Transform( xy ).Scale( scaleToVirtual );
-				tempVert.xyz.z = 0.0f;
+				tempVert.SetPosition( renderState.matrix.Transform( xy ).Scale( scaleToVirtual ), 0.0f );
 				tempVert.SetTexCoord( 0.0f, 0.0f );
 				tempVert.SetNativeOrderColor( packedColorM );
 				tempVert.SetNativeOrderColor2( packedColorA );
@@ -2107,33 +2104,25 @@ int idSWF::DrawText( idRenderSystem* gui, float x, float y, float scale, idVec4 
 			idDrawVert* verts = gui->AllocTris( 4, quadPicIndexes, 6, glyphInfo.material, STEREO_DEPTH_TYPE_NONE );
 			if( verts != NULL )
 			{
-				verts[0].xyz[0] = x1;
-				verts[0].xyz[1] = y1;
-				verts[0].xyz[2] = 0.0f;
-				verts[0].SetTexCoord( s, t );
-				verts[0].SetNativeOrderColor( currentColorNativeByteOrder );
-				verts[0].ClearColor2();
-				
-				verts[1].xyz[0] = x2;
-				verts[1].xyz[1] = y1;
-				verts[1].xyz[2] = 0.0f;
-				verts[1].SetTexCoord( s2, t );
-				verts[1].SetNativeOrderColor( currentColorNativeByteOrder );
-				verts[1].ClearColor2();
-				
-				verts[2].xyz[0] = x2;
-				verts[2].xyz[1] = y2;
-				verts[2].xyz[2] = 0.0f;
-				verts[2].SetTexCoord( s2, t2 );
-				verts[2].SetNativeOrderColor( currentColorNativeByteOrder );
-				verts[2].ClearColor2();
-				
-				verts[3].xyz[0] = x1;
-				verts[3].xyz[1] = y2;
-				verts[3].xyz[2] = 0.0f;
-				verts[3].SetTexCoord( s, t2 );
-				verts[3].SetNativeOrderColor( currentColorNativeByteOrder );
-				verts[3].ClearColor2();
+				verts[ 0 ].SetPosition( x1, y1, 0.0f );
+				verts[ 0 ].SetTexCoord( s, t );
+				verts[ 0 ].SetNativeOrderColor( currentColorNativeByteOrder );
+				verts[ 0 ].ClearColor2();
+
+				verts[ 1 ].SetPosition( x2, y1, 0.0f );
+				verts[ 1 ].SetTexCoord( s2, t );
+				verts[ 1 ].SetNativeOrderColor( currentColorNativeByteOrder );
+				verts[ 1 ].ClearColor2();
+
+				verts[ 2 ].SetPosition( x2, y2, 0.0f );
+				verts[ 2 ].SetTexCoord( s2, t2 );
+				verts[ 2 ].SetNativeOrderColor( currentColorNativeByteOrder );
+				verts[ 2 ].ClearColor2();
+
+				verts[ 3 ].SetPosition( x1, y2, 0.0f );
+				verts[ 3 ].SetTexCoord( s, t2 );
+				verts[ 3 ].SetNativeOrderColor( currentColorNativeByteOrder );
+				verts[ 3 ].ClearColor2();
 			}
 		}
 		

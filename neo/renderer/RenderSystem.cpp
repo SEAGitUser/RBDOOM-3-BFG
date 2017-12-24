@@ -413,33 +413,29 @@ void idRenderSystemLocal::DrawStretchPic( const idVec4& topLeft, const idVec4& t
 	
 	ALIGNTYPE16 idDrawVert localVerts[4];
 	
-	localVerts[0].Clear();
-	localVerts[0].xyz[0] = topLeft.x;
-	localVerts[0].xyz[1] = topLeft.y;
-	localVerts[0].SetTexCoord( topLeft.z, topLeft.w );
-	localVerts[0].SetNativeOrderColor( currentColorNativeBytesOrder );
-	localVerts[0].ClearColor2();
-	
-	localVerts[1].Clear();
-	localVerts[1].xyz[0] = topRight.x;
-	localVerts[1].xyz[1] = topRight.y;
-	localVerts[1].SetTexCoord( topRight.z, topRight.w );
-	localVerts[1].SetNativeOrderColor( currentColorNativeBytesOrder );
-	localVerts[1].ClearColor2();
-	
-	localVerts[2].Clear();
-	localVerts[2].xyz[0] = bottomRight.x;
-	localVerts[2].xyz[1] = bottomRight.y;
-	localVerts[2].SetTexCoord( bottomRight.z, bottomRight.w );
-	localVerts[2].SetNativeOrderColor( currentColorNativeBytesOrder );
-	localVerts[2].ClearColor2();
-	
-	localVerts[3].Clear();
-	localVerts[3].xyz[0] = bottomLeft.x;
-	localVerts[3].xyz[1] = bottomLeft.y;
-	localVerts[3].SetTexCoord( bottomLeft.z, bottomLeft.w );
-	localVerts[3].SetNativeOrderColor( currentColorNativeBytesOrder );
-	localVerts[3].ClearColor2();
+	localVerts[ 0 ].Clear();
+	localVerts[ 0 ].SetPosition( topLeft.x, topLeft.y, 0.0f );
+	localVerts[ 0 ].SetTexCoord( topLeft.z, topLeft.w );
+	localVerts[ 0 ].SetNativeOrderColor( currentColorNativeBytesOrder );
+	localVerts[ 0 ].ClearColor2();
+
+	localVerts[ 1 ].Clear();
+	localVerts[ 1 ].SetPosition( topRight.x, topRight.y, 0.0f );
+	localVerts[ 1 ].SetTexCoord( topRight.z, topRight.w );
+	localVerts[ 1 ].SetNativeOrderColor( currentColorNativeBytesOrder );
+	localVerts[ 1 ].ClearColor2();
+
+	localVerts[ 2 ].Clear();
+	localVerts[ 2 ].SetPosition( bottomRight.x, bottomRight.y, 0.0f );
+	localVerts[ 2 ].SetTexCoord( bottomRight.z, bottomRight.w );
+	localVerts[ 2 ].SetNativeOrderColor( currentColorNativeBytesOrder );
+	localVerts[ 2 ].ClearColor2();
+
+	localVerts[ 3 ].Clear();
+	localVerts[ 3 ].SetPosition( bottomLeft.x, bottomLeft.y, 0.0f );
+	localVerts[ 3 ].SetTexCoord( bottomLeft.z, bottomLeft.w );
+	localVerts[ 3 ].SetNativeOrderColor( currentColorNativeBytesOrder );
+	localVerts[ 3 ].ClearColor2();
 	
 	WriteDrawVerts16( verts, localVerts, 4 );
 }
@@ -470,26 +466,23 @@ void idRenderSystemLocal::DrawStretchTri( const idVec2& p1, const idVec2& p2, co
 	
 	ALIGNTYPE16 idDrawVert localVerts[3];
 	
-	localVerts[0].Clear();
-	localVerts[0].xyz[0] = p1.x;
-	localVerts[0].xyz[1] = p1.y;
-	localVerts[0].SetTexCoord( t1 );
-	localVerts[0].SetNativeOrderColor( currentColorNativeBytesOrder );
-	localVerts[0].ClearColor2();
-	
-	localVerts[1].Clear();
-	localVerts[1].xyz[0] = p2.x;
-	localVerts[1].xyz[1] = p2.y;
-	localVerts[1].SetTexCoord( t2 );
-	localVerts[1].SetNativeOrderColor( currentColorNativeBytesOrder );
-	localVerts[1].ClearColor2();
-	
-	localVerts[2].Clear();
-	localVerts[2].xyz[0] = p3.x;
-	localVerts[2].xyz[1] = p3.y;
-	localVerts[2].SetTexCoord( t3 );
-	localVerts[2].SetNativeOrderColor( currentColorNativeBytesOrder );
-	localVerts[2].ClearColor2();
+	localVerts[ 0 ].Clear();
+	localVerts[ 0 ].SetPosition( p1, 0.0f );
+	localVerts[ 0 ].SetTexCoord( t1 );
+	localVerts[ 0 ].SetNativeOrderColor( currentColorNativeBytesOrder );
+	localVerts[ 0 ].ClearColor2();
+
+	localVerts[ 1 ].Clear();
+	localVerts[ 1 ].SetPosition( p2, 0.0f );
+	localVerts[ 1 ].SetTexCoord( t2 );
+	localVerts[ 1 ].SetNativeOrderColor( currentColorNativeBytesOrder );
+	localVerts[ 1 ].ClearColor2();
+
+	localVerts[ 2 ].Clear();
+	localVerts[ 2 ].SetPosition( p3, 0.0f );
+	localVerts[ 2 ].SetTexCoord( t3 );
+	localVerts[ 2 ].SetNativeOrderColor( currentColorNativeBytesOrder );
+	localVerts[ 2 ].ClearColor2();
 	
 	WriteDrawVerts16( verts, localVerts, 3 );
 }

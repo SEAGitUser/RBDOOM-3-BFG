@@ -276,21 +276,21 @@ static int CalculateTriangleFacingCulledStatic( byte* __restrict facing, byte* _
 		
 		for( ; i <= batchEnd4x; i += 4 * 3, j += 4 )
 		{
-			const __m128 vertA0 = _mm_load_ps( indexedVertsODS[i + 0 * 3 + 0].xyz.ToFloatPtr() );
-			const __m128 vertA1 = _mm_load_ps( indexedVertsODS[i + 0 * 3 + 1].xyz.ToFloatPtr() );
-			const __m128 vertA2 = _mm_load_ps( indexedVertsODS[i + 0 * 3 + 2].xyz.ToFloatPtr() );
+			const __m128 vertA0 = _mm_load_ps( indexedVertsODS[i + 0 * 3 + 0].GetPosition().ToFloatPtr() );
+			const __m128 vertA1 = _mm_load_ps( indexedVertsODS[i + 0 * 3 + 1].GetPosition().ToFloatPtr() );
+			const __m128 vertA2 = _mm_load_ps( indexedVertsODS[i + 0 * 3 + 2].GetPosition().ToFloatPtr() );
 			
-			const __m128 vertB0 = _mm_load_ps( indexedVertsODS[i + 1 * 3 + 0].xyz.ToFloatPtr() );
-			const __m128 vertB1 = _mm_load_ps( indexedVertsODS[i + 1 * 3 + 1].xyz.ToFloatPtr() );
-			const __m128 vertB2 = _mm_load_ps( indexedVertsODS[i + 1 * 3 + 2].xyz.ToFloatPtr() );
+			const __m128 vertB0 = _mm_load_ps( indexedVertsODS[i + 1 * 3 + 0].GetPosition().ToFloatPtr() );
+			const __m128 vertB1 = _mm_load_ps( indexedVertsODS[i + 1 * 3 + 1].GetPosition().ToFloatPtr() );
+			const __m128 vertB2 = _mm_load_ps( indexedVertsODS[i + 1 * 3 + 2].GetPosition().ToFloatPtr() );
 			
-			const __m128 vertC0 = _mm_load_ps( indexedVertsODS[i + 2 * 3 + 0].xyz.ToFloatPtr() );
-			const __m128 vertC1 = _mm_load_ps( indexedVertsODS[i + 2 * 3 + 1].xyz.ToFloatPtr() );
-			const __m128 vertC2 = _mm_load_ps( indexedVertsODS[i + 2 * 3 + 2].xyz.ToFloatPtr() );
+			const __m128 vertC0 = _mm_load_ps( indexedVertsODS[i + 2 * 3 + 0].GetPosition().ToFloatPtr() );
+			const __m128 vertC1 = _mm_load_ps( indexedVertsODS[i + 2 * 3 + 1].GetPosition().ToFloatPtr() );
+			const __m128 vertC2 = _mm_load_ps( indexedVertsODS[i + 2 * 3 + 2].GetPosition().ToFloatPtr() );
 			
-			const __m128 vertD0 = _mm_load_ps( indexedVertsODS[i + 3 * 3 + 0].xyz.ToFloatPtr() );
-			const __m128 vertD1 = _mm_load_ps( indexedVertsODS[i + 3 * 3 + 1].xyz.ToFloatPtr() );
-			const __m128 vertD2 = _mm_load_ps( indexedVertsODS[i + 3 * 3 + 2].xyz.ToFloatPtr() );
+			const __m128 vertD0 = _mm_load_ps( indexedVertsODS[i + 3 * 3 + 0].GetPosition().ToFloatPtr() );
+			const __m128 vertD1 = _mm_load_ps( indexedVertsODS[i + 3 * 3 + 1].GetPosition().ToFloatPtr() );
+			const __m128 vertD2 = _mm_load_ps( indexedVertsODS[i + 3 * 3 + 2].GetPosition().ToFloatPtr() );
 			
 			const __m128 r0X = _mm_unpacklo_ps( vertA0, vertC0 );	// vertA0.x, vertC0.x, vertA0.z, vertC0.z
 			const __m128 r0Y = _mm_unpackhi_ps( vertA0, vertC0 );	// vertA0.y, vertC0.y, vertA0.w, vertC0.w
@@ -346,7 +346,8 @@ static int CalculateTriangleFacingCulledStatic( byte* __restrict facing, byte* _
 			{
 				if( !facing[n] )
 				{
-					if( R_LineIntersectsTriangleExpandedWithSphere( lineStart, lineEnd, lineDir, lineLength, radius, indexedVertsODS[k + 2].xyz, indexedVertsODS[k + 1].xyz, indexedVertsODS[k + 0].xyz ) )
+					if( R_LineIntersectsTriangleExpandedWithSphere( lineStart, lineEnd, lineDir, lineLength, radius, 
+						indexedVertsODS[k + 2].GetPosition(), indexedVertsODS[k + 1].GetPosition(), indexedVertsODS[k + 0].GetPosition() ) )
 					{
 						*insideShadowVolume = true;
 						insideShadowVolume = NULL;
@@ -379,9 +380,9 @@ static int CalculateTriangleFacingCulledStatic( byte* __restrict facing, byte* _
 	
 		for( ; i <= batchEnd - 3; i += 3, j++ )
 		{
-			const idVec3& v1 = indexedVertsODS[i + 0].xyz;
-			const idVec3& v2 = indexedVertsODS[i + 1].xyz;
-			const idVec3& v3 = indexedVertsODS[i + 2].xyz;
+			const idVec3& v1 = indexedVertsODS[i + 0].GetPosition();
+			const idVec3& v2 = indexedVertsODS[i + 1].GetPosition();
+			const idVec3& v3 = indexedVertsODS[i + 2].GetPosition();
 	
 			const byte triangleCulled = TriangleCulled_Generic( v1, v2, v3, lightProject );
 	
@@ -403,7 +404,8 @@ static int CalculateTriangleFacingCulledStatic( byte* __restrict facing, byte* _
 			{
 				if( !facing[n] )
 				{
-					if( R_LineIntersectsTriangleExpandedWithSphere( lineStart, lineEnd, lineDir, lineLength, radius, indexedVertsODS[k + 2].xyz, indexedVertsODS[k + 1].xyz, indexedVertsODS[k + 0].xyz ) )
+					if( R_LineIntersectsTriangleExpandedWithSphere( lineStart, lineEnd, lineDir, lineLength, radius, 
+						indexedVertsODS[k + 2].GetPosition(), indexedVertsODS[k + 1].GetPosition(), indexedVertsODS[k + 0].GetPosition() ) )
 					{
 						*insideShadowVolume = true;
 						insideShadowVolume = NULL;

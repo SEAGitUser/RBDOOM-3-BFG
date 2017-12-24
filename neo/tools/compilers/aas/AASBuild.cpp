@@ -457,9 +457,9 @@ idBrushList idAASBuild::AddBrushesForMapPatch( const idMapPatch* mapPatch, const
 	
 	validBrushes = 0;
 	
-	for( i = 0; i < mesh.GetWidth() - 1; i++ )
+	for( i = 0; i < mesh.GetWidth() - 1; ++i )
 	{
-		for( j = 0; j < mesh.GetHeight() - 1; j++ )
+		for( j = 0; j < mesh.GetHeight() - 1; ++j )
 		{
 		
 			v1 = j * mesh.GetWidth() + i;
@@ -467,21 +467,21 @@ idBrushList idAASBuild::AddBrushesForMapPatch( const idMapPatch* mapPatch, const
 			v3 = v1 + mesh.GetWidth() + 1;
 			v4 = v1 + mesh.GetWidth();
 			
-			d1 = mesh[v2].xyz - mesh[v1].xyz;
-			d2 = mesh[v3].xyz - mesh[v1].xyz;
+			d1 = mesh[v2].GetPosition() - mesh[v1].GetPosition();
+			d2 = mesh[v3].GetPosition() - mesh[v1].GetPosition();
 			plane.SetNormal( d1.Cross( d2 ) );
 			if( plane.Normalize() != 0.0f )
 			{
-				plane.FitThroughPoint( mesh[v1].xyz );
-				dot = plane.Distance( mesh[v4].xyz );
+				plane.FitThroughPoint( mesh[v1].GetPosition() );
+				dot = plane.Distance( mesh[v4].GetPosition() );
 				// if we can turn it into a quad
 				if( idMath::Fabs( dot ) < 0.1f )
 				{
 					w.Clear();
-					w += mesh[v1].xyz;
-					w += mesh[v2].xyz;
-					w += mesh[v3].xyz;
-					w += mesh[v4].xyz;
+					w += mesh[v1].GetPosition();
+					w += mesh[v2].GetPosition();
+					w += mesh[v3].GetPosition();
+					w += mesh[v4].GetPosition();
 					
 					brush = new idBrush();
 					brush->SetContents( contents );
@@ -504,9 +504,9 @@ idBrushList idAASBuild::AddBrushesForMapPatch( const idMapPatch* mapPatch, const
 				{
 					// create one of the triangles
 					w.Clear();
-					w += mesh[v1].xyz;
-					w += mesh[v2].xyz;
-					w += mesh[v3].xyz;
+					w += mesh[v1].GetPosition();
+					w += mesh[v2].GetPosition();
+					w += mesh[v3].GetPosition();
 					
 					brush = new idBrush();
 					brush->SetContents( contents );
@@ -526,17 +526,17 @@ idBrushList idAASBuild::AddBrushesForMapPatch( const idMapPatch* mapPatch, const
 				}
 			}
 			// create the other triangle
-			d1 = mesh[v3].xyz - mesh[v1].xyz;
-			d2 = mesh[v4].xyz - mesh[v1].xyz;
+			d1 = mesh[v3].GetPosition() - mesh[v1].GetPosition();
+			d2 = mesh[v4].GetPosition() - mesh[v1].GetPosition();
 			plane.SetNormal( d1.Cross( d2 ) );
 			if( plane.Normalize() != 0.0f )
 			{
-				plane.FitThroughPoint( mesh[v1].xyz );
+				plane.FitThroughPoint( mesh[v1].GetPosition() );
 				
 				w.Clear();
-				w += mesh[v1].xyz;
-				w += mesh[v3].xyz;
-				w += mesh[v4].xyz;
+				w += mesh[v1].GetPosition();
+				w += mesh[v3].GetPosition();
+				w += mesh[v4].GetPosition();
 				
 				brush = new idBrush();
 				brush->SetContents( contents );

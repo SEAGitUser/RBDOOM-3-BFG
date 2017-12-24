@@ -502,9 +502,9 @@ bspface_t*	MakeStructuralBspFaceList( primitive_t* list )
 				
 				//w = new idWinding( 3 );
 				//w->SetNumPoints( 3 );
-				//( *w )[0] = idVec5( tri->v[0].xyz, tri->v[0].GetTexCoord() );
-				//( *w )[1] = idVec5( tri->v[1].xyz, tri->v[1].GetTexCoord() );
-				//( *w )[2] = idVec5( tri->v[2].xyz, tri->v[2].GetTexCoord() );
+				//( *w )[0] = idVec5( tri->v[0].GetPosition(), tri->v[0].GetTexCoord() );
+				//( *w )[1] = idVec5( tri->v[1].GetPosition(), tri->v[1].GetTexCoord() );
+				//( *w )[2] = idVec5( tri->v[2].GetPosition(), tri->v[2].GetTexCoord() );
 				
 				w = WindingForTri( tri );
 				//w->ReverseSelf();

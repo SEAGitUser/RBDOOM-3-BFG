@@ -286,17 +286,15 @@ void idDeviceContext::DrawWinding( idWinding& w, const idMaterial* mat )
 	}
 	uint32 currentColor = renderSystem->GetColor();
 	
-	for( int j = 0 ; j < w.GetNumPoints() ; j++ )
+	for( int j = 0 ; j < w.GetNumPoints() ; ++j )
 	{
-		verts[j].xyz.x = xOffset + w[j].x * xScale;
-		verts[j].xyz.y = yOffset + w[j].y * yScale;
-		verts[j].xyz.z = w[j].z;
-		verts[j].SetTexCoord( w[j].s, w[j].t );
-		verts[j].SetColor( currentColor );
-		verts[j].ClearColor2();
-		verts[j].SetNormal( 0.0f, 0.0f, 1.0f );
-		verts[j].SetTangent( 1.0f, 0.0f, 0.0f );
-		verts[j].SetBiTangent( 0.0f, 1.0f, 0.0f );
+		verts[ j ].SetPosition( xOffset + w[ j ].x * xScale, yOffset + w[ j ].y * yScale, w[ j ].z );
+		verts[ j ].SetTexCoord( w[ j ].s, w[ j ].t );
+		verts[ j ].SetColor( currentColor );
+		verts[ j ].ClearColor2();
+		verts[ j ].SetNormal( 0.0f, 0.0f, 1.0f );
+		verts[ j ].SetTangent( 1.0f, 0.0f, 0.0f );
+		verts[ j ].SetBiTangent( 0.0f, 1.0f, 0.0f );
 	}
 }
 
@@ -1248,33 +1246,25 @@ int idDeviceContextOptimized::DrawText( float x, float y, float scale, idVec4 co
 			idDrawVert* verts = tr_guiModel->AllocTris( 4, quadPicIndexes, 6, glyphInfo.material, 0, STEREO_DEPTH_TYPE_NONE );
 			if( verts != NULL )
 			{
-				verts[0].xyz[0] = x1;
-				verts[0].xyz[1] = y1;
-				verts[0].xyz[2] = 0.0f;
-				verts[0].SetTexCoord( s, t );
-				verts[0].SetNativeOrderColor( currentColorNativeByteOrder );
-				verts[0].ClearColor2();
+				verts[ 0 ].SetPosition( x1, y1, 0.0f );
+				verts[ 0 ].SetTexCoord( s, t );
+				verts[ 0 ].SetNativeOrderColor( currentColorNativeByteOrder );
+				verts[ 0 ].ClearColor2();
+
+				verts[ 1 ].SetPosition( x2, y1, 0.0f );
+				verts[ 1 ].SetTexCoord( s2, t );
+				verts[ 1 ].SetNativeOrderColor( currentColorNativeByteOrder );
+				verts[ 1 ].ClearColor2();
+
+				verts[ 2 ].SetPosition( x2, y2, 0.0f );
+				verts[ 2 ].SetTexCoord( s2, t2 );
+				verts[ 2 ].SetNativeOrderColor( currentColorNativeByteOrder );
+				verts[ 2 ].ClearColor2();
 				
-				verts[1].xyz[0] = x2;
-				verts[1].xyz[1] = y1;
-				verts[1].xyz[2] = 0.0f;
-				verts[1].SetTexCoord( s2, t );
-				verts[1].SetNativeOrderColor( currentColorNativeByteOrder );
-				verts[1].ClearColor2();
-				
-				verts[2].xyz[0] = x2;
-				verts[2].xyz[1] = y2;
-				verts[2].xyz[2] = 0.0f;
-				verts[2].SetTexCoord( s2, t2 );
-				verts[2].SetNativeOrderColor( currentColorNativeByteOrder );
-				verts[2].ClearColor2();
-				
-				verts[3].xyz[0] = x1;
-				verts[3].xyz[1] = y2;
-				verts[3].xyz[2] = 0.0f;
-				verts[3].SetTexCoord( s, t2 );
-				verts[3].SetNativeOrderColor( currentColorNativeByteOrder );
-				verts[3].ClearColor2();
+				verts[ 3 ].SetPosition( x1, y2, 0.0f );
+				verts[ 3 ].SetTexCoord( s, t2 );
+				verts[ 3 ].SetNativeOrderColor( currentColorNativeByteOrder );
+				verts[ 3 ].ClearColor2();
 			}
 		}
 		

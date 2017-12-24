@@ -1148,7 +1148,7 @@ static void FindInterAreaPortals_r( node_t* node )
 			
 			for( int k = 0; k < 3; k++ )
 			{
-				iap->w.AddToConvexHull( tri->v[k].xyz, planeNormal );
+				iap->w.AddToConvexHull( tri->v[k].GetPosition(), planeNormal );
 			}
 		}
 		

@@ -66,24 +66,24 @@ void idSurface_Polytope::FromPlanes( const idPlane* planes, const int numPlanes 
 			continue;
 		}
 		
-		for( j = 0; j < w.GetNumPoints(); j++ )
+		for( j = 0; j < w.GetNumPoints(); ++j )
 		{
-			for( k = 0; k < verts.Num(); k++ )
+			for( k = 0; k < verts.Num(); ++k )
 			{
-				if( verts[k].xyz.Compare( w[j].ToVec3(), POLYTOPE_VERTEX_EPSILON ) )
+				if( verts[k].GetPosition().Compare( w[j].ToVec3(), POLYTOPE_VERTEX_EPSILON ) )
 				{
 					break;
 				}
 			}
 			if( k >= verts.Num() )
 			{
-				newVert.xyz = w[j].ToVec3();
+				newVert.SetPosition( w[j].ToVec3() );
 				k = verts.Append( newVert );
 			}
 			windingVerts[j] = k;
 		}
 		
-		for( j = 2; j < w.GetNumPoints(); j++ )
+		for( j = 2; j < w.GetNumPoints(); ++j )
 		{
 			indexes.Append( windingVerts[0] );
 			indexes.Append( windingVerts[j - 1] );
@@ -112,10 +112,10 @@ void idSurface_Polytope::SetupTetrahedron( const idBounds& bounds )
 	scale = bounds[1] - center;
 	
 	verts.SetNum( 4 );
-	verts[0].xyz = center + idVec3( 0.0f, 0.0f, scale.z );
-	verts[1].xyz = center + idVec3( 2.0f * c1 * scale.x, 0.0f, c3 * scale.z );
-	verts[2].xyz = center + idVec3( -c1 * scale.x, c2 * scale.y, c3 * scale.z );
-	verts[3].xyz = center + idVec3( -c1 * scale.x, -c2 * scale.y, c3 * scale.z );
+	verts[0].SetPosition( center + idVec3( 0.0f, 0.0f, scale.z ) );
+	verts[1].SetPosition( center + idVec3( 2.0f * c1 * scale.x, 0.0f, c3 * scale.z ) );
+	verts[2].SetPosition( center + idVec3( -c1 * scale.x, c2 * scale.y, c3 * scale.z ) );
+	verts[3].SetPosition( center + idVec3( -c1 * scale.x, -c2 * scale.y, c3 * scale.z ) );
 	
 	indexes.SetNum( 4 * 3 );
 	indexes[0 * 3 + 0] = 0;
@@ -147,14 +147,14 @@ void idSurface_Polytope::SetupHexahedron( const idBounds& bounds )
 	scale = bounds[1] - center;
 	
 	verts.SetNum( 8 );
-	verts[0].xyz = center + idVec3( -scale.x, -scale.y, -scale.z );
-	verts[1].xyz = center + idVec3( scale.x, -scale.y, -scale.z );
-	verts[2].xyz = center + idVec3( scale.x,  scale.y, -scale.z );
-	verts[3].xyz = center + idVec3( -scale.x,  scale.y, -scale.z );
-	verts[4].xyz = center + idVec3( -scale.x, -scale.y,  scale.z );
-	verts[5].xyz = center + idVec3( scale.x, -scale.y,  scale.z );
-	verts[6].xyz = center + idVec3( scale.x,  scale.y,  scale.z );
-	verts[7].xyz = center + idVec3( -scale.x,  scale.y,  scale.z );
+	verts[0].SetPosition( center + idVec3( -scale.x, -scale.y, -scale.z ) );
+	verts[1].SetPosition( center + idVec3( scale.x, -scale.y, -scale.z ) );
+	verts[2].SetPosition( center + idVec3( scale.x,  scale.y, -scale.z ) );
+	verts[3].SetPosition( center + idVec3( -scale.x,  scale.y, -scale.z ) );
+	verts[4].SetPosition( center + idVec3( -scale.x, -scale.y,  scale.z ) );
+	verts[5].SetPosition( center + idVec3( scale.x, -scale.y,  scale.z ) );
+	verts[6].SetPosition( center + idVec3( scale.x,  scale.y,  scale.z ) );
+	verts[7].SetPosition( center + idVec3( -scale.x,  scale.y,  scale.z ) );
 	
 	indexes.SetNum( 12 * 3 );
 	indexes[ 0 * 3 + 0] = 0;
@@ -210,12 +210,12 @@ void idSurface_Polytope::SetupOctahedron( const idBounds& bounds )
 	scale = bounds[1] - center;
 	
 	verts.SetNum( 6 );
-	verts[0].xyz = center + idVec3( scale.x, 0.0f, 0.0f );
-	verts[1].xyz = center + idVec3( -scale.x, 0.0f, 0.0f );
-	verts[2].xyz = center + idVec3( 0.0f,  scale.y, 0.0f );
-	verts[3].xyz = center + idVec3( 0.0f, -scale.y, 0.0f );
-	verts[4].xyz = center + idVec3( 0.0f, 0.0f,  scale.z );
-	verts[5].xyz = center + idVec3( 0.0f, 0.0f, -scale.z );
+	verts[0].SetPosition( center + idVec3( scale.x, 0.0f, 0.0f ) );
+	verts[1].SetPosition( center + idVec3( -scale.x, 0.0f, 0.0f ));
+	verts[2].SetPosition( center + idVec3( 0.0f,  scale.y, 0.0f ));
+	verts[3].SetPosition( center + idVec3( 0.0f, -scale.y, 0.0f ));
+	verts[4].SetPosition( center + idVec3( 0.0f, 0.0f,  scale.z ));
+	verts[5].SetPosition( center + idVec3( 0.0f, 0.0f, -scale.z ));
 	
 	indexes.SetNum( 8 * 3 );
 	indexes[0 * 3 + 0] = 4;

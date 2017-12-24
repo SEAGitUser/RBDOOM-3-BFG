@@ -156,7 +156,7 @@ ID_INLINE_EXTERN __m128 LoadSkinnedDrawVertPosition( const idDrawVert& base, con
 	matY = _mm_madd_ps( _mm_load_ps( j3.ToFloatPtr() + 1 * 4 ), w3, matY );
 	matZ = _mm_madd_ps( _mm_load_ps( j3.ToFloatPtr() + 2 * 4 ), w3, matZ );
 	
-	__m128 v = _mm_load_ps( base.xyz.ToFloatPtr() );
+	__m128 v = _mm_load_ps( base.GetPosition().ToFloatPtr() );
 	v = _mm_and_ps( v, vector_float_mask_clear_last );
 	v = _mm_or_ps( v, vector_float_last_one );
 	
@@ -185,23 +185,24 @@ ID_INLINE_EXTERN __m128 LoadSkinnedDrawVertPosition( const idDrawVert& base, con
 
 ID_INLINE_EXTERN idVec3 Scalar_LoadSkinnedDrawVertPosition( const idDrawVert& vert, const idJointMat* joints )
 {
-	const idJointMat& j0 = joints[vert.color[0]];
-	const idJointMat& j1 = joints[vert.color[1]];
-	const idJointMat& j2 = joints[vert.color[2]];
-	const idJointMat& j3 = joints[vert.color[3]];
-	
-	const float w0 = vert.color2[0] * ( 1.0f / 255.0f );
-	const float w1 = vert.color2[1] * ( 1.0f / 255.0f );
-	const float w2 = vert.color2[2] * ( 1.0f / 255.0f );
-	const float w3 = vert.color2[3] * ( 1.0f / 255.0f );
-	
+	const idJointMat & j0 = joints[ vert.color[ 0 ] ];
+	const idJointMat & j1 = joints[ vert.color[ 1 ] ];
+	const idJointMat & j2 = joints[ vert.color[ 2 ] ];
+	const idJointMat & j3 = joints[ vert.color[ 3 ] ];
+
+	const float w0 = vert.color2[ 0 ] * ( 1.0f / 255.0f );
+	const float w1 = vert.color2[ 1 ] * ( 1.0f / 255.0f );
+	const float w2 = vert.color2[ 2 ] * ( 1.0f / 255.0f );
+	const float w3 = vert.color2[ 3 ] * ( 1.0f / 255.0f );
+
 	idJointMat accum;
 	idJointMat::Mul( accum, j0, w0 );
 	idJointMat::Mad( accum, j1, w1 );
 	idJointMat::Mad( accum, j2, w2 );
 	idJointMat::Mad( accum, j3, w3 );
-	
-	return accum * idVec4( vert.xyz.x, vert.xyz.y, vert.xyz.z, 1.0f );
+
+	auto & v = vert.GetPosition();
+	return accum * idVec4( v.x, v.y, v.z, 1.0f );
 }
 
 #endif /* !__DRAWVERT_INTRINSICS_H__ */

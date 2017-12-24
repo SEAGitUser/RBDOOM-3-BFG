@@ -2919,9 +2919,9 @@ void idCollisionModelManagerLocal::CreatePatchPolygons( cm_model_t* model, idSur
 	idPlane plane;
 	idVec3 d1, d2;
 	
-	for( i = 0; i < mesh.GetWidth() - 1; i++ )
+	for( i = 0; i < mesh.GetWidth() - 1; ++i )
 	{
-		for( j = 0; j < mesh.GetHeight() - 1; j++ )
+		for( j = 0; j < mesh.GetHeight() - 1; ++j )
 		{
 		
 			v1 = j * mesh.GetWidth() + i;
@@ -2929,21 +2929,21 @@ void idCollisionModelManagerLocal::CreatePatchPolygons( cm_model_t* model, idSur
 			v3 = v1 + mesh.GetWidth() + 1;
 			v4 = v1 + mesh.GetWidth();
 			
-			d1 = mesh[v2].xyz - mesh[v1].xyz;
-			d2 = mesh[v3].xyz - mesh[v1].xyz;
+			d1 = mesh[v2].GetPosition() - mesh[v1].GetPosition();
+			d2 = mesh[v3].GetPosition() - mesh[v1].GetPosition();
 			plane.SetNormal( d1.Cross( d2 ) );
 			if( plane.Normalize() != 0.0f )
 			{
-				plane.FitThroughPoint( mesh[v1].xyz );
-				dot = plane.Distance( mesh[v4].xyz );
+				plane.FitThroughPoint( mesh[v1].GetPosition() );
+				dot = plane.Distance( mesh[v4].GetPosition() );
 				// if we can turn it into a quad
 				if( idMath::Fabs( dot ) < 0.1f )
 				{
 					w.Clear();
-					w += mesh[v1].xyz;
-					w += mesh[v2].xyz;
-					w += mesh[v3].xyz;
-					w += mesh[v4].xyz;
+					w += mesh[v1].GetPosition();
+					w += mesh[v2].GetPosition();
+					w += mesh[v3].GetPosition();
+					w += mesh[v4].GetPosition();
 					
 					PolygonFromWinding( model, &w, plane, material, -primitiveNum );
 					continue;
@@ -2952,25 +2952,25 @@ void idCollisionModelManagerLocal::CreatePatchPolygons( cm_model_t* model, idSur
 				{
 					// create one of the triangles
 					w.Clear();
-					w += mesh[v1].xyz;
-					w += mesh[v2].xyz;
-					w += mesh[v3].xyz;
+					w += mesh[v1].GetPosition();
+					w += mesh[v2].GetPosition();
+					w += mesh[v3].GetPosition();
 					
 					PolygonFromWinding( model, &w, plane, material, -primitiveNum );
 				}
 			}
 			// create the other triangle
-			d1 = mesh[v3].xyz - mesh[v1].xyz;
-			d2 = mesh[v4].xyz - mesh[v1].xyz;
+			d1 = mesh[v3].GetPosition() - mesh[v1].GetPosition();
+			d2 = mesh[v4].GetPosition() - mesh[v1].GetPosition();
 			plane.SetNormal( d1.Cross( d2 ) );
 			if( plane.Normalize() != 0.0f )
 			{
-				plane.FitThroughPoint( mesh[v1].xyz );
+				plane.FitThroughPoint( mesh[v1].GetPosition() );
 				
 				w.Clear();
-				w += mesh[v1].xyz;
-				w += mesh[v3].xyz;
-				w += mesh[v4].xyz;
+				w += mesh[v1].GetPosition();
+				w += mesh[v3].GetPosition();
+				w += mesh[v4].GetPosition();
 				
 				PolygonFromWinding( model, &w, plane, material, -primitiveNum );
 			}
@@ -3185,7 +3185,7 @@ void idCollisionModelManagerLocal::ConvertMesh( cm_model_t* model, const MapPoly
 	int numVerts = 0;
 	
 	idFixedWinding w;
-	for( int i = 0; i < mesh->GetNumPolygons(); i++ )
+	for( int i = 0; i < mesh->GetNumPolygons(); ++i )
 	{
 		const MapPolygon& poly = mesh->GetFace( i );
 		
@@ -3197,12 +3197,12 @@ void idCollisionModelManagerLocal::ConvertMesh( cm_model_t* model, const MapPoly
 		
 		//for( int j = indexes.Num() -1; j >= 0; j-- )
 		
-		for( int j = 0; j < indexes.Num(); j++ )
+		for( int j = 0; j < indexes.Num(); ++j )
 		{
 			int index = indexes[j];
 			
 			// reverse order
-			w[ indexes.Num() - 1 - j ] = verts[index].xyz;
+			w[ indexes.Num() - 1 - j ] = verts[ index ].GetPosition();
 		}
 		
 		if( w.GetNumPoints() )
@@ -3940,9 +3940,9 @@ cm_model_t* idCollisionModelManagerLocal::LoadRenderModel( const char* fileName 
 		for( j = 0; j < surf->geometry->numIndexes; j += 3 )
 		{
 			w.Clear();
-			w += surf->geometry->verts[ surf->geometry->indexes[ j + 2 ] ].xyz;
-			w += surf->geometry->verts[ surf->geometry->indexes[ j + 1 ] ].xyz;
-			w += surf->geometry->verts[ surf->geometry->indexes[ j + 0 ] ].xyz;
+			w += surf->geometry->verts[ surf->geometry->indexes[ j + 2 ] ].GetPosition();
+			w += surf->geometry->verts[ surf->geometry->indexes[ j + 1 ] ].GetPosition();
+			w += surf->geometry->verts[ surf->geometry->indexes[ j + 0 ] ].GetPosition();
 			w.GetPlane( plane );
 			plane = -plane;
 			PolygonFromWinding( model, &w, plane, surf->shader, 1 );

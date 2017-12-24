@@ -249,7 +249,7 @@ private:
 public:	
 	idRenderModel* 			dynamicModel;			// if parms.model->IsDynamicModel(), this is the generated data
 	int						dynamicModelFrameCount;	// continuously animating dynamic models will recreate
-	// dynamicModel if this doesn't == tr.viewCount
+													// dynamicModel if this doesn't == tr.viewCount
 	idRenderModel* 			cachedDynamicModel;
 	
 	// this is just a rearrangement of parms.axis and parms.origin
@@ -1516,13 +1516,11 @@ struct deformInfo_t
 	vertCacheHandle_t	staticIndexCache;		// GL_INDEX_TYPE
 	vertCacheHandle_t	staticAmbientCache;		// idDrawVert
 	vertCacheHandle_t	staticShadowCache;		// idShadowCacheSkinned
+
+	void				Free();
+	void				CreateStaticCache();
+	size_t				CPUMemoryUsed();
 };
-
-
-// if outputVertexes is not NULL, it will point to a newly allocated set of verts that includes the mirrored ones
-deformInfo_t* 		R_BuildDeformInfo( int numVerts, const idDrawVert* verts, int numIndexes, const int* indexes, bool useUnsmoothedTangents );
-void				R_FreeDeformInfo( deformInfo_t* deformInfo );
-int					R_DeformInfoMemoryUsed( deformInfo_t* deformInfo );
 
 /*
 =============================================================

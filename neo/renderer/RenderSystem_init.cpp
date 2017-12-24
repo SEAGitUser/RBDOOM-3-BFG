@@ -2662,21 +2662,18 @@ void idRenderSystemLocal::Clear()
 	memset( gammaTable, 0, sizeof( gammaTable ) );
 	takingScreenshot = false;
 	
-	if( unitSquareTriangles != NULL )
-	{
-		Mem_Free( unitSquareTriangles );
+	if( unitSquareTriangles != NULL ) {
+		idMem::Free( unitSquareTriangles );
 		unitSquareTriangles = NULL;
 	}
 	
-	if( zeroOneCubeTriangles != NULL )
-	{
-		Mem_Free( zeroOneCubeTriangles );
+	if( zeroOneCubeTriangles != NULL ) {
+		idMem::Free( zeroOneCubeTriangles );
 		zeroOneCubeTriangles = NULL;
 	}
 	
-	if( testImageTriangles != NULL )
-	{
-		Mem_Free( testImageTriangles );
+	if( testImageTriangles != NULL ) {
+		idMem::Free( testImageTriangles );
 		testImageTriangles = NULL;
 	}
 	
@@ -2691,46 +2688,38 @@ R_MakeFullScreenTris
 static idTriangles* R_MakeFullScreenTris()
 {
 	// copy verts and indexes
-	idTriangles* tri = ( idTriangles* )Mem_ClearedAlloc( sizeof( *tri ), TAG_RENDER_TOOLS );
+	idTriangles* tri = idTriangles::AllocStatic();
 	
 	tri->numIndexes = 6;
 	tri->numVerts = 4;
 	
-	int indexSize = tri->numIndexes * sizeof( tri->indexes[0] );
-	int allocatedIndexBytes = ALIGN( indexSize, 16 );
-	tri->indexes = ( triIndex_t* )Mem_Alloc( allocatedIndexBytes, TAG_RENDER_TOOLS );
+	const size_t indexSize = tri->numIndexes * sizeof( tri->indexes[0] );
+	tri->indexes = idMem::Alloc< triIndex_t, TAG_RENDER_TOOLS >( ALIGN( indexSize, 16 ) );
 	
-	int vertexSize = tri->numVerts * sizeof( tri->verts[0] );
-	int allocatedVertexBytes =  ALIGN( vertexSize, 16 );
-	tri->verts = ( idDrawVert* )Mem_ClearedAlloc( allocatedVertexBytes, TAG_RENDER_TOOLS );
+	const size_t vertexSize = tri->numVerts * sizeof( tri->verts[0] );
+	tri->verts = idMem::ClearedAlloc< idDrawVert, TAG_RENDER_TOOLS >( ALIGN( vertexSize, 16 ) );
 	
 	idDrawVert* verts = tri->verts;
 	
-	triIndex_t tempIndexes[6] = { 3, 0, 2, 2, 0, 1 };
-	memcpy( tri->indexes, tempIndexes, indexSize );
+	memcpy( tri->indexes, idTriangles::quadIndexes, indexSize );
 	
-	verts[0].xyz[0] = -1.0f;
-	verts[0].xyz[1] = 1.0f;
-	verts[0].SetTexCoord( 0.0f, 1.0f );
-	
-	verts[1].xyz[0] = 1.0f;
-	verts[1].xyz[1] = 1.0f;
-	verts[1].SetTexCoord( 1.0f, 1.0f );
-	
-	verts[2].xyz[0] = 1.0f;
-	verts[2].xyz[1] = -1.0f;
-	verts[2].SetTexCoord( 1.0f, 0.0f );
-	
-	verts[3].xyz[0] = -1.0f;
-	verts[3].xyz[1] = -1.0f;
-	verts[3].SetTexCoord( 0.0f, 0.0f );
+	verts[ 0 ].SetPosition(-1.0f, 1.0f, 0.0f );
+	verts[ 0 ].SetTexCoord( 0.0f, 1.0f );
+
+	verts[ 1 ].SetPosition( 1.0f, 1.0f, 0.0f );
+	verts[ 1 ].SetTexCoord( 1.0f, 1.0f );
+
+	verts[ 2 ].SetPosition( 1.0f,-1.0f, 0.0f );
+	verts[ 2 ].SetTexCoord( 1.0f, 0.0f );
+
+	verts[ 3 ].SetPosition(-1.0f,-1.0f, 0.0f );
+	verts[ 3 ].SetTexCoord( 0.0f, 0.0f );
 	
 	for( int i = 0 ; i < 4 ; i++ )
 	{
 		verts[i].SetColor( 0xffffffff );
 	}
-	
-	
+		
 	return tri;
 }
 
@@ -2741,18 +2730,16 @@ R_MakeZeroOneCubeTris
 */
 static idTriangles* R_MakeZeroOneCubeTris()
 {
-	idTriangles* tri = ( idTriangles* )Mem_ClearedAlloc( sizeof( *tri ), TAG_RENDER_TOOLS );
+	idTriangles* tri = idTriangles::AllocStatic();
 	
 	tri->numVerts = 8;
 	tri->numIndexes = 36;
 	
-	const int indexSize = tri->numIndexes * sizeof( tri->indexes[0] );
-	const int allocatedIndexBytes = ALIGN( indexSize, 16 );
-	tri->indexes = ( triIndex_t* )Mem_Alloc( allocatedIndexBytes, TAG_RENDER_TOOLS );
+	const size_t indexSize = ALIGN( tri->numIndexes * sizeof( tri->indexes[0] ), 16 );
+	tri->indexes = idMem::Alloc< triIndex_t, TAG_RENDER_TOOLS >( indexSize );
 	
-	const int vertexSize = tri->numVerts * sizeof( tri->verts[0] );
-	const int allocatedVertexBytes =  ALIGN( vertexSize, 16 );
-	tri->verts = ( idDrawVert* )Mem_ClearedAlloc( allocatedVertexBytes, TAG_RENDER_TOOLS );
+	const size_t vertexSize = ALIGN( tri->numVerts * sizeof( tri->verts[0] ), 16 );
+	tri->verts = idMem::ClearedAlloc< idDrawVert, TAG_RENDER_TOOLS >( vertexSize );
 	
 	idDrawVert* verts = tri->verts;
 	
@@ -2767,14 +2754,14 @@ static idTriangles* R_MakeZeroOneCubeTris()
 	idVec3 mz( 0.0f, 0.0f,  low );
 	idVec3 pz( 0.0f, 0.0f, high );
 	
-	verts[0].xyz = center + mx + my + mz;
-	verts[1].xyz = center + px + my + mz;
-	verts[2].xyz = center + px + py + mz;
-	verts[3].xyz = center + mx + py + mz;
-	verts[4].xyz = center + mx + my + pz;
-	verts[5].xyz = center + px + my + pz;
-	verts[6].xyz = center + px + py + pz;
-	verts[7].xyz = center + mx + py + pz;
+	verts[0].SetPosition( center + mx + my + mz );
+	verts[1].SetPosition( center + px + my + mz );
+	verts[2].SetPosition( center + px + py + mz );
+	verts[3].SetPosition( center + mx + py + mz );
+	verts[4].SetPosition( center + mx + my + pz );
+	verts[5].SetPosition( center + px + my + pz );
+	verts[6].SetPosition( center + px + py + pz );
+	verts[7].SetPosition( center + mx + py + pz );
 	
 	// bottom
 	tri->indexes[ 0 * 3 + 0] = 2;
@@ -2836,46 +2823,36 @@ Initializes the Test Image Triangles
 */
 idTriangles* R_MakeTestImageTriangles()
 {
-	idTriangles* tri = ( idTriangles* )Mem_ClearedAlloc( sizeof( *tri ), TAG_RENDER_TOOLS );
+	idTriangles* tri = idTriangles::AllocStatic();
 	
 	tri->numIndexes = 6;
 	tri->numVerts = 4;
 	
-	int indexSize = tri->numIndexes * sizeof( tri->indexes[0] );
-	int allocatedIndexBytes = ALIGN( indexSize, 16 );
-	tri->indexes = ( triIndex_t* )Mem_Alloc( allocatedIndexBytes, TAG_RENDER_TOOLS );
+	const size_t indexSize = tri->numIndexes * sizeof( tri->indexes[0] );
+	tri->indexes = idMem::Alloc< triIndex_t, TAG_RENDER_TOOLS >( ALIGN( indexSize, 16 ) );
 	
-	int vertexSize = tri->numVerts * sizeof( tri->verts[0] );
-	int allocatedVertexBytes =  ALIGN( vertexSize, 16 );
-	tri->verts = ( idDrawVert* )Mem_ClearedAlloc( allocatedVertexBytes, TAG_RENDER_TOOLS );
+	const size_t vertexSize = tri->numVerts * sizeof( tri->verts[0] );
+	tri->verts = idMem::ClearedAlloc< idDrawVert, TAG_RENDER_TOOLS >( ALIGN( vertexSize, 16 ) );
 	
-	ALIGNTYPE16 triIndex_t tempIndexes[6] = { 3, 0, 2, 2, 0, 1 };
-	memcpy( tri->indexes, tempIndexes, indexSize );
+	memcpy( tri->indexes, idTriangles::quadIndexes, indexSize );
 	
 	idDrawVert* tempVerts = tri->verts;
-	tempVerts[0].xyz[0] = 0.0f;
-	tempVerts[0].xyz[1] = 0.0f;
-	tempVerts[0].xyz[2] = 0;
-	tempVerts[0].SetTexCoord( 0.0, 0.0f );
-	
-	tempVerts[1].xyz[0] = 1.0f;
-	tempVerts[1].xyz[1] = 0.0f;
-	tempVerts[1].xyz[2] = 0;
-	tempVerts[1].SetTexCoord( 1.0f, 0.0f );
-	
-	tempVerts[2].xyz[0] = 1.0f;
-	tempVerts[2].xyz[1] = 1.0f;
-	tempVerts[2].xyz[2] = 0;
-	tempVerts[2].SetTexCoord( 1.0f, 1.0f );
-	
-	tempVerts[3].xyz[0] = 0.0f;
-	tempVerts[3].xyz[1] = 1.0f;
-	tempVerts[3].xyz[2] = 0;
-	tempVerts[3].SetTexCoord( 0.0f, 1.0f );
+
+	tempVerts[ 0 ].SetPosition( 0.0f, 0.0f, 0.0f );
+	tempVerts[ 0 ].SetTexCoord( 0.0, 0.0f );
+
+	tempVerts[ 1 ].SetPosition( 1.0f, 0.0f , 0.0f );
+	tempVerts[ 1 ].SetTexCoord( 1.0f, 0.0f );
+
+	tempVerts[ 2 ].SetPosition( 1.0f, 1.0f, 0.0f );
+	tempVerts[ 2 ].SetTexCoord( 1.0f, 1.0f );
+
+	tempVerts[ 3 ].SetPosition( 0.0f, 1.0f, 0.0f );
+	tempVerts[ 3 ].SetTexCoord( 0.0f, 1.0f );
 
 	for( int i = 0; i < 4; i++ )
 	{
-		tempVerts[i].SetColor( 0xFFFFFFFF );
+		tempVerts[ i ].SetColor( 0xFFFFFFFF );
 	}
 	return tri;
 }

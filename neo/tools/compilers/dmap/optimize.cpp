@@ -222,8 +222,8 @@ static optVertex_t* FindOptVertex( idDrawVert* v, optimizeGroup_t* opt )
 	optVertex_t*	vert;
 	
 	// deal with everything strictly as 2D
-	x = v->xyz * opt->axis[0];
-	y = v->xyz * opt->axis[1];
+	x = v->GetPosition() * opt->axis[0];
+	y = v->GetPosition() * opt->axis[1];
 	
 	// should we match based on the t-junction fixing hash verts?
 	for( i = 0 ; i < numOptVerts ; i++ )
@@ -415,7 +415,7 @@ static	optVertex_t* EdgeIntersection( const optVertex_t* p1, const optVertex_t* 
 	v = ( idDrawVert* )Mem_Alloc( sizeof( *v ), TAG_TOOLS );
 	memset( v, 0, sizeof( *v ) );
 	
-	v->xyz = p1->v.xyz * ( 1.0 - f ) + p2->v.xyz * f;
+	v->SetPosition( p1->v.GetPosition() * ( 1.0 - f ) + p2->v.GetPosition() * f );
 	idVec3 normal = p1->v.GetNormal() * ( 1.0 - f ) + p2->v.GetNormal() * f;
 	normal.Normalize();
 	v->SetNormal( normal );
@@ -789,12 +789,12 @@ static	void RemoveIfColinear( optVertex_t* ov, optIsland_t* island )
 	}
 	
 	// see if they are colinear
-	dir1 = v3->v.xyz - v1->v.xyz;
+	dir1 = v3->v.GetPosition() - v1->v.GetPosition();
 	len = dir1.Normalize();
-	dir2 = v2->v.xyz - v1->v.xyz;
+	dir2 = v2->v.GetPosition() - v1->v.GetPosition();
 	dist = dir2 * dir1;
-	VectorMA( v1->v.xyz, dist, dir1, point );
-	offset = point - v2->v.xyz;
+	VectorMA( v1->v.GetPosition(), dist, dir1, point );
+	offset = point - v2->v.GetPosition();
 	off = offset.Length();
 	
 	if( off > COLINEAR_EPSILON )

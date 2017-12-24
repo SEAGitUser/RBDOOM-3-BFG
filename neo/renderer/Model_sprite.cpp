@@ -85,19 +85,16 @@ idRenderModel* 	idRenderModelSprite::InstantiateDynamicModel( const struct rende
 	}
 	
 	if( cachedModel != NULL )
-	{
-	
+	{	
 		assert( dynamic_cast<idRenderModelStatic*>( cachedModel ) != NULL );
 		assert( idStr::Icmp( cachedModel->Name(), sprite_SnapshotName ) == 0 );
 		
 		staticModel = static_cast<idRenderModelStatic*>( cachedModel );
 		surf = *staticModel->Surface( 0 );
-		tri = surf.geometry;
-		
+		tri = surf.geometry;	
 	}
 	else
 	{
-	
 		staticModel = new( TAG_MODEL ) idRenderModelStatic;
 		staticModel->InitEmpty( sprite_SnapshotName );
 		
@@ -153,25 +150,25 @@ idRenderModel* 	idRenderModelSprite::InstantiateDynamicModel( const struct rende
 	idVec3 right	= idVec3( 0.0f, renderEntity->shaderParms[ SHADERPARM_SPRITE_WIDTH ] * 0.5f, 0.0f );
 	idVec3 up		= idVec3( 0.0f, 0.0f, renderEntity->shaderParms[ SHADERPARM_SPRITE_HEIGHT ] * 0.5f );
 	
-	tri->verts[ 0 ].xyz = up + right;
+	tri->verts[ 0 ].SetPosition( up + right );
 	tri->verts[ 0 ].color[ 0 ] = red;
 	tri->verts[ 0 ].color[ 1 ] = green;
 	tri->verts[ 0 ].color[ 2 ] = blue;
 	tri->verts[ 0 ].color[ 3 ] = alpha;
 	
-	tri->verts[ 1 ].xyz = up - right;
+	tri->verts[ 1 ].SetPosition( up - right );
 	tri->verts[ 1 ].color[ 0 ] = red;
 	tri->verts[ 1 ].color[ 1 ] = green;
 	tri->verts[ 1 ].color[ 2 ] = blue;
 	tri->verts[ 1 ].color[ 3 ] = alpha;
 	
-	tri->verts[ 2 ].xyz = - right - up;
+	tri->verts[ 2 ].SetPosition( -right - up );
 	tri->verts[ 2 ].color[ 0 ] = red;
 	tri->verts[ 2 ].color[ 1 ] = green;
 	tri->verts[ 2 ].color[ 2 ] = blue;
 	tri->verts[ 2 ].color[ 3 ] = alpha;
 	
-	tri->verts[ 3 ].xyz = right - up;
+	tri->verts[ 3 ].SetPosition( right - up );
 	tri->verts[ 3 ].color[ 0 ] = red;
 	tri->verts[ 3 ].color[ 1 ] = green;
 	tri->verts[ 3 ].color[ 2 ] = blue;
