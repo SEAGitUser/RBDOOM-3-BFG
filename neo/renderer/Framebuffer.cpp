@@ -34,7 +34,7 @@ If you have questions concerning this license or the applicable additional terms
 
 idList<Framebuffer*>	Framebuffer::framebuffers;
 
-globalFramebuffers_t globalFramebuffers;
+globalFramebuffers_t	globalFramebuffers;
 
 static void R_ListFramebuffers_f( const idCmdArgs& args )
 {
@@ -106,18 +106,12 @@ void Framebuffer::Init()
 #if defined(USE_HDR_MSAA)
 	if( glConfig.multisamples )
 	{
-		globalFramebuffers.hdrFBO->AddColorBuffer( GL_RGBA16F, 0, glConfig.multisamples );
-		globalFramebuffers.hdrFBO->AddDepthBuffer( GL_DEPTH24_STENCIL8, glConfig.multisamples );
-		
 		globalFramebuffers.hdrFBO->AttachImage2D( GL_TEXTURE_2D_MULTISAMPLE, globalImages->currentRenderHDRImage, 0 );
 		globalFramebuffers.hdrFBO->AttachImageDepth( GL_TEXTURE_2D_MULTISAMPLE, globalImages->currentDepthImage );
 	}
 	else
 #endif
 	{
-		globalFramebuffers.hdrFBO->AddColorBuffer( GL_RGBA16F, 0 );
-		globalFramebuffers.hdrFBO->AddDepthBuffer( GL_DEPTH24_STENCIL8 );
-		
 		globalFramebuffers.hdrFBO->AttachImage2D( GL_TEXTURE_2D, globalImages->currentRenderHDRImage, 0 );
 		globalFramebuffers.hdrFBO->AttachImageDepth( GL_TEXTURE_2D, globalImages->currentDepthImage );
 	}
@@ -128,10 +122,7 @@ void Framebuffer::Init()
 #if defined(USE_HDR_MSAA)
 	globalFramebuffers.hdrNonMSAAFBO = new Framebuffer( "_hdrNoMSAA", screenWidth, screenHeight );
 	globalFramebuffers.hdrNonMSAAFBO->Bind();
-	
-	globalFramebuffers.hdrNonMSAAFBO->AddColorBuffer( GL_RGBA16F, 0 );
-	globalFramebuffers.hdrNonMSAAFBO->AttachImage2D( GL_TEXTURE_2D, globalImages->currentRenderHDRImageNoMSAA, 0 );
-	
+	globalFramebuffers.hdrNonMSAAFBO->AttachImage2D( GL_TEXTURE_2D, globalImages->currentRenderHDRImageNoMSAA, 0 );	
 	globalFramebuffers.hdrNonMSAAFBO->Check();
 #endif
 	
@@ -139,9 +130,7 @@ void Framebuffer::Init()
 	
 	globalFramebuffers.hdr64FBO = new Framebuffer( "_hdr64", 64, 64 );
 	globalFramebuffers.hdr64FBO->Bind();
-	globalFramebuffers.hdr64FBO->AddColorBuffer( GL_RGBA16F, 0 );
 	globalFramebuffers.hdr64FBO->AttachImage2D( GL_TEXTURE_2D, globalImages->currentRenderHDRImage64, 0 );
-	
 	globalFramebuffers.hdr64FBO->Check();
 	
 	
@@ -151,7 +140,6 @@ void Framebuffer::Init()
 	{
 		globalFramebuffers.bloomRenderFBO[i] = new Framebuffer( va( "_bloomRender%i", i ), screenWidth, screenHeight );
 		globalFramebuffers.bloomRenderFBO[i]->Bind();
-		globalFramebuffers.bloomRenderFBO[i]->AddColorBuffer( GL_RGBA8, 0 );
 		globalFramebuffers.bloomRenderFBO[i]->AttachImage2D( GL_TEXTURE_2D, globalImages->bloomRenderImage[i], 0 );
 		globalFramebuffers.bloomRenderFBO[i]->Check();
 	}
@@ -162,7 +150,6 @@ void Framebuffer::Init()
 	{
 		globalFramebuffers.ambientOcclusionFBO[i] = new Framebuffer( va( "_aoRender%i", i ), screenWidth, screenHeight );
 		globalFramebuffers.ambientOcclusionFBO[i]->Bind();
-		globalFramebuffers.ambientOcclusionFBO[i]->AddColorBuffer( GL_RGBA8, 0 );
 		globalFramebuffers.ambientOcclusionFBO[i]->AttachImage2D( GL_TEXTURE_2D, globalImages->ambientOcclusionImage[i], 0 );
 		globalFramebuffers.ambientOcclusionFBO[i]->Check();
 	}
@@ -173,7 +160,6 @@ void Framebuffer::Init()
 	{
 		globalFramebuffers.csDepthFBO[i] = new Framebuffer( va( "_csz%i", i ), screenWidth / ( 1 << i ), screenHeight / ( 1 << i ) );
 		globalFramebuffers.csDepthFBO[i]->Bind();
-		globalFramebuffers.csDepthFBO[i]->AddColorBuffer( GL_R32F, 0 );
 		globalFramebuffers.csDepthFBO[i]->AttachImage2D( GL_TEXTURE_2D, globalImages->hierarchicalZbufferImage, 0, i );
 		globalFramebuffers.csDepthFBO[i]->Check();
 	}
@@ -190,13 +176,11 @@ void Framebuffer::Init()
 	
 	globalFramebuffers.smaaEdgesFBO = new Framebuffer( "_smaaEdges", screenWidth, screenHeight );
 	globalFramebuffers.smaaEdgesFBO->Bind();
-	globalFramebuffers.smaaEdgesFBO->AddColorBuffer( GL_RGBA8, 0 );
 	globalFramebuffers.smaaEdgesFBO->AttachImage2D( GL_TEXTURE_2D, globalImages->smaaEdgesImage, 0 );
 	globalFramebuffers.smaaEdgesFBO->Check();
 	
 	globalFramebuffers.smaaBlendFBO = new Framebuffer( "_smaaBlend", screenWidth, screenHeight );
 	globalFramebuffers.smaaBlendFBO->Bind();
-	globalFramebuffers.smaaBlendFBO->AddColorBuffer( GL_RGBA8, 0 );
 	globalFramebuffers.smaaBlendFBO->AttachImage2D( GL_TEXTURE_2D, globalImages->smaaBlendImage, 0 );
 	globalFramebuffers.smaaBlendFBO->Check();
 	
