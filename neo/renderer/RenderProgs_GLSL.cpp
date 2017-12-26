@@ -2131,11 +2131,13 @@ void idRenderProgManager::LoadGLSLProgram( const int programIndex, const int ver
 		if( vertexProgID != INVALID_PROGID )
 		{
 			glAttachShader( program, vertexProgID );
+			glDeleteShader( vertexProgID );
 		}
 		
 		if( fragmentProgID != INVALID_PROGID )
 		{
 			glAttachShader( program, fragmentProgID );
+			glDeleteShader( fragmentProgID );
 		}
 		
 		// bind vertex attribute locations
@@ -2229,6 +2231,15 @@ void idRenderProgManager::LoadGLSLProgram( const int programIndex, const int ver
 		// sort the uniforms based on index
 		prog.uniformLocations.SortWithTemplate( idSort_QuickUniforms() );
 	}
+
+	{ // global_ubo
+	  // get the uniform buffer binding for global parameters
+		GLint blockIndex = glGetUniformBlockIndex( program, "global_ubo" );
+		if( blockIndex != -1 )
+		{
+			glUniformBlockBinding( program, blockIndex, BINDING_GLOBAL_UBO );
+		}
+	}
 	
 	// RB: only load joint uniform buffers if available
 	if( glConfig.gpuSkinningAvailable )
@@ -2237,7 +2248,7 @@ void idRenderProgManager::LoadGLSLProgram( const int programIndex, const int ver
 		GLint blockIndex = glGetUniformBlockIndex( program, "matrices_ubo" );
 		if( blockIndex != -1 )
 		{
-			glUniformBlockBinding( program, blockIndex, 0 );
+			glUniformBlockBinding( program, blockIndex, BINDING_MATRICES_UBO );
 		}
 	}
 	// RB end

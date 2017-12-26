@@ -343,7 +343,6 @@ void Framebuffer::Unbind()
 	//if(backEnd.glState.framebuffer != NULL)
 	{
 		glBindFramebuffer( GL_FRAMEBUFFER, 0 );
-		glBindRenderbuffer( GL_RENDERBUFFER, 0 );
 		backEnd.glState.currentFramebuffer = NULL;
 	}
 }
@@ -351,74 +350,6 @@ void Framebuffer::Unbind()
 bool Framebuffer::IsDefaultFramebufferActive()
 {
 	return ( backEnd.glState.currentFramebuffer == NULL );
-}
-
-void Framebuffer::AddColorBuffer( int format, int index, int multiSamples )
-{
-	if( index < 0 || index >= glConfig.maxColorAttachments )
-	{
-		common->Warning( "Framebuffer::AddColorBuffer( %s ): bad index = %i", fboName.c_str(), index );
-		return;
-	}
-	
-	colorFormat = format;
-	
-	bool notCreatedYet = colorBuffers[index] == 0;
-	if( notCreatedYet )
-	{
-		glGenRenderbuffers( 1, &colorBuffers[index] );
-	}
-	
-	glBindRenderbuffer( GL_RENDERBUFFER, colorBuffers[index] );
-	
-	if( multiSamples > 0 )
-	{
-		glRenderbufferStorageMultisample( GL_RENDERBUFFER, multiSamples, format, width, height );
-		
-		msaaSamples = true;
-	}
-	else
-	{
-		glRenderbufferStorage( GL_RENDERBUFFER, format, width, height );
-	}
-	
-	if( notCreatedYet )
-	{
-		glFramebufferRenderbuffer( GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + index, GL_RENDERBUFFER, colorBuffers[index] );
-	}
-	
-	GL_CheckErrors();
-}
-
-void Framebuffer::AddDepthBuffer( int format, int multiSamples )
-{
-	depthFormat = format;
-	
-	bool notCreatedYet = depthBuffer == 0;
-	if( notCreatedYet )
-	{
-		glGenRenderbuffers( 1, &depthBuffer );
-	}
-	
-	glBindRenderbuffer( GL_RENDERBUFFER, depthBuffer );
-	
-	if( multiSamples > 0 )
-	{
-		glRenderbufferStorageMultisample( GL_RENDERBUFFER, multiSamples, format, width, height );
-		
-		msaaSamples = true;
-	}
-	else
-	{
-		glRenderbufferStorage( GL_RENDERBUFFER, format, width, height );
-	}
-	
-	if( notCreatedYet )
-	{
-		glFramebufferRenderbuffer( GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, depthBuffer );
-	}
-	
-	GL_CheckErrors();
 }
 
 void Framebuffer::AttachImage2D( int target, const idImage* image, int index, int mipmapLod )

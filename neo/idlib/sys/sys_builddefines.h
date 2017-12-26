@@ -33,3 +33,10 @@ If you have questions concerning this license or the applicable additional terms
 
 ===============================================================================
 */
+
+#ifndef _DEBUG
+	#define ID_RETAIL
+	//#define ID_RETAIL_INTERNAL
+#else
+
+#endif

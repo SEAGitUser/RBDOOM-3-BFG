@@ -34,8 +34,8 @@ Contains the RenderLog declaration.
 ================================================================================================
 */
 
-#if defined(ID_RETAIL) && !defined(ID_RETAIL_INTERNAL)
-#define STUB_RENDER_LOG
+#if defined( ID_RETAIL ) && !defined( ID_RETAIL_INTERNAL )
+	#define STUB_RENDER_LOG
 #endif
 
 enum renderLogMainBlock_t
@@ -67,9 +67,6 @@ enum renderLogIndentLabel_t
 	RENDER_LOG_INDENT_BLOCK,
 	RENDER_LOG_INDENT_TEST
 };
-
-// using this macro avoids printf parameter overhead if the renderlog isn't active
-#define RENDERLOG_PRINTF( ... ) if ( renderLog.activeLevel ) renderLog.Printf( __VA_ARGS__ );
 
 #if !defined( STUB_RENDER_LOG )
 
@@ -202,5 +199,35 @@ public:
 #endif	// !STUB_RENDER_LOG
 
 extern idRenderLog renderLog;
+
+//SEA: save some performance in retails
+#if defined( STUB_RENDER_LOG )
+	#define RENDERLOG_OPEN_MAINBLOCK( X )
+	#define RENDERLOG_CLOSE_MAINBLOCK()
+
+	#define RENDERLOG_OPEN_BLOCK( X )
+	#define RENDERLOG_CLOSE_BLOCK()
+
+	#define RENDERLOG_PRINTF( X )
+
+	#define RENDERLOG_INDENT()
+	#define RENDERLOG_OUTDENT()
+#else
+	#define RENDERLOG_START_FRAME() renderLog.StartFrame()
+	#define RENDERLOG_END_FRAME() renderLog.EndFrame()
+
+	#define RENDERLOG_OPEN_MAINBLOCK( X ) renderLog.OpenMainBlock( X )
+	#define RENDERLOG_CLOSE_MAINBLOCK() renderLog.CloseMainBlock()
+
+	#define RENDERLOG_OPEN_BLOCK( Text ) renderLog.OpenBlock( Text )
+	#define RENDERLOG_CLOSE_BLOCK() renderLog.CloseBlock()
+
+	#define RENDERLOG_PRINTF( ... ) renderLog.Printf( __VA_ARGS__ )
+
+	#define RENDERLOG_INDENT()	renderLog.Indent()
+	#define RENDERLOG_OUTDENT() renderLog.Outdent()
+#endif
+
+
 
 #endif // !__RENDERLOG_H__

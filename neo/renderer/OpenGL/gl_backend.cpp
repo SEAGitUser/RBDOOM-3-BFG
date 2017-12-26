@@ -553,7 +553,7 @@ void RB_ExecuteBackEndCommands( const emptyCommand_t* cmds )
 	
 	resolutionScale.SetCurrentGPUFrameTime( commonLocal.GetRendererGPUMicroseconds() );
 	
-	renderLog.StartFrame();
+	RENDERLOG_START_FRAME();
 	
 	if( cmds->commandId == RC_NOP && !cmds->next )
 	{
@@ -563,7 +563,8 @@ void RB_ExecuteBackEndCommands( const emptyCommand_t* cmds )
 	if( renderSystem->GetStereo3DMode() != STEREO3D_OFF )
 	{
 		RB_StereoRenderExecuteBackEndCommands( cmds );
-		renderLog.EndFrame();
+		
+		RENDERLOG_END_FRAME();
 		return;
 	}
 	
@@ -628,5 +629,6 @@ void RB_ExecuteBackEndCommands( const emptyCommand_t* cmds )
 		common->Printf( "3d: %i, 2d: %i, SetBuf: %i, CpyRenders: %i, CpyFrameBuf: %i\n", c_draw3d, c_draw2d, c_setBuffers, c_copyRenders, backEnd.pc.c_copyFrameBuffer );
 		backEnd.pc.c_copyFrameBuffer = 0;
 	}
-	renderLog.EndFrame();
+
+	RENDERLOG_END_FRAME();
 }

@@ -3200,6 +3200,9 @@ RB_RenderDebugTools
 */
 void RB_RenderDebugTools( drawSurf_t** drawSurfs, int numDrawSurfs )
 {
+	RENDERLOG_OPEN_MAINBLOCK( MRB_DRAW_DEBUG_TOOLS );
+	RENDERLOG_PRINTF( "---------- RB_RenderDebugTools ----------\n" );
+
 	// don't do much if this was a 2D rendering
 	if( !backEnd.viewDef->viewEntitys )
 	{
@@ -3207,17 +3210,14 @@ void RB_RenderDebugTools( drawSurf_t** drawSurfs, int numDrawSurfs )
 		RB_ShowLines();
 		return;
 	}
-	
-	renderLog.OpenMainBlock( MRB_DRAW_DEBUG_TOOLS );
-	RENDERLOG_PRINTF( "---------- RB_RenderDebugTools ----------\n" );
-	
+		
 	GL_State( GLS_DEFAULT );
 	
-	GL_Scissor( backEnd.viewDef->viewport.x1 + backEnd.viewDef->scissor.x1,
-				backEnd.viewDef->viewport.y1 + backEnd.viewDef->scissor.y1,
-				backEnd.viewDef->scissor.x2 + 1 - backEnd.viewDef->scissor.x1,
-				backEnd.viewDef->scissor.y2 + 1 - backEnd.viewDef->scissor.y1 );
-	backEnd.currentScissor = backEnd.viewDef->scissor;
+	GL_Scissor( backEnd.viewDef->GetViewport().x1 + backEnd.viewDef->GetScissor().x1,
+				backEnd.viewDef->GetViewport().y1 + backEnd.viewDef->GetScissor().y1,
+				backEnd.viewDef->GetScissor().GetWidth(),
+				backEnd.viewDef->GetScissor().GetHeight() );
+	backEnd.currentScissor = backEnd.viewDef->GetScissor();
 	
 	RB_ShowLightCount();
 	RB_ShowTexturePolarity( drawSurfs, numDrawSurfs );
@@ -3257,7 +3257,7 @@ void RB_RenderDebugTools( drawSurf_t** drawSurfs, int numDrawSurfs )
 	RB_ShowDebugPolygons();
 	RB_ShowTrace( drawSurfs, numDrawSurfs );
 	
-	renderLog.CloseMainBlock();
+	RENDERLOG_CLOSE_MAINBLOCK();
 }
 
 /*

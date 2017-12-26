@@ -54,7 +54,7 @@ idRenderModelGui* tr_guiModel;
 glconfig_t	glConfig;
 
 idCVar r_requestStereoPixelFormat( "r_requestStereoPixelFormat", "1", CVAR_RENDERER, "Ask for a stereo GL pixel format on startup" );
-idCVar r_debugContext( "r_debugContext", "0", CVAR_RENDERER, "Enable various levels of context debug." );
+idCVar r_debugContext( "r_debugContext", "2", CVAR_RENDERER, "Enable various levels of context debug." );
 idCVar r_glDriver( "r_glDriver", "", CVAR_RENDERER, "\"opengl32\", etc." );
 idCVar r_skipIntelWorkarounds( "r_skipIntelWorkarounds", "0", CVAR_RENDERER | CVAR_BOOL, "skip workarounds for Intel driver bugs" );
 // RB: disabled 16x MSAA
@@ -2857,6 +2857,9 @@ idTriangles* R_MakeTestImageTriangles()
 	return tri;
 }
 
+extern void RB_InitBuffers();
+extern void RB_ShutdownBuffers();
+
 /*
 ===============
 idRenderSystemLocal::Init
@@ -2893,6 +2896,8 @@ void idRenderSystemLocal::Init()
 	// RB begin
 	Framebuffer::Init();
 	// RB end
+
+	RB_InitBuffers();
 	
 	idCinematic::InitCinematic();
 	
@@ -2950,6 +2955,8 @@ void idRenderSystemLocal::Shutdown()
 	renderModelManager->Shutdown();
 	
 	idCinematic::ShutdownCinematic();
+
+	RB_ShutdownBuffers();
 	
 	globalImages->Shutdown();
 	

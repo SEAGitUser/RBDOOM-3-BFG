@@ -298,6 +298,24 @@ void GL_Clear( bool color, bool depth, bool stencil, byte stencilValue, float r,
 	// RB end
 }
 
+void GL_ClearDepth( const float value )
+{
+	const GLfloat depthClearValue[ 1 ] = { value };
+	glClearBufferfv( GL_DEPTH, 0, depthClearValue );
+}
+
+void GL_ClearDepthStencil( const float depthValue, const int stencilValue )
+{
+	glClearBufferfi( GL_DEPTH_STENCIL, 0, depthValue, stencilValue );
+}
+
+void GL_ClearColor( const float r, const float g, const float b, const float a, const int iColorBuffer )
+{
+	const GLfloat colorClearValue[ 4 ] = { r,  g,  b,  a };
+	glClearBufferfv( GL_COLOR, GL_DRAW_BUFFER0 + iColorBuffer, colorClearValue );
+}
+
+
 /*
 ========================
 GL_SetDefaultState

@@ -41,7 +41,17 @@ class idIndexBuffer;
 enum bufferMapType_t
 {
 	BM_READ,			// map for reading
-	BM_WRITE			// map for writing
+	BM_READ_NOSYNC,
+	BM_WRITE,			// map for writing
+	BM_WRITE_NOSYNC
+};
+
+enum bufferUsageType_t 
+{
+	BU_DEFAULT,			// mappable, no dinamic update, draw
+	BU_STATIC,			// no map, no dinamic update, draw
+	BU_DYNAMIC,			// no map, dinamic update, draw
+	BU_STAGING			// internal
 };
 
 // Returns all targets to virtual memory use instead of buffer object use.
@@ -60,7 +70,7 @@ public:
 	~idVertexBuffer();
 	
 	// Allocate or free the buffer.
-	bool				AllocBufferObject( const void* data, int allocSize );
+	bool				AllocBufferObject( const void* data, int allocSize /*vertexMask, allocUsage, bufferObject*/ ); 
 	void				FreeBufferObject();
 	
 	// Make this buffer a reference to another buffer.
@@ -137,7 +147,7 @@ public:
 	~idIndexBuffer();
 	
 	// Allocate or free the buffer.
-	bool				AllocBufferObject( const void* data, int allocSize );
+	bool				AllocBufferObject( const void* data, int allocSize /*allocUsage, bufferObject*/ );
 	void				FreeBufferObject();
 	
 	// Make this buffer a reference to another buffer.
@@ -218,7 +228,7 @@ public:
 	~idJointBuffer();
 	
 	// Allocate or free the buffer.
-	bool				AllocBufferObject( const float* joints, int numAllocJoints );
+	bool				AllocBufferObject( const float* joints, int numAllocJoints /*buffer*/);
 	void				FreeBufferObject();
 	
 	// Make this buffer a reference to another buffer.
@@ -258,10 +268,17 @@ private:
 	int					numJoints;
 	int					offsetInOtherBuffer;	// offset in bytes
 	void* 				apiObject;
+
+	// flags
 	
 	// sizeof() confuses typeinfo...
 	static const int	MAPPED_FLAG			= 1 << ( 4 /* sizeof( int ) */ * 8 - 1 );
 	static const int	OWNS_BUFFER_FLAG	= 1 << ( 4 /* sizeof( int ) */ * 8 - 1 );
+
+	// JOINT_MAT_ROWS 
+	// JOINT_MAT_SIZE 
+	// JOINT_QUAT_ROWS 
+	// JOINT_QUAT_SIZE
 	
 private:
 	void				ClearWithoutFreeing();
@@ -280,5 +297,68 @@ private:
 	
 	DISALLOW_COPY_AND_ASSIGN( idJointBuffer );
 };
+
+
+
+/*
+=====================================================================================================
+	idConstantBuffer
+=====================================================================================================
+*/
+class idConstantBuffer {
+public:
+	idConstantBuffer();
+	~idConstantBuffer();
+
+	// Allocate or free the buffer.
+	bool				AllocBufferObject( int allocSize, bufferUsageType_t allocUsage, const void* data = nullptr );
+	void				FreeBufferObject();
+
+	// Make this buffer a reference to another buffer.
+	void				Reference( const idConstantBuffer& other );
+	void				Reference( const idConstantBuffer& other, int refOffset, int refSize );
+
+	// Copies data to the buffer. 'size' may be less than the originally allocated size.
+	void				Update( int updateSize, const void* data ) const;
+
+	void * 				MapBuffer( bufferMapType_t mapType ) const;
+	///void * TryMapBuffer( bufferMapType_t mapType );
+	void				UnmapBuffer() const;
+	ID_INLINE bool		IsMapped() const { return ( size & MAPPED_FLAG ) != 0; }
+
+	ID_INLINE int		GetSize() const { return ( size & ~MAPPED_FLAG ); }
+	ID_INLINE int		GetAllocedSize() const { return ALIGN( GetSize(), 16 ); }
+	ID_INLINE void * 	GetAPIObject() const { return apiObject; }
+	ID_INLINE int		GetOffset() const { return ( offsetInOtherBuffer & ~OWNS_BUFFER_FLAG ); }
+
+private:
+	int					size;					// size in bytes
+	int					offsetInOtherBuffer;	// offset in bytes
+	void * 				apiObject;
+
+	bufferUsageType_t	usage;
+
+	static const int	MAPPED_FLAG			= MIN_TYPE( int );
+	static const int	OWNS_BUFFER_FLAG	= MIN_TYPE( int );
+
+private:
+	void				ClearWithoutFreeing();
+	ID_INLINE void		SetMapped() const { const_cast< int& >( size ) |= MAPPED_FLAG; }
+	ID_INLINE void		SetUnmapped() const { const_cast< int& >( size ) &= ~MAPPED_FLAG; }
+	ID_INLINE bool		OwnsBuffer() const { return ( ( offsetInOtherBuffer & OWNS_BUFFER_FLAG ) != 0 ); }
+
+	DISALLOW_COPY_AND_ASSIGN( idConstantBuffer );
+};
+
+
+// idPixelPackBuffer
+// idPixelUnpackBuffer
+
+
+
+
+
+
+
 
 #endif // !__BUFFEROBJECT_H__

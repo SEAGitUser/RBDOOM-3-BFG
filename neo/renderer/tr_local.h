@@ -60,6 +60,8 @@ static const float CHECK_BOUNDS_EPSILON = 1.0f;
 
 typedef idHandle<qhandle_t, -1>	idRenderIndex;
 
+typedef ALIGNTYPE16 idVec4 idRenderVector;
+
 enum demoCommand_t
 {
 	DC_BAD,
@@ -485,7 +487,7 @@ private: // derived data is private ( its all should be private! )
 
 // RB begin
 	frustum_t				frustums[ MAX_FRUSTUMS ];					// positive sides face outward, [4] is the front clip plane
-	float					frustumSplitDistances[ MAX_FRUSTUMS ];
+	ALIGNTYPE16 float		frustumSplitDistances[ MAX_FRUSTUMS ];
 	idRenderMatrix			frustumInvMVPs[ MAX_FRUSTUMS ];
 // RB end
 
@@ -555,7 +557,8 @@ public:
 	const idRenderMatrix &			GetViewMatrix() const { return worldSpace.modelViewMatrix; }
 	const idRenderMatrix &			GetProjectionMatrix() const { return projectionMatrix; }
 	const idRenderMatrix &			GetMVPMatrix() const { return worldSpace.mvp; }	// modelmat is identity 
-	const idRenderMatrix &			GetInverseVPMatrix() const { return inverseViewProjectionMatrix; }	// modelmat is identity 
+	const idRenderMatrix &			GetInverseVPMatrix() const { return inverseViewProjectionMatrix; }	// modelmat is identity
+	const idRenderMatrix &			GetInverseViewMatrix() const { return inverseViewMatrix; }
 	const idRenderMatrix &			GetInverseProjMatrix() const { return inverseProjectionMatrix; }
 
 	//TODO: get rid of this wordspace crap!
@@ -747,7 +750,24 @@ const idMaterial* R_RemapShaderBySkin( const idMaterial* shader, const idDeclSki
 
 //====================================================
 
-
+enum uboBindings_t 
+{
+	BINDING_GLOBAL_UBO	= 0,
+	BINDING_MATRICES_UBO,
+	BINDING_SHADOW_UBO,
+};
+#if 0
+struct constantBuffersInfo_t {
+	const char * name;
+	uint32	bindingSlot;
+} 
+constantBuffersInfo[] = 
+{
+	{ "global_ubo", BINDING_GLOBAL_UBO },
+	{ "matrices_ubo", BINDING_MATRICES_UBO }
+	{ "shadow_ubo", BINDING_SHADOW_UBO }
+};
+#endif
 /*
 ** performanceCounters_t
 */
@@ -812,6 +832,8 @@ struct glstate_t
 	
 	Framebuffer*		currentFramebuffer;
 	// RB end
+
+	GLuint				currentFramebufferObject;	//SEA
 	
 	float				polyOfsScale;
 	float				polyOfsBias;
@@ -842,10 +864,10 @@ struct backEndCounters_t
 // from the front end state
 struct backEndState_t
 {
-	const idRenderView*		viewDef;
+	const idRenderView * viewDef;
 	backEndCounters_t	pc;
 	
-	const viewModel_t* currentSpace;			// for detecting when a matrix must change
+	const viewModel_t * currentSpace;			// for detecting when a matrix must change
 	idScreenRect		currentScissor;			// for scissor clipping, local inside renderView viewport
 	glstate_t			glState;				// for OpenGL state deltas
 	
@@ -857,6 +879,8 @@ struct backEndState_t
 	///idRenderMatrix		shadowV[6];				// shadow depth view matrix
 	///idRenderMatrix		shadowP[6];				// shadow depth projection matrix
 	idRenderMatrix		shadowVP[ 6 ];
+
+	idConstantBuffer	viewCBuffer;
 	
 	float				hdrAverageLuminance;
 	float				hdrMaxLuminance;
@@ -1582,7 +1606,6 @@ void RB_SetVertexColorParms( stageVertexColor_t svc );
 #include "jobs/staticshadowvolume/StaticShadowVolume.h"
 #include "jobs/dynamicshadowvolume/DynamicShadowVolume.h"
 #include "GraphicsAPIWrapper.h"
-///#include "GLMatrix.h"
 
 #include "BufferObject.h"
 #include "RenderProgs.h"

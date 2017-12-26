@@ -667,7 +667,6 @@ Automatically enables 2D mapping or cube mapping if needed
 */
 void idImage::Bind()
 {
-
 	RENDERLOG_PRINTF( "idImage::Bind( %s )\n", GetName() );
 	
 	// load the image if necessary (FIXME: not SMP safe!)
@@ -688,13 +687,13 @@ void idImage::Bind()
 		{
 			tmu->current2DMap = texnum;
 			
-#if !defined(USE_GLES2) && !defined(USE_GLES3)
+		#if !defined(USE_GLES2) && !defined(USE_GLES3)
 			if( glConfig.directStateAccess )
 			{
 				glBindMultiTextureEXT( GL_TEXTURE0 + texUnit, GL_TEXTURE_2D, texnum );
 			}
 			else
-#endif
+		#endif
 			{
 				glActiveTexture( GL_TEXTURE0 + texUnit );
 				glBindTexture( GL_TEXTURE_2D, texnum );
@@ -707,13 +706,13 @@ void idImage::Bind()
 		{
 			tmu->currentCubeMap = texnum;
 			
-#if !defined(USE_GLES2) && !defined(USE_GLES3)
+		#if !defined(USE_GLES2) && !defined(USE_GLES3)
 			if( glConfig.directStateAccess )
 			{
 				glBindMultiTextureEXT( GL_TEXTURE0 + texUnit, GL_TEXTURE_CUBE_MAP, texnum );
 			}
 			else
-#endif
+		#endif
 			{
 				glActiveTexture( GL_TEXTURE0 + texUnit );
 				glBindTexture( GL_TEXTURE_CUBE_MAP, texnum );
@@ -726,13 +725,13 @@ void idImage::Bind()
 		{
 			tmu->current2DArray = texnum;
 			
-#if !defined(USE_GLES2) && !defined(USE_GLES3)
+		#if !defined(USE_GLES2) && !defined(USE_GLES3)
 			if( glConfig.directStateAccess )
 			{
 				glBindMultiTextureEXT( GL_TEXTURE0 + texUnit, GL_TEXTURE_2D_ARRAY, texnum );
 			}
 			else
-#endif
+		#endif
 			{
 				glActiveTexture( GL_TEXTURE0 + texUnit );
 				glBindTexture( GL_TEXTURE_2D_ARRAY, texnum );
@@ -745,13 +744,13 @@ void idImage::Bind()
 		{
 			tmu->current2DMap = texnum;
 			
-#if !defined(USE_GLES2) && !defined(USE_GLES3)
+		#if !defined(USE_GLES2) && !defined(USE_GLES3)
 			if( glConfig.directStateAccess )
 			{
 				glBindMultiTextureEXT( GL_TEXTURE0 + texUnit, GL_TEXTURE_2D_MULTISAMPLE, texnum );
 			}
 			else
-#endif
+		#endif
 			{
 				glActiveTexture( GL_TEXTURE0 + texUnit );
 				glBindTexture( GL_TEXTURE_2D_MULTISAMPLE, texnum );

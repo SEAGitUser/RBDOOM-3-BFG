@@ -49,7 +49,7 @@ If you have questions concerning this license or the applicable additional terms
 */
 
 class idImage;
-//class idTriangles;
+class idTriangles;
 class idRenderModelSurface;
 class idDeclRenderProg;
 class idRenderTexture;
@@ -168,6 +168,9 @@ ID_INLINE void	GL_ViewportAndScissor( const idScreenRect& rect )
 // RB: HDR parm
 void			GL_Clear( bool color, bool depth, bool stencil, byte stencilValue, float r, float g, float b, float a, bool clearHDR = true );
 // RB end
+void			GL_ClearDepth( const float value = 1.0f );
+void			GL_ClearColor( const float r = 0.0f, const float g = 0.0f, const float b = 0.0f, const float a = 1.0f, const int iColorBuffer = 0 );
+
 void			GL_PolygonOffset( float scale, float bias );
 void			GL_DepthBoundsTest( const float zmin, const float zmax );
 //void			GL_Color( float* color );
