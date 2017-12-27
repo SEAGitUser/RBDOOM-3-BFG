@@ -496,7 +496,7 @@ void R_AddSingleModel( viewModel_t* vEntity )
 					tri->indexCache = vertexCache.AllocIndex( tri->indexes, ALIGN( tri->numIndexes * sizeof( triIndex_t ), INDEX_CACHE_ALIGN ) );
 				}
 				
-				if( !vertexCache.CacheIsCurrent( tri->ambientCache ) )
+				if( !vertexCache.CacheIsCurrent( tri->vertexCache ) )
 				{
 					// we are going to use it for drawing, so make sure we have the tangents and normals
 					if( shader->ReceivesLighting() && !tri->tangentsCalculated )
@@ -508,7 +508,7 @@ void R_AddSingleModel( viewModel_t* vEntity )
 						//assert( false );	// this should no longer be hit
 						// RB end
 					}
-					tri->ambientCache = vertexCache.AllocVertex( tri->verts, ALIGN( tri->numVerts * sizeof( idDrawVert ), VERTEX_CACHE_ALIGN ) );
+					tri->vertexCache = vertexCache.AllocVertex( tri->verts, ALIGN( tri->numVerts * sizeof( idDrawVert ), VERTEX_CACHE_ALIGN ) );
 				}
 				
 				// add the surface for drawing
@@ -548,9 +548,9 @@ void R_AddSingleModel( viewModel_t* vEntity )
 				if( shaderDeform == DFRM_NONE || shaderDeform == DFRM_PARTICLE || shaderDeform == DFRM_PARTICLE2 )
 				{
 					// copy verts and indexes to this frame's hardware memory if they aren't already there
-					if( !vertexCache.CacheIsCurrent( tri->ambientCache ) )
+					if( !vertexCache.CacheIsCurrent( tri->vertexCache ) )
 					{
-						tri->ambientCache = vertexCache.AllocVertex( tri->verts, ALIGN( tri->numVerts * sizeof( tri->verts[0] ), VERTEX_CACHE_ALIGN ) );
+						tri->vertexCache = vertexCache.AllocVertex( tri->verts, ALIGN( tri->numVerts * sizeof( tri->verts[0] ), VERTEX_CACHE_ALIGN ) );
 					}
 					if( !vertexCache.CacheIsCurrent( tri->indexCache ) )
 					{
@@ -560,7 +560,7 @@ void R_AddSingleModel( viewModel_t* vEntity )
 					R_SetupDrawSurfJoints( baseDrawSurf, tri, shader );
 					
 					baseDrawSurf->numIndexes = tri->numIndexes;
-					baseDrawSurf->ambientCache = tri->ambientCache;
+					baseDrawSurf->vertexCache = tri->vertexCache;
 					baseDrawSurf->indexCache = tri->indexCache;
 					baseDrawSurf->shadowCache = 0;
 					
@@ -700,7 +700,7 @@ void R_AddSingleModel( viewModel_t* vEntity )
 							}
 						}
 						
-						lightDrawSurf->ambientCache = tri->ambientCache;
+						lightDrawSurf->vertexCache = tri->vertexCache;
 						lightDrawSurf->shadowCache = 0;
 						lightDrawSurf->frontEndGeo = tri;
 						lightDrawSurf->space = vEntity;
@@ -841,7 +841,7 @@ void R_AddSingleModel( viewModel_t* vEntity )
 							shadowDrawSurf->indexCache = tri->indexCache;
 						}
 						
-						if( !vertexCache.CacheIsCurrent( tri->ambientCache ) )
+						if( !vertexCache.CacheIsCurrent( tri->vertexCache ) )
 						{
 							// we are going to use it for drawing, so make sure we have the tangents and normals
 							if( shader->ReceivesLighting() && !tri->tangentsCalculated )
@@ -853,10 +853,10 @@ void R_AddSingleModel( viewModel_t* vEntity )
 								//assert( false );	// this should no longer be hit
 								// RB end
 							}
-							tri->ambientCache = vertexCache.AllocVertex( tri->verts, ALIGN( tri->numVerts * sizeof( idDrawVert ), VERTEX_CACHE_ALIGN ) );
+							tri->vertexCache = vertexCache.AllocVertex( tri->verts, ALIGN( tri->numVerts * sizeof( idDrawVert ), VERTEX_CACHE_ALIGN ) );
 						}
 						
-						shadowDrawSurf->ambientCache = tri->ambientCache;
+						shadowDrawSurf->vertexCache = tri->vertexCache;
 						shadowDrawSurf->shadowCache = 0;
 						shadowDrawSurf->frontEndGeo = tri;
 						shadowDrawSurf->space = vEntity;
@@ -1031,7 +1031,7 @@ void R_AddSingleModel( viewModel_t* vEntity )
 			assert( vertexCache.CacheIsCurrent( shadowDrawSurf->shadowCache ) );
 			assert( vertexCache.CacheIsCurrent( shadowDrawSurf->indexCache ) );
 			
-			shadowDrawSurf->ambientCache = 0;
+			shadowDrawSurf->vertexCache = 0;
 			shadowDrawSurf->frontEndGeo = NULL;
 			shadowDrawSurf->space = vEntity;
 			shadowDrawSurf->material = NULL;

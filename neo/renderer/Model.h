@@ -125,7 +125,7 @@ struct idTriangles
 	
 	// data in vertex object space, not directly readable by the CPU
 	vertCacheHandle_t			indexCache;				// GL_INDEX_TYPE
-	vertCacheHandle_t			ambientCache;			// idDrawVert
+	vertCacheHandle_t			vertexCache;			// idDrawVert
 	vertCacheHandle_t			shadowCache;			// idVec4
 
 	static const ALIGNTYPE16 triIndex_t	quadIndexes[ 6 ];

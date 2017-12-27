@@ -37,9 +37,13 @@ If you have questions concerning this license or the applicable additional terms
 ===============================================================================
 */
 
-class idTimer
-{
+class idTimer {
 public:
+	enum timerState_t {
+		TS_STARTED,
+		TS_STOPPED
+	};
+
 	idTimer();
 	idTimer( double clockTicks );
 	~idTimer();
@@ -54,14 +58,13 @@ public:
 	void			Clear();
 	double			ClockTicks() const;
 	double			Milliseconds() const;
+	timerState_t	State() const;
+
+	const char*		ToString() const;
 	
 private:
 	static double	base;
-	enum
-	{
-		TS_STARTED,
-		TS_STOPPED
-	} state;
+	timerState_t	state;
 	double			start;
 	double			clockTicks;
 	
@@ -209,6 +212,14 @@ ID_INLINE double idTimer::Milliseconds() const
 	return clockTicks / ( idLib::sys->ClockTicksPerSecond() * 0.001 );
 }
 
+/*
+===============
+State
+===============
+*/
+ID_INLINE idTimer::timerState_t idTimer::State() const { 
+	return state;
+}
 
 /*
 ===============================================================================

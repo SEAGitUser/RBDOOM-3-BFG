@@ -94,25 +94,12 @@ void GL_Cull( int cullType )
 		
 		if( cullType == CT_BACK_SIDED )
 		{
-			if( backEnd.viewDef->isMirror )
-			{
-				glCullFace( GL_FRONT );
-			}
-			else
-			{
-				glCullFace( GL_BACK );
-			}
+			glCullFace( backEnd.viewDef->isMirror ? GL_FRONT : GL_BACK );
 		}
 		else
 		{
-			if( backEnd.viewDef->isMirror )
-			{
-				glCullFace( GL_BACK );
-			}
-			else
-			{
-				glCullFace( GL_FRONT );
-			}
+			glCullFace( backEnd.viewDef->isMirror ? GL_BACK : GL_FRONT );
+
 		}
 	}
 	
@@ -753,4 +740,148 @@ GL_GetCurrentStateMinusStencil
 uint64 GL_GetCurrentStateMinusStencil()
 {
 	return GL_GetCurrentState() & ~( GLS_STENCIL_OP_BITS | GLS_STENCIL_FUNC_BITS | GLS_STENCIL_FUNC_REF_BITS | GLS_STENCIL_FUNC_MASK_BITS );
+}
+
+/*
+================
+ GL_DrawElementsWithCounters
+================
+*/
+void GL_DrawElementsWithCounters( const drawSurf_t* surf, int globalInstCount )
+{
+	// get vertex buffer --------------------------------
+
+	idVertexBuffer vertexBuffer;
+	vertexCache.GetVertexBuffer( surf->vertexCache, &vertexBuffer );
+	const GLint vertOffset = vertexBuffer.GetOffset();
+	const GLuint vbo = reinterpret_cast<GLuint>( vertexBuffer.GetAPIObject() );
+
+	// get index buffer --------------------------------
+
+	idIndexBuffer indexBuffer;
+	vertexCache.GetIndexBuffer( surf->indexCache, &indexBuffer );
+	const GLintptr indexOffset = indexBuffer.GetOffset();
+	const GLuint ibo = reinterpret_cast<GLuint>( indexBuffer.GetAPIObject() );
+
+	RENDERLOG_PRINTF( "Binding Buffers: %p:%i %p:%i\n", vertexBuffer, vertOffset, indexBuffer, indexOffset );
+
+	if( surf->jointCache )
+	{
+		// DG: this happens all the time in the erebus1 map with blendlight.vfp,
+		// so don't call assert (through verify) here until it's fixed (if fixable)
+		// else the game crashes on linux when using debug builds
+
+		// FIXME: fix this properly if possible?
+		// RB: yes but it would require an additional blend light skinned shader
+		//if( !verify( renderProgManager.ShaderUsesJoints() ) )
+		if( !renderProgManager.ShaderUsesJoints() )
+			// DG end
+		{
+			return;
+		}
+	}
+	else
+	{
+		if( !verify( !renderProgManager.ShaderUsesJoints() || renderProgManager.ShaderHasOptionalSkinning() ) )
+		{
+			return;
+		}
+	}
+
+	if( surf->jointCache )
+	{
+		idJointBuffer jointBuffer;
+		if( !vertexCache.GetJointBuffer( surf->jointCache, &jointBuffer ) )
+		{
+			idLib::Warning( "GL_DrawElementsWithCounters, jointBuffer == NULL" );
+			return;
+		}
+		assert( ( jointBuffer.GetOffset() & ( glConfig.uniformBufferOffsetAlignment - 1 ) ) == 0 );
+
+		// RB: 64 bit fixes, changed GLuint to GLintptr
+		const GLintptr ubo = reinterpret_cast< GLintptr >( jointBuffer.GetAPIObject() );
+		// RB end
+
+		glBindBufferRange( GL_UNIFORM_BUFFER, BINDING_MATRICES_UBO, ubo, jointBuffer.GetOffset(), jointBuffer.GetNumJoints() * sizeof( idJointMat ) );
+	}
+
+	renderProgManager.CommitUniforms();
+
+	// RB: 64 bit fixes, changed GLuint to GLintptr
+	if( backEnd.glState.currentIndexBuffer != ( GLintptr )ibo || !r_useStateCaching.GetBool() )
+	{
+		glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, ibo );
+		backEnd.glState.currentIndexBuffer = ibo;
+	}
+
+	if( ( backEnd.glState.vertexLayout != LAYOUT_DRAW_VERT ) || ( backEnd.glState.currentVertexBuffer != ( GLintptr )vbo ) || !r_useStateCaching.GetBool() )
+	{
+		glBindBuffer( GL_ARRAY_BUFFER, vbo );
+		backEnd.glState.currentVertexBuffer = ( GLintptr )vbo;
+
+		glEnableVertexAttribArray( PC_ATTRIB_INDEX_VERTEX );
+		glEnableVertexAttribArray( PC_ATTRIB_INDEX_NORMAL );
+		glEnableVertexAttribArray( PC_ATTRIB_INDEX_COLOR );
+		glEnableVertexAttribArray( PC_ATTRIB_INDEX_COLOR2 );
+		glEnableVertexAttribArray( PC_ATTRIB_INDEX_ST );
+		glEnableVertexAttribArray( PC_ATTRIB_INDEX_TANGENT );
+
+	#if defined( USE_GLES3 )
+		glVertexAttribPointer( PC_ATTRIB_INDEX_VERTEX, 3, GL_FLOAT, GL_FALSE, sizeof( idDrawVert ), ( void* )( vertOffset + DRAWVERT_XYZ_OFFSET ) );
+		glVertexAttribPointer( PC_ATTRIB_INDEX_NORMAL, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof( idDrawVert ), ( void* )( vertOffset + DRAWVERT_NORMAL_OFFSET ) );
+		glVertexAttribPointer( PC_ATTRIB_INDEX_COLOR, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof( idDrawVert ), ( void* )( vertOffset + DRAWVERT_COLOR_OFFSET ) );
+		glVertexAttribPointer( PC_ATTRIB_INDEX_COLOR2, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof( idDrawVert ), ( void* )( vertOffset + DRAWVERT_COLOR2_OFFSET ) );
+	#if defined(USE_ANGLE)
+		glVertexAttribPointer( PC_ATTRIB_INDEX_ST, 2, GL_HALF_FLOAT_OES, GL_TRUE, sizeof( idDrawVert ), ( void* )( vertOffset + DRAWVERT_ST_OFFSET ) );
+	#else
+		glVertexAttribPointer( PC_ATTRIB_INDEX_ST, 2, GL_HALF_FLOAT, GL_TRUE, sizeof( idDrawVert ), ( void* )( vertOffset + DRAWVERT_ST_OFFSET ) );
+	#endif
+		glVertexAttribPointer( PC_ATTRIB_INDEX_TANGENT, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof( idDrawVert ), ( void* )( vertOffset + DRAWVERT_TANGENT_OFFSET ) );
+
+	#else
+		//glVertexAttribPointer( PC_ATTRIB_INDEX_VERTEX, 3, GL_FLOAT, GL_FALSE, sizeof( idDrawVert ), ( void* )( DRAWVERT_XYZ_OFFSET ) );
+		//glVertexAttribPointer( PC_ATTRIB_INDEX_NORMAL, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof( idDrawVert ), ( void* )( DRAWVERT_NORMAL_OFFSET ) );
+		//glVertexAttribPointer( PC_ATTRIB_INDEX_COLOR, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof( idDrawVert ), ( void* )( DRAWVERT_COLOR_OFFSET ) );
+		//glVertexAttribPointer( PC_ATTRIB_INDEX_COLOR2, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof( idDrawVert ), ( void* )( DRAWVERT_COLOR2_OFFSET ) );
+		//glVertexAttribPointer( PC_ATTRIB_INDEX_ST, 2, GL_HALF_FLOAT, GL_TRUE, sizeof( idDrawVert ), ( void* )( DRAWVERT_ST_OFFSET ) );
+		//glVertexAttribPointer( PC_ATTRIB_INDEX_TANGENT, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof( idDrawVert ), ( void* )( DRAWVERT_TANGENT_OFFSET ) );
+
+		glVertexAttribPointer( PC_ATTRIB_INDEX_VERTEX, 3, GL_FLOAT, GL_FALSE, sizeof( idDrawVert ), idDrawVert::positionOffset );
+		glVertexAttribPointer( PC_ATTRIB_INDEX_NORMAL, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof( idDrawVert ), idDrawVert::normalOffset );
+		glVertexAttribPointer( PC_ATTRIB_INDEX_COLOR, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof( idDrawVert ), idDrawVert::colorOffset );
+		glVertexAttribPointer( PC_ATTRIB_INDEX_COLOR2, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof( idDrawVert ), idDrawVert::color2Offset );
+		glVertexAttribPointer( PC_ATTRIB_INDEX_ST, 2, GL_HALF_FLOAT, GL_TRUE, sizeof( idDrawVert ), idDrawVert::texcoordOffset );
+		glVertexAttribPointer( PC_ATTRIB_INDEX_TANGENT, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof( idDrawVert ), idDrawVert::tangentOffset );
+	#endif
+
+		backEnd.glState.vertexLayout = LAYOUT_DRAW_VERT;
+	}
+	// RB end
+
+#if defined( USE_GLES3 )
+	glDrawElements( GL_TRIANGLES,
+		r_singleTriangle.GetBool() ? 3 : surf->numIndexes,
+		GL_INDEX_TYPE,
+		( triIndex_t* )indexOffset );
+#else
+
+	///glDrawElementsBaseVertex( GL_TRIANGLES,
+	///						  r_singleTriangle.GetBool() ? 3 : surf->numIndexes,
+	///						  GL_INDEX_TYPE,
+	///						  ( triIndex_t* )indexOffset,
+	///						  vertOffset / sizeof( idDrawVert ) );
+
+	const GLsizei primcount = globalInstCount;
+	glDrawElementsInstancedBaseVertex( GL_TRIANGLES,
+		r_singleTriangle.GetBool() ? 3 : surf->numIndexes,
+		GL_INDEX_TYPE,
+		( triIndex_t* )indexOffset,
+		primcount,
+		vertOffset / sizeof( idDrawVert ) );
+#endif
+
+	// RB: added stats
+	backEnd.pc.c_drawElements++;
+	backEnd.pc.c_drawIndexes += surf->numIndexes;
+	// RB end
 }

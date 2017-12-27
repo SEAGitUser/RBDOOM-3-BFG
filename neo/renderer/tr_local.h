@@ -136,7 +136,7 @@ struct drawSurf_t
 	const idTriangles* 		frontEndGeo;		// don't use on the back end, it may be updated by the front end!
 	int						numIndexes;
 	vertCacheHandle_t		indexCache;			// triIndex_t
-	vertCacheHandle_t		ambientCache;		// idDrawVert
+	vertCacheHandle_t		vertexCache;		// idDrawVert
 	vertCacheHandle_t		shadowCache;		// idShadowVert / idShadowVertSkinned
 	vertCacheHandle_t		jointCache;			// idJointMat
 	const viewModel_t* 		space;
@@ -856,8 +856,8 @@ struct backEndCounters_t
 	
 	float	c_overDraw;
 	
-	int		totalMicroSec;			// total microseconds for backend run
-	int		shadowMicroSec;
+	uint64	totalMicroSec;			// total microseconds for backend run
+	uint64	shadowMicroSec;
 };
 
 // all state modified by the back end is separated
@@ -1565,7 +1565,6 @@ TR_BACKEND_DRAW
 */
 
 void RB_SetMVP( const idRenderMatrix& mvp );
-void RB_DrawElementsWithCounters( const drawSurf_t* surf );
 void RB_DrawViewInternal( const idRenderView* viewDef, const int stereoEye );
 void RB_DrawView( const void* data, const int stereoEye );
 void RB_CopyRender( const void* data );

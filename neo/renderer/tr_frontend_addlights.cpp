@@ -491,7 +491,7 @@ static void R_AddSingleLight( viewLight_t* vLight )
 		auto shadowDrawSurf = allocManager.FrameAlloc<drawSurf_t, FRAME_ALLOC_DRAW_SURFACE>();
 		
 		shadowDrawSurf->frontEndGeo = tri;
-		shadowDrawSurf->ambientCache = 0;
+		shadowDrawSurf->vertexCache = 0;
 		shadowDrawSurf->indexCache = tri->indexCache;
 		shadowDrawSurf->shadowCache = tri->shadowCache;
 		shadowDrawSurf->jointCache = 0;

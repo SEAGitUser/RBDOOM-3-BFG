@@ -59,6 +59,15 @@ void idTimer::InitBaseClockTicks() const
 	base = b;
 }
 
+/*
+============
+idTimer::ToString
+============
+*/
+const char* idTimer::ToString() const {
+	return idStr::MS2HMS( Milliseconds() );
+}
+
 
 /*
 =================

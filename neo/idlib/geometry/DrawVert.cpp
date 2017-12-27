@@ -29,6 +29,21 @@ If you have questions concerning this license or the applicable additional terms
 #pragma hdrstop
 #include "precompiled.h"
 
+#define attributeOffset( Class, Name ) reinterpret_cast<const void*>( offsetof( Class , Name ) )
+
+const void * const idDrawVert::positionOffset = attributeOffset( idDrawVert, xyz );
+const void * const idDrawVert::texcoordOffset = attributeOffset( idDrawVert, st );
+const void * const idDrawVert::normalOffset = attributeOffset( idDrawVert, normal );
+const void * const idDrawVert::tangentOffset = attributeOffset( idDrawVert, tangent );
+const void * const idDrawVert::colorOffset = attributeOffset( idDrawVert, color );
+const void * const idDrawVert::color2Offset = attributeOffset( idDrawVert, color2 );
+
+const void * const idShadowVert::xyzwOffset = attributeOffset( idShadowVert, xyzw );
+
+const void * const idShadowVertSkinned::xyzwOffset = attributeOffset( idShadowVertSkinned, xyzw );
+const void * const idShadowVertSkinned::colorOffset = attributeOffset( idShadowVertSkinned, color );
+const void * const idShadowVertSkinned::color2Offset = attributeOffset( idShadowVertSkinned, color2 );
+
 /*
 ============
 idDrawVert::ReadFromFile

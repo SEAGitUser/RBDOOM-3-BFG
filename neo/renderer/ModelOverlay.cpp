@@ -687,7 +687,7 @@ drawSurf_t* idRenderModelOverlay::CreateOverlayDrawSurf( const viewModel_t* spac
 	
 	int maxVerts = 0;
 	int maxIndexes = 0;
-	for( unsigned int i = firstOverlay; i < nextOverlay; i++ )
+	for( unsigned int i = firstOverlay; i < nextOverlay; ++i )
 	{
 		const overlay_t& overlay = overlays[i & ( MAX_OVERLAYS - 1 )];
 		if( overlay.material == material )
@@ -707,16 +707,16 @@ drawSurf_t* idRenderModelOverlay::CreateOverlayDrawSurf( const viewModel_t* spac
 
 	newTri->staticModelWithJoints = ( staticModel->jointsInverted != NULL )? const_cast< idRenderModelStatic* >( staticModel ) : NULL;	// allow GPU skinning
 	
-	newTri->ambientCache = vertexCache.AllocVertex( NULL, ALIGN( maxVerts * sizeof( idDrawVert ), VERTEX_CACHE_ALIGN ) );
+	newTri->vertexCache = vertexCache.AllocVertex( NULL, ALIGN( maxVerts * sizeof( idDrawVert ), VERTEX_CACHE_ALIGN ) );
 	newTri->indexCache = vertexCache.AllocIndex( NULL, ALIGN( maxIndexes * sizeof( triIndex_t ), INDEX_CACHE_ALIGN ) );
 	
-	idDrawVert* mappedVerts = ( idDrawVert* )vertexCache.MappedVertexBuffer( newTri->ambientCache );
+	idDrawVert* mappedVerts = ( idDrawVert* )vertexCache.MappedVertexBuffer( newTri->vertexCache );
 	triIndex_t* mappedIndexes = ( triIndex_t* )vertexCache.MappedIndexBuffer( newTri->indexCache );
 	
 	int numVerts = 0;
 	int numIndexes = 0;
 	
-	for( unsigned int i = firstOverlay; i < nextOverlay; i++ )
+	for( unsigned int i = firstOverlay; i < nextOverlay; ++i )
 	{
 		overlay_t& overlay = overlays[i & ( MAX_OVERLAYS - 1 )];
 		
@@ -785,7 +785,7 @@ drawSurf_t* idRenderModelOverlay::CreateOverlayDrawSurf( const viewModel_t* spac
 	auto drawSurf = allocManager.FrameAlloc<drawSurf_t, FRAME_ALLOC_DRAW_SURFACE>();
 	drawSurf->frontEndGeo = newTri;
 	drawSurf->numIndexes = newTri->numIndexes;
-	drawSurf->ambientCache = newTri->ambientCache;
+	drawSurf->vertexCache = newTri->vertexCache;
 	drawSurf->indexCache = newTri->indexCache;
 	drawSurf->shadowCache = 0;
 	drawSurf->space = space;
@@ -809,7 +809,7 @@ void idRenderModelOverlay::ReadFromDemoFile( idDemoFile* f )
 	f->ReadUnsignedInt( firstOverlay );
 	f->ReadUnsignedInt( nextOverlay );
 	
-	for( unsigned int i = firstOverlay; i < nextOverlay; i++ )
+	for( unsigned int i = firstOverlay; i < nextOverlay; ++i )
 	{
 		overlay_t& overlay = overlays[ i & ( MAX_OVERLAYS - 1 ) ];
 		

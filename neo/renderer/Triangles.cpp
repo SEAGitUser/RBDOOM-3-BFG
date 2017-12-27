@@ -184,7 +184,7 @@ void idTriangles::FreeStaticVertexCaches()
 {
 	// we don't support reclaiming static geometry memory
 	// without a level change
-	this->ambientCache = 0;
+	this->vertexCache = 0;
 	this->indexCache = 0;
 	this->shadowCache = 0;
 }
@@ -271,7 +271,7 @@ void idTriangles::FreeStaticVerts()
 {
 	// we don't support reclaiming static geometry memory
 	// without a level change
-	this->ambientCache = 0;
+	this->vertexCache = 0;
 	
 	if( this->verts != NULL )
 	{
@@ -2120,19 +2120,19 @@ void idTriangles::InitDrawSurfFromTriangles( drawSurf_t& ds )
 	if( ( this->verts == NULL ) && !this->referencedIndexes )
 	{
 		// pre-generated shadow models will not have any verts, just shadowVerts
-		this->ambientCache = 0;
+		this->vertexCache = 0;
 	}
-	else if( !vertexCache.CacheIsCurrent( this->ambientCache ) )
+	else if( !::vertexCache.CacheIsCurrent( this->vertexCache ) )
 	{
-		this->ambientCache = vertexCache.AllocVertex( this->verts, ALIGN( this->numVerts * sizeof( this->verts[0] ), VERTEX_CACHE_ALIGN ) );
+		this->vertexCache = ::vertexCache.AllocVertex( this->verts, ALIGN( this->numVerts * sizeof( this->verts[0] ), VERTEX_CACHE_ALIGN ) );
 	}
-	if( !vertexCache.CacheIsCurrent( this->indexCache ) )
+	if( !::vertexCache.CacheIsCurrent( this->indexCache ) )
 	{
-		this->indexCache = vertexCache.AllocIndex( this->indexes, ALIGN( this->numIndexes * sizeof( this->indexes[0] ), INDEX_CACHE_ALIGN ) );
+		this->indexCache = ::vertexCache.AllocIndex( this->indexes, ALIGN( this->numIndexes * sizeof( this->indexes[0] ), INDEX_CACHE_ALIGN ) );
 	}
 	
 	ds.numIndexes = this->numIndexes;
-	ds.ambientCache = this->ambientCache;
+	ds.vertexCache = this->vertexCache;
 	ds.indexCache = this->indexCache;
 	ds.shadowCache = this->shadowCache;
 	ds.jointCache = 0;
@@ -2149,19 +2149,19 @@ void idTriangles::InitDrawSurfFromTriangles( drawSurf_t& ds )
 void idTriangles::CreateStaticBuffers()
 {
 	this->indexCache = 0;
-	this->ambientCache = 0;
+	this->vertexCache = 0;
 	this->shadowCache = 0;
 	
 	// index cache
 	if( this->indexes != NULL )
 	{
-		this->indexCache = vertexCache.AllocStaticIndex( this->indexes, ALIGN( this->numIndexes * sizeof( this->indexes[0] ), INDEX_CACHE_ALIGN ) );
+		this->indexCache = ::vertexCache.AllocStaticIndex( this->indexes, ALIGN( this->numIndexes * sizeof( this->indexes[0] ), INDEX_CACHE_ALIGN ) );
 	}
 	
 	// vertex cache
 	if( this->verts != NULL )
 	{
-		this->ambientCache = vertexCache.AllocStaticVertex( this->verts, ALIGN( this->numVerts * sizeof( this->verts[0] ), VERTEX_CACHE_ALIGN ) );
+		this->vertexCache = ::vertexCache.AllocStaticVertex( this->verts, ALIGN( this->numVerts * sizeof( this->verts[0] ), VERTEX_CACHE_ALIGN ) );
 	}
 	
 	// shadow cache
@@ -2170,7 +2170,7 @@ void idTriangles::CreateStaticBuffers()
 		// this should only be true for the _prelight<NAME> pre-calculated shadow volumes
 		assert( this->verts == NULL );	// pre-light shadow volume surfaces don't have ambient vertices
 		const int shadowSize = ALIGN( this->numVerts * 2 * sizeof( idShadowVert ), VERTEX_CACHE_ALIGN );
-		this->shadowCache = vertexCache.AllocStaticVertex( this->preLightShadowVertexes, shadowSize );
+		this->shadowCache = ::vertexCache.AllocStaticVertex( this->preLightShadowVertexes, shadowSize );
 	}
 	else if( this->verts != NULL )
 	{
@@ -2182,7 +2182,7 @@ void idTriangles::CreateStaticBuffers()
 			this->staticShadowVertexes = ( idShadowVert* ) Mem_Alloc16( shadowSize, TAG_TEMP );
 			idShadowVert::CreateShadowCache( this->staticShadowVertexes, this->verts, this->numVerts );
 		}
-		this->shadowCache = vertexCache.AllocStaticVertex( this->staticShadowVertexes, shadowSize );
+		this->shadowCache = ::vertexCache.AllocStaticVertex( this->staticShadowVertexes, shadowSize );
 		
 	#if !defined( KEEP_INTERACTION_CPU_DATA )
 		Mem_Free( this->staticShadowVertexes );
@@ -2318,7 +2318,7 @@ void idTriangles::ReadFromFile( idFile *file )
 	tri.baseTriangles = NULL;
 	tri.nextDeferredFree = NULL;
 	tri.indexCache = 0;
-	tri.ambientCache = 0;
+	tri.vertexCache = 0;
 	tri.shadowCache = 0;
 }
 /*

@@ -39,7 +39,7 @@ idCVar r_motionBlur( "r_motionBlur", "0", CVAR_RENDERER | CVAR_INTEGER | CVAR_AR
 idCVar r_forceZPassStencilShadows( "r_forceZPassStencilShadows", "0", CVAR_RENDERER | CVAR_BOOL, "force Z-pass rendering for performance testing" );
 idCVar r_useStencilShadowPreload( "r_useStencilShadowPreload", "1", CVAR_RENDERER | CVAR_BOOL, "use stencil shadow preload algorithm instead of Z-fail" );
 idCVar r_skipShaderPasses( "r_skipShaderPasses", "0", CVAR_RENDERER | CVAR_BOOL, "" );
-idCVar r_skipInteractionFastPath( "r_skipInteractionFastPath", "1", CVAR_RENDERER | CVAR_BOOL, "" );
+idCVar r_skipInteractionFastPath( "r_skipInteractionFastPath", "0", CVAR_RENDERER | CVAR_BOOL, "" );
 idCVar r_useLightStencilSelect( "r_useLightStencilSelect", "0", CVAR_RENDERER | CVAR_BOOL, "use stencil select pass" );
 
 extern idCVar stereoRender_swapEyes;
@@ -128,143 +128,6 @@ void RB_SetVertexColorParms( stageVertexColor_t svc )
 			SetVertexParm( RENDERPARM_VERTEXCOLOR_ADD, one );
 			break;
 	}
-}
-
-/*
-================
-RB_DrawElementsWithCounters
-================
-*/
-void RB_DrawElementsWithCounters( const drawSurf_t* surf )
-{
-	// get vertex buffer --------------------------------
-
-	static idVertexBuffer vertexBuffer;
-	vertexCache.GetVertexBuffer( surf->ambientCache, &vertexBuffer );
-	const GLint vertOffset = vertexBuffer.GetOffset();
-	const GLuint vbo = reinterpret_cast<GLuint>( vertexBuffer.GetAPIObject() );	
-
-	// get index buffer --------------------------------
-
-	static idIndexBuffer indexBuffer;
-	vertexCache.GetIndexBuffer( surf->indexCache, &indexBuffer );
-	const GLintptr indexOffset = indexBuffer.GetOffset();
-	const GLuint ibo = reinterpret_cast<GLuint>( indexBuffer.GetAPIObject() );
-
-	RENDERLOG_PRINTF( "Binding Buffers: %p:%i %p:%i\n", vertexBuffer, vertOffset, indexBuffer, indexOffset );
-	
-	if( surf->jointCache )
-	{
-		// DG: this happens all the time in the erebus1 map with blendlight.vfp,
-		// so don't call assert (through verify) here until it's fixed (if fixable)
-		// else the game crashes on linux when using debug builds
-		
-		// FIXME: fix this properly if possible?
-		// RB: yes but it would require an additional blend light skinned shader
-		//if( !verify( renderProgManager.ShaderUsesJoints() ) )
-		if( !renderProgManager.ShaderUsesJoints() )
-			// DG end
-		{
-			return;
-		}
-	}
-	else
-	{
-		if( !verify( !renderProgManager.ShaderUsesJoints() || renderProgManager.ShaderHasOptionalSkinning() ) )
-		{
-			return;
-		}
-	}
-		
-	if( surf->jointCache )
-	{
-		idJointBuffer jointBuffer;
-		if( !vertexCache.GetJointBuffer( surf->jointCache, &jointBuffer ) )
-		{
-			idLib::Warning( "RB_DrawElementsWithCounters, jointBuffer == NULL" );
-			return;
-		}
-		assert( ( jointBuffer.GetOffset() & ( glConfig.uniformBufferOffsetAlignment - 1 ) ) == 0 );
-		
-		// RB: 64 bit fixes, changed GLuint to GLintptr
-		const GLintptr ubo = reinterpret_cast< GLintptr >( jointBuffer.GetAPIObject() );
-		// RB end
-		
-		glBindBufferRange( GL_UNIFORM_BUFFER, BINDING_MATRICES_UBO, ubo, jointBuffer.GetOffset(), jointBuffer.GetNumJoints() * sizeof( idJointMat ) );
-	}
-	
-	renderProgManager.CommitUniforms();
-	
-	// RB: 64 bit fixes, changed GLuint to GLintptr
-	if( backEnd.glState.currentIndexBuffer != ( GLintptr )ibo || !r_useStateCaching.GetBool() )
-	{
-		glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, ibo );
-		backEnd.glState.currentIndexBuffer = ibo;
-	}
-	
-	if( ( backEnd.glState.vertexLayout != LAYOUT_DRAW_VERT ) || ( backEnd.glState.currentVertexBuffer != ( GLintptr )vbo ) || !r_useStateCaching.GetBool() )
-	{
-		glBindBuffer( GL_ARRAY_BUFFER, vbo );
-		backEnd.glState.currentVertexBuffer = ( GLintptr )vbo;
-		
-		glEnableVertexAttribArray( PC_ATTRIB_INDEX_VERTEX );
-		glEnableVertexAttribArray( PC_ATTRIB_INDEX_NORMAL );
-		glEnableVertexAttribArray( PC_ATTRIB_INDEX_COLOR );
-		glEnableVertexAttribArray( PC_ATTRIB_INDEX_COLOR2 );
-		glEnableVertexAttribArray( PC_ATTRIB_INDEX_ST );
-		glEnableVertexAttribArray( PC_ATTRIB_INDEX_TANGENT );
-		
-#if defined(USE_GLES2) || defined(USE_GLES3)
-		glVertexAttribPointer( PC_ATTRIB_INDEX_VERTEX, 3, GL_FLOAT, GL_FALSE, sizeof( idDrawVert ), ( void* )( vertOffset + DRAWVERT_XYZ_OFFSET ) );
-		glVertexAttribPointer( PC_ATTRIB_INDEX_NORMAL, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof( idDrawVert ), ( void* )( vertOffset + DRAWVERT_NORMAL_OFFSET ) );
-		glVertexAttribPointer( PC_ATTRIB_INDEX_COLOR, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof( idDrawVert ), ( void* )( vertOffset + DRAWVERT_COLOR_OFFSET ) );
-		glVertexAttribPointer( PC_ATTRIB_INDEX_COLOR2, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof( idDrawVert ), ( void* )( vertOffset + DRAWVERT_COLOR2_OFFSET ) );
-#if defined(USE_ANGLE)
-		glVertexAttribPointer( PC_ATTRIB_INDEX_ST, 2, GL_HALF_FLOAT_OES, GL_TRUE, sizeof( idDrawVert ), ( void* )( vertOffset + DRAWVERT_ST_OFFSET ) );
-#else
-		glVertexAttribPointer( PC_ATTRIB_INDEX_ST, 2, GL_HALF_FLOAT, GL_TRUE, sizeof( idDrawVert ), ( void* )( vertOffset + DRAWVERT_ST_OFFSET ) );
-#endif
-		glVertexAttribPointer( PC_ATTRIB_INDEX_TANGENT, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof( idDrawVert ), ( void* )( vertOffset + DRAWVERT_TANGENT_OFFSET ) );
-		
-#else
-		glVertexAttribPointer( PC_ATTRIB_INDEX_VERTEX, 3, GL_FLOAT, GL_FALSE, sizeof( idDrawVert ), ( void* )( DRAWVERT_XYZ_OFFSET ) );
-		glVertexAttribPointer( PC_ATTRIB_INDEX_NORMAL, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof( idDrawVert ), ( void* )( DRAWVERT_NORMAL_OFFSET ) );
-		glVertexAttribPointer( PC_ATTRIB_INDEX_COLOR, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof( idDrawVert ), ( void* )( DRAWVERT_COLOR_OFFSET ) );
-		glVertexAttribPointer( PC_ATTRIB_INDEX_COLOR2, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof( idDrawVert ), ( void* )( DRAWVERT_COLOR2_OFFSET ) );
-		glVertexAttribPointer( PC_ATTRIB_INDEX_ST, 2, GL_HALF_FLOAT, GL_TRUE, sizeof( idDrawVert ), ( void* )( DRAWVERT_ST_OFFSET ) );
-		glVertexAttribPointer( PC_ATTRIB_INDEX_TANGENT, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof( idDrawVert ), ( void* )( DRAWVERT_TANGENT_OFFSET ) );
-#endif // #if defined(USE_GLES2) || defined(USE_GLES3)
-		
-		backEnd.glState.vertexLayout = LAYOUT_DRAW_VERT;
-	}
-	// RB end
-	
-#if defined(USE_GLES3) //defined(USE_GLES2)
-	glDrawElements(	GL_TRIANGLES,
-					r_singleTriangle.GetBool() ? 3 : surf->numIndexes,
-					GL_INDEX_TYPE,
-					( triIndex_t* )indexOffset );
-#else
-
-	///glDrawElementsBaseVertex( GL_TRIANGLES,
-	///						  r_singleTriangle.GetBool() ? 3 : surf->numIndexes,
-	///						  GL_INDEX_TYPE,
-	///						  ( triIndex_t* )indexOffset,
-	///						  vertOffset / sizeof( idDrawVert ) );
-
-	const GLsizei primcount = 1;
-	glDrawElementsInstancedBaseVertex( GL_TRIANGLES, 
-		r_singleTriangle.GetBool() ? 3 : surf->numIndexes,
-		GL_INDEX_TYPE,
-		( triIndex_t* )indexOffset,
-		primcount, 
-		vertOffset / sizeof( idDrawVert ) );
-#endif
-					
-	// RB: added stats
-	backEnd.pc.c_drawElements++;
-	backEnd.pc.c_drawIndexes += surf->numIndexes;
-	// RB end
 }
 
 /*
@@ -642,16 +505,16 @@ static void RB_FinishStageTexturing( const shaderStage_t* pStage, const drawSurf
 static void RB_ResetViewportAndScissorToDefaultCamera( const idRenderView* viewDef )
 {
 	// set the window clipping
-	GL_Viewport( viewDef->viewport.x1,
-				 viewDef->viewport.y1,
-				 viewDef->viewport.x2 + 1 - viewDef->viewport.x1,
-				 viewDef->viewport.y2 + 1 - viewDef->viewport.y1 );
+	GL_Viewport( viewDef->GetViewport().x1,
+				 viewDef->GetViewport().y1,
+				 viewDef->GetViewport().GetWidth(),
+				 viewDef->GetViewport().GetHeight() );
 				 
 	// the scissor may be smaller than the viewport for subviews
-	GL_Scissor( backEnd.viewDef->viewport.x1 + viewDef->scissor.x1,
-				backEnd.viewDef->viewport.y1 + viewDef->scissor.y1,
-				viewDef->scissor.x2 + 1 - viewDef->scissor.x1,
-				viewDef->scissor.y2 + 1 - viewDef->scissor.y1 );
+	GL_Scissor( viewDef->GetViewport().x1 + viewDef->GetScissor().x1,
+				viewDef->GetViewport().y1 + viewDef->GetScissor().y1,
+				viewDef->GetScissor().GetWidth(),
+				viewDef->GetScissor().GetHeight() );
 
 	backEnd.currentScissor = viewDef->scissor;
 }
@@ -662,10 +525,10 @@ static void RB_SetScissor( const idScreenRect & scissorRect )
 	if( !backEnd.currentScissor.Equals( scissorRect ) && r_useScissor.GetBool() )
 	{
 		GL_Scissor( 
-			backEnd.viewDef->viewport.x1 + scissorRect.x1,
-			backEnd.viewDef->viewport.y1 + scissorRect.y1,
-			scissorRect.x2 + 1 - scissorRect.x1,
-			scissorRect.y2 + 1 - scissorRect.y1 );
+			backEnd.viewDef->GetViewport().x1 + scissorRect.x1,
+			backEnd.viewDef->GetViewport().y1 + scissorRect.y1,
+			scissorRect.GetWidth(),
+			scissorRect.GetHeight() );
 
 		backEnd.currentScissor = scissorRect;
 	}
@@ -836,7 +699,7 @@ static void RB_FillDepthBufferGeneric( const drawSurf_t* const* drawSurfs, int n
 				assert( ( GL_GetCurrentState() & GLS_DEPTHFUNC_BITS ) == GLS_DEPTHFUNC_LESS );
 				
 				// draw it
-				RB_DrawElementsWithCounters( drawSurf );
+				GL_DrawElementsWithCounters( drawSurf );
 				
 				// clean up
 				RB_FinishStageTexturing( pStage, drawSurf );
@@ -880,7 +743,7 @@ static void RB_FillDepthBufferGeneric( const drawSurf_t* const* drawSurfs, int n
 			assert( ( GL_GetCurrentState() & GLS_DEPTHFUNC_BITS ) == GLS_DEPTHFUNC_LESS );
 			
 			// draw it
-			RB_DrawElementsWithCounters( drawSurf );
+			GL_DrawElementsWithCounters( drawSurf );
 		}
 		
 		RENDERLOG_CLOSE_BLOCK();
@@ -994,7 +857,7 @@ static void RB_FillDepthBufferFast( drawSurf_t** drawSurfs, int numDrawSurfs )
 		assert( ( GL_GetCurrentState() & GLS_DEPTHFUNC_BITS ) == GLS_DEPTHFUNC_LESS );
 		
 		// draw it solid
-		RB_DrawElementsWithCounters( surf );
+		GL_DrawElementsWithCounters( surf );
 		
 		RENDERLOG_CLOSE_BLOCK();
 	}
@@ -1149,7 +1012,7 @@ static void RB_DrawSingleInteraction( drawInteraction_t* din )
 	// texture 4 is the per-surface specular map
 	GL_BindTexture( INTERACTION_TEXUNIT_SPECULAR, din->specularImage );
 	
-	RB_DrawElementsWithCounters( din->surf );
+	GL_DrawElementsWithCounters( din->surf );
 }
 
 /*
@@ -1576,7 +1439,7 @@ static void RB_RenderInteractions( const drawSurf_t* surfList, const viewLight_t
 				// texture 4 is the per-surface specular map
 				GL_BindTexture( INTERACTION_TEXUNIT_SPECULAR, surfaceShader->GetFastPathSpecularImage() );
 				
-				RB_DrawElementsWithCounters( surf );
+				GL_DrawElementsWithCounters( surf );
 				
 				RENDERLOG_CLOSE_BLOCK();
 				continue;
@@ -1947,7 +1810,7 @@ static void RB_AmbientPass( const drawSurf_t* const* drawSurfs, int numDrawSurfs
 			// texture 4 is the per-surface specular map
 			GL_BindTexture( INTERACTION_TEXUNIT_SPECULAR, surfaceMaterial->GetFastPathSpecularImage() );
 			
-			RB_DrawElementsWithCounters( drawSurf );
+			GL_DrawElementsWithCounters( drawSurf );
 			
 			RENDERLOG_CLOSE_BLOCK();
 			continue;
@@ -2117,7 +1980,7 @@ RB_StencilShadowPass
 The stencil buffer should have been set to 128 on any surfaces that might receive shadows.
 =====================
 */
-static void RB_StencilShadowPass( const drawSurf_t* drawSurfs, const viewLight_t* vLight )
+static void RB_StencilShadowPass( const drawSurf_t* const drawSurfs, const viewLight_t* const vLight )
 {
 	if( r_skipShadows.GetBool() )
 	{
@@ -2148,14 +2011,12 @@ static void RB_StencilShadowPass( const drawSurf_t* drawSurfs, const viewLight_t
 			// draw filled in
 			glState = GLS_DEPTHMASK | GLS_SRCBLEND_ONE | GLS_DSTBLEND_ONE | GLS_DEPTHFUNC_LESS;
 		}
-		else
-		{
+		else {
 			// draw as lines, filling the depth buffer
 			glState = GLS_SRCBLEND_ONE | GLS_DSTBLEND_ZERO | GLS_POLYMODE_LINE | GLS_DEPTHFUNC_ALWAYS;
 		}
 	}
-	else
-	{
+	else {
 		// don't write to the color or depth buffer, just the stencil buffer
 		glState = GLS_DEPTHMASK | GLS_COLORMASK | GLS_ALPHAMASK | GLS_DEPTHFUNC_LESS;
 	}
@@ -2262,12 +2123,12 @@ static void RB_StencilShadowPass( const drawSurf_t* drawSurfs, const viewLight_t
 		
 		const bool renderZPass = ( drawSurf->renderZFail == 0 ) || r_forceZPassStencilShadows.GetBool();
 		
-		
 		if( renderZPass )
 		{
-			// Z-pass
 			glStencilOpSeparate( GL_FRONT, GL_KEEP, GL_KEEP, GL_INCR );
 			glStencilOpSeparate( GL_BACK, GL_KEEP, GL_KEEP, GL_DECR );
+			///glStencilOpSeparateATI( backEnd.viewDef->isMirror ? GL_FRONT : GL_BACK, GL_KEEP, GL_KEEP, tr.stencilIncr );
+			///qglStencilOpSeparateATI( backEnd.viewDef->isMirror ? GL_BACK : GL_FRONT, GL_KEEP, GL_KEEP, tr.stencilDecr );
 		}
 		else if( r_useStencilShadowPreload.GetBool() )
 		{
@@ -2276,56 +2137,36 @@ static void RB_StencilShadowPass( const drawSurf_t* drawSurfs, const viewLight_t
 			glStencilOpSeparate( GL_BACK, GL_KEEP, GL_INCR, GL_INCR );
 		}
 		else
-		{
-			// Z-fail
+		{	// Z-fail
+			glStencilOpSeparate( GL_FRONT, GL_KEEP, GL_DECR, GL_KEEP );
+			glStencilOpSeparate( GL_BACK, GL_KEEP, GL_INCR, GL_KEEP );
+			///glStencilOpSeparate( backEnd.viewDef->isMirror ? GL_FRONT : GL_BACK, GL_KEEP, GL_DECR_WRAP, GL_KEEP );
+			///glStencilOpSeparate( backEnd.viewDef->isMirror ? GL_BACK : GL_FRONT, GL_KEEP, GL_INCR_WRAP, GL_KEEP );
 		}
+
+		// get vertex buffer --------------------------------
 		
-		
-		// get vertex buffer
-		const vertCacheHandle_t vbHandle = drawSurf->shadowCache;
-		idVertexBuffer* vertexBuffer;
-		if( vertexCache.CacheIsStatic( vbHandle ) )
-		{
-			vertexBuffer = &vertexCache.staticData.vertexBuffer;
-		}
-		else
-		{
-			const uint64 frameNum = ( int )( vbHandle >> VERTCACHE_FRAME_SHIFT ) & VERTCACHE_FRAME_MASK;
-			if( frameNum != ( ( vertexCache.currentFrame - 1 ) & VERTCACHE_FRAME_MASK ) )
-			{
-				idLib::Warning( "RB_DrawElementsWithCounters, vertexBuffer == NULL" );
-				continue;
-			}
-			vertexBuffer = &vertexCache.frameData[vertexCache.drawListNum].vertexBuffer;
-		}
-		const int vertOffset = ( int )( vbHandle >> VERTCACHE_OFFSET_SHIFT ) & VERTCACHE_OFFSET_MASK;
-		
-		// get index buffer
-		const vertCacheHandle_t ibHandle = drawSurf->indexCache;
-		idIndexBuffer* indexBuffer;
-		if( vertexCache.CacheIsStatic( ibHandle ) )
-		{
-			indexBuffer = &vertexCache.staticData.indexBuffer;
-		}
-		else
-		{
-			const uint64 frameNum = ( int )( ibHandle >> VERTCACHE_FRAME_SHIFT ) & VERTCACHE_FRAME_MASK;
-			if( frameNum != ( ( vertexCache.currentFrame - 1 ) & VERTCACHE_FRAME_MASK ) )
-			{
-				idLib::Warning( "RB_DrawElementsWithCounters, indexBuffer == NULL" );
-				continue;
-			}
-			indexBuffer = &vertexCache.frameData[vertexCache.drawListNum].indexBuffer;
-		}
-		const uint64 indexOffset = ( int )( ibHandle >> VERTCACHE_OFFSET_SHIFT ) & VERTCACHE_OFFSET_MASK;
-		
+		idVertexBuffer vertexBuffer;
+		vertexCache.GetVertexBuffer( drawSurf->shadowCache, &vertexBuffer );
+		const GLint vertOffset = vertexBuffer.GetOffset();
+		const GLuint vbo = reinterpret_cast<GLuint>( vertexBuffer.GetAPIObject() );
+
+		// get index buffer --------------------------------
+
+		idIndexBuffer indexBuffer;
+		vertexCache.GetIndexBuffer( drawSurf->indexCache, &indexBuffer );
+		const GLintptr indexOffset = indexBuffer.GetOffset();
+		const GLuint ibo = reinterpret_cast<GLuint>( indexBuffer.GetAPIObject() );
+
 		RENDERLOG_PRINTF( "Binding Buffers: %p %p\n", vertexBuffer, indexBuffer );
+
+		const GLsizei indexCount = r_singleTriangle.GetBool() ? 3 : drawSurf->numIndexes;
 		
 		// RB: 64 bit fixes, changed GLuint to GLintptr
-		if( backEnd.glState.currentIndexBuffer != ( GLintptr )indexBuffer->GetAPIObject() || !r_useStateCaching.GetBool() )
+		if( backEnd.glState.currentIndexBuffer != ( GLintptr )ibo || !r_useStateCaching.GetBool() )
 		{
-			glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, ( GLintptr )indexBuffer->GetAPIObject() );
-			backEnd.glState.currentIndexBuffer = ( GLintptr )indexBuffer->GetAPIObject();
+			glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, ibo );
+			backEnd.glState.currentIndexBuffer = ( GLintptr )ibo;
 		}
 		
 		if( drawSurf->jointCache )
@@ -2335,18 +2176,18 @@ static void RB_StencilShadowPass( const drawSurf_t* drawSurfs, const viewLight_t
 			idJointBuffer jointBuffer;
 			if( !vertexCache.GetJointBuffer( drawSurf->jointCache, &jointBuffer ) )
 			{
-				idLib::Warning( "RB_DrawElementsWithCounters, jointBuffer == NULL" );
+				idLib::Warning( "GL_DrawElementsWithCounters, jointBuffer == NULL" );
 				continue;
 			}
 			assert( ( jointBuffer.GetOffset() & ( glConfig.uniformBufferOffsetAlignment - 1 ) ) == 0 );
 			
 			const GLintptr ubo = reinterpret_cast< GLintptr >( jointBuffer.GetAPIObject() );
-			glBindBufferRange( GL_UNIFORM_BUFFER, 0, ubo, jointBuffer.GetOffset(), jointBuffer.GetNumJoints() * sizeof( idJointMat ) );
+			glBindBufferRange( GL_UNIFORM_BUFFER, BINDING_MATRICES_UBO, ubo, jointBuffer.GetOffset(), jointBuffer.GetNumJoints() * sizeof( idJointMat ) );
 			
-			if( ( backEnd.glState.vertexLayout != LAYOUT_DRAW_SHADOW_VERT_SKINNED ) || ( backEnd.glState.currentVertexBuffer != ( GLintptr )vertexBuffer->GetAPIObject() ) || !r_useStateCaching.GetBool() )
+			if( ( backEnd.glState.vertexLayout != LAYOUT_DRAW_SHADOW_VERT_SKINNED ) || ( backEnd.glState.currentVertexBuffer != ( GLintptr )vbo ) || !r_useStateCaching.GetBool() )
 			{
-				glBindBuffer( GL_ARRAY_BUFFER, ( GLintptr )vertexBuffer->GetAPIObject() );
-				backEnd.glState.currentVertexBuffer = ( GLintptr )vertexBuffer->GetAPIObject();
+				glBindBuffer( GL_ARRAY_BUFFER, vbo );
+				backEnd.glState.currentVertexBuffer = ( GLintptr )vbo;
 				
 				glEnableVertexAttribArray( PC_ATTRIB_INDEX_VERTEX );
 				glDisableVertexAttribArray( PC_ATTRIB_INDEX_NORMAL );
@@ -2355,15 +2196,15 @@ static void RB_StencilShadowPass( const drawSurf_t* drawSurfs, const viewLight_t
 				glDisableVertexAttribArray( PC_ATTRIB_INDEX_ST );
 				glDisableVertexAttribArray( PC_ATTRIB_INDEX_TANGENT );
 				
-#if defined(USE_GLES2) || defined(USE_GLES3)
+			#if defined(USE_GLES2) || defined(USE_GLES3)
 				glVertexAttribPointer( PC_ATTRIB_INDEX_VERTEX, 4, GL_FLOAT, GL_FALSE, sizeof( idShadowVertSkinned ), ( void* )( vertOffset + SHADOWVERTSKINNED_XYZW_OFFSET ) );
 				glVertexAttribPointer( PC_ATTRIB_INDEX_COLOR, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof( idShadowVertSkinned ), ( void* )( vertOffset + SHADOWVERTSKINNED_COLOR_OFFSET ) );
 				glVertexAttribPointer( PC_ATTRIB_INDEX_COLOR2, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof( idShadowVertSkinned ), ( void* )( vertOffset + SHADOWVERTSKINNED_COLOR2_OFFSET ) );
-#else
-				glVertexAttribPointer( PC_ATTRIB_INDEX_VERTEX, 4, GL_FLOAT, GL_FALSE, sizeof( idShadowVertSkinned ), ( void* )( SHADOWVERTSKINNED_XYZW_OFFSET ) );
-				glVertexAttribPointer( PC_ATTRIB_INDEX_COLOR, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof( idShadowVertSkinned ), ( void* )( SHADOWVERTSKINNED_COLOR_OFFSET ) );
-				glVertexAttribPointer( PC_ATTRIB_INDEX_COLOR2, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof( idShadowVertSkinned ), ( void* )( SHADOWVERTSKINNED_COLOR2_OFFSET ) );
-#endif
+			#else
+				glVertexAttribPointer( PC_ATTRIB_INDEX_VERTEX, 4, GL_FLOAT, GL_FALSE, sizeof( idShadowVertSkinned ), idShadowVertSkinned::xyzwOffset );
+				glVertexAttribPointer( PC_ATTRIB_INDEX_COLOR, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof( idShadowVertSkinned ), idShadowVertSkinned::colorOffset );
+				glVertexAttribPointer( PC_ATTRIB_INDEX_COLOR2, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof( idShadowVertSkinned ), idShadowVertSkinned::color2Offset );
+			#endif
 				
 				backEnd.glState.vertexLayout = LAYOUT_DRAW_SHADOW_VERT_SKINNED;
 			}
@@ -2371,10 +2212,10 @@ static void RB_StencilShadowPass( const drawSurf_t* drawSurfs, const viewLight_t
 		}
 		else
 		{
-			if( ( backEnd.glState.vertexLayout != LAYOUT_DRAW_SHADOW_VERT ) || ( backEnd.glState.currentVertexBuffer != ( GLintptr )vertexBuffer->GetAPIObject() ) || !r_useStateCaching.GetBool() )
+			if( ( backEnd.glState.vertexLayout != LAYOUT_DRAW_SHADOW_VERT ) || ( backEnd.glState.currentVertexBuffer != ( GLintptr )vbo ) || !r_useStateCaching.GetBool() )
 			{
-				glBindBuffer( GL_ARRAY_BUFFER, ( GLintptr )vertexBuffer->GetAPIObject() );
-				backEnd.glState.currentVertexBuffer = ( GLintptr )vertexBuffer->GetAPIObject();
+				glBindBuffer( GL_ARRAY_BUFFER, vbo );
+				backEnd.glState.currentVertexBuffer = ( GLintptr )vbo;
 				
 				glEnableVertexAttribArray( PC_ATTRIB_INDEX_VERTEX );
 				glDisableVertexAttribArray( PC_ATTRIB_INDEX_NORMAL );
@@ -2383,11 +2224,11 @@ static void RB_StencilShadowPass( const drawSurf_t* drawSurfs, const viewLight_t
 				glDisableVertexAttribArray( PC_ATTRIB_INDEX_ST );
 				glDisableVertexAttribArray( PC_ATTRIB_INDEX_TANGENT );
 				
-#if defined(USE_GLES2) || defined(USE_GLES3)
+			#if defined(USE_GLES2) || defined(USE_GLES3)
 				glVertexAttribPointer( PC_ATTRIB_INDEX_VERTEX, 4, GL_FLOAT, GL_FALSE, sizeof( idShadowVert ), ( void* )( vertOffset + SHADOWVERT_XYZW_OFFSET ) );
-#else
-				glVertexAttribPointer( PC_ATTRIB_INDEX_VERTEX, 4, GL_FLOAT, GL_FALSE, sizeof( idShadowVert ), ( void* )( SHADOWVERT_XYZW_OFFSET ) );
-#endif
+			#else
+				glVertexAttribPointer( PC_ATTRIB_INDEX_VERTEX, 4, GL_FLOAT, GL_FALSE, sizeof( idShadowVert ), idShadowVert::xyzwOffset );
+			#endif
 				
 				backEnd.glState.vertexLayout = LAYOUT_DRAW_SHADOW_VERT;
 			}
@@ -2398,19 +2239,19 @@ static void RB_StencilShadowPass( const drawSurf_t* drawSurfs, const viewLight_t
 		
 		if( drawSurf->jointCache )
 		{
-#if defined(USE_GLES3) //defined(USE_GLES2)
-			glDrawElements( GL_TRIANGLES, r_singleTriangle.GetBool() ? 3 : drawSurf->numIndexes, GL_INDEX_TYPE, ( triIndex_t* )indexOffset );
-#else
-			glDrawElementsBaseVertex( GL_TRIANGLES, r_singleTriangle.GetBool() ? 3 : drawSurf->numIndexes, GL_INDEX_TYPE, ( triIndex_t* )indexOffset, vertOffset / sizeof( idShadowVertSkinned ) );
-#endif
+		#if defined(USE_GLES3)
+			glDrawElements( GL_TRIANGLES, indexCount, GL_INDEX_TYPE, ( triIndex_t* )indexOffset );
+		#else
+			glDrawElementsBaseVertex( GL_TRIANGLES, indexCount, GL_INDEX_TYPE, ( triIndex_t* )indexOffset, vertOffset / sizeof( idShadowVertSkinned ) );
+		#endif
 		}
 		else
 		{
-#if defined(USE_GLES3)
-			glDrawElements( GL_TRIANGLES, r_singleTriangle.GetBool() ? 3 : drawSurf->numIndexes, GL_INDEX_TYPE, ( triIndex_t* )indexOffset );
-#else
-			glDrawElementsBaseVertex( GL_TRIANGLES, r_singleTriangle.GetBool() ? 3 : drawSurf->numIndexes, GL_INDEX_TYPE, ( triIndex_t* )indexOffset, vertOffset / sizeof( idShadowVert ) );
-#endif
+		#if defined(USE_GLES3)
+			glDrawElements( GL_TRIANGLES, indexCount, GL_INDEX_TYPE, ( triIndex_t* )indexOffset );
+		#else
+			glDrawElementsBaseVertex( GL_TRIANGLES, indexCount, GL_INDEX_TYPE, ( triIndex_t* )indexOffset, vertOffset / sizeof( idShadowVert ) );
+		#endif
 		}
 		
 		// RB: added stats
@@ -2426,19 +2267,19 @@ static void RB_StencilShadowPass( const drawSurf_t* drawSurfs, const viewLight_t
 			
 			if( drawSurf->jointCache )
 			{
-#if defined(USE_GLES3)
-				glDrawElements( GL_TRIANGLES, r_singleTriangle.GetBool() ? 3 : drawSurf->numIndexes, GL_INDEX_TYPE, ( triIndex_t* )indexOffset );
-#else
-				glDrawElementsBaseVertex( GL_TRIANGLES, r_singleTriangle.GetBool() ? 3 : drawSurf->numIndexes, GL_INDEX_TYPE, ( triIndex_t* )indexOffset, vertOffset / sizeof( idShadowVertSkinned ) );
-#endif
+			#if defined(USE_GLES3)
+				glDrawElements( GL_TRIANGLES, indexCount, GL_INDEX_TYPE, ( triIndex_t* )indexOffset );
+			#else
+				glDrawElementsBaseVertex( GL_TRIANGLES, indexCount, GL_INDEX_TYPE, ( triIndex_t* )indexOffset, vertOffset / sizeof( idShadowVertSkinned ) );
+			#endif
 			}
 			else
 			{
-#if defined(USE_GLES3)
-				glDrawElements( GL_TRIANGLES, r_singleTriangle.GetBool() ? 3 : drawSurf->numIndexes, GL_INDEX_TYPE, ( triIndex_t* )indexOffset );
-#else
-				glDrawElementsBaseVertex( GL_TRIANGLES, r_singleTriangle.GetBool() ? 3 : drawSurf->numIndexes, GL_INDEX_TYPE, ( triIndex_t* )indexOffset, vertOffset / sizeof( idShadowVert ) );
-#endif
+			#if defined(USE_GLES3)
+				glDrawElements( GL_TRIANGLES, indexCount, GL_INDEX_TYPE, ( triIndex_t* )indexOffset );
+			#else
+				glDrawElementsBaseVertex( GL_TRIANGLES, indexCount, GL_INDEX_TYPE, ( triIndex_t* )indexOffset, vertOffset / sizeof( idShadowVert ) );
+			#endif
 			}
 			
 			// RB: added stats
@@ -2459,8 +2300,7 @@ static void RB_StencilShadowPass( const drawSurf_t* drawSurfs, const viewLight_t
 		{
 			GL_DepthBoundsTest( vLight->scissorRect.zmin, vLight->scissorRect.zmax );
 		}
-		else
-		{
+		else {
 			GL_DepthBoundsTest( 0.0f, 0.0f );
 		}
 	}
@@ -2470,12 +2310,12 @@ static void RB_StencilShadowPass( const drawSurf_t* drawSurfs, const viewLight_t
 ==================
 RB_StencilSelectLight
 
-Deform the zeroOneCubeModel to exactly cover the light volume. Render the deformed cube model to the stencil buffer in
-such a way that only fragments that are directly visible and contained within the volume will be written creating a
-mask to be used by the following stencil shadow and draw interaction passes.
+	Deform the zeroOneCubeModel to exactly cover the light volume. Render the deformed cube model to the stencil buffer in
+	such a way that only fragments that are directly visible and contained within the volume will be written creating a
+	mask to be used by the following stencil shadow and draw interaction passes.
 ==================
 */
-static void RB_StencilSelectLight( const viewLight_t* vLight )
+static void RB_StencilSelectLight( const viewLight_t* const vLight )
 {
 	RENDERLOG_OPEN_BLOCK( "Stencil Select" );
 	
@@ -2505,7 +2345,7 @@ static void RB_StencilSelectLight( const viewLight_t* vLight )
 	glStencilOpSeparate( GL_FRONT, GL_KEEP, GL_REPLACE, GL_ZERO );
 	glStencilOpSeparate( GL_BACK, GL_KEEP, GL_ZERO, GL_REPLACE );
 	
-	RB_DrawElementsWithCounters( &backEnd.zeroOneCubeSurface );
+	GL_DrawElementsWithCounters( &backEnd.zeroOneCubeSurface );
 	
 	// reset stencil state
 	
@@ -2907,7 +2747,7 @@ static void RB_ShadowMapPass( const drawSurf_t * const drawSurfs, const viewLigh
 				assert( ( GL_GetCurrentState() & GLS_DEPTHFUNC_BITS ) == GLS_DEPTHFUNC_LESS );
 				
 				// draw it
-				RB_DrawElementsWithCounters( drawSurf );
+				GL_DrawElementsWithCounters( drawSurf );
 				
 				// clean up
 				RB_FinishStageTexturing( pStage, drawSurf );
@@ -2932,7 +2772,7 @@ static void RB_ShadowMapPass( const drawSurf_t * const drawSurfs, const viewLigh
 				renderProgManager.BindShader_Depth();
 			}
 			
-			RB_DrawElementsWithCounters( drawSurf );
+			GL_DrawElementsWithCounters( drawSurf );
 		}
 	}
 	
@@ -3061,8 +2901,7 @@ static void RB_DrawInteractions( const idRenderView* viewDef )
 				RENDERLOG_CLOSE_BLOCK();
 			}
 		}
-		else
-		{
+		else {
 			// only need to clear the stencil buffer and perform stencil testing if there are shadows
 			const bool performStencilTest = ( vLight->globalShadows != NULL || vLight->localShadows != NULL ) && !r_useShadowMapping.GetBool();
 			
@@ -3367,7 +3206,7 @@ static int RB_DrawShaderPasses( const drawSurf_t* const* const drawSurfs, const 
 				GL_State( stageGLState );
 				
 				// RB: CRITICAL BUGFIX: changed newStage->glslProgram to vertexProgram and fragmentProgram
-				// otherwise it will result in an out of bounds crash in RB_DrawElementsWithCounters
+				// otherwise it will result in an out of bounds crash in GL_DrawElementsWithCounters
 				renderProgManager.BindShader( newStage->glslProgram, newStage->vertexProgram, newStage->fragmentProgram, false );
 				// RB end
 				
@@ -3399,7 +3238,7 @@ static int RB_DrawShaderPasses( const drawSurf_t* const* const drawSurfs, const 
 				}
 				
 				// draw it
-				RB_DrawElementsWithCounters( surf );
+				GL_DrawElementsWithCounters( surf );
 				
 				// unbind texture units
 				for( int j = 0; j < newStage->numFragmentProgramImages; j++ )
@@ -3544,7 +3383,7 @@ static int RB_DrawShaderPasses( const drawSurf_t* const* const drawSurfs, const 
 			RB_PrepareStageTexturing( pStage, surf );
 			
 			// draw it
-			RB_DrawElementsWithCounters( surf );
+			GL_DrawElementsWithCounters( surf );
 			
 			RB_FinishStageTexturing( pStage, surf );
 			
@@ -3636,7 +3475,7 @@ static void RB_T_BlendLight( const drawSurf_t* drawSurfs, const viewLight_t* vLi
 			backEnd.currentSpace = drawSurf->space;
 		}
 		
-		RB_DrawElementsWithCounters( drawSurf );
+		GL_DrawElementsWithCounters( drawSurf );
 	}
 }
 
@@ -3778,7 +3617,7 @@ static void RB_T_BasicFog( const drawSurf_t* drawSurfs, const idPlane fogPlanes[
 			renderProgManager.BindShader_Fog();
 		}
 		
-		RB_DrawElementsWithCounters( drawSurf );
+		GL_DrawElementsWithCounters( drawSurf );
 	}
 }
 
@@ -4126,7 +3965,7 @@ static void RB_Tonemap( const idRenderView* viewDef )
 	SetFragmentParm( RENDERPARM_SCREENCORRECTIONFACTOR, screenCorrectionParm ); // rpScreenCorrectionFactor
 	
 	// Draw
-	RB_DrawElementsWithCounters( &backEnd.unitSquareSurface );
+	GL_DrawElementsWithCounters( &backEnd.unitSquareSurface );
 	
 	// unbind heatmap
 	globalImages->BindNull();
@@ -4227,7 +4066,7 @@ static void RB_Bloom( const idRenderView* viewDef )
 	SetFragmentParm( RENDERPARM_OVERBRIGHT, overbright ); // rpOverbright
 	
 	// Draw
-	RB_DrawElementsWithCounters( &backEnd.unitSquareSurface );
+	GL_DrawElementsWithCounters( &backEnd.unitSquareSurface );
 	
 	
 	// BLOOM PING PONG rendering
@@ -4241,7 +4080,7 @@ static void RB_Bloom( const idRenderView* viewDef )
 		
 		globalImages->bloomRenderImage[j % 2]->Bind();
 		
-		RB_DrawElementsWithCounters( &backEnd.unitSquareSurface );
+		GL_DrawElementsWithCounters( &backEnd.unitSquareSurface );
 	}
 	
 	// add filtered glare back to main context
@@ -4255,7 +4094,7 @@ static void RB_Bloom( const idRenderView* viewDef )
 	
 	globalImages->bloomRenderImage[( j + 1 ) % 2]->Bind();
 	
-	RB_DrawElementsWithCounters( &backEnd.unitSquareSurface );
+	GL_DrawElementsWithCounters( &backEnd.unitSquareSurface );
 	
 	globalImages->BindNull();
 	
@@ -4339,7 +4178,7 @@ static void RB_SSAO( const idRenderView* viewDef )
 		}
 		
 		// draw it solid
-		RB_DrawElementsWithCounters( surf );
+		GL_DrawElementsWithCounters( surf );
 	}
 	GL_State( GLS_DEPTHFUNC_ALWAYS );
 	
@@ -4418,7 +4257,7 @@ static void RB_SSAO( const idRenderView* viewDef )
 			SetFragmentParm( RENDERPARM_SCREENCORRECTIONFACTOR, screenCorrectionParm ); // rpScreenCorrectionFactor
 #endif
 			
-			RB_DrawElementsWithCounters( &backEnd.unitSquareSurface );
+			GL_DrawElementsWithCounters( &backEnd.unitSquareSurface );
 		}
 	}
 	
@@ -4494,7 +4333,7 @@ static void RB_SSAO( const idRenderView* viewDef )
 	GL_BindTexture( 0, globalImages->currentNormalsImage );
 	GL_BindTexture( 1, ( r_useHierarchicalDepthBuffer.GetBool() )? globalImages->hierarchicalZbufferImage : globalImages->currentDepthImage );
 	
-	RB_DrawElementsWithCounters( &backEnd.unitSquareSurface );
+	GL_DrawElementsWithCounters( &backEnd.unitSquareSurface );
 	
 	if( r_ssaoFiltering.GetBool() )
 	{
@@ -4515,7 +4354,7 @@ static void RB_SSAO( const idRenderView* viewDef )
 		
 		GL_BindTexture( 2, globalImages->ambientOcclusionImage[ 0 ] );
 		
-		RB_DrawElementsWithCounters( &backEnd.unitSquareSurface );
+		GL_DrawElementsWithCounters( &backEnd.unitSquareSurface );
 #endif
 		
 		// AO blur Y
@@ -4544,7 +4383,7 @@ static void RB_SSAO( const idRenderView* viewDef )
 		
 		GL_BindTexture( 2, globalImages->ambientOcclusionImage[ 1 ] );
 		
-		RB_DrawElementsWithCounters( &backEnd.unitSquareSurface );
+		GL_DrawElementsWithCounters( &backEnd.unitSquareSurface );
 	}
 	
 	renderProgManager.Unbind();
@@ -4643,7 +4482,7 @@ static void RB_SSGI( const idRenderView* viewDef )
 			SetFragmentParm( RENDERPARM_SCREENCORRECTIONFACTOR, screenCorrectionParm ); // rpScreenCorrectionFactor
 #endif
 			
-			RB_DrawElementsWithCounters( &backEnd.unitSquareSurface );
+			GL_DrawElementsWithCounters( &backEnd.unitSquareSurface );
 		}
 	}
 	
@@ -4727,7 +4566,7 @@ static void RB_SSGI( const idRenderView* viewDef )
 	GL_BindTexture( 1, ( r_useHierarchicalDepthBuffer.GetBool() )? globalImages->hierarchicalZbufferImage : globalImages->currentDepthImage );
 	GL_BindTexture( 2, ( hdrIsActive )? globalImages->currentRenderHDRImage : globalImages->currentRenderImage );
 	
-	RB_DrawElementsWithCounters( &backEnd.unitSquareSurface );
+	GL_DrawElementsWithCounters( &backEnd.unitSquareSurface );
 	
 	if( r_ssgiFiltering.GetBool() )
 	{
@@ -4748,7 +4587,7 @@ static void RB_SSGI( const idRenderView* viewDef )
 		
 		GL_BindTexture( 2, globalImages->ambientOcclusionImage[ 0 ] );
 		
-		RB_DrawElementsWithCounters( &backEnd.unitSquareSurface );
+		GL_DrawElementsWithCounters( &backEnd.unitSquareSurface );
 #endif
 		
 		// AO blur Y
@@ -4783,7 +4622,7 @@ static void RB_SSGI( const idRenderView* viewDef )
 		
 		GL_BindTexture( 2, globalImages->ambientOcclusionImage[ 1 ] );
 		
-		RB_DrawElementsWithCounters( &backEnd.unitSquareSurface );
+		GL_DrawElementsWithCounters( &backEnd.unitSquareSurface );
 	}
 	
 	renderProgManager.Unbind();
@@ -5011,7 +4850,7 @@ void RB_DrawViewInternal( const idRenderView* viewDef, const int stereoEye )
 	//-------------------------------------------------
 	// use direct light and emissive light contributions to add indirect screen space light
 	//-------------------------------------------------
-	//RB_SSGI( viewDef );
+	RB_SSGI( viewDef );
 	
 	//-------------------------------------------------
 	// fog and blend lights, drawn after emissive surfaces
@@ -5201,7 +5040,7 @@ void RB_MotionBlur()
 		}
 		
 		// draw it solid
-		RB_DrawElementsWithCounters( surf );
+		GL_DrawElementsWithCounters( surf );
 	}
 	GL_State( GLS_DEPTHFUNC_ALWAYS );
 	
@@ -5233,7 +5072,7 @@ void RB_MotionBlur()
 	GL_BindTexture( 0, globalImages->currentRenderImage );
 	GL_BindTexture( 1, globalImages->currentDepthImage );
 	
-	RB_DrawElementsWithCounters( &backEnd.unitSquareSurface );
+	GL_DrawElementsWithCounters( &backEnd.unitSquareSurface );
 	GL_CheckErrors();
 }
 
@@ -5356,7 +5195,6 @@ RB_PostProcess
 extern idCVar rs_enable;
 void RB_PostProcess( const void* data )
 {
-
 	// only do the post process step if resolution scaling is enabled. Prevents the unnecessary copying of the framebuffer and
 	// corresponding full screen quad pass.
 	if( rs_enable.GetInteger() == 0 && !r_useFilmicPostProcessEffects.GetBool() && r_antiAliasing.GetInteger() == 0 )
@@ -5424,7 +5262,7 @@ void RB_PostProcess( const void* data )
 		GL_BindTexture( 0, globalImages->smaaInputImage );
 		
 		renderProgManager.BindShader_SMAA_EdgeDetection();
-		RB_DrawElementsWithCounters( &backEnd.unitSquareSurface );
+		GL_DrawElementsWithCounters( &backEnd.unitSquareSurface );
 		
 #if 1
 		//globalImages->smaaEdgesImage->CopyFramebuffer( viewport.x1, viewport.y1, viewport.GetWidth(), viewport.GetHeight() );
@@ -5439,7 +5277,7 @@ void RB_PostProcess( const void* data )
 		GL_BindTexture( 2, globalImages->smaaSearchImage );
 		
 		renderProgManager.BindShader_SMAA_BlendingWeightCalculation();
-		RB_DrawElementsWithCounters( &backEnd.unitSquareSurface );
+		GL_DrawElementsWithCounters( &backEnd.unitSquareSurface );
 		
 		Framebuffer::Unbind();
 #endif
@@ -5454,7 +5292,7 @@ void RB_PostProcess( const void* data )
 		GL_BindTexture( 1, globalImages->smaaBlendImage );
 		
 		renderProgManager.BindShader_SMAA_NeighborhoodBlending();
-		RB_DrawElementsWithCounters( &backEnd.unitSquareSurface );
+		GL_DrawElementsWithCounters( &backEnd.unitSquareSurface );
 #endif
 	}
 	
@@ -5494,7 +5332,7 @@ void RB_PostProcess( const void* data )
 		SetFragmentParm( RENDERPARM_JITTERTEXOFFSET, jitterTexOffset ); // rpJitterTexOffset
 		
 		// Draw
-		RB_DrawElementsWithCounters( &backEnd.unitSquareSurface );
+		GL_DrawElementsWithCounters( &backEnd.unitSquareSurface );
 	}
 #endif
 	

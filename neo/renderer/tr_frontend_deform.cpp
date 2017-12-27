@@ -48,12 +48,12 @@ R_FinishDeform
 */
 static drawSurf_t* R_FinishDeform( drawSurf_t* surf, idTriangles* newTri, const idDrawVert* newVerts, const triIndex_t* newIndexes )
 {
-	newTri->ambientCache = vertexCache.AllocVertex( newVerts, ALIGN( newTri->numVerts * sizeof( idDrawVert ), VERTEX_CACHE_ALIGN ) );
+	newTri->vertexCache = vertexCache.AllocVertex( newVerts, ALIGN( newTri->numVerts * sizeof( idDrawVert ), VERTEX_CACHE_ALIGN ) );
 	newTri->indexCache = vertexCache.AllocIndex( newIndexes, ALIGN( newTri->numIndexes * sizeof( triIndex_t ), INDEX_CACHE_ALIGN ) );
 	
 	surf->frontEndGeo = newTri;
 	surf->numIndexes = newTri->numIndexes;
-	surf->ambientCache = newTri->ambientCache;
+	surf->vertexCache = newTri->vertexCache;
 	surf->indexCache = newTri->indexCache;
 	surf->shadowCache = 0;
 	surf->jointCache = 0;
@@ -1104,13 +1104,13 @@ static drawSurf_t* R_ParticleDeform( drawSurf_t* surf, bool useArea )
 
 		newTri->bounds = stage->bounds;		// just always draw the particles
 
-		newTri->ambientCache = vertexCache.AllocVertex( newVerts, ALIGN( numVerts * sizeof( idDrawVert ), VERTEX_CACHE_ALIGN ) );
+		newTri->vertexCache = vertexCache.AllocVertex( newVerts, ALIGN( numVerts * sizeof( idDrawVert ), VERTEX_CACHE_ALIGN ) );
 		newTri->indexCache = vertexCache.AllocIndex( newIndexes, ALIGN( numIndexes * sizeof( triIndex_t ), INDEX_CACHE_ALIGN ) );
 		
 		auto drawSurf = allocManager.FrameAlloc<drawSurf_t, FRAME_ALLOC_DRAW_SURFACE>();
 		drawSurf->frontEndGeo = newTri;
 		drawSurf->numIndexes = newTri->numIndexes;
-		drawSurf->ambientCache = newTri->ambientCache;
+		drawSurf->vertexCache = newTri->vertexCache;
 		drawSurf->indexCache = newTri->indexCache;
 		drawSurf->shadowCache = 0;
 		drawSurf->jointCache = 0;

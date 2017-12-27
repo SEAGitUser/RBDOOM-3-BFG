@@ -187,6 +187,7 @@ void			GL_BindTexture( int unit, idImage * );
 void			GL_Flush();		// flush the GPU command buffer
 void			GL_Finish();	// wait for the GPU to have executed all commands
 
+void			GL_DrawElementsWithCounters( const drawSurf_t*, /*vertexFormat,*/int globalInstCount = 1 );
 
 // RB begin
 bool			GL_CheckErrors_( const char* filename, int line );

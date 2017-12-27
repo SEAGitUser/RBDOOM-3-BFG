@@ -151,7 +151,7 @@ void idRenderModelGui::EmitSurfaces( idRenderView * view,
 		
 		auto drawSurf = allocManager.FrameAlloc<drawSurf_t, FRAME_ALLOC_DRAW_SURFACE>();	
 		drawSurf->numIndexes = guiSurf.numIndexes;
-		drawSurf->ambientCache = vertexBlock;
+		drawSurf->vertexCache = vertexBlock;
 		// build a vertCacheHandle_t that points inside the allocated block
 		drawSurf->indexCache = indexBlock + ( ( int64 )( guiSurf.firstIndex * sizeof( triIndex_t ) ) << VERTCACHE_OFFSET_SHIFT );
 		drawSurf->shadowCache = 0;

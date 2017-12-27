@@ -579,7 +579,7 @@ static void RB_ShowLightCount()
 			for( surf = i ? vLight->localInteractions : vLight->globalInteractions; surf; surf = ( drawSurf_t* )surf->nextOnLight )
 			{
 				RB_SimpleSurfaceSetup( surf );
-				RB_DrawElementsWithCounters( surf );
+				GL_DrawElementsWithCounters( surf );
 			}
 		}
 	}
@@ -681,17 +681,17 @@ static void RB_LoadMatrixWithBypass( const float m[16] )
 ====================
 RB_RenderDrawSurfListWithFunction
 
-The triangle functions can check backEnd.currentSpace != surf->space
-to see if they need to perform any new matrix setup.  The modelview
-matrix will already have been loaded, and backEnd.currentSpace will
-be updated after the triangle function completes.
+	The triangle functions can check backEnd.currentSpace != surf->space
+	to see if they need to perform any new matrix setup.  The modelview
+	matrix will already have been loaded, and backEnd.currentSpace will
+	be updated after the triangle function completes.
 ====================
 */
-static void RB_RenderDrawSurfListWithFunction( drawSurf_t** drawSurfs, int numDrawSurfs, void ( *triFunc_ )( const drawSurf_t* ) )
+static void RB_RenderDrawSurfListWithFunction( drawSurf_t** drawSurfs, int numDrawSurfs, void ( *triFunc_ )( const drawSurf_t*, int ) )
 {
 	backEnd.currentSpace = NULL;
 	
-	for( int i = 0 ; i < numDrawSurfs ; i++ )
+	for( int i = 0 ; i < numDrawSurfs ; ++i )
 	{
 		const drawSurf_t* drawSurf = drawSurfs[i];
 		if( drawSurf == NULL )
@@ -763,7 +763,7 @@ static void RB_RenderDrawSurfListWithFunction( drawSurf_t** drawSurfs, int numDr
 		}
 		
 		// render it
-		triFunc_( drawSurf );
+		triFunc_( drawSurf, 1 );
 		
 		// RB begin
 		/*if( drawSurf->space != NULL && ( drawSurf->space->weaponDepthHack || drawSurf->space->modelDepthHack != 0.0f ) )
@@ -811,7 +811,7 @@ static void RB_ShowSilhouette()
 	GL_Cull( CT_TWO_SIDED );
 	
 	RB_RenderDrawSurfListWithFunction( backEnd.viewDef->drawSurfs, backEnd.viewDef->numDrawSurfs,
-									   RB_DrawElementsWithCounters );
+									   GL_DrawElementsWithCounters );
 									   
 									   
 	// now blend in edges that cast silhouettes
@@ -919,7 +919,7 @@ static void RB_ShowTris( drawSurf_t** drawSurfs, int numDrawSurfs )
 	
 	GL_Color( color );
 	
-	RB_RenderDrawSurfListWithFunction( drawSurfs, numDrawSurfs, RB_DrawElementsWithCounters );
+	RB_RenderDrawSurfListWithFunction( drawSurfs, numDrawSurfs, GL_DrawElementsWithCounters );
 	
 	if( r_showTris.GetInteger() == 3 )
 	{
@@ -1902,7 +1902,7 @@ static void RB_ShowLights()
 			idRenderMatrix invProjectMVPMatrix;
 			idRenderMatrix::Multiply( backEnd.viewDef->GetMVPMatrix(), vLight->inverseBaseLightProject, invProjectMVPMatrix );
 			RB_SetMVP( invProjectMVPMatrix );
-			RB_DrawElementsWithCounters( &backEnd.zeroOneCubeSurface );
+			GL_DrawElementsWithCounters( &backEnd.zeroOneCubeSurface );
 		}
 		
 		// non-hidden lines
@@ -1913,7 +1913,7 @@ static void RB_ShowLights()
 			idRenderMatrix invProjectMVPMatrix;
 			idRenderMatrix::Multiply( backEnd.viewDef->GetMVPMatrix(), vLight->inverseBaseLightProject, invProjectMVPMatrix );
 			RB_SetMVP( invProjectMVPMatrix );
-			RB_DrawElementsWithCounters( &backEnd.zeroOneCubeSurface );
+			GL_DrawElementsWithCounters( &backEnd.zeroOneCubeSurface );
 		}
 		
 		common->Printf( "%i ", vLight->lightDef->GetIndex() );
@@ -1991,7 +1991,7 @@ static void RB_ShowShadowMapLODs()
 			idRenderMatrix invProjectMVPMatrix;
 			idRenderMatrix::Multiply( backEnd.viewDef->GetMVPMatrix(), vLight->inverseBaseLightProject, invProjectMVPMatrix );
 			RB_SetMVP( invProjectMVPMatrix );
-			RB_DrawElementsWithCounters( &backEnd.zeroOneCubeSurface );
+			GL_DrawElementsWithCounters( &backEnd.zeroOneCubeSurface );
 		}
 		
 		// non-hidden lines
@@ -2002,7 +2002,7 @@ static void RB_ShowShadowMapLODs()
 			idRenderMatrix invProjectMVPMatrix;
 			idRenderMatrix::Multiply( backEnd.viewDef->GetMVPMatrix(), vLight->inverseBaseLightProject, invProjectMVPMatrix );
 			RB_SetMVP( invProjectMVPMatrix );
-			RB_DrawElementsWithCounters( &backEnd.zeroOneCubeSurface );
+			GL_DrawElementsWithCounters( &backEnd.zeroOneCubeSurface );
 		}
 		
 		common->Printf( "%i ", vLight->lightDef->GetIndex() );
@@ -2949,7 +2949,7 @@ void RB_TestImage()
 	}
 	
 	// Draw!
-	RB_DrawElementsWithCounters( &backEnd.testImageSurface );
+	GL_DrawElementsWithCounters( &backEnd.testImageSurface );
 }
 
 // RB begin
@@ -3034,7 +3034,7 @@ void RB_ShowShadowMaps()
 		
 		renderProgManager.BindShader_DebugShadowMap();
 		
-		RB_DrawElementsWithCounters( &backEnd.testImageSurface );
+		GL_DrawElementsWithCounters( &backEnd.testImageSurface );
 	}
 	
 	glTexParameteri( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_R_TO_TEXTURE );
@@ -3168,7 +3168,7 @@ static void RB_ShowTrace( const drawSurf_t* const* drawSurfs, int numDrawSurfs )
 		GL_State( GLS_SRCBLEND_SRC_ALPHA | GLS_DSTBLEND_ONE_MINUS_SRC_ALPHA );
 		
 		GL_Color( 1, 0, 0, 0.25 );
-		RB_DrawElementsWithCounters( surf );
+		GL_DrawElementsWithCounters( surf );
 		
 		// draw the bounding box
 		GL_State( GLS_DEPTHFUNC_ALWAYS );

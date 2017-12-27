@@ -202,6 +202,13 @@ public:
 	static idDrawVert	GetSkinnedDrawVert( const idDrawVert& vert, const idJointMat* joints );
 	static idVec3		GetSkinnedDrawVertPosition( const idDrawVert& vert, const idJointMat* joints );
 	static void			TransformVertsAndTangents( idDrawVert* out, const int numVerts, const idDrawVert* src, const idJointMat* joints );
+
+	static const void * const		positionOffset;
+	static const void * const		texcoordOffset;
+	static const void * const		normalOffset;
+	static const void * const		tangentOffset;
+	static const void * const		colorOffset;
+	static const void * const		color2Offset;
 };
 
 #define DRAWVERT_SIZE				32
@@ -817,6 +824,8 @@ public:
 	
 	void			Clear();
 	static int		CreateShadowCache( idShadowVert* vertexCache, const idDrawVert* verts, const int numVerts );
+
+	static const void * const	xyzwOffset;
 };
 
 #define SHADOWVERT_XYZW_OFFSET		(0)
@@ -843,6 +852,10 @@ public:
 	
 	void			Clear();
 	static int		CreateShadowCache( idShadowVertSkinned* vertexCache, const idDrawVert* verts, const int numVerts );
+
+	static const void * const		xyzwOffset;
+	static const void * const		colorOffset;
+	static const void * const		color2Offset;
 };
 
 #define SHADOWVERTSKINNED_XYZW_OFFSET		(0)

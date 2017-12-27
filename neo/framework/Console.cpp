@@ -385,7 +385,7 @@ void idConsoleLocal::Init()
 
 	keyCatching = false;
 	
-	LOCALSAFE_LEFT		= 2; //32;
+	LOCALSAFE_LEFT		= 16; //32;
 	LOCALSAFE_RIGHT		= _width - LOCALSAFE_LEFT;	// SCREEN_WIDTH
 	LOCALSAFE_TOP		= 24;
 	LOCALSAFE_BOTTOM	= _height - LOCALSAFE_TOP;	// SCREEN_HEIGHT

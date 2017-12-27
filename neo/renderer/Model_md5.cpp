@@ -499,7 +499,7 @@ void idMD5Mesh::UpdateSurface( const struct renderEntity_s* ent, const idJointMa
 			tri->FreeStaticVerts();
 		}
 		tri->verts = deformInfo->verts;
-		tri->ambientCache = deformInfo->staticAmbientCache;
+		tri->vertexCache = deformInfo->staticAmbientCache;
 		tri->shadowCache = deformInfo->staticShadowCache;
 		tri->referencedVerts = true;
 	}

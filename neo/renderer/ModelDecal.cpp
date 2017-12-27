@@ -827,10 +827,10 @@ drawSurf_t* idRenderModelDecal::CreateDecalDrawSurf( const viewModel_t* space, u
 	newTri->numVerts = maxVerts;
 	newTri->numIndexes = maxIndexes;
 	
-	newTri->ambientCache = vertexCache.AllocVertex( NULL, ALIGN( maxVerts * sizeof( idDrawVert ), VERTEX_CACHE_ALIGN ) );
+	newTri->vertexCache = vertexCache.AllocVertex( NULL, ALIGN( maxVerts * sizeof( idDrawVert ), VERTEX_CACHE_ALIGN ) );
 	newTri->indexCache = vertexCache.AllocIndex( NULL, ALIGN( maxIndexes * sizeof( triIndex_t ), INDEX_CACHE_ALIGN ) );
 	
-	idDrawVert* mappedVerts = ( idDrawVert* )vertexCache.MappedVertexBuffer( newTri->ambientCache );
+	idDrawVert* mappedVerts = ( idDrawVert* )vertexCache.MappedVertexBuffer( newTri->vertexCache );
 	triIndex_t* mappedIndexes = ( triIndex_t* )vertexCache.MappedIndexBuffer( newTri->indexCache );
 	
 	const decalInfo_t decalInfo = material->GetDecalInfo();
@@ -886,7 +886,7 @@ drawSurf_t* idRenderModelDecal::CreateDecalDrawSurf( const viewModel_t* space, u
 	auto drawSurf = allocManager.FrameAlloc<drawSurf_t, FRAME_ALLOC_DRAW_SURFACE>();
 	drawSurf->frontEndGeo = newTri;
 	drawSurf->numIndexes = newTri->numIndexes;
-	drawSurf->ambientCache = newTri->ambientCache;
+	drawSurf->vertexCache = newTri->vertexCache;
 	drawSurf->indexCache = newTri->indexCache;
 	drawSurf->shadowCache = 0;
 	drawSurf->jointCache = 0;
@@ -910,7 +910,7 @@ void idRenderModelDecal::ReadFromDemoFile( idDemoFile* f )
 	f->ReadUnsignedInt( firstDecal );
 	f->ReadUnsignedInt( nextDecal );
 	
-	for( unsigned int i = firstDecal; i < nextDecal; i++ )
+	for( unsigned int i = firstDecal; i < nextDecal; ++i )
 	{
 		decal_t& decal = decals[ i & ( MAX_DECALS - 1 ) ];
 		
@@ -925,13 +925,13 @@ void idRenderModelDecal::ReadFromDemoFile( idDemoFile* f )
 		decal.material = matName[ 0 ] ? declManager->FindMaterial( matName ) : NULL;
 		
 		f->ReadInt( decal.numVerts );
-		for( int j = 0; j < decal.numVerts; j++ )
+		for( int j = 0; j < decal.numVerts; ++j )
 		{
 			f->Read( &decal.verts[ j ], sizeof( idDrawVert ) );
 		}
 		
 		f->ReadInt( decal.numIndexes );
-		for( int j = 0; j < decal.numIndexes; j++ )
+		for( int j = 0; j < decal.numIndexes; ++j )
 		{
 			f->Read( &decal.indexes[ j ], sizeof( triIndex_t ) );
 		}
@@ -941,7 +941,7 @@ void idRenderModelDecal::ReadFromDemoFile( idDemoFile* f )
 	
 	f->ReadUnsignedInt( firstDeferredDecal );
 	f->ReadUnsignedInt( nextDeferredDecal );
-	for( unsigned int i = firstDeferredDecal; i < nextDeferredDecal; i++ )
+	for( unsigned int i = firstDeferredDecal; i < nextDeferredDecal; ++i )
 	{
 		decalProjectionParms_t& deferredDecal = deferredDecals[ i & ( MAX_DEFERRED_DECALS - 1 ) ];
 		f->ReadInt( deferredDecal.startTime );
@@ -960,7 +960,7 @@ void idRenderModelDecal::ReadFromDemoFile( idDemoFile* f )
 	}
 	
 	f->ReadUnsignedInt( numDecalMaterials );
-	for( unsigned int i = 0; i < numDecalMaterials; i++ )
+	for( unsigned int i = 0; i < numDecalMaterials; ++i )
 	{
 		const char* matName = f->ReadHashString();
 		decalMaterials[ i ] = matName[ 0 ] ? declManager->FindMaterial( matName ) : NULL;
@@ -984,7 +984,7 @@ void idRenderModelDecal::WriteToDemoFile( idDemoFile* f ) const
 	f->WriteUnsignedInt( firstDecal );
 	f->WriteUnsignedInt( nextDecal );
 	
-	for( unsigned int i = firstDecal; i < nextDecal; i++ )
+	for( unsigned int i = firstDecal; i < nextDecal; ++i )
 	{
 		const decal_t& decal = decals[ i & ( MAX_DECALS - 1 ) ];
 		
@@ -1001,7 +1001,7 @@ void idRenderModelDecal::WriteToDemoFile( idDemoFile* f ) const
 		f->WriteInt( decal.numVerts );
 		if( decal.numVerts )
 		{
-			for( j = 0; j < decal.numVerts; j++ )
+			for( j = 0; j < decal.numVerts; ++j )
 			{
 				f->Write( &decal.verts[ j ], sizeof( idDrawVert ) );
 			}
@@ -1009,7 +1009,7 @@ void idRenderModelDecal::WriteToDemoFile( idDemoFile* f ) const
 		f->WriteInt( decal.numIndexes );
 		if( decal.numIndexes )
 		{
-			for( j = 0; j < decal.numIndexes; j++ )
+			for( j = 0; j < decal.numIndexes; ++j )
 			{
 				f->Write( &decal.indexes[ j ], sizeof( triIndex_t ) );
 			}
@@ -1021,7 +1021,7 @@ void idRenderModelDecal::WriteToDemoFile( idDemoFile* f ) const
 	
 	f->WriteUnsignedInt( firstDeferredDecal );
 	f->WriteUnsignedInt( nextDeferredDecal );
-	for( i = firstDeferredDecal; i < nextDeferredDecal; i++ )
+	for( i = firstDeferredDecal; i < nextDeferredDecal; ++i )
 	{
 		const decalProjectionParms_t& deferredDecal = deferredDecals[ i & ( MAX_DEFERRED_DECALS - 1 ) ];
 		f->WriteInt( deferredDecal.startTime );
@@ -1038,7 +1038,7 @@ void idRenderModelDecal::WriteToDemoFile( idDemoFile* f ) const
 	}
 	
 	f->WriteUnsignedInt( numDecalMaterials );
-	for( i = 0; i < numDecalMaterials; i++ )
+	for( i = 0; i < numDecalMaterials; ++i )
 	{
 		f->WriteHashString( decalMaterials[ i ] ? decalMaterials[ i ]->GetName() : "" );
 	}
