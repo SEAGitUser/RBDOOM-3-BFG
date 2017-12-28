@@ -2557,7 +2557,7 @@ void idMaterial::ParseMaterial( idLexer& src )
 	}
 	
 	// add _flat or _white stages if needed
-	AddImplicitStages();
+	AddImplicitStages( TR_REPEAT );
 	
 	// order the diffuse / bump / specular stages properly
 	SortInteractionStages();

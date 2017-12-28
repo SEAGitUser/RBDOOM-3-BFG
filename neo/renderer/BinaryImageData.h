@@ -36,14 +36,7 @@ This is where the Binary image headers go that are also included by external too
 ================================================================================================
 */
 
-// These structures are used for memory mapping bimage files, but
-// not for the normal loading, so be careful making changes.
-// Values are big endien to reduce effort on consoles.
-#define BIMAGE_VERSION 10
-#define BIMAGE_MAGIC (unsigned int)( ('B'<<0)|('I'<<8)|('M'<<16)|(BIMAGE_VERSION<<24) )
-
-struct bimageImage_t
-{
+struct bimageImage_t {
 	int		level;
 	int		destZ;
 	int		width;
@@ -52,19 +45,51 @@ struct bimageImage_t
 	// dataSize bytes follow
 };
 
+// These structures are used for memory mapping bimage files, but
+// not for the normal loading, so be careful making changes.
+// Values are big endien to reduce effort on consoles.
+#define BIMAGE_VERSION 10
+#define BIMAGE_MAGIC (unsigned int)( ('B'<<0)|('I'<<8)|('M'<<16)|(BIMAGE_VERSION<<24) )
+
 #pragma pack( push, 1 )
-struct bimageFile_t
+struct bimageFile_t		// Vanilla BFG
 {
 	ID_TIME_T	sourceFileTime;
-	int		headerMagic;
-	int		textureType;
-	int		format;
-	int		colorFormat;
-	int		width;
-	int		height;
-	int		numLevels;
+	int			headerMagic;
+	int			textureType;
+	int			format;
+	int			colorFormat;
+	int			width;
+	int			height;
+	int			numLevels;
 	// one or more bimageImage_t structures follow
 };
 #pragma pack( pop )
+//static const size_t bisize = sizeof( bimageFile_t ); //28
+
+#define BIMAGE_VERSION2 11
+#define BIMAGE_MAGIC2 (unsigned int)( ('B'<<0)|('I'<<8)|('M'<<16)|(BIMAGE_VERSION2<<24) )
+
+#pragma pack( push, 1 )
+struct bimageFile2_t	//SEAs
+{
+	ID_TIME_T	sourceFileTime;
+	uint32		headerMagic;
+	uint16		width;
+	uint16		height;
+	uint16		depth;
+	uint16		numLevels;
+	int16		lodBias;
+	uint8		textureType;
+	uint8		cubeFilter;
+	uint8		format;
+	uint8		colorFormat;
+	uint8		filter;
+	uint8		repeat;
+
+};
+#pragma pack( pop )
+//static const size_t bi2size = sizeof( bimageFile2_t ); //28
+
 
 #endif // __BINARYIMAGEDATA_H__

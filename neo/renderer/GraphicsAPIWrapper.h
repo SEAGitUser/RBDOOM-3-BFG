@@ -51,7 +51,7 @@ If you have questions concerning this license or the applicable additional terms
 class idImage;
 class idTriangles;
 class idRenderModelSurface;
-class idDeclRenderProg;
+class idDeclRenderProgram;
 class idRenderTexture;
 
 static const int MAX_OCCLUSION_QUERIES = 4096;
@@ -183,6 +183,7 @@ void			GL_Color( float r, float g, float b, float a );
 
 void			GL_SelectTexture( int unit );
 void			GL_BindTexture( int unit, idImage * );
+void			GL_ResetTexturesState();
 
 void			GL_Flush();		// flush the GPU command buffer
 void			GL_Finish();	// wait for the GPU to have executed all commands

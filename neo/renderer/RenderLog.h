@@ -202,6 +202,9 @@ extern idRenderLog renderLog;
 
 //SEA: save some performance in retails
 #if defined( STUB_RENDER_LOG )
+	#define RENDERLOG_START_FRAME()
+	#define RENDERLOG_END_FRAME()
+
 	#define RENDERLOG_OPEN_MAINBLOCK( X )
 	#define RENDERLOG_CLOSE_MAINBLOCK()
 

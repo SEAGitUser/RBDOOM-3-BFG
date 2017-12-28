@@ -34,7 +34,7 @@ If you have questions concerning this license or the applicable additional terms
 
 /*
 ====================
-GL_SelectTexture
+ GL_SelectTexture
 ====================
 */
 void GL_SelectTexture( int unit )
@@ -54,16 +54,35 @@ void GL_SelectTexture( int unit )
 	
 	backEnd.glState.currenttmu = unit;
 }
-
 /*
 ====================
-GL_BindTexture
+ GL_ResetTexturesState
+====================
+*/
+void GL_ResetTexturesState()
+{
+	for( int i = 0; i < MAX_MULTITEXTURE_UNITS - 1; i++ )
+	{
+		GL_SelectTexture( i );
+		globalImages->BindNull();
+	}
+	GL_SelectTexture( 0 );
+}
+/*
+====================
+ GL_BindTexture
 ====================
 */
 void GL_BindTexture( int unit, idImage *img )
 {
 	GL_SelectTexture( unit );
 	img->Bind();
+}
+void GL_BindTexture( int unit, idImage *img, idTextureSampler *sampler )
+{
+	GL_SelectTexture( unit );
+	img->Bind();
+	glBindSampler( unit, sampler->oglSamplerState );
 }
 
 /*

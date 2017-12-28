@@ -419,7 +419,7 @@ ID_TIME_T idBinaryImage::WriteGeneratedFile( ID_TIME_T sourceFileTime )
 		return FILE_NOT_FOUND_TIMESTAMP;
 	}
 	idLib::Printf( "Writing %s: %ix%i\n", binaryFileName.c_str(), fileData.width, fileData.height );
-	
+#if 1
 	fileData.headerMagic = BIMAGE_MAGIC;
 	fileData.sourceFileTime = sourceFileTime;
 	
@@ -431,8 +431,27 @@ ID_TIME_T idBinaryImage::WriteGeneratedFile( ID_TIME_T sourceFileTime )
 	file->WriteBig( fileData.width );
 	file->WriteBig( fileData.height );
 	file->WriteBig( fileData.numLevels );
-	
-	for( int i = 0; i < images.Num(); i++ )
+#else
+	fileData.sourceFileTime = sourceFileTime;
+	fileData.headerMagic = BIMAGE_MAGIC2;
+
+	///file->WriteBig( fileData.sourceFileTime );
+	///file->WriteBig( fileData.headerMagic );
+	///file->WriteBig( fileData.width );
+	///file->WriteBig( fileData.height );
+	///file->WriteBig( fileData.depth );
+	///file->WriteBig( fileData.lodBias );
+	///file->WriteBig( fileData.numLevels );
+	///file->WriteBig( fileData.textureType );
+	///file->WriteBig( fileData.cubeFilter );
+	///file->WriteBig( fileData.format );
+	///file->WriteBig( fileData.colorFormat );
+	///file->WriteBig( fileData.filter );
+	///file->WriteBig( fileData.repeat );
+
+	file->Write( &fileData, sizeof( fileData ) );
+#endif
+	for( int i = 0; i < images.Num(); ++i )
 	{
 		idBinaryImageData& img = images[ i ];
 		file->WriteBig( img.level );
@@ -477,6 +496,40 @@ Load the preprocessed image from the generated folder.
 */
 bool idBinaryImage::LoadFromGeneratedFile( idFile* bFile, ID_TIME_T sourceTimeStamp )
 {
+#if 0
+	struct entry_t {
+		ID_TIME_T sourceFileTime;
+		int headerMagic;
+	} entry;
+	if( bFile->Read( &entry, sizeof( entry_t ) ) <= 0 )
+	{
+		return false;
+	}
+	{
+		idSwapClass<entry_t> entrySwap;
+		entrySwap.Big( entry.sourceFileTime );
+		entrySwap.Big( entry.headerMagic );
+	}
+	if( BIMAGE_MAGIC2 == entry.headerMagic )
+	{
+		return false;
+	}
+	else if( BIMAGE_MAGIC == entry.headerMagic )
+	{
+		fileData.sourceFileTime = entry.sourceFileTime;
+		fileData.headerMagic = entry.headerMagic;
+		bFile->ReadBig( fileData.textureType );
+		bFile->ReadBig( fileData.format );
+		bFile->ReadBig( fileData.colorFormat );
+		bFile->ReadBig( fileData.width );
+		bFile->ReadBig( fileData.height );
+		bFile->ReadBig( fileData.numLevels );
+	}
+	else
+	{
+		return false;
+	}
+#elif 1
 	if( bFile->Read( &fileData, sizeof( fileData ) ) <= 0 )
 	{
 		return false;
@@ -495,6 +548,21 @@ bool idBinaryImage::LoadFromGeneratedFile( idFile* bFile, ID_TIME_T sourceTimeSt
 	{
 		return false;
 	}
+#else
+	if( bFile->Read( &fileData, sizeof( fileData ) ) <= 0 )
+	{
+		return false;
+	}
+	idSwapClass<bimageFile2_t> swap;
+	swap.Big( fileData.sourceFileTime );
+	swap.Big( fileData.headerMagic );
+
+	if( BIMAGE_MAGIC != fileData.headerMagic )
+	{
+		return false;
+	}
+
+#endif
 	
 	// RB: source might be from .resources, so we ignore the time stamp and assume a release build
 	if( !fileSystem->InProductionMode() && ( sourceTimeStamp != FILE_NOT_FOUND_TIMESTAMP ) && ( sourceTimeStamp != 0 ) && ( sourceTimeStamp != fileData.sourceFileTime ) )
@@ -511,7 +579,7 @@ bool idBinaryImage::LoadFromGeneratedFile( idFile* bFile, ID_TIME_T sourceTimeSt
 	
 	images.SetNum( numImages );
 	
-	for( int i = 0; i < numImages; i++ )
+	for( int i = 0; i < numImages; ++i )
 	{
 		idBinaryImageData& img = images[ i ];
 		if( bFile->Read( &img, sizeof( bimageImage_t ) ) <= 0 )

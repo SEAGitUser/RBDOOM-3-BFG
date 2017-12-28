@@ -266,17 +266,17 @@ void R_ListImages_f( const idCmdArgs& args )
 
 /*
 ==============
-AllocImage
+ CreateImage
 
-Allocates an idImage, adds it to the list,
-copies the name, and adds it to the hash chain.
+	Allocates an idImage, adds it to the list,
+	copies the name, and adds it to the hash chain.
 ==============
 */
-idImage* idImageManager::AllocImage( const char* name )
+idImage* idImageManager::CreateImage( const char* name )
 {
 	if( idStr::Length( name ) >= MAX_IMAGE_NAME )
 	{
-		common->Error( "idImageManager::AllocImage: \"%s\" is too long\n", name );
+		common->Error( "idImageManager::CreateImage: \"%s\" is too long\n", name );
 	}
 	
 	int hash = idStr( name ).FileNameHash();
@@ -290,28 +290,27 @@ idImage* idImageManager::AllocImage( const char* name )
 
 /*
 ==============
-AllocStandaloneImage
+ CreateStandaloneImage
 
-Allocates an idImage,does not add it to the list or hash chain
-
+	Allocates an idImage,does not add it to the list or hash chain
 ==============
 */
-idImage* idImageManager::AllocStandaloneImage( const char* name )
+idImage* idImageManager::CreateStandaloneImage( const char* name )
 {
 	if( idStr::Length( name ) >= MAX_IMAGE_NAME )
 	{
-		common->Error( "idImageManager::AllocImage: \"%s\" is too long\n", name );
+		common->Error( "idImageManager::CreateImage: \"%s\" is too long\n", name );
 	}
 	return new( TAG_IMAGE ) idImage( name );
 }
 
 /*
 ==================
-ImageFromFunction
+ ImageFromFunction
 
-Images that are procedurally generated are allways specified
-with a callback which must work at any time, allowing the OpenGL
-system to be completely regenerated if needed.
+	Images that are procedurally generated are allways specified
+	with a callback which must work at any time, allowing the OpenGL
+	system to be completely regenerated if needed.
 ==================
 */
 idImage* idImageManager::ImageFromFunction( const char* _name, void ( *generatorFunction )( idImage* image ) )
@@ -338,7 +337,7 @@ idImage* idImageManager::ImageFromFunction( const char* _name, void ( *generator
 	}
 	
 	// create the image and issue the callback
-	idImage* image = AllocImage( name );
+	idImage* image = CreateImage( name );
 	
 	image->generatorFunction = generatorFunction;
 	
@@ -484,7 +483,7 @@ idImage*	idImageManager::ImageFromFile( const char* _name, textureFilter_t filte
 	//
 	// create a new image
 	//
-	idImage* image = AllocImage( name );
+	idImage* image = CreateImage( name );
 	image->cubeFiles = cubeMap;
 	image->usage = usage;
 	image->filter = filter;
@@ -571,7 +570,7 @@ idImage* idImageManager::ScratchImage( const char* _name, idImageOpts* imgOpts, 
 	//
 	// create a new image
 	//
-	idImage* newImage = AllocImage( name );
+	idImage* newImage = CreateImage( name );
 	if( newImage != NULL )
 	{
 		newImage->AllocImage( *imgOpts, filter, repeat );

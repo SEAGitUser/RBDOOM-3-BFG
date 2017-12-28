@@ -510,31 +510,31 @@ void R_QuadraticImage( idImage* image )
 static void R_CreateShadowMapImage_Res0( idImage* image )
 {
 	int size = shadowMapResolutions[0];
-	image->GenerateShadowArray( size, size, TF_LINEAR, TR_CLAMP_TO_ZERO_ALPHA, TD_SHADOW_ARRAY );
+	image->GenerateShadowArray( size, size, TF_LINEAR, TR_CLAMP_TO_ZERO_ALPHA, TD_SHADOWMAP );
 }
 
 static void R_CreateShadowMapImage_Res1( idImage* image )
 {
 	int size = shadowMapResolutions[1];
-	image->GenerateShadowArray( size, size, TF_LINEAR, TR_CLAMP_TO_ZERO_ALPHA, TD_SHADOW_ARRAY );
+	image->GenerateShadowArray( size, size, TF_LINEAR, TR_CLAMP_TO_ZERO_ALPHA, TD_SHADOWMAP );
 }
 
 static void R_CreateShadowMapImage_Res2( idImage* image )
 {
 	int size = shadowMapResolutions[2];
-	image->GenerateShadowArray( size, size, TF_LINEAR, TR_CLAMP_TO_ZERO_ALPHA, TD_SHADOW_ARRAY );
+	image->GenerateShadowArray( size, size, TF_LINEAR, TR_CLAMP_TO_ZERO_ALPHA, TD_SHADOWMAP );
 }
 
 static void R_CreateShadowMapImage_Res3( idImage* image )
 {
 	int size = shadowMapResolutions[3];
-	image->GenerateShadowArray( size, size, TF_LINEAR, TR_CLAMP_TO_ZERO_ALPHA, TD_SHADOW_ARRAY );
+	image->GenerateShadowArray( size, size, TF_LINEAR, TR_CLAMP_TO_ZERO_ALPHA, TD_SHADOWMAP );
 }
 
 static void R_CreateShadowMapImage_Res4( idImage* image )
 {
 	int size = shadowMapResolutions[4];
-	image->GenerateShadowArray( size, size, TF_LINEAR, TR_CLAMP_TO_ZERO_ALPHA, TD_SHADOW_ARRAY );
+	image->GenerateShadowArray( size, size, TF_LINEAR, TR_CLAMP_TO_ZERO_ALPHA, TD_SHADOWMAP );
 }
 
 const static int JITTER_SIZE = 128;
@@ -787,31 +787,46 @@ static void R_CreateSMAAAreaImage( idImage* image )
 
 static void R_CreateSMAASearchImage( idImage* image )
 {
-	static byte	data[SEARCHTEX_HEIGHT][SEARCHTEX_WIDTH][4];
-	
+	static byte	data[ SEARCHTEX_HEIGHT ][ SEARCHTEX_WIDTH ][ 4 ];
+
 	idRandom2 random( Sys_Milliseconds() );
-	
+
 	for( int x = 0; x < SEARCHTEX_WIDTH; x++ )
 	{
 		for( int y = 0; y < SEARCHTEX_HEIGHT; y++ )
 		{
-#if 0
-			data[SEARCHTEX_HEIGHT - y][x][0] = searchTexBytes[ y * SEARCHTEX_PITCH + x ];
-			data[SEARCHTEX_HEIGHT - y][x][1] = 0;
-			data[SEARCHTEX_HEIGHT - y][x][2] = 0;
-			data[SEARCHTEX_HEIGHT - y][x][3] = 1;
-#else
-			data[y][x][0] = searchTexBytes[ y * SEARCHTEX_PITCH + x ];
-			data[y][x][1] = 0;
-			data[y][x][2] = 0;
-			data[y][x][3] = 1;
-#endif
+		#if 0
+			data[ SEARCHTEX_HEIGHT - y ][ x ][ 0 ] = searchTexBytes[ y * SEARCHTEX_PITCH + x ];
+			data[ SEARCHTEX_HEIGHT - y ][ x ][ 1 ] = 0;
+			data[ SEARCHTEX_HEIGHT - y ][ x ][ 2 ] = 0;
+			data[ SEARCHTEX_HEIGHT - y ][ x ][ 3 ] = 1;
+		#else
+			data[ y ][ x ][ 0 ] = searchTexBytes[ y * SEARCHTEX_PITCH + x ];
+			data[ y ][ x ][ 1 ] = 0;
+			data[ y ][ x ][ 2 ] = 0;
+			data[ y ][ x ][ 3 ] = 1;
+		#endif
 		}
 	}
-	
-	image->GenerateImage( ( byte* )data, SEARCHTEX_WIDTH, SEARCHTEX_HEIGHT, TF_LINEAR, TR_CLAMP, TD_LOOKUP_TABLE_MONO );
-}
 
+	image->GenerateImage( ( byte* )data, SEARCHTEX_WIDTH, SEARCHTEX_HEIGHT, TF_LINEAR, TR_CLAMP, TD_LOOKUP_TABLE_MONO );
+#if 0
+	idImageOpts opts;
+	opts.textureType = TT_2D;
+	opts.format = FMT_INT8;
+	opts.colorFormat = CFM_DEFAULT;
+	opts.width = SEARCHTEX_WIDTH;
+	opts.height = SEARCHTEX_HEIGHT;
+	opts.depth = 1;
+	opts.numLevels = 1;
+	opts.numSamples = 1;
+	opts.gammaMips = false;
+	opts.readback = false;
+
+	idImage *img = globalImages->CreateImage( "_SMAASearchImage" );
+	img->AllocImage( opts, TF_LINEAR, TR_CLAMP );
+#endif
+};
 // RB end
 
 /*
@@ -846,7 +861,7 @@ void idImageManager::CreateIntrinsicImages()
 	randomImage256 = globalImages->ImageFromFunction( "_random256", R_CreateRandom256Image );
 	
 	currentRenderHDRImage = globalImages->ImageFromFunction( "_currentRenderHDR", R_HDR_RGBA16FImage_ResNative );
-#if defined(USE_HDR_MSAA)
+#if defined( USE_HDR_MSAA )
 	currentRenderHDRImageNoMSAA = globalImages->ImageFromFunction( "_currentRenderHDRNoMSAA", R_HDR_RGBA16FImage_ResNative_NoMSAA );
 #endif
 	currentRenderHDRImageQuarter = globalImages->ImageFromFunction( "_currentRenderHDRQuarter", R_HDR_RGBA16FImage_ResQuarter );

@@ -42,7 +42,7 @@ No texture is ever used that does not have a corresponding idImage.
 static const int	MAX_TEXTURE_LEVELS = 14;
 
 // How is this texture used?  Determines the storage and color format
-typedef enum
+enum textureUsage_t
 {
 	TD_SPECULAR,			// may be compressed, and always zeros the alpha channel
 	TD_DIFFUSE,				// may be compressed
@@ -57,20 +57,50 @@ typedef enum
 	TD_COVERAGE,			// coverage map for fill depth pass when YCoCG is used
 	TD_DEPTH,				// depth buffer copy for motion blur
 	// RB begin
-	TD_SHADOW_ARRAY,		// 2D depth buffer array for shadow mapping
+	TD_SHADOWMAP,		// depth buffer for shadow mapping
+
 	TD_RGBA16F,
 	TD_RGBA32F,
 	TD_R32F,
 	// RB end
-} textureUsage_t;
+};
 
-typedef enum
+enum cubeFiles_t
 {
 	CF_2D,			// not a cube map
 	CF_NATIVE,		// _px, _nx, _py, etc, directly sent to GL
 	CF_CAMERA,		// _forward, _back, etc, rotated and flipped as needed before sending to GL
-	CF_2D_ARRAY		// not a cube map but not a single 2d texture either
-} cubeFiles_t;
+};
+
+// moved from image.h for default parm
+enum textureFilter_t {
+	TF_LINEAR,
+	TF_NEAREST,
+	TF_NEAREST_MIPMAP,		// RB: no linear interpolation but explicit mip-map levels for hierarchical depth buffer
+	TF_DEFAULT,				// use the user-specified r_textureFilter
+//SEA	
+	TF_NEAREST_MIPMAP_NEAREST,
+	TF_LINEAR_MIPMAP_NEAREST,
+	//TF_TRILINEAR,
+};
+
+enum textureRepeat_t {
+	TR_REPEAT,
+	TR_CLAMP,
+	TR_CLAMP_TO_ZERO,		// guarantee 0,0,0,255 edge for projected textures
+	TR_CLAMP_TO_ZERO_ALPHA,	// guarantee 0 alpha edge for projected textures
+//SEA
+	//TR_CLAMP_S,
+	//TR_CLAMP_T,
+	//TR_CLAMP_TO_BORDER,
+	TR_MIRROR
+};
+
+enum imageState_t {
+	IS_PURGED,
+	IS_BACKGROUND_READING,
+	IS_READY
+};
 
 enum imageFileType_t
 {
@@ -79,22 +109,158 @@ enum imageFileType_t
 	JPG
 };
 
+struct samplerOptions_t 
+{
+	textureFilter_t filter;
+	textureRepeat_t repeat;
+	int32			border;
+	float			lodBias;
+	int32			lodMinClamp;
+	int32			lodMaxClamp;
+	int32			aniso;
+	bool			forceBias;
+	bool			depthCompareMode;
+	
+	int struct_pad;
+};
+
+struct idTextureSampler {
+	GLuint oglSamplerState;
+};
+
+#if 0
+class idImageData {
+	idImageData();
+	~idImageData();
+
+	void width;
+	void height;
+	void data;
+	void floatData;
+
+	void LoadImageProgram();
+	void WritePNG( const char *filename );
+	void WriteTGA( const char *filename );
+	void Resample();
+	void MipMapOneStep();
+	void Subset();
+	void NewSize();
+	void PointSample();
+	void BilinearSample();
+	void ReplaceRect();
+};
+
+class idAtlasResource {
+	idAtlasResource();
+	~idAtlasResource();
+
+	void LoadResource();
+	void ReloadIfStale();
+	void Print();
+	void List();
+	void resourceList;
+	void GetResourceList();
+	void GetScaleBias();
+	void GetWidth();
+	void GetHeight();
+	void FreeData();
+
+	int binaryTimestamp;
+	int scaleBias;
+	int img_tiles_wide;
+	int img_tiles_high;
+	int img_x;
+	int img_y;
+	int img_w;
+	int img_h;
+};
+
+class idImageAtlas {
+	void ClearAtlas();
+	void GetAtlasUsage();
+	int ATLAS_WIDTH_BITS
+	int ATLAS_HEIGHT_BITS
+	int ATLAS_MIP_LEVELS
+	int ATLAS_TILE_WIDTH_BITS
+	int ATLAS_TILE_HEIGHT_BITS
+	int ATLAS_WIDTH
+	int ATLAS_HEIGHT
+	int ATLAS_TILE_WIDTH
+	int ATLAS_TILE_HEIGHT
+	int ATLAS_TILES_WIDE
+	int ATLAS_TILES_HIGH
+	int ATLAS_TILES
+
+	tileAlloc;
+	atlas;
+};
+
+class idUniqueTextureSampler {
+	idUniqueTextureSampler();
+	idUniqueTextureSampler( options_ );
+	~idUniqueTextureSampler();
+	idStr				name;
+	uint32				numUsers;
+	samplerOptions_t	options;
+	idTextureSampler	sampler;
+};
+
+class idTextureSamplerManagerLocal : public idTextureSamplerManager {
+public:
+	void Init( options );
+	void Shutdown();
+
+	idTextureSampler *	FindSamplerByName( name, addUser );
+	const char *		GetSamplerName( idTextureSampler * sampler );
+	idTextureSampler *	CreateSampler( samplerOptions_t options name );
+	void				DeleteSampler( idTextureSampler * sampler );
+
+private:
+	idList<idUniqueTextureSampler, 5> uniqueTextureSamplers;
+	idTextureSampler * FindSamplerByOptions( options addUser );
+} textureSamplerManagerLocal;
+
+class idTextureSamplerManager {
+public:
+	void Init( options );
+	void Shutdown();
+
+	idTextureSampler *	FindSamplerByName( name, addUser );
+	const char *		GetSamplerName( idTextureSampler * sampler );
+	idTextureSampler *	CreateSampler( samplerOptions_t options name );
+	void				DeleteSampler( idTextureSampler * sampler );
+
+	idUniqueTextureSampler pointSampler;
+	idUniqueTextureSampler pointSamplerRepeating;
+	idList<idUniqueTextureSampler> mipMapSamplers;
+
+} textureSamplerManager;
+
+class idUniqueTextureSampler 
+{
+	idUniqueTextureSampler( options_ )
+
+
+};
+
+
+
+
+#endif
+
 #include "ImageOpts.h"
 #include "BinaryImage.h"
 
 #define	MAX_IMAGE_NAME	256
 
-class idImage
+class idImage 
 {
 	friend class Framebuffer;
-	
+	friend class idRenderDestination;
 public:
 	idImage( const char* name );
 	
-	const char* 	GetName() const
-	{
-		return imgName;
-	}
+	ID_INLINE const char * 	GetName() const { return imgName; }
 	
 	// Makes this image active on the current GL texture unit.
 	// automatically enables or disables cube mapping
@@ -102,21 +268,17 @@ public:
 	void		Bind();
 	
 	// Should be called at least once
-	void		SetSamplerState( textureFilter_t tf, textureRepeat_t tr );
+	void		SetSamplerState( textureFilter_t, textureRepeat_t );
 	
 	// used by callback functions to specify the actual data
 	// data goes from the bottom to the top line of the image, as OpenGL expects it
 	// These perform an implicit Bind() on the current texture unit
 	// FIXME: should we implement cinematics this way, instead of with explicit calls?
-	void		GenerateImage( const byte* pic, int width, int height,
-							   textureFilter_t filter, textureRepeat_t repeat, textureUsage_t usage, int msaaSamples = 0 );
-	void		GenerateCubeImage( const byte* pic[6], int size,
-								   textureFilter_t filter, textureUsage_t usage );
-								   
+	void		GenerateImage( const byte* pic, int width, int height, textureFilter_t, textureRepeat_t, textureUsage_t, int msaaSamples = 0 );
+	void		GenerateCubeImage( const byte* pic[6], int size, textureFilter_t, textureUsage_t );							   
 	// RB begin
-	void		GenerateShadowArray( int width, int height, textureFilter_t filter, textureRepeat_t repeat, textureUsage_t usage );
+	void		GenerateShadowArray( int width, int height, textureFilter_t, textureRepeat_t, textureUsage_t );
 	// RB end
-	
 	void		CopyFramebuffer( int x, int y, int width, int height );
 	void		CopyDepthbuffer( int x, int y, int width, int height );
 	
@@ -131,40 +293,23 @@ public:
 	// check for changed timestamp on disk and reload if necessary
 	void		Reload( bool force );
 	
-	void		AddReference()
-	{
-		refCount++;
-	};
+	ID_INLINE void	AddReference() { refCount++; };
 	
-	void		MakeDefault();	// fill with a grid pattern
+	void			MakeDefault();	// fill with a grid pattern
 	
-	const idImageOpts& 	GetOpts() const
-	{
-		return opts;
-	}
-	int			GetUploadWidth() const
-	{
-		return opts.width;
-	}
-	int			GetUploadHeight() const
-	{
-		return opts.height;
-	}
+	ID_INLINE const idImageOpts & GetOpts() const { return opts; }
+	ID_INLINE int	GetUploadWidth() const { return opts.width; }
+	ID_INLINE int	GetUploadHeight() const { return opts.height; }
 	
-	void		SetReferencedOutsideLevelLoad()
-	{
-		referencedOutsideLevelLoad = true;
-	}
-	void		SetReferencedInsideLevelLoad()
-	{
-		levelLoadReferenced = true;
-	}
+	ID_INLINE void	SetReferencedOutsideLevelLoad() { referencedOutsideLevelLoad = true; }
+	ID_INLINE void	SetReferencedInsideLevelLoad() { levelLoadReferenced = true; }
+
 	void		ActuallyLoadImage( bool fromBackEnd );
 	//---------------------------------------------
 	// Platform specific implementations
 	//---------------------------------------------
 	
-	void		AllocImage( const idImageOpts& imgOpts, textureFilter_t filter, textureRepeat_t repeat );
+	void		AllocImage( const idImageOpts&, textureFilter_t, textureRepeat_t );
 	
 	// Deletes the texture object, but leaves the structure so it can be reloaded
 	// or resized.
@@ -189,21 +334,19 @@ public:
 	// some scratch images are dynamically resized based on the display window size.  This
 	// simply purges the image and recreates it if the sizes are different, so it should not be
 	// done under any normal circumstances, and probably not at all on consoles.
-	void		Resize( int width, int height );
+	void		Resize( int width, int height, int depth = 1 );
 	
-	bool		IsCompressed() const
-	{
-		return ( opts.format == FMT_DXT1 || opts.format == FMT_DXT5 );
-	}
+	ID_INLINE bool		IsCompressed() const { return ( opts.format == FMT_DXT1 || opts.format == FMT_DXT5 ); }
 	
-	void		SetTexParameters();	// update aniso and trilinear
+	void				SetTexParameters();	// update aniso and trilinear
 	
-	bool		IsLoaded() const
-	{
-		return texnum != TEXTURE_NOT_LOADED;
-	}
+	ID_INLINE bool		IsLoaded() const { return texnum != TEXTURE_NOT_LOADED; }
 	
-	static void			GetGeneratedName( idStr& _name, const textureUsage_t& _usage, const cubeFiles_t& _cube );
+	static void			GetGeneratedName( idStr& _name, const textureUsage_t&, const cubeFiles_t& );
+
+	ID_INLINE void *	GetAPIObject() const { return reinterpret_cast< void *>( texnum ); }
+
+	static int			BitsForFormat( textureFormat_t format );
 	
 private:
 	friend class idImageManager;
@@ -232,22 +375,12 @@ private:
 	
 	static const GLuint TEXTURE_NOT_LOADED = 0xFFFFFFFF;
 	
-	GLuint				texnum;				// gl texture binding
-	
-	// we could derive these in subImageUpload each time if necessary
-	GLuint				internalFormat;
-	GLuint				dataFormat;
-	GLuint				dataType;
-	
-	
+	GLuint				texnum;				// gl texture binding	
 };
 
 ID_INLINE idImage::idImage( const char* name ) : imgName( name )
 {
 	texnum = TEXTURE_NOT_LOADED;
-	internalFormat = 0;
-	dataFormat = 0;
-	dataType = 0;
 	generatorFunction = NULL;
 	filter = TF_DEFAULT;
 	repeat = TR_REPEAT;
@@ -291,21 +424,20 @@ public:
 	// If the load fails for any reason, the image will be filled in with the default
 	// grid pattern.
 	// Will automatically execute image programs if needed.
-	idImage* 			ImageFromFile( const char* name,
-									   textureFilter_t filter, textureRepeat_t repeat, textureUsage_t usage, cubeFiles_t cubeMap = CF_2D );
+	idImage* 			ImageFromFile( const char* name, textureFilter_t, textureRepeat_t, textureUsage_t, cubeFiles_t = CF_2D );
 									   
 	// look for a loaded image, whatever the parameters
 	idImage* 			GetImage( const char* name ) const;
 	
 	// look for a loaded image, whatever the parameters
-	idImage* 			GetImageWithParameters( const char* name, textureFilter_t filter, textureRepeat_t repeat, textureUsage_t usage, cubeFiles_t cubeMap ) const;
+	idImage* 			GetImageWithParameters( const char* name, textureFilter_t, textureRepeat_t, textureUsage_t, cubeFiles_t ) const;
 	
 	// The callback will be issued immediately, and later if images are reloaded or vid_restart
 	// The callback function should call one of the idImage::Generate* functions to fill in the data
 	idImage* 			ImageFromFunction( const char* name, void ( *generatorFunction )( idImage* image ) );
 	
 	// scratch images are for internal renderer use.  ScratchImage names should always begin with an underscore
-	idImage* 			ScratchImage( const char* name, idImageOpts* imgOpts, textureFilter_t filter, textureRepeat_t repeat, textureUsage_t usage );
+	idImage* 			ScratchImage( const char* name, idImageOpts*, textureFilter_t, textureRepeat_t, textureUsage_t );
 	
 	// purges all the images before a vid_restart
 	void				PurgeAllImages();
@@ -382,8 +514,8 @@ public:
 	
 	//--------------------------------------------------------
 	
-	idImage* 			AllocImage( const char* name );
-	idImage* 			AllocStandaloneImage( const char* name );
+	idImage* 			CreateImage( const char* name );
+	idImage* 			CreateStandaloneImage( const char* name );
 	
 	bool				ExcludePreloadImage( const char* name );
 	

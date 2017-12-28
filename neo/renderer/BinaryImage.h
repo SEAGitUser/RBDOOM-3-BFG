@@ -42,44 +42,39 @@ class idBinaryImage
 {
 public:
 	idBinaryImage( const char* name ) : imgName( name ) { }
+
+	// FileOffsetForFirstImageLevel
+	// GetName
+	// LoadFromSourceFile( src fileProps squareSize token pics / fileProps width height pic);
+	// LoadFromGeneratedFile( binaryFileName bFile fileIO )
+	// Load2DFromMemory( int width, int height, const byte* pic_const, dxt )
+	// LoadCubeFromMemory( width, pics, copyPics)
+	// WriteGeneratedFile( binaryFileName fileIO file baseName im ) 
 	
-	const char* 		GetName() const
-	{
-		return imgName.c_str();
-	}
-	void				SetName( const char* _name )
-	{
-		imgName = _name;
-	}
+	ID_INLINE const char* 	GetName() const { return imgName.c_str(); }
+	ID_INLINE void			SetName( const char* _name ) { imgName = _name; }
 	
-	void				Load2DFromMemory( int width, int height, const byte* pic_const, int numLevels, textureFormat_t& textureFormat, textureColor_t& colorFormat, bool gammaMips );
-	void				LoadCubeFromMemory( int width, const byte* pics[6], int numLevels, textureFormat_t& textureFormat, bool gammaMips );
+	void	Load2DFromMemory( int width, int height, const byte* pic_const, int numLevels, textureFormat_t& textureFormat, textureColor_t& colorFormat, bool gammaMips );
+	void	LoadCubeFromMemory( int width, const byte* pics[6], int numLevels, textureFormat_t& textureFormat, bool gammaMips );
 	
-	ID_TIME_T			LoadFromGeneratedFile( ID_TIME_T sourceFileTime );
-	ID_TIME_T			WriteGeneratedFile( ID_TIME_T sourceFileTime );
+	ID_TIME_T	LoadFromGeneratedFile( ID_TIME_T sourceFileTime );
+	ID_TIME_T	WriteGeneratedFile( ID_TIME_T sourceFileTime );
 	
-	const bimageFile_t& 	GetFileHeader()
-	{
-		return fileData;
-	}
+	ID_INLINE const bimageFile_t &	GetFileHeader() { return fileData; }
 	
-	int					NumImages()
-	{
-		return images.Num();
-	}
-	const bimageImage_t& 	GetImageHeader( int i ) const
-	{
-		return images[i];
-	}
-	const byte* 			GetImageData( int i ) const
-	{
-		return images[i].data;
-	}
-	static void			GetGeneratedFileName( idStr& gfn, const char* imageName );
+	ID_INLINE int					NumImages() { return images.Num(); }
+	ID_INLINE const bimageImage_t & GetImageHeader( int i ) const { return images[i]; }
+	ID_INLINE const byte * 			GetImageData( int i ) const { return images[i].data; }
+	static void						GetGeneratedFileName( idStr& gfn, const char* imageName );
 private:
-	idStr				imgName;			// game path, including extension (except for cube maps), may be an image program
-	bimageFile_t		fileData;
+	idStr			imgName;	// game path, including extension (except for cube maps), may be an image program
+	bimageFile_t	fileData;
 	
+	// imgName;
+	// sourceFileTime;
+	// binaryFileTime;
+	// opts
+
 	class idBinaryImageData : public bimageImage_t
 	{
 	public:
@@ -90,7 +85,7 @@ private:
 		{
 			Free();
 		}
-		idBinaryImageData& operator=( idBinaryImageData& other )
+		ID_INLINE idBinaryImageData& operator=( idBinaryImageData& other )
 		{
 			if( this == &other )
 			{
@@ -101,7 +96,7 @@ private:
 			memcpy( data, other.data, other.dataSize );
 			return *this;
 		}
-		void Free()
+		ID_INLINE void Free()
 		{
 			if( data != NULL )
 			{
@@ -110,7 +105,7 @@ private:
 				dataSize = 0;
 			}
 		}
-		void Alloc( int size )
+		ID_INLINE void Alloc( int size )
 		{
 			Free();
 			dataSize = size;
@@ -119,7 +114,7 @@ private:
 	};
 	
 	idList< idBinaryImageData, TAG_IDLIB_LIST_IMAGE > images;
-	
+
 private:
 	void				MakeGeneratedFileName( idStr& gfn );
 	bool				LoadFromGeneratedFile( idFile* f, ID_TIME_T sourceFileTime );

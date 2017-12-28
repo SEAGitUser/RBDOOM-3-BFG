@@ -39,8 +39,38 @@ idCVar r_motionBlur( "r_motionBlur", "0", CVAR_RENDERER | CVAR_INTEGER | CVAR_AR
 idCVar r_forceZPassStencilShadows( "r_forceZPassStencilShadows", "0", CVAR_RENDERER | CVAR_BOOL, "force Z-pass rendering for performance testing" );
 idCVar r_useStencilShadowPreload( "r_useStencilShadowPreload", "1", CVAR_RENDERER | CVAR_BOOL, "use stencil shadow preload algorithm instead of Z-fail" );
 idCVar r_skipShaderPasses( "r_skipShaderPasses", "0", CVAR_RENDERER | CVAR_BOOL, "" );
-idCVar r_skipInteractionFastPath( "r_skipInteractionFastPath", "0", CVAR_RENDERER | CVAR_BOOL, "" );
+idCVar r_skipInteractionFastPath( "r_skipInteractionFastPath", "1", CVAR_RENDERER | CVAR_BOOL, "" );
 idCVar r_useLightStencilSelect( "r_useLightStencilSelect", "0", CVAR_RENDERER | CVAR_BOOL, "use stencil select pass" );
+
+// RB: HDR parameters
+idCVar r_useHDR( "r_useHDR", "1", CVAR_RENDERER | CVAR_ARCHIVE | CVAR_BOOL, "use high dynamic range rendering" );
+idCVar r_hdrAutoExposure( "r_hdrAutoExposure", "1", CVAR_RENDERER | CVAR_BOOL, "EXPENSIVE: enables adapative HDR tone mapping otherwise the exposure is derived by r_exposure" );
+idCVar r_hdrMinLuminance( "r_hdrMinLuminance", "0.005", CVAR_RENDERER | CVAR_FLOAT, "" );
+idCVar r_hdrMaxLuminance( "r_hdrMaxLuminance", "300", CVAR_RENDERER | CVAR_FLOAT, "" );
+idCVar r_hdrKey( "r_hdrKey", "0.015", CVAR_RENDERER | CVAR_FLOAT, "magic exposure key that works well with Doom 3 maps" );
+idCVar r_hdrContrastDynamicThreshold( "r_hdrContrastDynamicThreshold", "2", CVAR_RENDERER | CVAR_FLOAT, "if auto exposure is on, all pixels brighter than this cause HDR bloom glares" );
+idCVar r_hdrContrastStaticThreshold( "r_hdrContrastStaticThreshold", "3", CVAR_RENDERER | CVAR_FLOAT, "if auto exposure is off, all pixels brighter than this cause HDR bloom glares" );
+idCVar r_hdrContrastOffset( "r_hdrContrastOffset", "100", CVAR_RENDERER | CVAR_FLOAT, "" );
+idCVar r_hdrGlarePasses( "r_hdrGlarePasses", "8", CVAR_RENDERER | CVAR_INTEGER, "how many times the bloom blur is rendered offscreen. number should be even" );
+idCVar r_hdrDebug( "r_hdrDebug", "0", CVAR_RENDERER | CVAR_FLOAT, "show scene luminance as heat map" );
+
+idCVar r_ldrContrastThreshold( "r_ldrContrastThreshold", "1.1", CVAR_RENDERER | CVAR_FLOAT, "" );
+idCVar r_ldrContrastOffset( "r_ldrContrastOffset", "3", CVAR_RENDERER | CVAR_FLOAT, "" );
+
+idCVar r_useFilmicPostProcessEffects( "r_useFilmicPostProcessEffects", "1", CVAR_RENDERER | CVAR_ARCHIVE | CVAR_BOOL, "apply several post process effects to mimic a filmic look" );
+idCVar r_forceAmbient( "r_forceAmbient", "0.2", CVAR_RENDERER | CVAR_ARCHIVE | CVAR_FLOAT, "render additional ambient pass to make the game less dark", 0.0f, 0.5f );
+
+idCVar r_useSSGI( "r_useSSGI", "0", CVAR_RENDERER | CVAR_ARCHIVE | CVAR_BOOL, "use screen space global illumination and reflections" );
+idCVar r_ssgiDebug( "r_ssgiDebug", "0", CVAR_RENDERER | CVAR_INTEGER, "" );
+idCVar r_ssgiFiltering( "r_ssgiFiltering", "1", CVAR_RENDERER | CVAR_BOOL, "" );
+
+idCVar r_useSSAO( "r_useSSAO", "1", CVAR_RENDERER | CVAR_ARCHIVE | CVAR_BOOL, "use screen space ambient occlusion to darken corners" );
+idCVar r_ssaoDebug( "r_ssaoDebug", "0", CVAR_RENDERER | CVAR_INTEGER, "" );
+idCVar r_ssaoFiltering( "r_ssaoFiltering", "1", CVAR_RENDERER | CVAR_BOOL, "" );
+idCVar r_useHierarchicalDepthBuffer( "r_useHierarchicalDepthBuffer", "1", CVAR_RENDERER | CVAR_BOOL, "" );
+
+idCVar r_exposure( "r_exposure", "0.5", CVAR_ARCHIVE | CVAR_RENDERER | CVAR_FLOAT, "HDR exposure or LDR brightness [0.0 .. 1.0]", 0.0f, 1.0f );
+// RB end
 
 extern idCVar stereoRender_swapEyes;
 
@@ -176,8 +206,8 @@ RB_LoadShaderTextureMatrix
 */
 static void RB_LoadShaderTextureMatrix( const float* shaderRegisters, const textureStage_t* texture )
 {
-	ALIGNTYPE16 float texS[4] = { 1.0f, 0.0f, 0.0f, 0.0f };
-	ALIGNTYPE16 float texT[4] = { 0.0f, 1.0f, 0.0f, 0.0f };
+	idRenderVector texS( 1.0f, 0.0f, 0.0f, 0.0f );
+	idRenderVector texT( 0.0f, 1.0f, 0.0f, 0.0f );
 	
 	if( texture->hasMatrix )
 	{
@@ -201,8 +231,8 @@ static void RB_LoadShaderTextureMatrix( const float* shaderRegisters, const text
 		RENDERLOG_OUTDENT();
 	}
 	
-	SetVertexParm( RENDERPARM_TEXTUREMATRIX_S, texS );
-	SetVertexParm( RENDERPARM_TEXTUREMATRIX_T, texT );
+	SetVertexParm( RENDERPARM_TEXTUREMATRIX_S, texS.ToFloatPtr() );
+	SetVertexParm( RENDERPARM_TEXTUREMATRIX_T, texT.ToFloatPtr() );
 }
 
 /*
@@ -319,7 +349,7 @@ RB_PrepareStageTexturing
 */
 static void RB_PrepareStageTexturing( const shaderStage_t* pStage,  const drawSurf_t* surf )
 {
-	ALIGNTYPE16 float useTexGenParm[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
+	idRenderVector useTexGenParm( 0.0f, 0.0f, 0.0f, 0.0f );
 	
 	// set the texture matrix if needed
 	RB_LoadShaderTextureMatrix( surf->shaderRegisters, &pStage->texture );
@@ -461,7 +491,7 @@ static void RB_PrepareStageTexturing( const shaderStage_t* pStage,  const drawSu
 		idLib::Warning( "Using GlassWarp! Please contact Brian!" );
 	}
 	
-	SetVertexParm( RENDERPARM_TEXGEN_0_ENABLED, useTexGenParm );
+	SetVertexParm( RENDERPARM_TEXGEN_0_ENABLED, useTexGenParm.ToFloatPtr() );
 }
 
 /*
@@ -551,8 +581,8 @@ static void RB_FillDepthBufferGeneric( const drawSurf_t* const* drawSurfs, int n
 {
 	for( int i = 0; i < numDrawSurfs; i++ )
 	{
-		const drawSurf_t* drawSurf = drawSurfs[i];
-		const idMaterial* shader = drawSurf->material;
+		const drawSurf_t* const drawSurf = drawSurfs[i];
+		const idMaterial* const shader = drawSurf->material;
 		
 		// translucent surfaces don't put anything in the depth buffer and don't
 		// test against it, which makes them fail the mirror clip plane operation
@@ -568,7 +598,7 @@ static void RB_FillDepthBufferGeneric( const drawSurf_t* const* drawSurfs, int n
 		int stage = 0;
 		for( ; stage < shader->GetNumStages(); stage++ )
 		{
-			const shaderStage_t* pStage = shader->GetStage( stage );
+			const shaderStage_t* const pStage = shader->GetStage( stage );
 			// check the stage enable condition
 			if( regs[ pStage->conditionRegister ] != 0 )
 			{
@@ -598,7 +628,7 @@ static void RB_FillDepthBufferGeneric( const drawSurf_t* const* drawSurfs, int n
 		}
 		
 		// subviews will just down-modulate the color buffer
-		idVec4 color;
+		idRenderVector color;
 		if( shader->GetSort() == SS_SUBVIEW )
 		{
 			surfGLState |= GLS_SRCBLEND_DST_COLOR | GLS_DSTBLEND_ZERO | GLS_DEPTHFUNC_LESS;
@@ -633,7 +663,7 @@ static void RB_FillDepthBufferGeneric( const drawSurf_t* const* drawSurfs, int n
 			// perforated surfaces may have multiple alpha tested stages
 			for( stage = 0; stage < shader->GetNumStages(); stage++ )
 			{
-				const shaderStage_t* pStage = shader->GetStage( stage );
+				const shaderStage_t* const pStage = shader->GetStage( stage );
 				
 				if( !pStage->hasAlphaTest )
 				{
@@ -670,13 +700,9 @@ static void RB_FillDepthBufferGeneric( const drawSurf_t* const* drawSurfs, int n
 				
 				GL_Color( color );
 				
-			#ifdef USE_CORE_PROFILE
 				GL_State( stageGLState );
-				idVec4 alphaTestValue( regs[ pStage->alphaTestRegister ] );
+				idRenderVector alphaTestValue( regs[ pStage->alphaTestRegister ] );
 				SetFragmentParm( RENDERPARM_ALPHA_TEST, alphaTestValue.ToFloatPtr() );
-			#else
-				GL_State( stageGLState | GLS_ALPHATEST_FUNC_GREATER | GLS_ALPHATEST_MAKE_REF( idMath::Ftob( 255.0f * regs[ pStage->alphaTestRegister ] ) ) );
-			#endif
 				
 				if( drawSurf->jointCache )
 				{
@@ -749,30 +775,28 @@ static void RB_FillDepthBufferGeneric( const drawSurf_t* const* drawSurfs, int n
 		RENDERLOG_CLOSE_BLOCK();
 	}
 	
-#ifdef USE_CORE_PROFILE
 	SetFragmentParm( RENDERPARM_ALPHA_TEST, vec4_zero.ToFloatPtr() );
-#endif
 }
 
 /*
 =====================
 RB_FillDepthBufferFast
 
-Optimized fast path code.
+	Optimized fast path code.
 
-If there are subview surfaces, they must be guarded in the depth buffer to allow
-the mirror / subview to show through underneath the current view rendering.
+	If there are subview surfaces, they must be guarded in the depth buffer to allow
+	the mirror / subview to show through underneath the current view rendering.
 
-Surfaces with perforated shaders need the full shader setup done, but should be
-drawn after the opaque surfaces.
+	Surfaces with perforated shaders need the full shader setup done, but should be
+	drawn after the opaque surfaces.
 
-The bulk of the surfaces should be simple opaque geometry that can be drawn very rapidly.
+	The bulk of the surfaces should be simple opaque geometry that can be drawn very rapidly.
 
-If there are no subview surfaces, we could clear to black and use fast-Z rendering
-on the 360.
+	If there are no subview surfaces, we could clear to black and use fast-Z rendering
+	on the 360.
 =====================
 */
-static void RB_FillDepthBufferFast( drawSurf_t** drawSurfs, int numDrawSurfs )
+static void RB_FillDepthBufferFast( const drawSurf_t * const * drawSurfs, int numDrawSurfs )
 {
 	if( numDrawSurfs == 0 )
 	{
@@ -788,7 +812,7 @@ static void RB_FillDepthBufferFast( drawSurf_t** drawSurfs, int numDrawSurfs )
 	RENDERLOG_OPEN_MAINBLOCK( MRB_FILL_DEPTH_BUFFER );
 	RENDERLOG_OPEN_BLOCK( "RB_FillDepthBufferFast" );
 	
-	GL_StartDepthPass( backEnd.viewDef->scissor );
+	GL_StartDepthPass( backEnd.viewDef->GetScissor() );
 	
 	// force MVP change on first surface
 	backEnd.currentSpace = NULL;
@@ -798,7 +822,7 @@ static void RB_FillDepthBufferFast( drawSurf_t** drawSurfs, int numDrawSurfs )
 	GL_State( GLS_DEFAULT );
 	
 	int	surfNum;
-	for( surfNum = 0; surfNum < numDrawSurfs; surfNum++ )
+	for( surfNum = 0; surfNum < numDrawSurfs; ++surfNum )
 	{
 		if( drawSurfs[surfNum]->material->GetSort() != SS_SUBVIEW )
 		{
@@ -815,10 +839,10 @@ static void RB_FillDepthBufferFast( drawSurf_t** drawSurfs, int numDrawSurfs )
 	GL_State( GLS_DEFAULT );
 	
 	// continue checking past the subview surfaces
-	for( ; surfNum < numDrawSurfs; surfNum++ )
+	for( ; surfNum < numDrawSurfs; ++surfNum )
 	{
-		const drawSurf_t* surf = drawSurfs[ surfNum ];
-		const idMaterial* shader = surf->material;
+		const drawSurf_t* const surf = drawSurfs[ surfNum ];
+		const idMaterial* const shader = surf->material;
 		
 		// translucent surfaces don't put anything in the depth buffer
 		if( shader->Coverage() == MC_TRANSLUCENT )
@@ -829,7 +853,7 @@ static void RB_FillDepthBufferFast( drawSurf_t** drawSurfs, int numDrawSurfs )
 		{
 			// save for later drawing
 			perforatedSurfaces[ numPerforatedSurfaces ] = surf;
-			numPerforatedSurfaces++;
+			++numPerforatedSurfaces;
 			continue;
 		}
 		
@@ -896,10 +920,9 @@ const int INTERACTION_TEXUNIT_JITTER		= 6;
 RB_SetupInteractionStage
 ==================
 */
-static void RB_SetupInteractionStage( const shaderStage_t* surfaceStage, const float* surfaceRegs, const float lightColor[4],
-									  idVec4 matrix[2], float color[4] )
+static void RB_SetupInteractionStage( const shaderStage_t* surfaceStage, 
+	const float* surfaceRegs, const float lightColor[4], idVec4 matrix[2], float color[4] )
 {
-
 	if( surfaceStage->texture.hasMatrix )
 	{
 		matrix[0][0] = surfaceRegs[surfaceStage->texture.matrix[0][0]];
@@ -1024,8 +1047,8 @@ These are common for all fast path surfaces
 */
 static void RB_SetupForFastPathInteractions( const idVec4& diffuseColor, const idVec4& specularColor )
 {
-	const idVec4 sMatrix( 1, 0, 0, 0 );
-	const idVec4 tMatrix( 0, 1, 0, 0 );
+	const idRenderVector sMatrix( 1, 0, 0, 0 );
+	const idRenderVector tMatrix( 0, 1, 0, 0 );
 	
 	// bump matrix
 	SetVertexParm( RENDERPARM_BUMPMATRIX_S, sMatrix.ToFloatPtr() );
@@ -1052,7 +1075,8 @@ RB_RenderInteractions
 With added sorting and trivial path work.
 =============
 */
-static void RB_RenderInteractions( const drawSurf_t* surfList, const viewLight_t* vLight, int depthFunc, bool performStencilTest, bool useLightDepthBounds )
+static void RB_RenderInteractions( const drawSurf_t* const surfList, const viewLight_t* const vLight, 
+	int depthFunc, bool performStencilTest, bool useLightDepthBounds )
 {
 	if( surfList == NULL )
 	{
@@ -1067,14 +1091,13 @@ static void RB_RenderInteractions( const drawSurf_t* surfList, const viewLight_t
 	{
 		GL_State( GLS_SRCBLEND_ONE | GLS_DSTBLEND_ONE | GLS_DEPTHMASK | depthFunc | GLS_STENCIL_FUNC_EQUAL | 
 			GLS_STENCIL_MAKE_REF( STENCIL_SHADOW_TEST_VALUE ) | GLS_STENCIL_MAKE_MASK( STENCIL_SHADOW_MASK_VALUE ) );		
-	}
-	else
+	} else
 	{
 		GL_State( GLS_SRCBLEND_ONE | GLS_DSTBLEND_ONE | GLS_DEPTHMASK | depthFunc | GLS_STENCIL_FUNC_ALWAYS );
 	}
 	
 	// some rare lights have multiple animating stages, loop over them outside the surface list
-	const idMaterial* lightShader = vLight->lightShader;
+	const idMaterial* const lightShader = vLight->lightShader;
 	const float* lightRegs = vLight->shaderRegisters;
 	
 	drawInteraction_t inter = {};
@@ -1092,8 +1115,7 @@ static void RB_RenderInteractions( const drawSurf_t* surfList, const viewLight_t
 	idStaticList< const drawSurf_t*, MAX_INTERACTIONS_PER_LIGHT > allSurfaces;
 	idStaticList< const drawSurf_t*, MAX_COMPLEX_INTERACTIONS_PER_LIGHT > complexSurfaces;
 	for( const drawSurf_t* walk = surfList; walk != NULL; walk = walk->nextOnLight )
-	{
-	
+	{	
 		// make sure the triangle culling is done
 		if( walk->shadowVolumeState != SHADOWVOLUME_DONE )
 		{
@@ -1193,14 +1215,14 @@ static void RB_RenderInteractions( const drawSurf_t* surfList, const viewLight_t
 			continue;
 		}
 		
-		const idVec4 lightColor(
+		const idRenderVector lightColor(
 			lightScale * lightRegs[ lightStage->color.registers[0] ],
 			lightScale * lightRegs[ lightStage->color.registers[1] ],
 			lightScale * lightRegs[ lightStage->color.registers[2] ],
 						 lightRegs[ lightStage->color.registers[3] ] );
 		// apply the world-global overbright and the 2x factor for specular
-		const idVec4 diffuseColor = lightColor;
-		const idVec4 specularColor = lightColor * 2.0f;
+		const idRenderVector diffuseColor = lightColor;
+		const idRenderVector specularColor = lightColor * 2.0f;
 		
 		ALIGN16( float lightTextureMatrix[16] );
 		if( lightStage->texture.hasMatrix )
@@ -1317,7 +1339,7 @@ static void RB_RenderInteractions( const drawSurf_t* surfList, const viewLight_t
 				}
 			}
 			
-			const idMaterial* surfaceShader = surf->material;
+			const idMaterial* const surfaceShader = surf->material;
 			const float* surfaceRegs = surf->shaderRegisters;
 			
 			inter.surf = surf;
@@ -1462,7 +1484,7 @@ static void RB_RenderInteractions( const drawSurf_t* surfList, const viewLight_t
 			// for the "hell writing" that can be shined on them.
 			for( int surfaceStageNum = 0; surfaceStageNum < surfaceShader->GetNumStages(); surfaceStageNum++ )
 			{
-				auto surfaceStage = surfaceShader->GetStage( surfaceStageNum );
+				auto const surfaceStage = surfaceShader->GetStage( surfaceStageNum );
 				
 				switch( surfaceStage->lighting )
 				{
@@ -1627,12 +1649,12 @@ static void RB_AmbientPass( const drawSurf_t* const* drawSurfs, int numDrawSurfs
 	GL_Color( colorWhite );
 	
 	const float lightScale = 1.0f; //r_lightScale.GetFloat();
-	const idVec4 lightColor = colorWhite * lightScale;
+	const idRenderVector lightColor = colorWhite * lightScale;
 	// apply the world-global overbright and the 2x factor for specular
-	const idVec4 diffuseColor = lightColor;
-	const idVec4 specularColor = lightColor * 2.0f;
+	const idRenderVector diffuseColor = lightColor;
+	const idRenderVector specularColor = lightColor * 2.0f;
 	
-	idVec4 ambientColor;
+	idRenderVector ambientColor;
 	float ambientBoost = 1.0f;
 	ambientBoost += r_useSSAO.GetBool() ? 0.2f : 0.0f;
 	ambientBoost *= r_useHDR.GetBool() ? 1.1f : 1.0f;
@@ -1646,10 +1668,10 @@ static void RB_AmbientPass( const drawSurf_t* const* drawSurfs, int numDrawSurfs
 	// setup renderparms assuming we will be drawing trivial surfaces first
 	RB_SetupForFastPathInteractions( diffuseColor, specularColor );
 	
-	for( int i = 0; i < numDrawSurfs; i++ )
+	for( int i = 0; i < numDrawSurfs; ++i )
 	{
-		const drawSurf_t* drawSurf = drawSurfs[i];
-		const idMaterial* surfaceMaterial = drawSurf->material;
+		auto const drawSurf = drawSurfs[i];
+		auto const surfaceMaterial = drawSurf->material;
 		
 		// translucent surfaces don't put anything in the depth buffer and don't
 		// test against it, which makes them fail the mirror clip plane operation
@@ -1727,7 +1749,7 @@ static void RB_AmbientPass( const drawSurf_t* const* drawSurfs, int numDrawSurfs
 			SetVertexParms( RENDERPARM_MODELVIEWMATRIX_X, drawSurf->space->modelViewMatrix.Ptr(), 4 );
 			
 			// tranform the view origin into model local space
-			idVec4 localViewOrigin( 1.0f );
+			idRenderVector localViewOrigin( 1.0f );
 			drawSurf->space->modelMatrix.InverseTransformPoint( backEnd.viewDef->GetOrigin(), localViewOrigin.ToVec3() );
 			SetVertexParm( RENDERPARM_LOCALVIEWORIGIN, localViewOrigin.ToFloatPtr() );
 			
@@ -1923,9 +1945,7 @@ static void RB_AmbientPass( const drawSurf_t* const* drawSurfs, int numDrawSurfs
 		RENDERLOG_CLOSE_BLOCK();
 	}
 	
-#ifdef USE_CORE_PROFILE
 	SetFragmentParm( RENDERPARM_ALPHA_TEST, vec4_zero.ToFloatPtr() );
-#endif
 	
 	RENDERLOG_CLOSE_BLOCK();
 	RENDERLOG_CLOSE_MAINBLOCK();
@@ -1954,11 +1974,7 @@ static void RB_AmbientPass( const drawSurf_t* const* drawSurfs, int numDrawSurfs
 	}
 	
 	// unbind texture units
-	for( int i = 0; i < 7; i++ )
-	{
-		GL_SelectTexture( i );
-		globalImages->BindNull();
-	}
+	GL_ResetTexturesState();
 	
 	renderProgManager.Unbind();
 }
@@ -2072,7 +2088,7 @@ static void RB_StencilShadowPass( const drawSurf_t* const drawSurfs, const viewL
 			RB_SetMVP( drawSurf->space->mvp );
 
 			// set the local light position to allow the vertex program to project the shadow volume end cap to infinity
-			ALIGNTYPE16 idVec4 localLight( 0.0f );
+			idRenderVector localLight( 0.0f );
 			drawSurf->space->modelMatrix.InverseTransformPoint( vLight->globalLightOrigin, localLight.ToVec3() );
 			SetVertexParm( RENDERPARM_LOCALLIGHTORIGIN, localLight.ToFloatPtr() );
 			
@@ -2650,7 +2666,7 @@ static void RB_ShadowMapPass( const drawSurf_t * const drawSurfs, const viewLigh
 			
 			// set the local light position to allow the vertex program to project the shadow volume end cap to infinity
 			/*
-			idVec4 localLight( 0.0f );
+			idRenderVector localLight( 0.0f );
 			R_GlobalPointToLocal( drawSurf->space->modelMatrix, vLight->globalLightOrigin, localLight.ToVec3() );
 			SetVertexParm( RENDERPARM_LOCALLIGHTORIGIN, localLight.ToFloatPtr() );
 			*/
@@ -2664,7 +2680,7 @@ static void RB_ShadowMapPass( const drawSurf_t * const drawSurfs, const viewLigh
 		
 		// get the expressions for conditionals / color / texcoords
 		const float* regs = drawSurf->shaderRegisters;
-		idVec4 color( 0, 0, 0, 1 );
+		idRenderVector color( 0, 0, 0, 1 );
 		
 		uint64 surfGLState = 0;
 		
@@ -2718,13 +2734,9 @@ static void RB_ShadowMapPass( const drawSurf_t * const drawSurfs, const viewLigh
 				
 				GL_Color( color );
 				
-			#ifdef USE_CORE_PROFILE
 				GL_State( stageGLState );
-				idVec4 alphaTestValue( regs[ pStage->alphaTestRegister ] );
+				idRenderVector alphaTestValue( regs[ pStage->alphaTestRegister ] );
 				SetFragmentParm( RENDERPARM_ALPHA_TEST, alphaTestValue.ToFloatPtr() );
-			#else
-				GL_State( stageGLState | GLS_ALPHATEST_FUNC_GREATER | GLS_ALPHATEST_MAKE_REF( idMath::Ftob( 255.0f * regs[ pStage->alphaTestRegister ] ) ) );
-			#endif
 				
 				if( drawSurf->jointCache )
 				{
@@ -2790,9 +2802,7 @@ static void RB_ShadowMapPass( const drawSurf_t * const drawSurfs, const viewLigh
 	GL_State( GLS_DEFAULT );
 	GL_Cull( CT_FRONT_SIDED );
 	
-#ifdef USE_CORE_PROFILE
 	SetFragmentParm( RENDERPARM_ALPHA_TEST, vec4_zero.ToFloatPtr() );
-#endif
 }
 
 /*
@@ -2807,7 +2817,7 @@ DRAW INTERACTIONS
 RB_DrawInteractions
 ==================
 */
-static void RB_DrawInteractions( const idRenderView* viewDef )
+static void RB_DrawInteractions( const idRenderView * const viewDef )
 {
 	if( r_skipInteractions.GetBool() )
 	{
@@ -2841,7 +2851,7 @@ static void RB_DrawInteractions( const idRenderView* viewDef )
 			continue;
 		}
 		
-		const idMaterial* lightShader = vLight->lightShader;
+		const idMaterial* const lightShader = vLight->lightShader;
 		RENDERLOG_OPEN_BLOCK( lightShader->GetName() );
 		
 		// set the depth bounds for the whole light
@@ -2867,14 +2877,12 @@ static void RB_DrawInteractions( const idRenderView* viewDef )
 					side = r_shadowMapSingleSide.GetInteger();
 					sideStop = side + 1;
 				}
-				else
-				{
+				else {
 					side = 0;
 					sideStop = 6;
 				}
 			}
-			else
-			{
+			else {
 				side = -1;
 				sideStop = 0;
 			}
@@ -2993,12 +3001,7 @@ static void RB_DrawInteractions( const idRenderView* viewDef )
 	GL_State( GLS_DEFAULT );
 	
 	// unbind texture units
-	for( int i = 0; i < 7; i++ )
-	{
-		GL_SelectTexture( i );
-		globalImages->BindNull();
-	}
-	GL_SelectTexture( 0 );
+	GL_ResetTexturesState();
 	
 	// reset depth bounds
 	if( useLightDepthBounds )
@@ -3405,12 +3408,7 @@ static int RB_DrawShaderPasses( const drawSurf_t* const* const drawSurfs, const 
 	GL_State( GLS_DEFAULT );
 	
 	// unbind texture units
-	for( int i = 0; i < 7; i++ )
-	{
-		GL_SelectTexture( i );
-		globalImages->BindNull();
-	}
-	GL_SelectTexture( 0 );
+	GL_ResetTexturesState();
 	
 	RENDERLOG_CLOSE_BLOCK();
 	return i;
@@ -4657,7 +4655,7 @@ void RB_ShutdownBuffers()
 	backEnd.viewCBuffer.FreeBufferObject();
 }
 
-void RB_UpdatePerViewBuffers( const idRenderView * const view )
+void RB_UpdateBuffers( const idRenderView * const view )
 {
 	void * dest = backEnd.viewCBuffer.MapBuffer( BM_WRITE_NOSYNC );
 
@@ -4698,7 +4696,7 @@ void RB_DrawViewInternal( const idRenderView* viewDef, const int stereoEye )
 	// this used to be in the gui emit code, but now that it can be running
 	// in a separate thread, it must not try to load images, so do it here.
 	//-------------------------------------------------
-	drawSurf_t** drawSurfs = ( drawSurf_t** )&viewDef->drawSurfs[0];
+	const drawSurf_t * const * drawSurfs = ( drawSurf_t** )&viewDef->drawSurfs[0];
 	const int numDrawSurfs = viewDef->numDrawSurfs;
 	
 	for( int i = 0; i < numDrawSurfs; ++i )
@@ -4720,7 +4718,7 @@ void RB_DrawViewInternal( const idRenderView* viewDef, const int stereoEye )
 	//-------------------------------------------------
 	RB_ResetViewportAndScissorToDefaultCamera( viewDef );
 
-	RB_UpdatePerViewBuffers( viewDef );
+	RB_UpdateBuffers( viewDef );
 	
 	backEnd.glState.faceCulling = -1;		// force face culling to set next time
 	
@@ -4730,7 +4728,7 @@ void RB_DrawViewInternal( const idRenderView* viewDef, const int stereoEye )
 	//GL_CheckErrors();
 	
 	// RB begin
-	bool useHDR = r_useHDR.GetBool() && !viewDef->is2Dgui;
+	const bool useHDR = r_useHDR.GetBool() && !viewDef->is2Dgui;
 	
 	// Clear the depth buffer and clear the stencil to 128 for stencil shadows as well as gui masking
 	GL_Clear( false, true, true, STENCIL_SHADOW_TEST_VALUE, 0.0f, 0.0f, 0.0f, 0.0f, useHDR );
@@ -4750,7 +4748,7 @@ void RB_DrawViewInternal( const idRenderView* viewDef, const int stereoEye )
 	// normal face culling
 	GL_Cull( CT_FRONT_SIDED );
 	
-#if defined(USE_CORE_PROFILE) && !defined(USE_GLES2) && !defined(USE_GLES3)
+#if !defined( USE_GLES3 )
 	// bind one global Vertex Array Object (VAO)
 	glBindVertexArray( glConfig.global_vao );
 #endif
@@ -5004,10 +5002,10 @@ void RB_MotionBlur()
 	
 	backEnd.currentSpace = NULL;
 	
-	drawSurf_t** drawSurfs = ( drawSurf_t** )&backEnd.viewDef->drawSurfs[0];
-	for( int surfNum = 0; surfNum < backEnd.viewDef->numDrawSurfs; surfNum++ )
+	const drawSurf_t * const * drawSurfs = ( drawSurf_t** )&backEnd.viewDef->drawSurfs[0];
+	for( int surfNum = 0; surfNum < backEnd.viewDef->numDrawSurfs; ++surfNum )
 	{
-		const drawSurf_t* surf = drawSurfs[ surfNum ];
+		const drawSurf_t * const surf = drawSurfs[ surfNum ];
 		
 		if( !surf->space->weaponDepthHack && !surf->space->skipMotionBlur && !surf->material->HasSubview() )
 		{
@@ -5015,8 +5013,8 @@ void RB_MotionBlur()
 			continue;
 		}
 		
-		const idMaterial* shader = surf->material;
-		if( shader->Coverage() == MC_TRANSLUCENT )
+		auto const material = surf->material;
+		if( material->Coverage() == MC_TRANSLUCENT )
 		{
 			// muzzle flash, etc
 			continue;
@@ -5034,29 +5032,32 @@ void RB_MotionBlur()
 		{
 			renderProgManager.BindShader_TextureVertexColorSkinned();
 		}
-		else
-		{
+		else {
 			renderProgManager.BindShader_TextureVertexColor();
 		}
 		
 		// draw it solid
 		GL_DrawElementsWithCounters( surf );
 	}
+
+	const bool useHDR = r_useHDR.GetBool() && !backEnd.viewDef->is2Dgui;
+
 	GL_State( GLS_DEPTHFUNC_ALWAYS );
-	
-	// copy off the color buffer and the depth buffer for the motion blur prog
-	// we use the viewport dimensions for copying the buffers in case resolution scaling is enabled.
-	const idScreenRect& viewport = backEnd.viewDef->GetViewport();
-	globalImages->currentRenderImage->CopyFramebuffer( viewport.x1, viewport.y1, viewport.GetWidth(), viewport.GetHeight() );
-	
+
+	//if( !useHDR ) {
+		// copy off the color buffer and the depth buffer for the motion blur prog
+		// we use the viewport dimensions for copying the buffers in case resolution scaling is enabled.
+		const idScreenRect& viewport = backEnd.viewDef->GetViewport();
+		globalImages->currentRenderImage->CopyFramebuffer( viewport.x1, viewport.y1, viewport.GetWidth(), viewport.GetHeight() );
+	//}
 	// in stereo rendering, each eye needs to get a separate previous frame mvp
-	int mvpIndex = ( backEnd.viewDef->GetStereoEye() == 1 ) ? 1 : 0;
+	const int mvpIndex = ( backEnd.viewDef->GetStereoEye() == 1 ) ? 1 : 0;
 	
 	// derive the matrix to go from current pixels to previous frame pixels	
 	idRenderMatrix motionMatrix;
-	idRenderMatrix::Multiply( backEnd.prevMVP[mvpIndex], backEnd.viewDef->GetInverseVPMatrix(), motionMatrix );
-	
-	backEnd.prevMVP[mvpIndex] = backEnd.viewDef->GetMVPMatrix();
+	idRenderMatrix::Multiply( backEnd.prevMVP[ mvpIndex ], backEnd.viewDef->GetInverseVPMatrix(), motionMatrix );
+
+	backEnd.prevMVP[ mvpIndex ] = backEnd.viewDef->GetMVPMatrix();
 	
 	RB_SetMVP( motionMatrix );
 	
@@ -5066,12 +5067,17 @@ void RB_MotionBlur()
 	renderProgManager.BindShader_MotionBlur();
 	
 	// let the fragment program know how many samples we are going to use
-	idVec4 samples( ( float )( 1 << r_motionBlur.GetInteger() ) );
-	SetFragmentParm( RENDERPARM_OVERBRIGHT, samples.ToFloatPtr() );
-	
-	GL_BindTexture( 0, globalImages->currentRenderImage );
-	GL_BindTexture( 1, globalImages->currentDepthImage );
-	
+	const idRenderVector samples( ( float )( 1 << r_motionBlur.GetInteger() ) );
+	SetFragmentParm( RENDERPARM_OVERBRIGHT, samples.ToFloatPtr() );	
+	//if( !useHDR ) 
+	//{
+		GL_BindTexture( 0, globalImages->currentRenderImage );
+		GL_BindTexture( 1, globalImages->currentDepthImage );
+	//} 
+	//else {
+	//	GL_BindTexture( 0, globalImages->currentRenderHDRImage );
+	//	GL_BindTexture( 1, globalImages->currentDepthImage );
+	//}
 	GL_DrawElementsWithCounters( &backEnd.unitSquareSurface );
 	GL_CheckErrors();
 }
@@ -5258,6 +5264,7 @@ void RB_PostProcess( const void* data )
 		
 		glClearColor( 0, 0, 0, 0 );
 		glClear( GL_COLOR_BUFFER_BIT );
+		///GL_Clear( true, false, false, 0, 0.0f, 0.0f, 0.0f, 0.0f );
 		
 		GL_BindTexture( 0, globalImages->smaaInputImage );
 		
@@ -5322,8 +5329,7 @@ void RB_PostProcess( const void* data )
 			jitterTexOffset[0] = ( rand() & 255 ) / 255.0;
 			jitterTexOffset[1] = ( rand() & 255 ) / 255.0;
 		}
-		else
-		{
+		else {
 			jitterTexOffset[0] = 0;
 			jitterTexOffset[1] = 0;
 		}

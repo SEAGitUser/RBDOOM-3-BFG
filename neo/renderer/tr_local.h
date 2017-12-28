@@ -61,6 +61,7 @@ static const float CHECK_BOUNDS_EPSILON = 1.0f;
 typedef idHandle<qhandle_t, -1>	idRenderIndex;
 
 typedef ALIGNTYPE16 idVec4 idRenderVector;
+typedef ALIGNTYPE16 idPlane idRenderPlane;
 
 enum demoCommand_t
 {
@@ -798,13 +799,34 @@ struct performanceCounters_t
 };
 
 
-struct tmu_t
+struct tmu_t //SEA: Must stay this way!
 {
-	unsigned int	current2DMap;
-	unsigned int	current2DArray;
-	unsigned int	currentCubeMap;
+	union {
+		struct {
+			uint32	current2D;
+			uint32	current2DMS;
+			uint32	current2DArray;
+			uint32	current2DMSArray;
+			uint32	currentCubeMap;
+			uint32	currentCubeMapArray;
+			uint32	current3D;
+		};
+		uint32	currentTarget[7];
+	};
 };
+//SEA: will also be useful for idDeclRenderProg and idDeclRenderParm
+enum tmuTarget_t
+{
+	target_2D = 0,
+	target_2DMS,
+	target_2DArray,
+	target_2DMSArray,
+	target_CubeMap,
+	target_CubeMapArray,
+	target_3D,
 
+	target_Max
+};
 
 const int MAX_MULTITEXTURE_UNITS =	8;
 
@@ -1227,33 +1249,6 @@ extern idCVar r_shadowMapPolygonOffset;
 extern idCVar r_shadowMapOccluderFacing;
 extern idCVar r_shadowMapRegularDepthBiasScale;
 extern idCVar r_shadowMapSunDepthBiasScale;
-
-extern idCVar r_hdrAutoExposure;
-extern idCVar r_hdrMinLuminance;
-extern idCVar r_hdrMaxLuminance;
-extern idCVar r_hdrKey;
-extern idCVar r_hdrContrastDynamicThreshold;
-extern idCVar r_hdrContrastStaticThreshold;
-extern idCVar r_hdrContrastOffset;
-extern idCVar r_hdrGlarePasses;
-extern idCVar r_hdrDebug;
-
-extern idCVar r_ldrContrastThreshold;
-extern idCVar r_ldrContrastOffset;
-
-extern idCVar r_useFilmicPostProcessEffects;
-extern idCVar r_forceAmbient;
-
-extern idCVar r_useSSGI;
-extern idCVar r_ssgiDebug;
-extern idCVar r_ssgiFiltering;
-
-extern idCVar r_useSSAO;
-extern idCVar r_ssaoDebug;
-extern idCVar r_ssaoFiltering;
-extern idCVar r_useHierarchicalDepthBuffer;
-
-extern idCVar r_exposure;
 // RB end
 
 /*
@@ -1585,16 +1580,16 @@ void RB_AddDebugLine( const idVec4& color, const idVec3& start, const idVec3& en
 void RB_ClearDebugLines( int time );
 void RB_AddDebugPolygon( const idVec4& color, const idWinding& winding, const int lifeTime, const bool depthTest );
 void RB_ClearDebugPolygons( int time );
-void RB_DrawBounds( const idBounds& bounds );
-void RB_ShowLights( drawSurf_t** drawSurfs, int numDrawSurfs );
-void RB_ShowLightCount( drawSurf_t** drawSurfs, int numDrawSurfs );
+void RB_DrawBounds( const idBounds& );
+void RB_ShowLights( const drawSurf_t * const * drawSurfs, int numDrawSurfs );
+void RB_ShowLightCount( const drawSurf_t * const * drawSurfs, int numDrawSurfs );
 void RB_PolygonClear();
 void RB_ScanStencilBuffer();
 void RB_ShowDestinationAlpha();
 void RB_ShowOverdraw();
-void RB_RenderDebugTools( drawSurf_t** drawSurfs, int numDrawSurfs );
+void RB_RenderDebugTools( const drawSurf_t * const * drawSurfs, int numDrawSurfs );
 void RB_ShutdownDebugTools();
-void RB_SetVertexColorParms( stageVertexColor_t svc );
+void RB_SetVertexColorParms( stageVertexColor_t );
 
 //=============================================
 

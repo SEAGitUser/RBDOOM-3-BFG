@@ -687,13 +687,13 @@ RB_RenderDrawSurfListWithFunction
 	be updated after the triangle function completes.
 ====================
 */
-static void RB_RenderDrawSurfListWithFunction( drawSurf_t** drawSurfs, int numDrawSurfs, void ( *triFunc_ )( const drawSurf_t*, int ) )
+static void RB_RenderDrawSurfListWithFunction( const drawSurf_t * const * drawSurfs, int numDrawSurfs, void ( *triFunc_ )( const drawSurf_t*, int ) )
 {
 	backEnd.currentSpace = NULL;
 	
-	for( int i = 0 ; i < numDrawSurfs ; ++i )
+	for( int i = 0; i < numDrawSurfs; ++i )
 	{
-		const drawSurf_t* drawSurf = drawSurfs[i];
+		auto const drawSurf = drawSurfs[ i ];
 		if( drawSurf == NULL )
 		{
 			continue;
@@ -756,10 +756,10 @@ static void RB_RenderDrawSurfListWithFunction( drawSurf_t** drawSurfs, int numDr
 		if( r_useScissor.GetBool() && !backEnd.currentScissor.Equals( drawSurf->scissorRect ) )
 		{
 			backEnd.currentScissor = drawSurf->scissorRect;
-			GL_Scissor( backEnd.viewDef->viewport.x1 + backEnd.currentScissor.x1,
-						backEnd.viewDef->viewport.y1 + backEnd.currentScissor.y1,
-						backEnd.currentScissor.x2 + 1 - backEnd.currentScissor.x1,
-						backEnd.currentScissor.y2 + 1 - backEnd.currentScissor.y1 );
+			GL_Scissor( backEnd.viewDef->GetViewport().x1 + backEnd.currentScissor.x1,
+						backEnd.viewDef->GetViewport().y1 + backEnd.currentScissor.y1,
+						backEnd.currentScissor.GetWidth(),
+						backEnd.currentScissor.GetHeight() );
 		}
 		
 		// render it
@@ -810,10 +810,8 @@ static void RB_ShowSilhouette()
 	
 	GL_Cull( CT_TWO_SIDED );
 	
-	RB_RenderDrawSurfListWithFunction( backEnd.viewDef->drawSurfs, backEnd.viewDef->numDrawSurfs,
-									   GL_DrawElementsWithCounters );
-									   
-									   
+	RB_RenderDrawSurfListWithFunction( backEnd.viewDef->drawSurfs, backEnd.viewDef->numDrawSurfs, GL_DrawElementsWithCounters );
+									   									   
 	// now blend in edges that cast silhouettes
 	RB_SimpleWorldSetup();
 	GL_Color( 0.5, 0, 0 );
@@ -823,13 +821,12 @@ static void RB_ShowSilhouette()
 	{
 		for( i = 0; i < 2; i++ )
 		{
-			for( surf = i ? vLight->localShadows : vLight->globalShadows
-						; surf; surf = ( drawSurf_t* )surf->nextOnLight )
+			for( surf = i ? vLight->localShadows : vLight->globalShadows; surf; surf = ( drawSurf_t* )surf->nextOnLight )
 			{
 				RB_SimpleSurfaceSetup( surf );
-				
-				const idTriangles* tri = surf->frontEndGeo;
-				
+
+				auto const tri = surf->frontEndGeo;
+
 				idVertexBuffer vertexBuffer;
 				if( !vertexCache.GetVertexBuffer( tri->shadowCache, &vertexBuffer ) )
 				{
@@ -882,7 +879,7 @@ RB_ShowTris
 Debugging tool
 =====================
 */
-static void RB_ShowTris( drawSurf_t** drawSurfs, int numDrawSurfs )
+static void RB_ShowTris( const drawSurf_t * const * drawSurfs, int numDrawSurfs )
 {
 
 	modelTrace_t mt;
@@ -974,7 +971,7 @@ void idRenderSystemLocal::OnFrame()
 }
 
 
-static void RB_ShowSurfaceInfo( drawSurf_t** drawSurfs, int numDrawSurfs )
+static void RB_ShowSurfaceInfo( const drawSurf_t * const * drawSurfs, int numDrawSurfs )
 {
 	if( !r_showSurfaceInfo.GetBool() || !surfTraced )
 	{
@@ -1115,12 +1112,9 @@ Shade triangle red if they have a positive texture area
 green if they have a negative texture area, or blue if degenerate area
 =====================
 */
-static void RB_ShowTexturePolarity( drawSurf_t** drawSurfs, int numDrawSurfs )
+static void RB_ShowTexturePolarity( const drawSurf_t * const * drawSurfs, int numDrawSurfs )
 {
-	int		i, j;
-	drawSurf_t*	drawSurf;
-	const idTriangles*	tri;
-	
+	int	i, j;	
 	if( !r_showTexturePolarity.GetBool() )
 	{
 		return;
@@ -1131,10 +1125,10 @@ static void RB_ShowTexturePolarity( drawSurf_t** drawSurfs, int numDrawSurfs )
 	
 	GL_Color( 1, 1, 1 );
 	
-	for( i = 0; i < numDrawSurfs; i++ )
+	for( i = 0; i < numDrawSurfs; ++i )
 	{
-		drawSurf = drawSurfs[i];
-		tri = drawSurf->frontEndGeo;
+		auto const drawSurf = drawSurfs[i];
+		auto const tri = drawSurf->frontEndGeo;
 		if( tri == NULL || tri->verts == NULL )
 		{
 			continue;
@@ -1194,12 +1188,10 @@ RB_ShowUnsmoothedTangents
 Shade materials that are using unsmoothed tangents
 =====================
 */
-static void RB_ShowUnsmoothedTangents( drawSurf_t** drawSurfs, int numDrawSurfs )
+static void RB_ShowUnsmoothedTangents( const drawSurf_t * const * drawSurfs, int numDrawSurfs )
 {
 	int		i, j;
-	drawSurf_t*	drawSurf;
-	const idTriangles*	tri;
-	
+
 	if( !r_showUnsmoothedTangents.GetBool() )
 	{
 		return;
@@ -1212,7 +1204,7 @@ static void RB_ShowUnsmoothedTangents( drawSurf_t** drawSurfs, int numDrawSurfs 
 	
 	for( i = 0; i < numDrawSurfs; i++ )
 	{
-		drawSurf = drawSurfs[i];
+		auto const drawSurf = drawSurfs[i];
 		
 		if( !drawSurf->material->UseUnsmoothedTangents() )
 		{
@@ -1221,7 +1213,7 @@ static void RB_ShowUnsmoothedTangents( drawSurf_t** drawSurfs, int numDrawSurfs 
 		
 		RB_SimpleSurfaceSetup( drawSurf );
 		
-		tri = drawSurf->frontEndGeo;
+		auto const tri = drawSurf->frontEndGeo;
 		if( tri == NULL || tri->verts == NULL )
 		{
 			continue;
@@ -1256,12 +1248,9 @@ Shade a triangle by the RGB colors of its tangent space
 3 = normal
 =====================
 */
-static void RB_ShowTangentSpace( drawSurf_t** drawSurfs, int numDrawSurfs )
+static void RB_ShowTangentSpace( const drawSurf_t * const * drawSurfs, int numDrawSurfs )
 {
-	int		i, j;
-	drawSurf_t*	drawSurf;
-	const idTriangles*	tri;
-	
+	int	i, j;
 	if( !r_showTangentSpace.GetInteger() )
 	{
 		return;
@@ -1272,11 +1261,11 @@ static void RB_ShowTangentSpace( drawSurf_t** drawSurfs, int numDrawSurfs )
 	
 	for( i = 0; i < numDrawSurfs; i++ )
 	{
-		drawSurf = drawSurfs[i];
+		auto const drawSurf = drawSurfs[i];
 		
 		RB_SimpleSurfaceSetup( drawSurf );
 		
-		tri = drawSurf->frontEndGeo;
+		auto const tri = drawSurf->frontEndGeo;
 		if( tri == NULL || tri->verts == NULL )
 		{
 			continue;
@@ -1322,12 +1311,10 @@ RB_ShowVertexColor
 Draw each triangle with the solid vertex colors
 =====================
 */
-static void RB_ShowVertexColor( drawSurf_t** drawSurfs, int numDrawSurfs )
+static void RB_ShowVertexColor( const drawSurf_t * const * drawSurfs, int numDrawSurfs )
 {
 	int		i, j;
-	drawSurf_t*	drawSurf;
-	const idTriangles*	tri;
-	
+
 	if( !r_showVertexColor.GetBool() )
 	{
 		return;
@@ -1341,11 +1328,11 @@ static void RB_ShowVertexColor( drawSurf_t** drawSurfs, int numDrawSurfs )
 	
 	for( i = 0; i < numDrawSurfs; i++ )
 	{
-		drawSurf = drawSurfs[i];
+		auto const drawSurf = drawSurfs[i];
 		
 		RB_SimpleSurfaceSetup( drawSurf );
 		
-		tri = drawSurf->frontEndGeo;
+		auto const tri = drawSurf->frontEndGeo;
 		if( tri == NULL || tri->verts == NULL )
 		{
 			continue;
@@ -1377,12 +1364,10 @@ RB_ShowNormals
 Debugging tool
 =====================
 */
-static void RB_ShowNormals( drawSurf_t** drawSurfs, int numDrawSurfs )
+static void RB_ShowNormals( const drawSurf_t * const * drawSurfs, int numDrawSurfs )
 {
 	int			i, j;
-	drawSurf_t*	drawSurf;
 	idVec3		end;
-	const idTriangles*	tri;
 	float		size;
 	bool		showNumbers;
 	idVec3		pos;
@@ -1416,11 +1401,11 @@ static void RB_ShowNormals( drawSurf_t** drawSurfs, int numDrawSurfs )
 	
 	for( i = 0; i < numDrawSurfs; i++ )
 	{
-		drawSurf = drawSurfs[i];
+		auto const drawSurf = drawSurfs[i];
 		
 		RB_SimpleSurfaceSetup( drawSurf );
 		
-		tri = drawSurf->frontEndGeo;
+		auto const tri = drawSurf->frontEndGeo;
 		if( tri == NULL || tri->verts == NULL )
 		{
 			continue;
@@ -1430,7 +1415,7 @@ static void RB_ShowNormals( drawSurf_t** drawSurfs, int numDrawSurfs )
 		renderProgManager.BindShader_VertexColor();
 		
 		glBegin( GL_LINES );
-		for( j = 0; j < tri->numVerts; j++ )
+		for( j = 0; j < tri->numVerts; ++j )
 		{
 			const idVec3 position = tri->verts[ j ].GetPosition();
 			const idVec3 normal = tri->verts[ j ].GetNormal();
@@ -1460,16 +1445,16 @@ static void RB_ShowNormals( drawSurf_t** drawSurfs, int numDrawSurfs )
 	if( showNumbers )
 	{
 		RB_SimpleWorldSetup();
-		for( i = 0; i < numDrawSurfs; i++ )
+		for( i = 0; i < numDrawSurfs; ++i )
 		{
-			drawSurf = drawSurfs[i];
-			tri = drawSurf->frontEndGeo;
+			auto const drawSurf = drawSurfs[i];
+			auto const tri = drawSurf->frontEndGeo;
 			if( tri == NULL || tri->verts == NULL )
 			{
 				continue;
 			}
 
-			for( j = 0; j < tri->numVerts; j++ )
+			for( j = 0; j < tri->numVerts; ++j )
 			{
 				const idVec3 normal = tri->verts[j].GetNormal();
 				const idVec3 tangent = tri->verts[j].GetTangent();
@@ -1481,9 +1466,9 @@ static void RB_ShowNormals( drawSurf_t** drawSurfs, int numDrawSurfs )
 			{
 				const idVec3 normal = tri->verts[ tri->indexes[ j + 0 ] ].GetNormal();
 				drawSurf->space->modelMatrix.TransformPoint( 
-					( tri->verts[ tri->indexes[ j + 0 ] ].GetPosition() + 
-					  tri->verts[ tri->indexes[ j + 1 ] ].GetPosition() + 
-					  tri->verts[ tri->indexes[ j + 2 ] ].GetPosition() ) 
+					( tri->GetIVertex( j + 0 ).GetPosition() + 
+					  tri->GetIVertex( j + 1 ).GetPosition() + 
+					  tri->GetIVertex( j + 2 ).GetPosition() ) 
 					* ( 1.0f / 3.0f ) + normal * 0.2f, pos 
 				);
 				RB_DrawText( va( "%d", j / 3 ), pos, 0.01f, colorCyan, backEnd.viewDef->GetAxis(), 1 );
@@ -1573,7 +1558,7 @@ RB_ShowTextureVectors
 Draw texture vectors in the center of each triangle
 =====================
 */
-static void RB_ShowTextureVectors( drawSurf_t** drawSurfs, int numDrawSurfs )
+static void RB_ShowTextureVectors( const drawSurf_t * const * drawSurfs, int numDrawSurfs )
 {
 	if( r_showTextureVectors.GetFloat() == 0.0f )
 	{
@@ -1584,11 +1569,10 @@ static void RB_ShowTextureVectors( drawSurf_t** drawSurfs, int numDrawSurfs )
 	
 	globalImages->BindNull();
 	
-	for( int i = 0; i < numDrawSurfs; i++ )
+	for( int i = 0; i < numDrawSurfs; ++i )
 	{
-		drawSurf_t* drawSurf = drawSurfs[i];
-		
-		const idTriangles* tri = drawSurf->frontEndGeo;
+		auto const drawSurf = drawSurfs[i];		
+		auto const tri = drawSurf->frontEndGeo;
 		
 		if( tri == NULL || tri->verts == NULL )
 		{
@@ -1679,12 +1663,10 @@ RB_ShowDominantTris
 Draw lines from each vertex to the dominant triangle center
 =====================
 */
-static void RB_ShowDominantTris( drawSurf_t** drawSurfs, int numDrawSurfs )
+static void RB_ShowDominantTris( const drawSurf_t * const * drawSurfs, int numDrawSurfs )
 {
 	int			i, j;
-	drawSurf_t*	drawSurf;
-	const idTriangles*	tri;
-	
+
 	if( !r_showDominantTri.GetBool() )
 	{
 		return;
@@ -1697,11 +1679,10 @@ static void RB_ShowDominantTris( drawSurf_t** drawSurfs, int numDrawSurfs )
 	
 	globalImages->BindNull();
 	
-	for( i = 0; i < numDrawSurfs; i++ )
+	for( i = 0; i < numDrawSurfs; ++i )
 	{
-		drawSurf = drawSurfs[i];
-		
-		tri = drawSurf->frontEndGeo;
+		auto const drawSurf = drawSurfs[i];		
+		auto const tri = drawSurf->frontEndGeo;
 		
 		if( tri == NULL || tri->verts == NULL )
 		{
@@ -1745,13 +1726,12 @@ RB_ShowEdges
 Debugging tool
 =====================
 */
-static void RB_ShowEdges( drawSurf_t** drawSurfs, int numDrawSurfs )
+static void RB_ShowEdges( const drawSurf_t * const * drawSurfs, int numDrawSurfs )
 {
-	int			i, j, k, m, n, o;
-	drawSurf_t*	drawSurf;
-	const idTriangles*	tri;
-	const silEdge_t*			edge;
-	int			danglePlane;
+	int	i, j, k, m, n, o;
+
+	const silEdge_t* edge;
+	int	danglePlane;
 	
 	if( !r_showEdges.GetBool() )
 	{
@@ -1762,11 +1742,10 @@ static void RB_ShowEdges( drawSurf_t** drawSurfs, int numDrawSurfs )
 	
 	GL_State( GLS_DEPTHFUNC_ALWAYS );
 	
-	for( i = 0; i < numDrawSurfs; i++ )
+	for( i = 0; i < numDrawSurfs; ++i )
 	{
-		drawSurf = drawSurfs[i];
-		
-		tri = drawSurf->frontEndGeo;
+		auto const drawSurf = drawSurfs[i];		
+		auto const tri = drawSurf->frontEndGeo;
 		
 		idDrawVert* ac = ( idDrawVert* )tri->verts;
 		if( !ac )
@@ -3198,7 +3177,7 @@ static void RB_ShowTrace( const drawSurf_t* const* drawSurfs, int numDrawSurfs )
 RB_RenderDebugTools
 =================
 */
-void RB_RenderDebugTools( drawSurf_t** drawSurfs, int numDrawSurfs )
+void RB_RenderDebugTools( const drawSurf_t * const * drawSurfs, int numDrawSurfs )
 {
 	RENDERLOG_OPEN_MAINBLOCK( MRB_DRAW_DEBUG_TOOLS );
 	RENDERLOG_PRINTF( "---------- RB_RenderDebugTools ----------\n" );

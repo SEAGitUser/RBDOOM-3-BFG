@@ -39,7 +39,7 @@ If you have questions concerning this license or the applicable additional terms
 BitsForFormat
 ================
 */
-int BitsForFormat( textureFormat_t format )
+int idImage::BitsForFormat( textureFormat_t format )
 {
 	switch( format )
 	{
@@ -66,8 +66,10 @@ int BitsForFormat( textureFormat_t format )
 		// RB: added ETC compression
 		case FMT_ETC1_RGB8_OES:
 			return 4;
-		case FMT_SHADOW_ARRAY:
-			return ( 32 * 6 );
+		case FMT_RG11F_B10F://SEA
+			return 32;
+		case FMT_RG16F://SEA
+			return 32;
 		case FMT_RGBA16F:
 			return 64;
 		case FMT_RGBA32F:
@@ -76,6 +78,8 @@ int BitsForFormat( textureFormat_t format )
 			return 32;
 		// RB end
 		case FMT_DEPTH:
+			return 24;
+		case FMT_DEPTH_STENCIL://SEA
 			return 32;
 		case FMT_X16:
 			return 16;
@@ -94,7 +98,6 @@ idImage::DeriveOpts
 */
 ID_INLINE void idImage::DeriveOpts()
 {
-
 	if( opts.format == FMT_NONE )
 	{
 		opts.colorFormat = CFM_DEFAULT;
@@ -106,11 +109,11 @@ ID_INLINE void idImage::DeriveOpts()
 				opts.colorFormat = CFM_GREEN_ALPHA;
 				break;
 			case TD_DEPTH:
-				opts.format = FMT_DEPTH;
+				opts.format = FMT_DEPTH_STENCIL;
 				break;
 				
-			case TD_SHADOW_ARRAY:
-				opts.format = FMT_SHADOW_ARRAY;
+			case TD_SHADOWMAP:
+				opts.format = FMT_DEPTH;
 				break;
 				
 			case TD_RGBA16F:
@@ -189,8 +192,8 @@ ID_INLINE void idImage::DeriveOpts()
 				temp_width >>= 1;
 				temp_height >>= 1;
 				if( ( opts.format == FMT_DXT1 || opts.format == FMT_DXT5 || opts.format == FMT_ETC1_RGB8_OES ) &&
-						( ( temp_width & 0x3 ) != 0 || ( temp_height & 0x3 ) != 0 ) )
-				{
+					( ( temp_width & 0x3 ) != 0 || ( temp_height & 0x3 ) != 0 ) 
+				) {
 					break;
 				}
 				opts.numLevels++;
@@ -227,11 +230,12 @@ void idImage::GenerateImage( const byte* pic, int width, int height, textureFilt
 	usage = usageParm;
 	cubeFiles = CF_2D;
 	
-	opts.textureType = ( msaaSamples > 0 ) ? TT_2D_MULTISAMPLE : TT_2D;
-	opts.width = width;
-	opts.height = height;
+	opts.textureType = TT_2D;
+	opts.width = Max( width, 1 );
+	opts.height = Max( height, 1 );
+	opts.depth = 1;
 	opts.numLevels = 0;
-	opts.msaaSamples = msaaSamples;
+	opts.numSamples = msaaSamples;
 	DeriveOpts();
 	
 	// if we don't have a rendering context, just return after we
@@ -244,33 +248,32 @@ void idImage::GenerateImage( const byte* pic, int width, int height, textureFilt
 	}
 	
 	// RB: allow pic == NULL for internal framebuffer images
-	if( pic == NULL || opts.textureType == TT_2D_MULTISAMPLE )
+	if( pic == NULL || GetOpts().IsMultisampled() )
 	{
 		AllocImage();
 	}
 	else
 	{
 		idBinaryImage im( GetName() );
-		
-		
+				
 		// foresthale 2014-05-30: give a nice progress display when binarizing
 		commonLocal.LoadPacifierBinarizeFilename( GetName() , "generated image" );
-		if( opts.numLevels > 1 )
+
+		if( GetOpts().numLevels > 1 )
 		{
-			commonLocal.LoadPacifierBinarizeProgressTotal( opts.width * opts.height * 4 / 3 );
+			commonLocal.LoadPacifierBinarizeProgressTotal( GetOpts().width * GetOpts().height * 4 / 3 );
 		}
-		else
-		{
-			commonLocal.LoadPacifierBinarizeProgressTotal( opts.width * opts.height );
+		else {
+			commonLocal.LoadPacifierBinarizeProgressTotal( GetOpts().width * GetOpts().height );
 		}
 		
-		im.Load2DFromMemory( width, height, pic, opts.numLevels, opts.format, opts.colorFormat, opts.gammaMips );
+		im.Load2DFromMemory( width, height, pic, GetOpts().numLevels, opts.format, opts.colorFormat, GetOpts().gammaMips );
 		
 		commonLocal.LoadPacifierBinarizeEnd();
 		
 		AllocImage();
 		
-		for( int i = 0; i < im.NumImages(); i++ )
+		for( int i = 0; i < im.NumImages(); ++i )
 		{
 			const bimageImage_t& img = im.GetImageHeader( i );
 			const byte* data = im.GetImageData( i );
@@ -297,8 +300,9 @@ void idImage::GenerateCubeImage( const byte* pic[6], int size, textureFilter_t f
 	cubeFiles = CF_NATIVE;
 	
 	opts.textureType = TT_CUBIC;
-	opts.width = size;
-	opts.height = size;
+	opts.width = Max( size, 1 );
+	opts.height = opts.width;
+	opts.depth = 1;
 	opts.numLevels = 0;
 	DeriveOpts();
 	
@@ -330,7 +334,7 @@ void idImage::GenerateCubeImage( const byte* pic[6], int size, textureFilter_t f
 	
 	AllocImage();
 	
-	for( int i = 0; i < im.NumImages(); i++ )
+	for( int i = 0; i < im.NumImages(); ++i )
 	{
 		const bimageImage_t& img = im.GetImageHeader( i );
 		const byte* data = im.GetImageData( i );
@@ -346,11 +350,12 @@ void idImage::GenerateShadowArray( int width, int height, textureFilter_t filter
 	filter = filterParm;
 	repeat = repeatParm;
 	usage = usageParm;
-	cubeFiles = CF_2D_ARRAY;
+	cubeFiles = CF_2D;
 	
-	opts.textureType = TT_2D_ARRAY;
-	opts.width = width;
-	opts.height = height;
+	opts.textureType = TT_2D;
+	opts.width = Max( width, 1 );
+	opts.height = Max( height, 1 );
+	opts.depth = 6;
 	opts.numLevels = 0;
 	DeriveOpts();
 	
@@ -411,7 +416,6 @@ On exit, the idImage will have a valid OpenGL texture number that can be bound
 */
 void idImage::ActuallyLoadImage( bool fromBackEnd )
 {
-
 	// if we don't have a rendering context yet, just return
 	if( !R_IsInitialized() )
 	{
@@ -436,13 +440,7 @@ void idImage::ActuallyLoadImage( bool fromBackEnd )
 	}
 	else
 	{
-		// RB begin
-		if( cubeFiles == CF_2D_ARRAY )
-		{
-			opts.textureType = TT_2D_ARRAY;
-		}
-		// RB end
-		else if( cubeFiles != CF_2D )
+		if( cubeFiles != CF_2D )
 		{
 			opts.textureType = TT_CUBIC;
 			repeat = TR_CLAMP;
@@ -509,14 +507,15 @@ void idImage::ActuallyLoadImage( bool fromBackEnd )
 	}
 	const bimageFile_t& header = im.GetFileHeader();
 	
-	if( ( fileSystem->InProductionMode() && binaryFileTime != FILE_NOT_FOUND_TIMESTAMP ) || ( ( binaryFileTime != FILE_NOT_FOUND_TIMESTAMP )
+	if( ( fileSystem->InProductionMode() && binaryFileTime != FILE_NOT_FOUND_TIMESTAMP ) || 
+		( ( binaryFileTime != FILE_NOT_FOUND_TIMESTAMP )
 			&& ( header.colorFormat == opts.colorFormat )
 			&& ( header.format == opts.format )
-			&& ( header.textureType == opts.textureType )
-																							) )
-	{
+			&& ( header.textureType == opts.textureType ) ) 
+	) {
 		opts.width = header.width;
 		opts.height = header.height;
+		opts.depth = 1 ; //header.depth; //SEA tofix!
 		opts.numLevels = header.numLevels;
 		opts.colorFormat = ( textureColor_t )header.colorFormat;
 		opts.format = ( textureFormat_t )header.format;
@@ -565,6 +564,7 @@ void idImage::ActuallyLoadImage( bool fromBackEnd )
 			opts.textureType = TT_CUBIC;
 			opts.width = size;
 			opts.height = size;
+			opts.depth = 1; //SEA tofix!
 			opts.numLevels = 0;
 			
 			DeriveOpts();
@@ -608,6 +608,7 @@ void idImage::ActuallyLoadImage( bool fromBackEnd )
 				// create a default so it doesn't get continuously reloaded
 				opts.width = 8;
 				opts.height = 8;
+				opts.depth = 1;
 				opts.numLevels = 1;
 				DeriveOpts();
 				AllocImage();
@@ -625,6 +626,7 @@ void idImage::ActuallyLoadImage( bool fromBackEnd )
 			
 			opts.width = width;
 			opts.height = height;
+			opts.depth = 1; //SEA tofix!
 			opts.numLevels = 0;
 			DeriveOpts();
 			
@@ -659,108 +661,6 @@ void idImage::ActuallyLoadImage( bool fromBackEnd )
 }
 
 /*
-==============
-Bind
-
-Automatically enables 2D mapping or cube mapping if needed
-==============
-*/
-void idImage::Bind()
-{
-	RENDERLOG_PRINTF( "idImage::Bind( %s )\n", GetName() );
-	
-	// load the image if necessary (FIXME: not SMP safe!)
-	if( !IsLoaded() )
-	{
-		// load the image on demand here, which isn't our normal game operating mode
-		ActuallyLoadImage( true );
-	}
-	
-	const int texUnit = backEnd.glState.currenttmu;
-	
-	// RB: added support for more types
-	tmu_t* tmu = &backEnd.glState.tmu[texUnit];
-	// bind the texture
-	if( opts.textureType == TT_2D )
-	{
-		if( tmu->current2DMap != texnum )
-		{
-			tmu->current2DMap = texnum;
-			
-		#if !defined(USE_GLES2) && !defined(USE_GLES3)
-			if( glConfig.directStateAccess )
-			{
-				glBindMultiTextureEXT( GL_TEXTURE0 + texUnit, GL_TEXTURE_2D, texnum );
-			}
-			else
-		#endif
-			{
-				glActiveTexture( GL_TEXTURE0 + texUnit );
-				glBindTexture( GL_TEXTURE_2D, texnum );
-			}
-		}
-	}
-	else if( opts.textureType == TT_CUBIC )
-	{
-		if( tmu->currentCubeMap != texnum )
-		{
-			tmu->currentCubeMap = texnum;
-			
-		#if !defined(USE_GLES2) && !defined(USE_GLES3)
-			if( glConfig.directStateAccess )
-			{
-				glBindMultiTextureEXT( GL_TEXTURE0 + texUnit, GL_TEXTURE_CUBE_MAP, texnum );
-			}
-			else
-		#endif
-			{
-				glActiveTexture( GL_TEXTURE0 + texUnit );
-				glBindTexture( GL_TEXTURE_CUBE_MAP, texnum );
-			}
-		}
-	}
-	else if( opts.textureType == TT_2D_ARRAY )
-	{
-		if( tmu->current2DArray != texnum )
-		{
-			tmu->current2DArray = texnum;
-			
-		#if !defined(USE_GLES2) && !defined(USE_GLES3)
-			if( glConfig.directStateAccess )
-			{
-				glBindMultiTextureEXT( GL_TEXTURE0 + texUnit, GL_TEXTURE_2D_ARRAY, texnum );
-			}
-			else
-		#endif
-			{
-				glActiveTexture( GL_TEXTURE0 + texUnit );
-				glBindTexture( GL_TEXTURE_2D_ARRAY, texnum );
-			}
-		}
-	}
-	else if( opts.textureType == TT_2D_MULTISAMPLE )
-	{
-		if( tmu->current2DMap != texnum )
-		{
-			tmu->current2DMap = texnum;
-			
-		#if !defined(USE_GLES2) && !defined(USE_GLES3)
-			if( glConfig.directStateAccess )
-			{
-				glBindMultiTextureEXT( GL_TEXTURE0 + texUnit, GL_TEXTURE_2D_MULTISAMPLE, texnum );
-			}
-			else
-		#endif
-			{
-				glActiveTexture( GL_TEXTURE0 + texUnit );
-				glBindTexture( GL_TEXTURE_2D_MULTISAMPLE, texnum );
-			}
-		}
-	}
-	// RB end
-}
-
-/*
 ================
 MakePowerOfTwo
 ================
@@ -775,104 +675,21 @@ int MakePowerOfTwo( int num )
 }
 
 /*
-====================
-CopyFramebuffer
-====================
+========================
+idImage::Resize
+========================
 */
-void idImage::CopyFramebuffer( int x, int y, int imageWidth, int imageHeight )
+void idImage::Resize( int width, int height, int depth )
 {
-	int target = GL_TEXTURE_2D;
-	switch( opts.textureType )
+	if( opts.width == width && opts.height == height && opts.depth == depth )
 	{
-		case TT_2D:
-			target = GL_TEXTURE_2D;
-			break;
-		case TT_CUBIC:
-			target = GL_TEXTURE_CUBE_MAP;
-			break;
-		case TT_2D_ARRAY:
-			target = GL_TEXTURE_2D_ARRAY;
-			break;
-		case TT_2D_MULTISAMPLE:
-			target = GL_TEXTURE_2D_MULTISAMPLE;
-			break;
-		default:
-			//idLib::FatalError( "%s: bad texture type %d", GetName(), opts.textureType );
-			return;
+		return;
 	}
-	
-	glBindTexture( target, texnum );
-	
-#if !defined(USE_GLES2)
-	if( Framebuffer::IsDefaultFramebufferActive() )
-	{
-		glReadBuffer( GL_BACK );
-	}
-#endif
-	
-	opts.width = imageWidth;
-	opts.height = imageHeight;
-	
-#if defined(USE_GLES2)
-	glCopyTexImage2D( GL_TEXTURE_2D, 0, GL_RGBA, x, y, imageWidth, imageHeight, 0 );
-#else
-	if( r_useHDR.GetBool() && globalFramebuffers.hdrFBO->IsBound() )
-	{
-	
-		//if( backEnd.glState.currentFramebuffer != NULL && backEnd.glState.currentFramebuffer->IsMultiSampled() )
-	
-#if defined(USE_HDR_MSAA)
-		if( globalFramebuffers.hdrFBO->IsMultiSampled() )
-		{
-			glBindFramebuffer( GL_READ_FRAMEBUFFER, globalFramebuffers.hdrFBO->GetFramebuffer() );
-			glBindFramebuffer( GL_DRAW_FRAMEBUFFER, globalFramebuffers.hdrNonMSAAFBO->GetFramebuffer() );
-			glBlitFramebuffer( 0, 0, glConfig.nativeScreenWidth, glConfig.nativeScreenHeight,
-							   0, 0, glConfig.nativeScreenWidth, glConfig.nativeScreenHeight,
-							   GL_COLOR_BUFFER_BIT,
-							   GL_LINEAR );
-	
-			globalFramebuffers.hdrNonMSAAFBO->Bind();
-	
-			glCopyTexImage2D( target, 0, GL_RGBA16F, x, y, imageWidth, imageHeight, 0 );
-	
-			globalFramebuffers.hdrFBO->Bind();
-		}
-		else
-#endif
-		{
-			glCopyTexImage2D( target, 0, GL_RGBA16F, x, y, imageWidth, imageHeight, 0 );
-		}
-	}
-	else
-	{
-		glCopyTexImage2D( target, 0, GL_RGBA8, x, y, imageWidth, imageHeight, 0 );
-	}
-#endif
-	
-	// these shouldn't be necessary if the image was initialized properly
-	glTexParameterf( target, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
-	glTexParameterf( target, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
-	
-	glTexParameterf( target, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE );
-	glTexParameterf( target, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE );
-	
-	backEnd.pc.c_copyFrameBuffer++;
-}
+	opts.width = width;
+	opts.height = height;
+	opts.depth = depth;
 
-/*
-====================
-CopyDepthbuffer
-====================
-*/
-void idImage::CopyDepthbuffer( int x, int y, int imageWidth, int imageHeight )
-{
-	glBindTexture( ( opts.textureType == TT_CUBIC ) ? GL_TEXTURE_CUBE_MAP : GL_TEXTURE_2D, texnum );
-	
-	opts.width = imageWidth;
-	opts.height = imageHeight;
-	glCopyTexImage2D( GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, x, y, imageWidth, imageHeight, 0 );
-	
-	backEnd.pc.c_copyFrameBuffer++;
+	AllocImage();
 }
 
 /*
@@ -884,7 +701,6 @@ if rows = cols * 6, assume it is a cube map animation
 */
 void idImage::UploadScratch( const byte* data, int cols, int rows )
 {
-
 	// if rows = cols * 6, assume it is a cube map animation
 	if( rows == cols * 6 )
 	{
@@ -938,12 +754,11 @@ StorageSize
 */
 int idImage::StorageSize() const
 {
-
 	if( !IsLoaded() )
 	{
 		return 0;
 	}
-	int baseSize = opts.width * opts.height;
+	int baseSize = opts.width * opts.height * opts.depth;
 	if( opts.numLevels > 1 )
 	{
 		baseSize *= 4;
@@ -970,56 +785,82 @@ void idImage::Print() const
 		common->Printf( " " );
 	}
 	
-	switch( opts.textureType )
+	if( GetOpts().textureType == TT_2D )
 	{
-		case TT_2D:
-			common->Printf( "      " );
-			break;
-		case TT_CUBIC:
-			common->Printf( "C     " );
-			break;
-			
-		case TT_2D_ARRAY:
-			common->Printf( "2D-A  " );
-			break;
-			
-		case TT_2D_MULTISAMPLE:
-			common->Printf( "2D-MS " );
-			break;
-			
-		default:
-			common->Printf( "<BAD TYPE:%i>", opts.textureType );
-			break;
+		if( GetOpts().IsMultisampled() )
+		{
+			if( GetOpts().IsArray() )
+			{
+				common->Printf( "2DMS-A " );
+			}
+			else
+			{
+				common->Printf( "2DMS " );
+			}
+		}
+		else
+		{
+			if( GetOpts().IsArray() )
+			{
+				common->Printf( "2D-A " );
+			}
+			else
+			{
+				common->Printf( "2D " );
+			}
+		}
+	}
+	else if( GetOpts().textureType == TT_CUBIC )
+	{
+		if( GetOpts().IsArray() )
+		{
+			common->Printf( "6D-A " );
+		}
+		else
+		{
+			common->Printf( "6D " );
+		}
+	}
+	else if( GetOpts().textureType == TT_3D )
+	{
+		common->Printf( "3D " );
+	}
+	else
+	{
+		common->Printf( "<BAD TYPE:%i>", opts.textureType );
 	}
 	
-	common->Printf( "%4i %4i ",	opts.width, opts.height );
+	common->Printf( "%4i %4i %4i ",	opts.width, opts.height, opts.depth );
 	
 	switch( opts.format )
 	{
 #define NAME_FORMAT( x ) case FMT_##x: common->Printf( "%-16s ", #x ); break;
-			NAME_FORMAT( NONE );
-			NAME_FORMAT( RGBA8 );
-			NAME_FORMAT( XRGB8 );
-			NAME_FORMAT( RGB565 );
-			NAME_FORMAT( L8A8 );
-			NAME_FORMAT( ALPHA );
-			NAME_FORMAT( LUM8 );
-			NAME_FORMAT( INT8 );
-			NAME_FORMAT( DXT1 );
-			NAME_FORMAT( DXT5 );
-			// RB begin
-			NAME_FORMAT( ETC1_RGB8_OES );
-			NAME_FORMAT( SHADOW_ARRAY );
-			NAME_FORMAT( RGBA16F );
-			NAME_FORMAT( RGBA32F );
-			NAME_FORMAT( R32F );
-			// RB end
-			NAME_FORMAT( DEPTH );
-			NAME_FORMAT( X16 );
-			NAME_FORMAT( Y16_X16 );
+		NAME_FORMAT( NONE );
+		NAME_FORMAT( RGBA8 );
+		NAME_FORMAT( XRGB8 );
+		NAME_FORMAT( RGB565 );
+		NAME_FORMAT( L8A8 );
+		NAME_FORMAT( ALPHA );
+		NAME_FORMAT( LUM8 );
+		NAME_FORMAT( INT8 );
+		NAME_FORMAT( DXT1 );
+		NAME_FORMAT( DXT5 );
+		NAME_FORMAT( DEPTH );
+		NAME_FORMAT( X16 );
+		NAME_FORMAT( Y16_X16 );
+		NAME_FORMAT( DEPTH_STENCIL ); //SEA
+		NAME_FORMAT( RG11F_B10F ); //SEA
+		NAME_FORMAT( RG16F ); //SEA
+		// RB begin
+		NAME_FORMAT( ETC1_RGB8_OES );
+		NAME_FORMAT( RGBA16F );
+		NAME_FORMAT( RGBA32F );
+		NAME_FORMAT( R32F );
+		// RB end
 		default:
 			common->Printf( "<%3i>", opts.format );
 			break;
+#undef NAME_FORMAT
 	}
 	
 	switch( filter )
@@ -1088,8 +929,7 @@ void idImage::Reload( bool force )
 		{
 			R_LoadCubeImages( imgName, cubeFiles, NULL, NULL, &current );
 		}
-		else
-		{
+		else {
 			// get the current values
 			R_LoadImageProgram( imgName, NULL, NULL, NULL, &current );
 		}
@@ -1105,21 +945,4 @@ void idImage::Reload( bool force )
 	
 	// Load is from the front end, so the back end must be synced
 	ActuallyLoadImage( false );
-}
-
-/*
-========================
-idImage::SetSamplerState
-========================
-*/
-void idImage::SetSamplerState( textureFilter_t tf, textureRepeat_t tr )
-{
-	if( tf == filter && tr == repeat )
-	{
-		return;
-	}
-	filter = tf;
-	repeat = tr;
-	glBindTexture( ( opts.textureType == TT_CUBIC ) ? GL_TEXTURE_CUBE_MAP : GL_TEXTURE_2D, texnum );
-	SetTexParameters();
 }

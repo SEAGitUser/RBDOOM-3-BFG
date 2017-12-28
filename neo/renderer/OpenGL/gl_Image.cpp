@@ -37,6 +37,201 @@ Contains the Image implementation for OpenGL.
 
 #include "../tr_local.h"
 
+struct glTextureObject_t 
+{
+	glTextureObject_t() : target( GL_TEXTURE_2D ), uploadTarget( GL_TEXTURE_2D ), /*texnum( GL_NONE ),*/
+		internalFormat( GL_RGBA8 ), dataFormat( GL_RGBA ), dataType( GL_UNSIGNED_BYTE ) {
+	}
+	glTextureObject_t( const idImage *img )
+	{
+		DeriveTargetInfo( img );
+		DeriveFormatInfo( img );
+	}
+	//GLuint	texnum;
+	GLenum	target;
+	GLenum	uploadTarget;
+	GLenum	internalFormat;
+	GLenum	dataFormat;
+	GLenum	dataType;
+
+	void DeriveTargetInfo( const idImage *img  )
+	{
+			if( img->GetOpts().textureType == TT_2D )
+			{
+				if( img->GetOpts().IsMultisampled() )
+				{
+					if( img->GetOpts().IsArray() )
+					{
+						target = GL_TEXTURE_2D_MULTISAMPLE_ARRAY;
+						uploadTarget = GL_TEXTURE_2D_MULTISAMPLE_ARRAY;
+					}
+					else
+					{
+						target = GL_TEXTURE_2D_MULTISAMPLE;
+						uploadTarget = GL_TEXTURE_2D_MULTISAMPLE;
+					}
+				}
+				else
+				{
+					if( img->GetOpts().IsArray() )
+					{
+						target = GL_TEXTURE_2D_ARRAY;
+						uploadTarget = GL_TEXTURE_2D_ARRAY;
+					}
+					else
+					{
+						target = GL_TEXTURE_2D;
+						uploadTarget = GL_TEXTURE_2D;
+					}
+				}
+			}
+			else if( img->GetOpts().textureType == TT_CUBIC )
+			{
+				if( img->GetOpts().IsArray() )
+				{
+					target = GL_TEXTURE_CUBE_MAP_ARRAY;
+					uploadTarget = GL_TEXTURE_CUBE_MAP_POSITIVE_X;
+				}
+				else
+				{
+					target = GL_TEXTURE_CUBE_MAP;
+					uploadTarget = GL_TEXTURE_CUBE_MAP_POSITIVE_X;
+				}
+			}
+			else if( img->GetOpts().textureType == TT_3D )
+			{
+				target = GL_TEXTURE_3D;
+				uploadTarget = GL_TEXTURE_3D;
+			}
+			else
+			{
+				assert( !"invalid opts.textureType" );
+				target = GL_TEXTURE_2D;
+				uploadTarget = GL_TEXTURE_2D;
+			}
+
+		//texnum = reinterpret_cast< GLuint >( img->GetAPIObject() );
+	}
+
+	void DeriveFormatInfo( const idImage *img )
+	{
+		const bool sRGB( glConfig.sRGBFramebufferAvailable && ( r_useSRGB.GetInteger() == 1 || r_useSRGB.GetInteger() == 3 ) );
+
+		switch( img->GetOpts().format )
+		{
+			case FMT_RGBA8:
+				//internalFormat = GL_RGBA8;
+				internalFormat = sRGB ? GL_SRGB8_ALPHA8 : GL_RGBA8;
+				dataFormat = GL_RGBA;
+				dataType = GL_UNSIGNED_BYTE;
+				break;
+
+			case FMT_XRGB8:
+				internalFormat = sRGB ? GL_SRGB8 : GL_RGB;
+				dataFormat = GL_RGBA;
+				dataType = GL_UNSIGNED_BYTE;
+				break;
+
+			case FMT_RGB565: // light textures typically
+				//internalFormat = sRGB ? GL_SRGB : GL_RGB;
+				internalFormat = GL_RGB565;
+				dataFormat = GL_RGB;
+				dataType = GL_UNSIGNED_SHORT_5_6_5;
+				break;
+
+			case FMT_ALPHA:
+				internalFormat = sRGB ? GL_SRGB : GL_R8; //SEA ???
+				//internalFormat = GL_R8;
+				dataFormat = GL_RED;
+				dataType = GL_UNSIGNED_BYTE;
+				break;
+
+			case FMT_L8A8:
+				internalFormat = GL_RG8;
+				dataFormat = GL_RG;
+				dataType = GL_UNSIGNED_BYTE;
+				break;
+
+			case FMT_LUM8:
+				internalFormat = GL_R8;
+				dataFormat = GL_RED;
+				dataType = GL_UNSIGNED_BYTE;
+				break;
+
+			case FMT_INT8:
+				internalFormat = GL_R8;
+				dataFormat = GL_RED;
+				dataType = GL_UNSIGNED_BYTE;
+				break;
+
+			case FMT_DXT1:
+				internalFormat = sRGB ? GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT1_EXT : GL_COMPRESSED_RGBA_S3TC_DXT1_EXT;
+				//internalFormat =  GL_COMPRESSED_RGBA_S3TC_DXT1_EXT;
+				dataFormat = GL_RGBA;
+				dataType = GL_UNSIGNED_BYTE;
+				break;
+
+			case FMT_DXT5:
+				internalFormat = ( sRGB && img->GetOpts().colorFormat != CFM_YCOCG_DXT5 && img->GetOpts().colorFormat != CFM_NORMAL_DXT5 )? GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT : GL_COMPRESSED_RGBA_S3TC_DXT5_EXT;
+				//internalFormat = GL_COMPRESSED_RGBA_S3TC_DXT5_EXT;
+				dataFormat = GL_RGBA;
+				dataType = GL_UNSIGNED_BYTE;
+				break;
+
+			case FMT_DEPTH: //SEA GL_DEPTH_COMPONENT16  GL_DEPTH_COMPONENT24  GL_DEPTH_COMPONENT32  GL_DEPTH_COMPONENT32F.
+				internalFormat = GL_DEPTH_COMPONENT24;
+				dataFormat = GL_DEPTH_COMPONENT;
+				dataType = GL_UNSIGNED_INT; // GL_UNSIGNED_BYTE
+				break;
+			case FMT_DEPTH_STENCIL: //SEA GL_DEPTH24_STENCIL8  GL_DEPTH32F_STENCIL8
+				internalFormat = GL_DEPTH24_STENCIL8;
+				dataFormat = GL_DEPTH_STENCIL;
+				dataType = GL_UNSIGNED_INT_24_8;
+				break;
+
+			case FMT_RG11F_B10F://SEA
+				internalFormat = GL_R11F_G11F_B10F;
+				dataFormat = GL_RGB;
+				dataType = GL_FLOAT; // GL_UNSIGNED_INT_10F_11F_11F_REV
+				break;
+			case FMT_RG16F://SEA
+				internalFormat = GL_RG16F;
+				dataFormat = GL_RG;
+				dataType = GL_HALF_FLOAT;
+				break;
+			case FMT_RGBA16F:
+				internalFormat = GL_RGBA16F;
+				dataFormat = GL_RGBA;
+				dataType = GL_HALF_FLOAT;
+				break;
+			case FMT_RGBA32F:
+				internalFormat = GL_RGBA32F;
+				dataFormat = GL_RGBA;
+				dataType = GL_FLOAT;
+				break;
+			case FMT_R32F:
+				internalFormat = GL_R32F;
+				dataFormat = GL_RED;
+				dataType = GL_FLOAT;
+				break;
+
+			case FMT_X16:
+				internalFormat = GL_INTENSITY16;
+				dataFormat = GL_LUMINANCE;
+				dataType = GL_UNSIGNED_SHORT;
+				break;
+			case FMT_Y16_X16:
+				internalFormat = GL_LUMINANCE16_ALPHA16;
+				dataFormat = GL_LUMINANCE_ALPHA;
+				dataType = GL_UNSIGNED_SHORT;
+				break;
+			default:
+				idLib::Error( "Unhandled image format %d in %s\n", img->GetOpts().format, img->GetName() );
+		}
+
+	}
+};
+
 /*
 ========================
 idImage::SubImageUpload
@@ -45,7 +240,7 @@ idImage::SubImageUpload
 void idImage::SubImageUpload( int mipLevel, int x, int y, int z, int width, int height, const void* pic, int pixelPitch ) const
 {
 	assert( x >= 0 && y >= 0 && mipLevel >= 0 && width >= 0 && height >= 0 && mipLevel < opts.numLevels );
-	
+
 	int compressedSize = 0;
 	
 	if( IsCompressed() )
@@ -76,27 +271,14 @@ void idImage::SubImageUpload( int mipLevel, int x, int y, int z, int width, int 
 	{
 		assert( x + width <= opts.width && y + height <= opts.height );
 	}
-	
-	int target;
-	int uploadTarget;
-	if( opts.textureType == TT_2D )
-	{
-		target = GL_TEXTURE_2D;
-		uploadTarget = GL_TEXTURE_2D;
+
+	glTextureObject_t tex( this );
+
+	if( opts.textureType == TT_CUBIC ) {
+		tex.uploadTarget += z;
 	}
-	else if( opts.textureType == TT_CUBIC )
-	{
-		target = GL_TEXTURE_CUBE_MAP;
-		uploadTarget = GL_TEXTURE_CUBE_MAP_POSITIVE_X + z;
-	}
-	else
-	{
-		assert( !"invalid opts.textureType" );
-		target = GL_TEXTURE_2D;
-		uploadTarget = GL_TEXTURE_2D;
-	}
-	
-	glBindTexture( target, texnum );
+
+	glBindTexture( tex.target, this->texnum );
 	
 	if( pixelPitch != 0 )
 	{
@@ -115,11 +297,10 @@ void idImage::SubImageUpload( int mipLevel, int x, int y, int z, int width, int 
 #endif
 	if( IsCompressed() )
 	{
-		glCompressedTexSubImage2D( uploadTarget, mipLevel, x, y, width, height, internalFormat, compressedSize, pic );
+		glCompressedTexSubImage2D( tex.uploadTarget, mipLevel, x, y, width, height, tex.internalFormat, compressedSize, pic );
 	}
 	else
-	{
-	
+	{	
 		// make sure the pixel store alignment is correct so that lower mips get created
 		// properly for odd shaped textures - this fixes the mip mapping issues with
 		// fonts
@@ -128,12 +309,11 @@ void idImage::SubImageUpload( int mipLevel, int x, int y, int z, int width, int 
 		{
 			glPixelStorei( GL_UNPACK_ALIGNMENT, 4 );
 		}
-		else
-		{
+		else {
 			glPixelStorei( GL_UNPACK_ALIGNMENT, 1 );
 		}
 		
-		glTexSubImage2D( uploadTarget, mipLevel, x, y, width, height, dataFormat, dataType, pic );
+		glTexSubImage2D( tex.uploadTarget, mipLevel, x, y, width, height, tex.dataFormat, tex.dataType, pic );
 	}
 	
 #if defined(DEBUG) || defined(__ANDROID__)
@@ -167,114 +347,71 @@ idImage::SetTexParameters
 */
 void idImage::SetTexParameters()
 {
-	int target = GL_TEXTURE_2D;
-	switch( opts.textureType )
-	{
-		case TT_2D:
-			target = GL_TEXTURE_2D;
-			break;
-		case TT_CUBIC:
-			target = GL_TEXTURE_CUBE_MAP;
-			break;
-		// RB begin
-		case TT_2D_ARRAY:
-			target = GL_TEXTURE_2D_ARRAY;
-			break;
-		case TT_2D_MULTISAMPLE:
-			//target = GL_TEXTURE_2D_MULTISAMPLE;
-			//break;
-			// no texture parameters for MSAA FBO textures
-			return;
-		// RB end
-		default:
-			idLib::FatalError( "%s: bad texture type %d", GetName(), opts.textureType );
-			return;
-	}
+	glTextureObject_t tex;
+	tex.DeriveTargetInfo( this );
 	
 	// ALPHA, LUMINANCE, LUMINANCE_ALPHA, and INTENSITY have been removed
 	// in OpenGL 3.2. In order to mimic those modes, we use the swizzle operators
-#if defined( USE_CORE_PROFILE )
+
 	if( opts.colorFormat == CFM_GREEN_ALPHA )
 	{
-		glTexParameteri( target, GL_TEXTURE_SWIZZLE_R, GL_ONE );
-		glTexParameteri( target, GL_TEXTURE_SWIZZLE_G, GL_ONE );
-		glTexParameteri( target, GL_TEXTURE_SWIZZLE_B, GL_ONE );
-		glTexParameteri( target, GL_TEXTURE_SWIZZLE_A, GL_GREEN );
+		GLint swizzleMask[] = { GL_ONE, GL_ONE, GL_ONE, GL_GREEN };
+		glTexParameteriv( tex.target, GL_TEXTURE_SWIZZLE_RGBA, swizzleMask );
 	}
 	else if( opts.format == FMT_LUM8 )
 	{
-		glTexParameteri( target, GL_TEXTURE_SWIZZLE_R, GL_RED );
-		glTexParameteri( target, GL_TEXTURE_SWIZZLE_G, GL_RED );
-		glTexParameteri( target, GL_TEXTURE_SWIZZLE_B, GL_RED );
-		glTexParameteri( target, GL_TEXTURE_SWIZZLE_A, GL_ONE );
+		GLint swizzleMask[] = { GL_RED, GL_RED, GL_RED, GL_ONE };
+		glTexParameteriv( tex.target, GL_TEXTURE_SWIZZLE_RGBA, swizzleMask );
 	}
 	else if( opts.format == FMT_L8A8 )
 	{
-		glTexParameteri( target, GL_TEXTURE_SWIZZLE_R, GL_RED );
-		glTexParameteri( target, GL_TEXTURE_SWIZZLE_G, GL_RED );
-		glTexParameteri( target, GL_TEXTURE_SWIZZLE_B, GL_RED );
-		glTexParameteri( target, GL_TEXTURE_SWIZZLE_A, GL_GREEN );
+		GLint swizzleMask[] = { GL_RED, GL_RED, GL_RED, GL_GREEN };
+		glTexParameteriv( tex.target, GL_TEXTURE_SWIZZLE_RGBA, swizzleMask );
 	}
 	else if( opts.format == FMT_ALPHA )
 	{
-		glTexParameteri( target, GL_TEXTURE_SWIZZLE_R, GL_ONE );
-		glTexParameteri( target, GL_TEXTURE_SWIZZLE_G, GL_ONE );
-		glTexParameteri( target, GL_TEXTURE_SWIZZLE_B, GL_ONE );
-		glTexParameteri( target, GL_TEXTURE_SWIZZLE_A, GL_RED );
+		GLint swizzleMask[] = { GL_ONE, GL_ONE, GL_ONE, GL_RED };
+		glTexParameteriv( tex.target, GL_TEXTURE_SWIZZLE_RGBA, swizzleMask );
 	}
 	else if( opts.format == FMT_INT8 )
 	{
-		glTexParameteri( target, GL_TEXTURE_SWIZZLE_R, GL_RED );
-		glTexParameteri( target, GL_TEXTURE_SWIZZLE_G, GL_RED );
-		glTexParameteri( target, GL_TEXTURE_SWIZZLE_B, GL_RED );
-		glTexParameteri( target, GL_TEXTURE_SWIZZLE_A, GL_RED );
+		GLint swizzleMask[] = { GL_RED, GL_RED, GL_RED, GL_RED };
+		glTexParameteriv( tex.target, GL_TEXTURE_SWIZZLE_RGBA, swizzleMask );
 	}
-	else
-	{
-		glTexParameteri( target, GL_TEXTURE_SWIZZLE_R, GL_RED );
-		glTexParameteri( target, GL_TEXTURE_SWIZZLE_G, GL_GREEN );
-		glTexParameteri( target, GL_TEXTURE_SWIZZLE_B, GL_BLUE );
-		glTexParameteri( target, GL_TEXTURE_SWIZZLE_A, GL_ALPHA );
+	else {
+		GLint swizzleMask[] = { GL_RED, GL_GREEN, GL_BLUE, GL_ALPHA };
+		glTexParameteriv( tex.target, GL_TEXTURE_SWIZZLE_RGBA, swizzleMask );
 	}
-#else
-	if( opts.colorFormat == CFM_GREEN_ALPHA )
-	{
-		glTexParameteri( target, GL_TEXTURE_SWIZZLE_R, GL_ONE );
-		glTexParameteri( target, GL_TEXTURE_SWIZZLE_G, GL_ONE );
-		glTexParameteri( target, GL_TEXTURE_SWIZZLE_B, GL_ONE );
-		glTexParameteri( target, GL_TEXTURE_SWIZZLE_A, GL_GREEN );
-	}
-	else if( opts.format == FMT_ALPHA )
-	{
-		glTexParameteri( target, GL_TEXTURE_SWIZZLE_R, GL_ONE );
-		glTexParameteri( target, GL_TEXTURE_SWIZZLE_G, GL_ONE );
-		glTexParameteri( target, GL_TEXTURE_SWIZZLE_B, GL_ONE );
-		glTexParameteri( target, GL_TEXTURE_SWIZZLE_A, GL_RED );
-	}
-#endif
 	
 	switch( filter )
 	{
 		case TF_DEFAULT:
-			if( r_useTrilinearFiltering.GetBool() )
-			{
-				glTexParameterf( target, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR );
+			if( r_useTrilinearFiltering.GetBool() ) {
+				glTexParameterf( tex.target, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR );
+			} else {
+				glTexParameterf( tex.target, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_NEAREST );
 			}
-			else
-			{
-				glTexParameterf( target, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_NEAREST );
-			}
-			glTexParameterf( target, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
+			glTexParameterf( tex.target, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
 			break;
 		case TF_LINEAR:
-			glTexParameterf( target, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
-			glTexParameterf( target, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
+			glTexParameterf( tex.target, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
+			glTexParameterf( tex.target, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
 			break;
 		case TF_NEAREST:
 		case TF_NEAREST_MIPMAP:
-			glTexParameterf( target, GL_TEXTURE_MIN_FILTER, GL_NEAREST );
-			glTexParameterf( target, GL_TEXTURE_MAG_FILTER, GL_NEAREST );
+			glTexParameterf( tex.target, GL_TEXTURE_MIN_FILTER, GL_NEAREST );
+			glTexParameterf( tex.target, GL_TEXTURE_MAG_FILTER, GL_NEAREST );
 			break;
+
+		case TF_NEAREST_MIPMAP_NEAREST:
+			glTexParameterf( tex.target, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_NEAREST );
+			glTexParameterf( tex.target, GL_TEXTURE_MAG_FILTER, GL_NEAREST );
+			break;
+		case TF_LINEAR_MIPMAP_NEAREST:
+			glTexParameterf( tex.target, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_NEAREST );
+			glTexParameterf( tex.target, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
+			break;
+
 		default:
 			common->FatalError( "%s: bad texture filter %d", GetName(), filter );
 	}
@@ -293,11 +430,11 @@ void idImage::SetTexParameters()
 			{
 				aniso = 0;
 			}
-			glTexParameterf( target, GL_TEXTURE_MAX_ANISOTROPY_EXT, aniso );
+			glTexParameterf( tex.target, GL_TEXTURE_MAX_ANISOTROPY_EXT, aniso );
 		}
 		else
 		{
-			glTexParameterf( target, GL_TEXTURE_MAX_ANISOTROPY_EXT, 1 );
+			glTexParameterf( tex.target, GL_TEXTURE_MAX_ANISOTROPY_EXT, 1 );
 		}
 	}
 	
@@ -311,43 +448,74 @@ void idImage::SetTexParameters()
 	*/
 	// RB end
 	
-	// set the wrap/clamp modes
+	// set the wrap/clamp modes		GL_MIRRORED_REPEAT  GL_MIRROR_CLAMP_TO_EDGE(4.4)
+	// Initially, glALL is set to GL_REPEAT.
 	switch( repeat )
 	{
 		case TR_REPEAT:
-			glTexParameterf( target, GL_TEXTURE_WRAP_S, GL_REPEAT );
-			glTexParameterf( target, GL_TEXTURE_WRAP_T, GL_REPEAT );
-			break;
+		{
+			glTexParameterf( tex.target, GL_TEXTURE_WRAP_S, GL_REPEAT );
+			glTexParameterf( tex.target, GL_TEXTURE_WRAP_T, GL_REPEAT );
+			if( opts.textureType == TT_3D ) {
+				glTexParameterf( tex.target, GL_TEXTURE_WRAP_R, GL_REPEAT );
+			}
+		} 
+		break;
+		case TR_MIRROR:
+		{
+			glTexParameterf( tex.target, GL_TEXTURE_WRAP_S, GL_MIRRORED_REPEAT );
+			glTexParameterf( tex.target, GL_TEXTURE_WRAP_T, GL_MIRRORED_REPEAT );
+			if( opts.textureType == TT_3D ) {
+				glTexParameterf( tex.target, GL_TEXTURE_WRAP_R, GL_MIRRORED_REPEAT );
+			}
+		}
+		break;
 		case TR_CLAMP_TO_ZERO:
 		{
 			float color[4] = { 0.0f, 0.0f, 0.0f, 1.0f };
-			glTexParameterfv( target, GL_TEXTURE_BORDER_COLOR, color );
-			glTexParameterf( target, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER );
-			glTexParameterf( target, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER );
-		}
+			glTexParameterfv( tex.target, GL_TEXTURE_BORDER_COLOR, color );
+			glTexParameterf( tex.target, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER );
+			glTexParameterf( tex.target, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER );
+			if( opts.textureType == TT_3D ) {
+				glTexParameterf( tex.target, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_BORDER );
+			}
+		} 
 		break;
 		case TR_CLAMP_TO_ZERO_ALPHA:
 		{
 			float color[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
-			glTexParameterfv( target, GL_TEXTURE_BORDER_COLOR, color );
-			glTexParameterf( target, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER );
-			glTexParameterf( target, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER );
-		}
+			glTexParameterfv( tex.target, GL_TEXTURE_BORDER_COLOR, color );
+			glTexParameterf( tex.target, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER );
+			glTexParameterf( tex.target, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER );
+			if( opts.textureType == TT_3D ) {
+				glTexParameterf( tex.target, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_BORDER );
+			}
+		} 
 		break;
 		case TR_CLAMP:
-			glTexParameterf( target, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE );
-			glTexParameterf( target, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE );
-			break;
+		{
+			glTexParameterf( tex.target, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE );
+			glTexParameterf( tex.target, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE );
+			if( opts.textureType == TT_3D ) {
+				glTexParameterf( tex.target, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE );
+			}
+		} 
+		break;
 		default:
 			common->FatalError( "%s: bad texture repeat %d", GetName(), repeat );
 	}
 	
 	// RB: added shadow compare parameters for shadow map textures
-	if( opts.format == FMT_SHADOW_ARRAY )
+	if( usage == TD_SHADOWMAP )
+	//if( opts.format == FMT_DEPTH || opts.format == FMT_DEPTH_STENCIL )
 	{
-		//glTexParameteri( target, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE );
-		glTexParameteri( target, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_R_TO_TEXTURE );
-		glTexParameteri( target, GL_TEXTURE_COMPARE_FUNC, GL_LEQUAL );
+		// GL_INTENSITY = dddd
+		// GL_LUMINANCE = ddd1
+		// GL_ALPHA = 000d
+		// GL_RED = d001
+		//glTexParameteri( tex.target, GL_DEPTH_TEXTURE_MODE, GL_INTENSITY );
+		glTexParameteri( tex.target, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_R_TO_TEXTURE );
+		glTexParameteri( tex.target, GL_TEXTURE_COMPARE_FUNC, GL_LEQUAL );
 	}
 }
 
@@ -355,145 +523,17 @@ void idImage::SetTexParameters()
 ========================
 idImage::AllocImage
 
-Every image will pass through this function. Allocates all the necessary MipMap levels for the
-Image, but doesn't put anything in them.
+	Every image will pass through this function. Allocates all the necessary MipMap levels for the
+	Image, but doesn't put anything in them.
 
-This should not be done during normal game-play, if you can avoid it.
+	This should not be done during normal game-play, if you can avoid it.
 ========================
 */
 void idImage::AllocImage()
 {
 	GL_CheckErrors();
 	PurgeImage();
-	
-	int sRGB = r_useSRGB.GetInteger();
-	
-	switch( opts.format )
-	{
-		case FMT_RGBA8:
-			//internalFormat = GL_RGBA8;
-			//internalFormat = ( glConfig.sRGBFramebufferAvailable && ( sRGB == 1 || sRGB == 3 ) ) ? GL_SRGB8_ALPHA8 : GL_RGBA8;
-			internalFormat = ( glConfig.sRGBFramebufferAvailable && ( sRGB == 1 || sRGB == 3 ) ) ? GL_SRGB8_ALPHA8 : GL_RGBA8;
-			dataFormat = GL_RGBA;
-			dataType = GL_UNSIGNED_BYTE;
-			break;
-		case FMT_XRGB8:
-			internalFormat = ( glConfig.sRGBFramebufferAvailable && ( sRGB == 1 || sRGB == 3 ) ) ? GL_SRGB : GL_RGB;
-			dataFormat = GL_RGBA;
-			dataType = GL_UNSIGNED_BYTE;
-			break;
-		case FMT_RGB565:
-			//internalFormat = ( glConfig.sRGBFramebufferAvailable && ( sRGB == 1 || sRGB == 3 ) ) ? GL_SRGB : GL_RGB;
-			internalFormat = GL_RGB;
-			dataFormat = GL_RGB;
-			dataType = GL_UNSIGNED_SHORT_5_6_5;
-			break;
-		case FMT_ALPHA:
-#if defined( USE_CORE_PROFILE )
-#if 1
-			if( ( glConfig.sRGBFramebufferAvailable && ( sRGB == 1 || sRGB == 3 ) ) )
-			{
-				internalFormat = GL_SRGB;
-				dataFormat = GL_RED;
-			}
-			else
-#endif
-			{
-				internalFormat = GL_R8;
-				dataFormat = GL_RED;
-			}
-#else
-			internalFormat = GL_ALPHA8;
-			dataFormat = GL_ALPHA;
-#endif
-			dataType = GL_UNSIGNED_BYTE;
-			break;
-		case FMT_L8A8:
-#if defined( USE_CORE_PROFILE )
-			internalFormat = GL_RG8;
-			dataFormat = GL_RG;
-#else
-			internalFormat = GL_LUMINANCE8_ALPHA8;
-			dataFormat = GL_LUMINANCE_ALPHA;
-#endif
-			dataType = GL_UNSIGNED_BYTE;
-			break;
-		case FMT_LUM8:
-#if defined( USE_CORE_PROFILE )
-			internalFormat = GL_R8;
-			dataFormat = GL_RED;
-#else
-			internalFormat = GL_LUMINANCE8;
-			dataFormat = GL_LUMINANCE;
-#endif
-			dataType = GL_UNSIGNED_BYTE;
-			break;
-		case FMT_INT8:
-#if defined( USE_CORE_PROFILE )
-			internalFormat = GL_R8;
-			dataFormat = GL_RED;
-#else
-			internalFormat = GL_INTENSITY8;
-			dataFormat = GL_LUMINANCE;
-#endif
-			dataType = GL_UNSIGNED_BYTE;
-			break;
-		case FMT_DXT1:
-			internalFormat = ( glConfig.sRGBFramebufferAvailable && ( sRGB == 1 || sRGB == 3 ) ) ? GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT1_EXT : GL_COMPRESSED_RGBA_S3TC_DXT1_EXT;
-			//internalFormat =  GL_COMPRESSED_RGBA_S3TC_DXT1_EXT;
-			dataFormat = GL_RGBA;
-			dataType = GL_UNSIGNED_BYTE;
-			break;
-		case FMT_DXT5:
-			internalFormat = ( glConfig.sRGBFramebufferAvailable && ( sRGB == 1 || sRGB == 3 ) && opts.colorFormat != CFM_YCOCG_DXT5 && opts.colorFormat != CFM_NORMAL_DXT5 ) ? GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT : GL_COMPRESSED_RGBA_S3TC_DXT5_EXT;
-			//internalFormat = GL_COMPRESSED_RGBA_S3TC_DXT5_EXT;
-			dataFormat = GL_RGBA;
-			dataType = GL_UNSIGNED_BYTE;
-			break;
-		case FMT_DEPTH:
-			internalFormat = GL_DEPTH_COMPONENT;
-			dataFormat = GL_DEPTH_COMPONENT;
-			dataType = GL_UNSIGNED_BYTE;
-			break;
-			
-		case FMT_SHADOW_ARRAY:
-			internalFormat = GL_DEPTH_COMPONENT;
-			dataFormat = GL_DEPTH_COMPONENT;
-			dataType = GL_UNSIGNED_BYTE;
-			break;
-			
-		case FMT_RGBA16F:
-			internalFormat = GL_RGBA16F;
-			dataFormat = GL_RGBA;
-			dataType = GL_UNSIGNED_BYTE;
-			break;
-			
-		case FMT_RGBA32F:
-			internalFormat = GL_RGBA32F;
-			dataFormat = GL_RGBA;
-			dataType = GL_UNSIGNED_BYTE;
-			break;
-			
-		case FMT_R32F:
-			internalFormat = GL_R32F;
-			dataFormat = GL_RED;
-			dataType = GL_UNSIGNED_BYTE;
-			break;
-			
-		case FMT_X16:
-			internalFormat = GL_INTENSITY16;
-			dataFormat = GL_LUMINANCE;
-			dataType = GL_UNSIGNED_SHORT;
-			break;
-		case FMT_Y16_X16:
-			internalFormat = GL_LUMINANCE16_ALPHA16;
-			dataFormat = GL_LUMINANCE_ALPHA;
-			dataType = GL_UNSIGNED_SHORT;
-			break;
-		default:
-			idLib::Error( "Unhandled image format %d in %s\n", opts.format, GetName() );
-	}
-	
+
 	// if we don't have a rendering context, just return after we
 	// have filled in the parms.  We must have the values set, or
 	// an image match from a shader before OpenGL starts would miss
@@ -502,120 +542,133 @@ void idImage::AllocImage()
 	{
 		return;
 	}
-	
+
 	// generate the texture number
 	glGenTextures( 1, ( GLuint* )&texnum );
 	assert( texnum != TEXTURE_NOT_LOADED );
-	
+
+	glTextureObject_t tex( this );
+	glBindTexture( tex.target, this->texnum );
+
+	if( GLEW_KHR_debug )
+	{
+		idStrStatic<128> name;
+		name.Format( "idImage(%p.%u)", this, this->texnum );
+		glObjectLabel( GL_TEXTURE, this->texnum, name.Length(), name.c_str() );
+	}
+
 	//----------------------------------------------------
 	// allocate all the mip levels with NULL data
 	//----------------------------------------------------
-	
-	int numSides;
-	int target;
-	int uploadTarget;
-	if( opts.textureType == TT_2D )
+
+	GLsizei w = Max( opts.width, 1 );
+	GLsizei h = Max( opts.height, 1 );
+	GLsizei depth = Max( opts.depth, 1 );
+	const GLint numLevels = Max( opts.numLevels, 1 );
+	const GLint numSamples = Max( opts.numSamples, 1 );
+
+	if( GLEW_ARB_texture_storage )
+	//if( 0 )
 	{
-		target = uploadTarget = GL_TEXTURE_2D;
-		numSides = 1;
-	}
-	else if( opts.textureType == TT_CUBIC )
-	{
-		target = GL_TEXTURE_CUBE_MAP;
-		uploadTarget = GL_TEXTURE_CUBE_MAP_POSITIVE_X;
-		numSides = 6;
-	}
-	// RB begin
-	else if( opts.textureType == TT_2D_ARRAY )
-	{
-		target = GL_TEXTURE_2D_ARRAY;
-		uploadTarget = GL_TEXTURE_2D_ARRAY;
-		numSides = 6;
-	}
-	else if( opts.textureType == TT_2D_MULTISAMPLE )
-	{
-		target = GL_TEXTURE_2D_MULTISAMPLE;
-		uploadTarget = GL_TEXTURE_2D_MULTISAMPLE;
-		numSides = 1;
-	}
-	// RB end
-	else
-	{
-		assert( !"opts.textureType" );
-		target = uploadTarget = GL_TEXTURE_2D;
-		numSides = 1;
-	}
-	
-	glBindTexture( target, texnum );
-	
-	if( opts.textureType == TT_2D_ARRAY )
-	{
-		glTexImage3D( uploadTarget, 0, internalFormat, opts.width, opts.height, numSides, 0, dataFormat, GL_UNSIGNED_BYTE, NULL );
-	}
-	else if( opts.textureType == TT_2D_MULTISAMPLE )
-	{
-		glTexImage2DMultisample( uploadTarget, opts.msaaSamples, internalFormat, opts.width, opts.height, GL_FALSE );
-	}
-	else
-	{
-		for( int side = 0; side < numSides; side++ )
+		if( tex.target == GL_TEXTURE_2D || tex.target == GL_TEXTURE_CUBE_MAP )
 		{
-			int w = opts.width;
-			int h = opts.height;
+			// 2D, CUBE
+			glTexStorage2D( tex.target, numLevels, tex.internalFormat, w, ( tex.target != GL_TEXTURE_CUBE_MAP )? h : w );
+		}
+		else if( tex.target == GL_TEXTURE_2D_MULTISAMPLE )
+		{
+			// 2DMS
+			glTexStorage2DMultisample( GL_TEXTURE_2D_MULTISAMPLE, numSamples, tex.internalFormat, w, h, true );
+		}
+		else if( tex.target == GL_TEXTURE_2D_MULTISAMPLE_ARRAY )
+		{
+			// 2DMSArray
+			glTexStorage3DMultisample( GL_TEXTURE_2D_MULTISAMPLE_ARRAY, numSamples, tex.internalFormat, w, h, depth, true );
+		}
+		else// if( tex.target == GL_TEXTURE_3D || tex.target == GL_TEXTURE_2D_ARRAY || tex.target == GL_TEXTURE_CUBE_MAP_ARRAY )
+		{
+			// 3D, 2DArray, CUBEArray
+			glTexStorage3D( tex.target, numLevels, tex.internalFormat, w, h, depth );
+		}
+	} 
+	else {
+		if( opts.IsMultisampled() && opts.textureType == TT_2D )
+		{
+			assert( numLevels < 1 && opts.textureType == TT_2D );
+			if( opts.IsArray() ) 
+			{
+				glTexImage3DMultisample( GL_TEXTURE_2D_MULTISAMPLE_ARRAY, numSamples, tex.internalFormat, w, h, depth, GL_FALSE );
+			} 
+			else {
+				glTexImage2DMultisample( GL_TEXTURE_2D_MULTISAMPLE, numSamples, tex.internalFormat, w, h, GL_FALSE );
+			}
+		}
+		else {
+			assert( !opts.IsMultisampled() );
+
+			GLenum numSides = 1;
 			if( opts.textureType == TT_CUBIC )
 			{
 				h = w;
+				numSides = 6;
+				depth *= 6;
 			}
-			for( int level = 0; level < opts.numLevels; level++ )
+
+			if( IsCompressed() )
 			{
-			
-				// clear out any previous error
-				GL_CheckErrors();
-				
-				if( IsCompressed() )
+				const GLsizei formatBits = 16 * BitsForFormat( opts.format );
+
+				if( opts.IsArray() )
 				{
-					int compressedSize = ( ( ( w + 3 ) / 4 ) * ( ( h + 3 ) / 4 ) * int64( 16 ) * BitsForFormat( opts.format ) ) / 8;
-					
-					// Even though the OpenGL specification allows the 'data' pointer to be NULL, for some
-					// drivers we actually need to upload data to get it to allocate the texture.
-					// However, on 32-bit systems we may fail to allocate a large block of memory for large
-					// textures. We handle this case by using HeapAlloc directly and allowing the allocation
-					// to fail in which case we simply pass down NULL to glCompressedTexImage2D and hope for the best.
-					// As of 2011-10-6 using NVIDIA hardware and drivers we have to allocate the memory with HeapAlloc
-					// with the exact size otherwise large image allocation (for instance for physical page textures)
-					// may fail on Vista 32-bit.
-					
-					// RB begin
-#if defined(_WIN32)
-					void* data = HeapAlloc( GetProcessHeap(), 0, compressedSize );
-					glCompressedTexImage2D( uploadTarget + side, level, internalFormat, w, h, 0, compressedSize, data );
-					if( data != NULL )
+					for( GLint level = 0; level < numLevels; level++ )
 					{
-						HeapFree( GetProcessHeap(), 0, data );
+						const GLsizei compressedSize = ( ( ( w + 3 ) / 4 ) * ( ( h + 3 ) / 4 ) * formatBits ) / 8;
+						glCompressedTexImage3D( tex.target, level, tex.internalFormat, w, h, depth, 0, compressedSize, NULL );
+						w = Max( 1, w >> 1 );
+						h = Max( 1, h >> 1 );
 					}
-#else
-					byte* data = ( byte* )Mem_Alloc( compressedSize, TAG_TEMP );
-					glCompressedTexImage2D( uploadTarget + side, level, internalFormat, w, h, 0, compressedSize, data );
-					if( data != NULL )
-					{
-						Mem_Free( data );
-					}
-#endif
-					// RB end
 				}
 				else
 				{
-					glTexImage2D( uploadTarget + side, level, internalFormat, w, h, 0, dataFormat, dataType, NULL );
+					for( GLint level = 0; level < numLevels; level++ )
+					{
+						const GLsizei compressedSize = ( ( ( w + 3 ) / 4 ) * ( ( h + 3 ) / 4 ) * formatBits ) / 8;
+						for( GLenum side = 0; side < numSides; side++ ) {
+							glCompressedTexImage2D( tex.uploadTarget + side, level, tex.internalFormat, w, h, 0, compressedSize, NULL );
+						}
+						w = Max( 1, w >> 1 );
+						h = Max( 1, h >> 1 );
+					}
 				}
-				
-				GL_CheckErrors();
-				
-				w = Max( 1, w >> 1 );
-				h = Max( 1, h >> 1 );
+			}
+			else {
+				if( opts.IsArray() )
+				{
+					for( GLint level = 0; level < numLevels; level++ )
+					{
+						glTexImage3D( tex.target, level, tex.internalFormat, w, h, depth, 0, tex.dataFormat, tex.dataType, NULL );
+						w = Max( 1, w >> 1 );
+						h = Max( 1, h >> 1 );
+					}
+				}
+				else
+				{
+					for( GLint level = 0; level < numLevels; level++ )
+					{
+						for( GLenum side = 0; side < numSides; side++ ) {
+							glTexImage2D( tex.uploadTarget + side, level, tex.internalFormat, w, h, 0, tex.dataFormat, tex.dataType, NULL );
+						}
+						w = Max( 1, w >> 1 );
+						h = Max( 1, h >> 1 );
+					}
+				}
 			}
 		}
-		
-		glTexParameteri( target, GL_TEXTURE_MAX_LEVEL, opts.numLevels - 1 );
+
+		GL_CheckErrors();
+
+		glTexParameteri( tex.target, GL_TEXTURE_BASE_LEVEL, 0 );
+		glTexParameteri( tex.target, GL_TEXTURE_MAX_LEVEL, numLevels - 1 );
 	}
 	
 	// see if we messed anything up
@@ -639,26 +692,247 @@ void idImage::PurgeImage()
 		texnum = TEXTURE_NOT_LOADED;
 	}
 	// clear all the current binding caches, so the next bind will do a real one
-	for( int i = 0 ; i < MAX_MULTITEXTURE_UNITS ; i++ )
+	for( int i = 0; i < MAX_MULTITEXTURE_UNITS; i++ )
 	{
-		backEnd.glState.tmu[i].current2DMap = TEXTURE_NOT_LOADED;
-		backEnd.glState.tmu[i].current2DArray = TEXTURE_NOT_LOADED;
-		backEnd.glState.tmu[i].currentCubeMap = TEXTURE_NOT_LOADED;
+		for( int j = 0; j < target_Max; j++ )
+		{
+			backEnd.glState.tmu[ i ].currentTarget[ j ] = TEXTURE_NOT_LOADED;
+		}
 	}
 }
 
 /*
+====================
+CopyFramebuffer
+====================
+*/
+void idImage::CopyFramebuffer( int x, int y, int imageWidth, int imageHeight )
+{
+	glTextureObject_t tex;
+	tex.DeriveTargetInfo( this );
+	glBindTexture( tex.target, this->texnum );
+
+#if !defined( USE_GLES2 )
+	if( Framebuffer::IsDefaultFramebufferActive() )
+	{
+		glReadBuffer( GL_BACK );
+	}
+#endif
+
+	Resize( imageWidth, imageHeight, 1 );
+
+#if defined( USE_GLES2 )
+	glCopyTexImage2D( GL_TEXTURE_2D, 0, GL_RGBA, x, y, imageWidth, imageHeight, 0 );
+#else
+	if( r_useHDR.GetBool() && globalFramebuffers.hdrFBO->IsBound() )
+	{
+		//if( backEnd.glState.currentFramebuffer != NULL && backEnd.glState.currentFramebuffer->IsMultiSampled() )
+
+	#if defined(USE_HDR_MSAA)
+		if( globalFramebuffers.hdrFBO->IsMultiSampled() )
+		{
+			glBindFramebuffer( GL_READ_FRAMEBUFFER, globalFramebuffers.hdrFBO->GetFramebuffer() );
+			glBindFramebuffer( GL_DRAW_FRAMEBUFFER, globalFramebuffers.hdrNonMSAAFBO->GetFramebuffer() );
+			glBlitFramebuffer( 0, 0, glConfig.nativeScreenWidth, glConfig.nativeScreenHeight,
+							   0, 0, glConfig.nativeScreenWidth, glConfig.nativeScreenHeight,
+							   GL_COLOR_BUFFER_BIT, GL_LINEAR );
+
+			globalFramebuffers.hdrNonMSAAFBO->Bind();
+
+			glCopyTexImage2D( tex.target, 0, GL_RGBA16F, x, y, imageWidth, imageHeight, 0 );
+
+			globalFramebuffers.hdrFBO->Bind();
+		}
+		else
+		#endif
+		{
+			if( GLEW_ARB_texture_storage )
+			{
+				glCopyTexSubImage2D( tex.target, 0, 0, 0, x, y, imageWidth, imageHeight );
+			}
+			else
+			{
+				glCopyTexImage2D( tex.target, 0, GL_RGBA16F, x, y, imageWidth, imageHeight, 0 );
+			}
+		}
+	}
+	else
+	{
+		if( GLEW_ARB_texture_storage )
+		{
+			glCopyTexSubImage2D( tex.target, 0, 0, 0, x, y, imageWidth, imageHeight );
+		}
+		else
+		{
+			glCopyTexImage2D( tex.target, 0, GL_RGBA8, x, y, imageWidth, imageHeight, 0 );
+		}
+	}
+#endif
+
+	// these shouldn't be necessary if the image was initialized properly
+	glTexParameterf( tex.target, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
+	glTexParameterf( tex.target, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
+
+	glTexParameterf( tex.target, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE );
+	glTexParameterf( tex.target, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE );
+
+	backEnd.pc.c_copyFrameBuffer++;
+}
+
+/*
+====================
+CopyDepthbuffer
+====================
+*/
+void idImage::CopyDepthbuffer( int x, int y, int imageWidth, int imageHeight )
+{
+	glTextureObject_t tex;
+	tex.DeriveTargetInfo( this );
+	glBindTexture( tex.target, this->texnum );
+
+	Resize( imageWidth, imageHeight, 1 );
+
+	if( GLEW_ARB_texture_storage )
+	{
+		glCopyTexSubImage2D( GL_TEXTURE_2D, 0, 0, 0, x, y, imageWidth, imageHeight );
+	}
+	else
+	{
+		glCopyTexImage2D( GL_TEXTURE_2D, 0, GL_DEPTH_STENCIL, x, y, imageWidth, imageHeight, 0 );
+	}
+
+	backEnd.pc.c_copyFrameBuffer++;
+}
+
+/*
+==============
+Bind
+
+Automatically enables 2D mapping or cube mapping if needed
+==============
+*/
+void idImage::Bind()
+{
+	RENDERLOG_PRINTF( "idImage::Bind( %s )\n", GetName() );
+
+	// load the image if necessary (FIXME: not SMP safe!)
+	if( !IsLoaded() )
+	{
+		// load the image on demand here, which isn't our normal game operating mode
+		ActuallyLoadImage( true );
+	}
+
+	const int texUnit = backEnd.glState.currenttmu;
+
+	auto glBindTexObject = []( uint32 currentType, GLenum _unit, GLenum _target, GLuint _name )
+	{
+		if( backEnd.glState.tmu[ _unit ].currentTarget[ currentType ] != _name )
+		{
+			backEnd.glState.tmu[ _unit ].currentTarget[ currentType ] = _name;
+
+		#if !defined( USE_GLES2 ) && !defined( USE_GLES3 )
+			if( glConfig.directStateAccess )
+			{
+				glBindMultiTextureEXT( GL_TEXTURE0 + _unit, _target, _name );
+			}
+			else
+		#endif
+			{
+				glActiveTexture( GL_TEXTURE0 + _unit );
+				glBindTexture( _target, _name );
+			}
+		}
+	};
+
+	if( GetOpts().textureType == TT_2D )
+	{
+		if( GetOpts().IsMultisampled() )
+		{
+			if( GetOpts().IsArray() )
+			{
+				glBindTexObject( target_2DMSArray, texUnit, GL_TEXTURE_2D_MULTISAMPLE_ARRAY, this->texnum );
+			}
+			else
+			{
+				glBindTexObject( target_2DMS, texUnit, GL_TEXTURE_2D_MULTISAMPLE, this->texnum );
+			}
+		}
+		else
+		{
+			if( GetOpts().IsArray() )
+			{
+				glBindTexObject( target_2DArray, texUnit, GL_TEXTURE_2D_ARRAY, this->texnum );
+			}
+			else
+			{
+				glBindTexObject( target_2D, texUnit, GL_TEXTURE_2D, this->texnum );
+			}
+		}
+	}
+	else if( GetOpts().textureType == TT_CUBIC )
+	{
+		if( GetOpts().IsArray() )
+		{
+			glBindTexObject( target_CubeMapArray, texUnit, GL_TEXTURE_CUBE_MAP_ARRAY, this->texnum );
+		}
+		else
+		{
+			glBindTexObject( target_CubeMap, texUnit, GL_TEXTURE_CUBE_MAP, this->texnum );
+		}
+	}
+	else if( GetOpts().textureType == TT_3D )
+	{
+		glBindTexObject( target_3D, texUnit, GL_TEXTURE_3D, this->texnum );
+	}
+
+#if 0 //SEA: later ;)
+	const struct glTypeInfo_t {
+		GLenum target;
+		//uint32 tmuIndex;
+	} glInfo[ 7 ] = {
+		GL_TEXTURE_2D,
+		GL_TEXTURE_2D_MULTISAMPLE,
+		GL_TEXTURE_2D_ARRAY,
+		GL_TEXTURE_2D_MULTISAMPLE_ARRAY,
+		GL_TEXTURE_CUBE_MAP,
+		GL_TEXTURE_CUBE_MAP_ARRAY,
+		GL_TEXTURE_3D
+	};
+	if( backEnd.glState.tmu[ texUnit ].currentTarget[ currentType ] != this->texnum )
+	{
+		backEnd.glState.tmu[ texUnit ].currentTarget[ currentType ] = this->texnum;
+
+	#if !defined( USE_GLES2 ) && !defined( USE_GLES3 )
+		if( glConfig.directStateAccess )
+		{
+			glBindMultiTextureEXT( GL_TEXTURE0 + texUnit, glInfo[].target, this->texnum );
+		} else
+	#endif
+		{
+			glActiveTexture( GL_TEXTURE0 + texUnit );
+			glBindTexture( glInfo[].target, this->texnum );
+		}
+	}
+#endif
+}
+
+/*
 ========================
-idImage::Resize
+idImage::SetSamplerState
 ========================
 */
-void idImage::Resize( int width, int height )
+void idImage::SetSamplerState( textureFilter_t tf, textureRepeat_t tr )
 {
-	if( opts.width == width && opts.height == height )
+	if( tf == filter && tr == repeat )
 	{
 		return;
 	}
-	opts.width = width;
-	opts.height = height;
-	AllocImage();
+	filter = tf;
+	repeat = tr;
+
+	glTextureObject_t tex;
+	tex.DeriveTargetInfo( this );
+	glBindTexture( tex.target, this->texnum );
+
+	SetTexParameters();
 }

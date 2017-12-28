@@ -35,7 +35,7 @@ static const int MAX_SSAO_BUFFERS = 2;
 static const int MAX_HIERARCHICAL_ZBUFFERS = 6; // native resolution + 5 MIP LEVELS
 
 #if 1
-static	int shadowMapResolutions[MAX_SHADOWMAP_RESOLUTIONS] = { 2048, 1024, 512, 512, 256 };
+static	int shadowMapResolutions[MAX_SHADOWMAP_RESOLUTIONS] = { 2048, 1024, 512, 256, 128 };
 #else
 static	int shadowMapResolutions[MAX_SHADOWMAP_RESOLUTIONS] = { 1024, 1024, 1024, 1024, 1024 };
 #endif
@@ -59,10 +59,7 @@ public:
 	bool					IsBound();
 	static void				Unbind();
 	static bool				IsDefaultFramebufferActive();
-	
-	void					AddColorBuffer( int format, int index, int multiSamples = 0 );
-	void					AddDepthBuffer( int format, int multiSamples = 0 );
-	
+
 	void					AttachImage2D( int target, const idImage* image, int index, int mipmapLod = 0 );
 	void					AttachImage3D( const idImage* image );
 	void					AttachImageDepth( int target, const idImage* image );

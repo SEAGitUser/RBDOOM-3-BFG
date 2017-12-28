@@ -405,7 +405,7 @@ idCinematicLocal::idCinematicLocal()
 	status = FMV_EOF;
 	buf = NULL;
 	iFile = NULL;
-	img = globalImages->AllocStandaloneImage( "_cinematic" );
+	img = globalImages->CreateStandaloneImage( "_cinematic" );
 	if( img != NULL )
 	{
 		idImageOpts opts;

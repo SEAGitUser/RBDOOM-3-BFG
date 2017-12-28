@@ -42,33 +42,17 @@ If you have questions concerning this license or the applicable additional terms
 class idImage;
 class idCinematic;
 class idUserInterface;
+enum textureRepeat_t;
 
-// moved from image.h for default parm
-typedef enum
-{
-	TF_LINEAR,
-	TF_NEAREST,
-	TF_NEAREST_MIPMAP,		// RB: no linear interpolation but explicit mip-map levels for hierarchical depth buffer
-	TF_DEFAULT				// use the user-specified r_textureFilter
-} textureFilter_t;
-
-typedef enum
-{
-	TR_REPEAT,
-	TR_CLAMP,
-	TR_CLAMP_TO_ZERO,		// guarantee 0,0,0,255 edge for projected textures
-	TR_CLAMP_TO_ZERO_ALPHA	// guarantee 0 alpha edge for projected textures
-} textureRepeat_t;
-
-typedef struct
+struct decalInfo_t
 {
 	int		stayTime;		// msec for no change
 	int		fadeTime;		// msec to fade vertex colors over
 	float	start[4];		// vertex color at spawn (possibly out of 0.0 - 1.0 range, will clamp after calc)
 	float	end[4];			// vertex color at fade-out (possibly out of 0.0 - 1.0 range, will clamp after calc)
-} decalInfo_t;
+};
 
-typedef enum
+enum deform_t
 {
 	DFRM_NONE,
 	DFRM_SPRITE,
@@ -80,9 +64,9 @@ typedef enum
 	DFRM_PARTICLE,
 	DFRM_PARTICLE2,
 	DFRM_TURB
-} deform_t;
+};
 
-typedef enum
+enum dynamicidImage_t
 {
 	DI_STATIC,
 	DI_SCRATCH,		// video, screen wipe, etc
@@ -90,10 +74,10 @@ typedef enum
 	DI_MIRROR_RENDER,
 	DI_XRAY_RENDER,
 	DI_REMOTE_RENDER
-} dynamicidImage_t;
+};
 
 // note: keep opNames[] in sync with changes
-typedef enum
+enum expOpType_t
 {
 	OP_TYPE_ADD,
 	OP_TYPE_SUBTRACT,
@@ -110,9 +94,9 @@ typedef enum
 	OP_TYPE_AND,
 	OP_TYPE_OR,
 	OP_TYPE_SOUND
-} expOpType_t;
+};
 
-typedef enum
+enum expRegister_t
 {
 	EXP_REG_TIME,
 	
@@ -139,20 +123,20 @@ typedef enum
 	EXP_REG_GLOBAL7,
 	
 	EXP_REG_NUM_PREDEFINED
-} expRegister_t;
+};
 
-typedef struct
+struct expOp_t
 {
 	expOpType_t		opType;
 	int				a, b, c;
-} expOp_t;
+};
 
-typedef struct
+struct colorStage_t
 {
 	int				registers[4];
-} colorStage_t;
+};
 
-typedef enum
+enum texgen_t
 {
 	TG_EXPLICIT,
 	TG_DIFFUSE_CUBE,
@@ -162,9 +146,9 @@ typedef enum
 	TG_SCREEN,			// screen aligned, for mirrorRenders and screen space temporaries
 	TG_SCREEN2,
 	TG_GLASSWARP
-} texgen_t;
+};
 
-typedef struct
+struct textureStage_t
 {
 	idCinematic* 		cinematic;
 	idImage* 			image;
@@ -176,31 +160,31 @@ typedef struct
 	dynamicidImage_t	dynamic;
 	int					width, height;
 	int					dynamicFrameCount;
-} textureStage_t;
+};
 
 // the order BUMP / DIFFUSE / SPECULAR is necessary for interactions to draw correctly on low end cards
-typedef enum
+enum stageLighting_t
 {
 	SL_AMBIENT,						// execute after lighting
 	SL_BUMP,
 	SL_DIFFUSE,
 	SL_SPECULAR,
 	SL_COVERAGE,
-} stageLighting_t;
+};
 
 // cross-blended terrain textures need to modulate the color by
 // the vertex color to smoothly blend between two textures
-typedef enum
+enum stageVertexColor_t
 {
 	SVC_IGNORE,
 	SVC_MODULATE,
 	SVC_INVERSE_MODULATE
-} stageVertexColor_t;
+};
 
 static const int	MAX_FRAGMENT_IMAGES = 8;
 static const int	MAX_VERTEX_PARMS = 4;
 
-typedef struct
+struct newShaderStage_t
 {
 	int					vertexProgram;
 	int					numVertexParms;
@@ -210,9 +194,9 @@ typedef struct
 	int					glslProgram;
 	int					numFragmentProgramImages;
 	idImage* 			fragmentProgramImages[MAX_FRAGMENT_IMAGES];
-} newShaderStage_t;
+};
 
-typedef struct
+struct shaderStage_t
 {
 	int					conditionRegister;	// if registers[conditionRegister] == 0, skip stage
 	stageLighting_t		lighting;			// determines which passes interact with lights
@@ -227,17 +211,17 @@ typedef struct
 	float				privatePolygonOffset;	// a per-stage polygon offset
 	
 	newShaderStage_t*	newStage;			// vertex / fragment program based stage
-} shaderStage_t;
+};
 
-typedef enum
+enum materialCoverage_t
 {
 	MC_BAD,
 	MC_OPAQUE,			// completely fills the triangle, will have black drawn on fillDepthBuffer
 	MC_PERFORATED,		// may have alpha tested holes
 	MC_TRANSLUCENT		// blended with background
-} materialCoverage_t;
+};
 
-typedef enum
+enum materialSort_t
 {
 	SS_SUBVIEW = -3,	// mirrors, viewscreens, etc
 	SS_GUI = -2,		// guis
@@ -257,14 +241,14 @@ typedef enum
 	SS_NEAREST,			// screen blood blobs
 	
 	SS_POST_PROCESS = 100	// after a screen copy to texture
-} materialSort_t;
+};
 
-typedef enum
+enum cullType_t
 {
 	CT_FRONT_SIDED,
 	CT_BACK_SIDED,
 	CT_TWO_SIDED
-} cullType_t;
+};
 
 // these don't effect per-material storage, so they can be very large
 const int MAX_SHADER_STAGES			= 256;
@@ -827,7 +811,7 @@ private:
 	void				ParseVertexParm( idLexer& src, newShaderStage_t* newStage );
 	void				ParseVertexParm2( idLexer& src, newShaderStage_t* newStage );
 	void				ParseFragmentMap( idLexer& src, newShaderStage_t* newStage );
-	void				ParseStage( idLexer& src, const textureRepeat_t trpDefault = TR_REPEAT );
+	void				ParseStage( idLexer& src, const textureRepeat_t trpDefault ); // TR_REPEAT
 	void				ParseDeform( idLexer& src );
 	void				ParseDecalInfo( idLexer& src );
 	bool				CheckSurfaceParm( idToken* token );
@@ -844,7 +828,7 @@ private:
 	int					NameToDstBlendMode( const idStr& name );
 	void				MultiplyTextureMatrix( textureStage_t* ts, int registers[2][3] );	// FIXME: for some reason the const is bad for gcc and Mac
 	void				SortInteractionStages();
-	void				AddImplicitStages( const textureRepeat_t trpDefault = TR_REPEAT );
+	void				AddImplicitStages( const textureRepeat_t trpDefault ); // TR_REPEAT
 	void				CheckForConstantRegisters();
 	void				SetFastPathImages();
 	
