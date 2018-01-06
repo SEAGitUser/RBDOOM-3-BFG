@@ -38,7 +38,7 @@ If you have questions concerning this license or the applicable additional terms
 #include "ImageOpts.h"
 #include "Image.h"
 #include "Font.h"
-#include "Framebuffer.h"
+#include "RenderDestination.h"
 
 // everything that is needed by the backend needs
 // to be double buffered to allow it to run in
@@ -371,8 +371,8 @@ struct viewLight_t
 	idImage* 						falloffImage;				// falloff image used by backend
 	
 	drawSurf_t* 					globalShadows;				// shadow everything
-	drawSurf_t* 					localInteractions;			// don't get local shadows
 	drawSurf_t* 					localShadows;				// don't shadow local surfaces
+	drawSurf_t* 					localInteractions;			// don't get local shadows
 	drawSurf_t* 					globalInteractions;			// get shadows from everything
 	drawSurf_t* 					translucentInteractions;	// translucent interactions don't get shadows
 	
@@ -401,6 +401,8 @@ struct viewModel_t
 	idScreenRect					scissorRect;
 	
 	bool							isGuiSurface;			// force two sided and vertex colors regardless of material setting
+
+	//bool							isWorldModel;
 	
 	bool							skipMotionBlur;
 	
@@ -508,9 +510,9 @@ public:
 	// mirror intersects a portal, and the initialViewAreaOrigin is on
 	// a different side than the renderView.viewOrg is.
 	
-	bool					isSubview;				// true if this view is not the main view
-	bool					isMirror;				// the portal is a mirror, invert the face culling
-	bool					isXraySubview;
+	bool					isSubview;		// true if this view is not the main view
+	bool						isMirror;			// the portal is a mirror, invert the face culling
+	bool						isXraySubview;
 	
 	bool					isEditor;
 	bool					is2Dgui;
@@ -528,13 +530,14 @@ public:
 	
 	idRenderView* 			baseView;				// never go into an infinite subview loop
 	const drawSurf_t* 		subviewSurface;
+	idImage *				subviewRenderTexture;
 	
 	// drawSurfs are the visible surfaces of the viewEntities, sorted
 	// by the material sort parameter
 	drawSurf_t** 			drawSurfs;				// we don't use an idList for this, because
-	int						numDrawSurfs;			// it is allocated in frame temporary memory
-	int						maxDrawSurfs;			// may be resized
-	
+	int32					numDrawSurfs;			// it is allocated in frame temporary memory
+	int32					maxDrawSurfs;			// may be resized
+
 	viewLight_t*			viewLights;				// chain of all viewLights effecting view
 	viewModel_t* 			viewEntitys;			// chain of all viewEntities effecting view, including off screen ones casting shadows
 	// we use viewEntities as a check to see if a given view consists solely
@@ -586,33 +589,16 @@ public:
 
 	void							DeriveData();
 
+	// UTILITIES
+
 	// Transform global point to normalized device coordinates.
 	void							GlobalToNormalizedDeviceCoordinates( const idVec3& in_global, idVec3& out_ndc ) const;
 	// Find the screen pixel bounding box of the given winding( global winding-> model space-> screen space ).
 	void							ScreenRectFromWinding( const idWinding &, const idRenderMatrix & modelMatrix, idScreenRect &/*OUT*/ ) const;
-};
 
+	void							ScreenRectFromViewFrustumBounds( const idBounds &bounds, idScreenRect & screenRect ) const;
 
-// complex light / surface interactions are broken up into multiple passes of a
-// simple interaction shader
-struct drawInteraction_t
-{
-	const drawSurf_t* 	surf;
-	
-	idImage* 			bumpImage;
-	idImage* 			diffuseImage;
-	idImage* 			specularImage;
-	
-	idVec4				diffuseColor;	// may have a light color baked into it
-	idVec4				specularColor;	// may have a light color baked into it
-	stageVertexColor_t	vertexColor;	// applies to both diffuse and specular
-	
-	int					ambientLight;	// use tr.ambientNormalMap instead of normalization cube map
-	
-	// these are loaded into the vertex program
-	idVec4				bumpMatrix[2];
-	idVec4				diffuseMatrix[2];
-	idVec4				specularMatrix[2];
+	bool							PreciseCullSurface( const drawSurf_t* const drawSurf, idBounds& ndcBounds ) const;
 };
 
 /*
@@ -648,7 +634,14 @@ struct setBufferCommand_t
 	renderCommand_t		commandId;
 	renderCommand_t* 	next;
 
-	GLenum	buffer;
+	GLenum			buffer;
+
+	///int				frameCount;
+	///idScreenRect	rect;
+	///int				x, y, imageWidth, imageHeight;
+	///idImage*		image;
+	///int				cubeFace;	// when copying to a cubeMap
+	///bool			clear;
 };
 
 struct drawSurfsCommand_t
@@ -738,9 +731,6 @@ public:
 
 void R_AddDrawViewCmd( idRenderView* parms, bool guiOnly );
 void R_AddDrawPostProcess( idRenderView* parms );
-
-void R_ReloadGuis_f( const idCmdArgs& args );
-void R_ListGuis_f( const idCmdArgs& args );
 
 // this allows a global override of all materials
 bool R_GlobalShaderOverride( const idMaterial** shader );
@@ -833,7 +823,8 @@ const int MAX_MULTITEXTURE_UNITS =	8;
 enum vertexLayoutType_t
 {
 	LAYOUT_UNKNOWN = 0,
-	LAYOUT_DRAW_VERT,
+	LAYOUT_DRAW_VERT_FULL,
+	LAYOUT_DRAW_VERT_POSITION_ONLY,
 	LAYOUT_DRAW_SHADOW_VERT,
 	LAYOUT_DRAW_SHADOW_VERT_SKINNED
 };
@@ -1047,7 +1038,7 @@ public:
 	
 	performanceCounters_t	pc;					// performance counters
 	
-	viewModel_t			identitySpace;		// can use if we don't know viewDef->worldSpace is valid
+	viewModel_t				identitySpace;		// can use if we don't know viewDef->worldSpace is valid
 	
 	idScreenRect			renderCrops[MAX_RENDER_CROPS];
 	int						currentRenderCrop;
@@ -1151,8 +1142,6 @@ extern idCVar r_skipRenderContext;			// NULL the rendering context during backen
 extern idCVar r_skipTranslucent;			// skip the translucent interaction rendering
 extern idCVar r_skipAmbient;				// bypasses all non-interaction drawing
 extern idCVar r_skipNewAmbient;				// bypasses all vertex/fragment program ambients
-extern idCVar r_skipBlendLights;			// skip all blend lights
-extern idCVar r_skipFogLights;				// skip all fog lights
 extern idCVar r_skipSubviews;				// 1 = don't render any mirrors / cameras / etc
 extern idCVar r_skipGuiShaders;				// 1 = don't render any gui elements on surfaces
 extern idCVar r_skipParticles;				// 1 = don't render any particles
@@ -1476,7 +1465,7 @@ TR_FRONTEND_DEFORM
 =============================================================
 */
 
-drawSurf_t* R_DeformDrawSurf( drawSurf_t* drawSurf );
+drawSurf_t* R_DeformDrawSurf( drawSurf_t* );
 
 /*
 =============================================================
@@ -1486,7 +1475,7 @@ TR_FRONTEND_GUISURF
 =============================================================
 */
 
-void R_SurfaceToTextureAxis( const idTriangles* tri, idVec3& origin, idMat3& axis );
+void R_SurfaceToTextureAxis( const idTriangles*, idVec3& origin, idMat3& axis );
 
 /*
 ============================================================
@@ -1496,7 +1485,7 @@ TR_FRONTEND_SUBVIEW
 ============================================================
 */
 
-bool R_PreciseCullSurface( const drawSurf_t* drawSurf, idBounds& ndcBounds );
+bool R_PreciseCullSurface( const idRenderView *, const drawSurf_t*, idBounds& ndcBounds );
 
 /*
 ============================================================

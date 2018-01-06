@@ -207,6 +207,10 @@ public:
 	// The positive sides of the planes will be visible.
 	static idTriangles *		CreateTrianglesForPolytope( int numPlanes, const idPlane* planes, idWinding** windings );
 
+	static idTriangles *		MakeZeroOneQuad();
+	static idTriangles *		MakeZeroOneCube();
+	static idTriangles *		MakeUnitQuad();
+
 	size_t						CPUMemoryUsed() const;
 	//size_t						GPUMemoryUsed() const;
 

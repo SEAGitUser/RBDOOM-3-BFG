@@ -66,10 +66,8 @@ void idRenderWindow::CommonInit()
 	updateAnimation = true;
 }
 
-
 void idRenderWindow::BuildAnimation( int time )
 {
-
 	if( !updateAnimation )
 	{
 		return;
@@ -95,6 +93,7 @@ void idRenderWindow::PreRender()
 	if( needsRender )
 	{
 		world->InitFromMap( NULL );
+
 		idDict spawnArgs;
 		spawnArgs.Set( "classname", "light" );
 		spawnArgs.Set( "name", "light_1" );
@@ -102,11 +101,12 @@ void idRenderWindow::PreRender()
 		spawnArgs.Set( "_color", lightColor.ToVec3().ToString() );
 		gameEdit->ParseSpawnArgsToRenderLight( &spawnArgs, &rLight );
 		lightDef = world->AddLightDef( &rLight );
+		
 		if( !modelName[0] )
 		{
 			common->Warning( "Window '%s' in gui '%s': no model set", GetName(), GetGui()->GetSourceFile() );
 		}
-		memset( &worldEntity, 0, sizeof( worldEntity ) );
+		worldEntity.Clear();
 		spawnArgs.Clear();
 		spawnArgs.Set( "classname", "func_static" );
 		spawnArgs.Set( "model", modelName );
@@ -116,10 +116,11 @@ void idRenderWindow::PreRender()
 		{
 			idVec3 v = modelRotate.ToVec3();
 			worldEntity.axis = v.ToMat3();
-			worldEntity.shaderParms[0] = 1;
-			worldEntity.shaderParms[1] = 1;
-			worldEntity.shaderParms[2] = 1;
-			worldEntity.shaderParms[3] = 1;
+			worldEntity.shaderParms[ SHADERPARM_RED   ] = 1.0f;
+			worldEntity.shaderParms[ SHADERPARM_GREEN ] = 1.0f;
+			worldEntity.shaderParms[ SHADERPARM_BLUE  ] = 1.0f;
+			worldEntity.shaderParms[ SHADERPARM_ALPHA ] = 1.0f;
+			
 			modelDef = world->AddEntityDef( &worldEntity );
 		}
 		needsRender = false;
@@ -152,26 +153,23 @@ void idRenderWindow::Render( int time )
 	}
 }
 
-
-
-
 void idRenderWindow::Draw( int time, float x, float y )
 {
 	PreRender();
 	Render( time );
-	
-	memset( &refdef, 0, sizeof( refdef ) );
+
+	refdef.Clear();
 	refdef.vieworg = viewOffset.ToVec3();;
 	//refdef.vieworg.Set(-128, 0, 0);
 	
 	refdef.viewaxis.Identity();
-	refdef.shaderParms[0] = 1;
-	refdef.shaderParms[1] = 1;
-	refdef.shaderParms[2] = 1;
-	refdef.shaderParms[3] = 1;
+	refdef.shaderParms[ SHADERPARM_RED   ] = 1.0f;
+	refdef.shaderParms[ SHADERPARM_GREEN ] = 1.0f;
+	refdef.shaderParms[ SHADERPARM_BLUE  ] = 1.0f;
+	refdef.shaderParms[ SHADERPARM_ALPHA ] = 1.0f;
 	
-	refdef.fov_x = 90;
-	refdef.fov_y = 2 * atan( ( float )drawRect.h / drawRect.w ) * idMath::M_RAD2DEG;
+	refdef.fov_x = 90.0f;
+	refdef.fov_y = 2.0f * idMath::ATan( ( float )drawRect.h / drawRect.w ) * idMath::M_RAD2DEG;
 	
 	refdef.time[0] = time;
 	refdef.time[1] = time;
@@ -219,8 +217,7 @@ idWinVar* idRenderWindow::GetWinVarByName( const char* _name, bool fixup, drawWi
 	if( idStr::Icmp( _name, "needsRender" ) == 0 )
 	{
 		return &needsRender;
-	}
-	
+	}	
 //
 //
 	return idWindow::GetWinVarByName( _name, fixup, owner );

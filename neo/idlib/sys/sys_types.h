@@ -119,15 +119,15 @@ struct idNullPtr
 
 // C99 Standard
 #ifndef nullptr
-#define nullptr	idNullPtr()
+	#define nullptr	idNullPtr()
 #endif
 
 #ifndef BIT
-#define BIT( num )				( 1ULL << ( num ) )
+	#define BIT( num )			( 1ULL << ( num ) )
 #endif
 
 #ifndef NUMBITS
-#define NUMBITS( _type_ )		( sizeof( _type_ ) * 8 )
+	#define NUMBITS( _type_ )	( sizeof( _type_ ) * 8 )
 #endif
 
 #define	MAX_STRING_CHARS		1024		// max length of a static string

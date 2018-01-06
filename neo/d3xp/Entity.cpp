@@ -1760,7 +1760,7 @@ renderView_t* idEntity::GetRenderView()
 	{
 		renderView = new( TAG_ENTITY ) renderView_t;
 	}
-	memset( renderView, 0, sizeof( *renderView ) );
+	renderView->Clear();
 	
 	renderView->vieworg = GetPhysics()->GetOrigin();
 	renderView->fov_x = 120;

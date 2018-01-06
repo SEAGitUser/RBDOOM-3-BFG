@@ -73,6 +73,7 @@ public:
 	bool			AddBounds( const idBounds& a );					// add the bounds, returns true if the bounds expanded
 	idBounds		Intersect( const idBounds& a ) const;			// return intersection of this bounds with the given bounds
 	idBounds& 		IntersectSelf( const idBounds& a );				// intersect this bounds with the given bounds
+	idBounds&		IntersectXYSelf( const idBounds& a );			// intersect this bounds xy with the given bounds xy
 	idBounds		Expand( const float d ) const;					// return bounds expanded in all directions with the given value
 	idBounds& 		ExpandSelf( const float d );					// expand bounds in all directions with the given value
 	idBounds		Translate( const idVec3& translation ) const;	// return translated bounds
@@ -110,6 +111,9 @@ public:
 	
 	const float* 	ToFloatPtr() const;
 	float* 			ToFloatPtr();
+
+	const idVec3 &	GetMins() const { return b[0]; }
+	const idVec3 &	GetMaxs() const { return b[1]; }
 	
 private:
 	idVec3			b[2];
@@ -340,30 +344,27 @@ ID_INLINE idBounds idBounds::Intersect( const idBounds& a ) const
 
 ID_INLINE idBounds& idBounds::IntersectSelf( const idBounds& a )
 {
-	if( a.b[0][0] > b[0][0] )
-	{
-		b[0][0] = a.b[0][0];
-	}
-	if( a.b[0][1] > b[0][1] )
-	{
-		b[0][1] = a.b[0][1];
-	}
-	if( a.b[0][2] > b[0][2] )
-	{
-		b[0][2] = a.b[0][2];
-	}
-	if( a.b[1][0] < b[1][0] )
-	{
-		b[1][0] = a.b[1][0];
-	}
-	if( a.b[1][1] < b[1][1] )
-	{
-		b[1][1] = a.b[1][1];
-	}
-	if( a.b[1][2] < b[1][2] )
-	{
-		b[1][2] = a.b[1][2];
-	}
+	if( a.b[0][0] > b[0][0] ) b[0][0] = a.b[0][0];
+	if( a.b[0][1] > b[0][1] ) b[0][1] = a.b[0][1];
+	if( a.b[1][0] < b[1][0] ) b[1][0] = a.b[1][0];
+	if( a.b[1][1] < b[1][1] ) b[1][1] = a.b[1][1];
+
+	if( a.b[0][2] > b[0][2] ) b[0][2] = a.b[0][2];
+	if( a.b[1][2] < b[1][2] ) b[1][2] = a.b[1][2];
+
+	return *this;
+}
+
+ID_INLINE idBounds& idBounds::IntersectXYSelf( const idBounds& a )
+{
+	if( a.b[0][0] > b[0][0] ) b[0][0] = a.b[0][0];
+	if( a.b[0][1] > b[0][1] ) b[0][1] = a.b[0][1];
+	if( a.b[1][0] < b[1][0] ) b[1][0] = a.b[1][0];
+	if( a.b[1][1] < b[1][1] ) b[1][1] = a.b[1][1];
+
+	//if( a.b[0][2] > b[0][2] ) b[0][2] = a.b[0][2];
+	//if( a.b[1][2] < b[1][2] ) b[1][2] = a.b[1][2];
+
 	return *this;
 }
 

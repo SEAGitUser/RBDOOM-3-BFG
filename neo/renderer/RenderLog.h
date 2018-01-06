@@ -84,10 +84,7 @@ public:
 	void		StartFrame();
 	void		EndFrame();
 	void		Close();
-	int			Active()
-	{
-		return activeLevel;    // returns greater than 1 for more detailed logging
-	}
+	int			Active() { return activeLevel; }    // returns greater than 1 for more detailed logging
 	
 	// The label must be a constant string literal and may not point to a temporary.
 	void		OpenMainBlock( renderLogMainBlock_t block );
@@ -109,7 +106,7 @@ public:
 	int						indentLevel;
 	const char* 			lastLabel;
 	renderLogMainBlock_t	lastMainBlock;
-//	idFile*					logFile;
+	idFile*					logFile;
 
 	struct logStats_t
 	{
@@ -123,7 +120,7 @@ public:
 	logStats_t				logStats[MAX_LOG_LEVELS];
 	int						logLevel;
 	
-	void					LogOpenBlock( renderLogIndentLabel_t label, const char* fmt, ... );
+	void					LogOpenBlock( renderLogIndentLabel_t label, const char * fmt, va_list args );
 	void					LogCloseBlock( renderLogIndentLabel_t label );
 };
 
@@ -134,8 +131,8 @@ idRenderLog::Indent
 */
 ID_INLINE void idRenderLog::Indent( renderLogIndentLabel_t label )
 {
-	//if( logFile != NULL )
-	if( r_logFile.GetInteger() != 0 )
+	if( logFile != NULL )
+	//if( r_logFile.GetInteger() != 0 )
 	{
 		indentLabel[indentLevel] = label;
 		indentLevel++;
@@ -154,8 +151,8 @@ idRenderLog::Outdent
 */
 ID_INLINE void idRenderLog::Outdent( renderLogIndentLabel_t label )
 {
-	//if( logFile != NULL && indentLevel > 0 )
-	if( r_logFile.GetInteger() != 0 && indentLevel > 0 )
+	if( logFile != NULL && indentLevel > 0 )
+	//if( r_logFile.GetInteger() != 0 && indentLevel > 0 )
 	{
 		indentLevel--;
 		assert( indentLabel[indentLevel] == label );	// indent and outdent out of sync ?
@@ -211,7 +208,7 @@ extern idRenderLog renderLog;
 	#define RENDERLOG_OPEN_BLOCK( X )
 	#define RENDERLOG_CLOSE_BLOCK()
 
-	#define RENDERLOG_PRINTF( X )
+	#define RENDERLOG_PRINT( X )
 
 	#define RENDERLOG_INDENT()
 	#define RENDERLOG_OUTDENT()
@@ -225,7 +222,7 @@ extern idRenderLog renderLog;
 	#define RENDERLOG_OPEN_BLOCK( Text ) renderLog.OpenBlock( Text )
 	#define RENDERLOG_CLOSE_BLOCK() renderLog.CloseBlock()
 
-	#define RENDERLOG_PRINTF( ... ) renderLog.Printf( __VA_ARGS__ )
+	#define RENDERLOG_PRINT( ... ) renderLog.Printf( __VA_ARGS__ )
 
 	#define RENDERLOG_INDENT()	renderLog.Indent()
 	#define RENDERLOG_OUTDENT() renderLog.Outdent()

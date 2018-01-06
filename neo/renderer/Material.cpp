@@ -236,18 +236,18 @@ idImage* idMaterial::GetEditorImage() const
 		}
 		else
 		{
-			editorImage = globalImages->defaultImage;
+			editorImage = renderImageManager->defaultImage;
 		}
 	}
 	else
 	{
 		// look for an explicit one
-		editorImage = globalImages->ImageFromFile( editorImageName, TF_DEFAULT, TR_REPEAT, TD_DEFAULT );
+		editorImage = renderImageManager->ImageFromFile( editorImageName, TF_DEFAULT, TR_REPEAT, TD_DEFAULT );
 	}
 	
 	if( !editorImage )
 	{
-		editorImage = globalImages->defaultImage;
+		editorImage = renderImageManager->defaultImage;
 	}
 	
 	return editorImage;
@@ -1171,17 +1171,13 @@ idMaterial::ParseFragmentMap
 */
 void idMaterial::ParseFragmentMap( idLexer& src, newShaderStage_t* newStage )
 {
-	const char*			str;
-	textureFilter_t		tf;
-	textureRepeat_t		trp;
-	textureUsage_t		td;
-	cubeFiles_t			cubeMap;
-	idToken				token;
+	const char*	str;
+	idToken	token;
 	
-	tf = TF_DEFAULT;
-	trp = TR_REPEAT;
-	td = TD_DEFAULT;
-	cubeMap = CF_2D;
+	textureFilter_t tf = TF_DEFAULT;
+	textureRepeat_t trp = TR_REPEAT;
+	textureUsage_t td = TD_DEFAULT;
+	textureLayout_t cubeMap = IMG_LAYOUT_2D;
 	
 	src.ReadTokenOnLine( &token );
 	int	unit = token.GetIntValue();
@@ -1214,12 +1210,12 @@ void idMaterial::ParseFragmentMap( idLexer& src, newShaderStage_t* newStage )
 		}
 		if( !token.Icmp( "cubeMap" ) )
 		{
-			cubeMap = CF_NATIVE;
+			cubeMap = IMG_LAYOUT_CUBE_NATIVE;
 			continue;
 		}
 		if( !token.Icmp( "cameraCubeMap" ) )
 		{
-			cubeMap = CF_CAMERA;
+			cubeMap = IMG_LAYOUT_CUBE_CAMERA;
 			continue;
 		}
 		if( !token.Icmp( "nearest" ) )
@@ -1275,10 +1271,10 @@ void idMaterial::ParseFragmentMap( idLexer& src, newShaderStage_t* newStage )
 	}
 	str = R_ParsePastImageProgram( src );
 	
-	newStage->fragmentProgramImages[unit] = globalImages->ImageFromFile( str, tf, trp, td, cubeMap );
+	newStage->fragmentProgramImages[unit] = renderImageManager->ImageFromFile( str, tf, trp, td, cubeMap );
 	if( !newStage->fragmentProgramImages[unit] )
 	{
-		newStage->fragmentProgramImages[unit] = globalImages->defaultImage;
+		newStage->fragmentProgramImages[unit] = renderImageManager->defaultImage;
 	}
 }
 
@@ -1349,10 +1345,6 @@ void idMaterial::ParseStage( idLexer& src, const textureRepeat_t trpDefault )
 	const char*			str;
 	shaderStage_t*		ss;
 	textureStage_t*		ts;
-	textureFilter_t		tf;
-	textureRepeat_t		trp;
-	textureUsage_t		td;
-	cubeFiles_t			cubeMap;
 	char				imageName[MAX_IMAGE_NAME];
 	int					a, b;
 	int					matrix[2][3];
@@ -1364,10 +1356,10 @@ void idMaterial::ParseStage( idLexer& src, const textureRepeat_t trpDefault )
 		common->Warning( "material '%s' exceeded %i stages", GetName(), MAX_SHADER_STAGES );
 	}
 	
-	tf = TF_DEFAULT;
-	trp = trpDefault;
-	td = TD_DEFAULT;
-	cubeMap = CF_2D;
+	textureFilter_t tf = TF_DEFAULT;
+	textureRepeat_t trp = trpDefault;
+	textureUsage_t td = TD_DEFAULT;
+	textureLayout_t cubeMap = IMG_LAYOUT_2D;
 	
 	imageName[0] = 0;
 	
@@ -1499,7 +1491,7 @@ void idMaterial::ParseStage( idLexer& src, const textureRepeat_t trpDefault )
 		{
 			str = R_ParsePastImageProgram( src );
 			idStr::Copynz( imageName, str, sizeof( imageName ) );
-			cubeMap = CF_NATIVE;
+			cubeMap = IMG_LAYOUT_CUBE_NATIVE;
 			continue;
 		}
 		
@@ -1507,7 +1499,7 @@ void idMaterial::ParseStage( idLexer& src, const textureRepeat_t trpDefault )
 		{
 			str = R_ParsePastImageProgram( src );
 			idStr::Copynz( imageName, str, sizeof( imageName ) );
-			cubeMap = CF_CAMERA;
+			cubeMap = IMG_LAYOUT_CUBE_CAMERA;
 			continue;
 		}
 		
@@ -1610,8 +1602,7 @@ void idMaterial::ParseStage( idLexer& src, const textureRepeat_t trpDefault )
 				texGenRegisters[1] = ParseExpression( src );
 				texGenRegisters[2] = ParseExpression( src );
 			}
-			else
-			{
+			else {
 				common->Warning( "bad texGen '%s' in material %s", token.c_str(), GetName() );
 				SetMaterialFlag( MF_DEFAULTED );
 			}
@@ -1908,46 +1899,46 @@ void idMaterial::ParseStage( idLexer& src, const textureRepeat_t trpDefault )
 	if( ( td == TD_DIFFUSE ) && ss->hasAlphaTest )
 	{
 		// create new coverage stage
-		shaderStage_t* newCoverageStage = &pd->parseStages[numStages];
+		auto & newCoverageStage = pd->parseStages[ numStages ];
 		numStages++;
 		// copy it
-		*newCoverageStage = *ss;
+		newCoverageStage = *ss;
 		// toggle alphatest off for the current stage so it doesn't get called during the depth fill pass
 		ss->hasAlphaTest = false;
 		// toggle alpha test on for the coverage stage
-		newCoverageStage->hasAlphaTest = true;
-		newCoverageStage->lighting = SL_COVERAGE;
-		textureStage_t* coverageTS = &newCoverageStage->texture;
+		newCoverageStage.hasAlphaTest = true;
+		newCoverageStage.lighting = SL_COVERAGE;
+		auto & coverageTS = newCoverageStage.texture;
 		
 		// now load the image with all the parms we parsed for the coverage stage
 		if( imageName[0] )
 		{
-			coverageTS->image = globalImages->ImageFromFile( imageName, tf, trp, TD_COVERAGE, cubeMap );
-			if( !coverageTS->image )
+			coverageTS.image = renderImageManager->ImageFromFile( imageName, tf, trp, TD_COVERAGE, cubeMap );
+			if( !coverageTS.image )
 			{
-				coverageTS->image = globalImages->defaultImage;
+				coverageTS.image = renderImageManager->defaultImage;
 			}
 		}
-		else if( !coverageTS->cinematic && !coverageTS->dynamic && !ss->newStage )
+		else if( !coverageTS.cinematic && !coverageTS.dynamic && !ss->newStage )
 		{
 			common->Warning( "material '%s' had stage with no image", GetName() );
-			coverageTS->image = globalImages->defaultImage;
+			coverageTS.image = renderImageManager->defaultImage;
 		}
 	}
 	
 	// now load the image with all the parms we parsed
 	if( imageName[0] )
 	{
-		ts->image = globalImages->ImageFromFile( imageName, tf, trp, td, cubeMap );
+		ts->image = renderImageManager->ImageFromFile( imageName, tf, trp, td, cubeMap );
 		if( !ts->image )
 		{
-			ts->image = globalImages->defaultImage;
+			ts->image = renderImageManager->defaultImage;
 		}
 	}
 	else if( !ts->cinematic && !ts->dynamic && !ss->newStage )
 	{
 		common->Warning( "material '%s' had stage with no image", GetName() );
-		ts->image = globalImages->defaultImage;
+		ts->image = renderImageManager->defaultImage;
 	}
 }
 
@@ -2190,17 +2181,15 @@ If there is any error during parsing, defaultShader will be set.
 void idMaterial::ParseMaterial( idLexer& src )
 {
 	idToken		token;
-	int			s;
 	char		buffer[1024];
 	const char*	str;
 	idLexer		newSrc;
-	int			i;
 	
-	s = 0;
+	int s = 0;
 	
 	numOps = 0;
 	numRegisters = EXP_REG_NUM_PREDEFINED;	// leave space for the parms to be copied in
-	for( i = 0 ; i < numRegisters ; i++ )
+	for( int i = 0 ; i < numRegisters ; i++ )
 	{
 		pd->registerIsTemporary[i] = true;		// they aren't constants that can be folded
 	}
@@ -2245,8 +2234,6 @@ void idMaterial::ParseMaterial( idLexer& src )
 		{
 			continue;
 		}
-		
-		
 		// polygonOffset
 		else if( !token.Icmp( "polygonOffset" ) )
 		{
@@ -2398,10 +2385,8 @@ void idMaterial::ParseMaterial( idLexer& src )
 		else if( !token.Icmp( "lightFalloffImage" ) )
 		{
 			str = R_ParsePastImageProgram( src );
-			idStr	copy;
-			
-			copy = str;	// so other things don't step on it
-			lightFalloffImage = globalImages->ImageFromFile( copy, TF_DEFAULT, TR_CLAMP /* TR_CLAMP_TO_ZERO */, TD_DEFAULT );
+			idStr copy = str;	// so other things don't step on it
+			lightFalloffImage = renderImageManager->ImageFromFile( copy, TF_DEFAULT, TR_CLAMP /* TR_CLAMP_TO_ZERO */, TD_DEFAULT );
 			continue;
 		}
 		// guisurf <guifile> | guisurf entity
@@ -2571,7 +2556,7 @@ void idMaterial::ParseMaterial( idLexer& src )
 	// in temporary form
 	if( cullType == CT_TWO_SIDED )
 	{
-		for( i = 0 ; i < numStages ; i++ )
+		for( int i = 0 ; i < numStages ; i++ )
 		{
 			if( pd->parseStages[i].lighting != SL_AMBIENT || pd->parseStages[i].texture.texgen != TG_EXPLICIT )
 			{
@@ -2587,7 +2572,7 @@ void idMaterial::ParseMaterial( idLexer& src )
 	
 	// currently a surface can only have one unique texgen for all the stages on old hardware
 	texgen_t firstGen = TG_EXPLICIT;
-	for( i = 0; i < numStages; i++ )
+	for( int i = 0; i < numStages; i++ )
 	{
 		if( pd->parseStages[i].texture.texgen != TG_EXPLICIT )
 		{
@@ -2752,7 +2737,7 @@ bool idMaterial::Parse( const char* text, const int textLength, bool allowBinary
 	for( i = 0 ; i < numStages ; i++ )
 	{
 		shaderStage_t*	pStage = &pd->parseStages[i];
-		if( pStage->texture.image == globalImages->originalCurrentRenderImage )
+		if( pStage->texture.image == renderImageManager->originalCurrentRenderImage )
 		{
 			if( sort != SS_PORTAL_SKY )
 			{
@@ -2765,7 +2750,7 @@ bool idMaterial::Parse( const char* text, const int textLength, bool allowBinary
 		{
 			for( int j = 0 ; j < pStage->newStage->numFragmentProgramImages ; j++ )
 			{
-				if( pStage->newStage->fragmentProgramImages[j] == globalImages->originalCurrentRenderImage )
+				if( pStage->newStage->fragmentProgramImages[j] == renderImageManager->originalCurrentRenderImage )
 				{
 					if( sort != SS_PORTAL_SKY )
 					{
@@ -3444,7 +3429,7 @@ void idMaterial::SetFastPathImages()
 	}
 	if( fastPathSpecularImage == NULL )
 	{
-		fastPathSpecularImage = globalImages->blackImage;
+		fastPathSpecularImage = renderImageManager->blackImage;
 	}
 	return;
 	

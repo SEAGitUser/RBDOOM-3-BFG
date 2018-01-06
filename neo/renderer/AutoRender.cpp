@@ -84,7 +84,7 @@ void idAutoRender::StartBackgroundAutoSwaps( autoRenderIconType_t iconType ) {
 	// unbind all texture units so we don't run into a race condition where the device is owned
 	// by the autorender thread but an image is trying to be unset from the main thread because
 	// it is getting purged before our our first frame has been rendered.
-	globalImages->UnbindAll();
+	renderImageManager->UnbindAll();
 
 
 	StartThread("BackgroundAutoSwaps", CORE_0B, THREAD_NORMAL, AUTO_RENDER_STACK_SIZE );
@@ -156,7 +156,7 @@ idAutoRender::RenderBackground
 void idAutoRender::RenderBackground() {
 	GL_SelectTexture( 0 );
 
-	globalImages->currentRenderImage->Bind();
+	renderImageManager->currentRenderImage->Bind();
 
 	GL_State( GLS_DEPTHFUNC_ALWAYS | GLS_SRCBLEND_ONE | GLS_DSTBLEND_ZERO );
 
@@ -181,7 +181,7 @@ void idAutoRender::RenderBackground() {
 
 	renderProgManager.BindShader_TextureVertexColor();
 
-	GL_DrawElementsWithCounters( &backEnd.unitSquareSurface );
+	GL_DrawIndexed( &backEnd.unitSquareSurface );
 }
 
 /*
@@ -252,9 +252,9 @@ void idAutoRender::RenderLoadingIcon( float fracX, float fracY, float size, floa
 	GL_SelectTexture( 0 );
 
 	if ( autoRenderIcon == AUTORENDER_HELLICON ) {
-		globalImages->hellLoadingIconImage->Bind();
+		renderImageManager->hellLoadingIconImage->Bind();
 	} else {
-		globalImages->loadingIconImage->Bind();
+		renderImageManager->loadingIconImage->Bind();
 	}
 
 	GL_State( GLS_DEPTHFUNC_ALWAYS | GLS_SRCBLEND_SRC_ALPHA | GLS_DSTBLEND_ONE_MINUS_SRC_ALPHA );
@@ -275,5 +275,5 @@ void idAutoRender::RenderLoadingIcon( float fracX, float fracY, float size, floa
 
 	renderProgManager.BindShader_TextureVertexColor();
 
-	GL_DrawElementsWithCounters( &backEnd.unitSquareSurface );
+	GL_DrawIndexed( &backEnd.unitSquareSurface );
 }

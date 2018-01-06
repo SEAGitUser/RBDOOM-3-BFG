@@ -39,8 +39,7 @@ to keep it compact, instead of just using the idBounds class
 ================================================================================================
 */
 
-class idScreenRect
-{
+class idScreenRect {
 public:
 	// Inclusive pixel bounds inside viewport
 	short		x1;
@@ -51,32 +50,65 @@ public:
 	// for depth bounds test
 	float       zmin;
 	float		zmax;
+
+public:
+	idScreenRect() { Clear(); }
+	idScreenRect( int x1, int y1, int x2, int y2 )
+	{
+		this->x1 = idMath::ClampShort( x1 );
+		this->y1 = idMath::ClampShort( y1 );
+		this->x2 = idMath::ClampShort( x2 );
+		this->y2 = idMath::ClampShort( y2 );
+	}
 	
 	// clear to backwards values
-	void		Clear();
-	bool		IsEmpty() const;
-	short		GetWidth() const
+	void Clear()
 	{
-		return x2 - x1 + 1;
+		x1 = y1 = 32000;
+		x2 = y2 = -32000;
+		zmin = 0.0f;
+		zmax = 1.0f;
 	}
-	short		GetHeight() const
-	{
-		return y2 - y1 + 1;
-	}
-	int			GetArea() const
-	{
-		return ( x2 - x1 + 1 ) * ( y2 - y1 + 1 );
-	}
+	bool IsEmpty() const { return ( x1 > x2 || y1 > y2 ); }
+	short GetWidth() const { return x2 - x1 + 1; }
+	short GetHeight() const { return y2 - y1 + 1; }
+	int	GetArea() const { return ( x2 - x1 + 1 ) * ( y2 - y1 + 1 ); }
 	
 	// expand by one pixel each way to fix roundoffs
-	void		Expand();
+	void Expand() { x1--; y1--; x2++; y2++; }
 	
 	// adds a point
-	void		AddPoint( float x, float y );
+	void AddPoint( float x, float y )
+	{
+		int	ix = idMath::Ftoi( x );
+		int iy = idMath::Ftoi( y );
+
+		if( ix < x1 ) x1 = ix;
+		if( ix > x2 ) x2 = ix;
+		if( iy < y1 ) y1 = iy;
+		if( iy > y2 ) y2 = iy;
+	}
 	
-	void		Intersect( const idScreenRect& rect );
-	void		Union( const idScreenRect& rect );
-	bool		Equals( const idScreenRect& rect ) const;
+	void Intersect( const idScreenRect& rect )
+	{
+		if( rect.x1 > x1 ) x1 = rect.x1;
+		if( rect.x2 < x2 ) x2 = rect.x2;
+		if( rect.y1 > y1 ) y1 = rect.y1;
+		if( rect.y2 < y2 ) y2 = rect.y2;
+	}
+
+	void Union( const idScreenRect& rect )
+	{
+		if( rect.x1 < x1 ) x1 = rect.x1;
+		if( rect.x2 > x2 ) x2 = rect.x2;
+		if( rect.y1 < y1 ) y1 = rect.y1;
+		if( rect.y2 > y2 ) y2 = rect.y2;
+	}
+
+	bool Equals( const idScreenRect& rect ) const
+	{
+		return ( x1 == rect.x1 && x2 == rect.x2 && y1 == rect.y1 && y2 == rect.y2 );
+	}
 };
 
 void R_ShowColoredScreenRect( const idScreenRect& rect, int colorIndex );

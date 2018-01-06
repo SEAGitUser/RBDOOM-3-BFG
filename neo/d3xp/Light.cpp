@@ -83,7 +83,7 @@ void idGameEdit::ParseSpawnArgsToRenderLight( const idDict* args, renderLight_t*
 	const char*	texture;
 	idVec3	color;
 	
-	memset( renderLight, 0, sizeof( *renderLight ) );
+	renderLight->Clear();
 	
 	if( !args->GetVector( "light_origin", "", renderLight->origin ) )
 	{
@@ -205,7 +205,7 @@ idLight::idLight():
 	previousBaseColor( vec3_zero ) ,
 	nextBaseColor( vec3_zero )
 {
-	memset( &renderLight, 0, sizeof( renderLight ) );
+	renderLight.Clear();
 	localLightOrigin	= vec3_zero;
 	localLightAxis		= mat3_identity;
 	lightDefHandle		= -1;

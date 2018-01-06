@@ -330,7 +330,7 @@ cinData_t idCinematic::ImageForTime( int milliseconds )
 	cinData_t c;
 	memset( &c, 0, sizeof( c ) );
 	declManager->FindMaterial( "doom64.tga" );
-	c.image = globalImages->GetImage( "doom64.tga" );
+	c.image = renderImageManager->GetImage( "doom64.tga" );
 	return c;
 }
 
@@ -405,7 +405,7 @@ idCinematicLocal::idCinematicLocal()
 	status = FMV_EOF;
 	buf = NULL;
 	iFile = NULL;
-	img = globalImages->CreateStandaloneImage( "_cinematic" );
+	img = renderImageManager->CreateStandaloneImage( "_cinematic" );
 	if( img != NULL )
 	{
 		idImageOpts opts;

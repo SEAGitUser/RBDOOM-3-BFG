@@ -35,7 +35,7 @@ If you have questions concerning this license or the applicable additional terms
 // do this with a pointer, in case we want to make the actual manager
 // a private virtual subclass
 idImageManager	imageManager;
-idImageManager* globalImages = &imageManager;
+idImageManager* renderImageManager = &imageManager;
 
 idCVar preLoad_Images( "preLoad_Images", "1", CVAR_SYSTEM | CVAR_BOOL, "preload images during beginlevelload" );
 
@@ -68,7 +68,7 @@ void R_ReloadImages_f( const idCmdArgs& args )
 		}
 	}
 	
-	globalImages->ReloadImages( all );
+	renderImageManager->ReloadImages( all );
 }
 
 typedef struct
@@ -185,11 +185,11 @@ void R_ListImages_f( const idCmdArgs& args )
 	
 	totalSize = 0;
 	
-	auto sortedArray = ( sortedImage_t* )alloca( sizeof( sortedImage_t ) * globalImages->images.Num() );
+	auto sortedArray = ( sortedImage_t* )alloca( sizeof( sortedImage_t ) * renderImageManager->images.Num() );
 	
-	for( i = 0 ; i < globalImages->images.Num() ; i++ )
+	for( i = 0 ; i < renderImageManager->images.Num() ; i++ )
 	{
-		image = globalImages->images[ i ];
+		image = renderImageManager->images[ i ];
 		
 		if( uncompressedOnly )
 		{
@@ -207,14 +207,14 @@ void R_ListImages_f( const idCmdArgs& args )
 		if( duplicated )
 		{
 			int j;
-			for( j = i + 1 ; j < globalImages->images.Num() ; j++ )
+			for( j = i + 1 ; j < renderImageManager->images.Num() ; j++ )
 			{
-				if( idStr::Icmp( image->GetName(), globalImages->images[ j ]->GetName() ) == 0 )
+				if( idStr::Icmp( image->GetName(), renderImageManager->images[ j ]->GetName() ) == 0 )
 				{
 					break;
 				}
 			}
-			if( j == globalImages->images.Num() )
+			if( j == renderImageManager->images.Num() )
 			{
 				continue;
 			}
@@ -260,7 +260,7 @@ void R_ListImages_f( const idCmdArgs& args )
 	}
 	
 	common->Printf( "%s", header );
-	common->Printf( " %i images (%i total)\n", count, globalImages->images.Num() );
+	common->Printf( " %i images (%i total)\n", count, renderImageManager->images.Num() );
 	common->Printf( " %5.1f total megabytes of images\n\n\n", totalSize / ( 1024 * 1024.0 ) );
 }
 
@@ -303,6 +303,17 @@ idImage* idImageManager::CreateStandaloneImage( const char* name )
 	}
 	return new( TAG_IMAGE ) idImage( name );
 }
+/*
+==============
+ DestroyStandaloneImage
+==============
+*/
+void idImageManager::DestroyStandaloneImage( idImage * img ) const
+{
+	assert( img );
+	img->PurgeImage();
+	delete img;
+}
 
 /*
 ==================
@@ -315,7 +326,6 @@ idImage* idImageManager::CreateStandaloneImage( const char* name )
 */
 idImage* idImageManager::ImageFromFunction( const char* _name, void ( *generatorFunction )( idImage* image ) )
 {
-
 	// strip any .tga file extensions from anywhere in the _name
 	idStr name = _name;
 	name.Replace( ".tga", "" );
@@ -348,19 +358,19 @@ idImage* idImageManager::ImageFromFunction( const char* _name, void ( *generator
 	return image;
 }
 
-
 /*
 ===============
 GetImageWithParameters
 ==============
 */
-idImage*	idImageManager::GetImageWithParameters( const char* _name, textureFilter_t filter, textureRepeat_t repeat, textureUsage_t usage, cubeFiles_t cubeMap ) const
+idImage* idImageManager::GetImageWithParameters( const char* _name, textureFilter_t filter, textureRepeat_t repeat, textureUsage_t usage, textureLayout_t layout ) const
 {
 	if( !_name || !_name[0] || idStr::Icmp( _name, "default" ) == 0 || idStr::Icmp( _name, "_default" ) == 0 )
 	{
 		declManager->MediaPrint( "DEFAULTED\n" );
 		return defaultImage;
 	}
+
 	if( idStr::Icmpn( _name, "fonts", 5 ) == 0 || idStr::Icmpn( _name, "newfonts", 8 ) == 0 )
 	{
 		usage = TD_FONT;
@@ -369,6 +379,7 @@ idImage*	idImageManager::GetImageWithParameters( const char* _name, textureFilte
 	{
 		usage = TD_LIGHT;
 	}
+
 	// strip any .tga file extensions from anywhere in the _name, including image program parameters
 	idStrStatic< MAX_OSPATH > name = _name;
 	name.Replace( ".tga", "" );
@@ -376,7 +387,7 @@ idImage*	idImageManager::GetImageWithParameters( const char* _name, textureFilte
 	int hash = name.FileNameHash();
 	for( int i = imageHash.First( hash ); i != -1; i = imageHash.Next( i ) )
 	{
-		idImage*	 image = images[i];
+		idImage* image = images[i];
 		if( name.Icmp( image->GetName() ) == 0 )
 		{
 			// the built in's, like _white and _flat always match the other options
@@ -384,9 +395,9 @@ idImage*	idImageManager::GetImageWithParameters( const char* _name, textureFilte
 			{
 				return image;
 			}
-			if( image->cubeFiles != cubeMap )
+			if( image->layout != layout )
 			{
-				common->Error( "Image '%s' has been referenced with conflicting cube map states", _name );
+				common->Error( "Image '%s' has been referenced with conflicting layouts", _name );
 			}
 			if( image->filter != filter || image->repeat != repeat )
 			{
@@ -396,9 +407,10 @@ idImage*	idImageManager::GetImageWithParameters( const char* _name, textureFilte
 			}
 			if( image->usage != usage )
 			{
-				// If an image is used differently then we need 2 copies of it because usage affects the way it's compressed and swizzled
+				// If an image is used differently then we need 2 copies of it, because usage affects the way it's compressed and swizzled
 				continue;
 			}
+
 			return image;
 		}
 	}
@@ -408,19 +420,18 @@ idImage*	idImageManager::GetImageWithParameters( const char* _name, textureFilte
 ===============
 ImageFromFile
 
-Finds or loads the given image, always returning a valid image pointer.
-Loading of the image may be deferred for dynamic loading.
+	Finds or loads the given image, always returning a valid image pointer.
+	Loading of the image may be deferred for dynamic loading.
 ==============
 */
-idImage*	idImageManager::ImageFromFile( const char* _name, textureFilter_t filter,
-		textureRepeat_t repeat, textureUsage_t usage, cubeFiles_t cubeMap )
+idImage * idImageManager::ImageFromFile( const char* _name, textureFilter_t filter, textureRepeat_t repeat, textureUsage_t usage, textureLayout_t layout )
 {
-
 	if( !_name || !_name[0] || idStr::Icmp( _name, "default" ) == 0 || idStr::Icmp( _name, "_default" ) == 0 )
 	{
 		declManager->MediaPrint( "DEFAULTED\n" );
 		return defaultImage;
 	}
+
 	if( idStr::Icmpn( _name, "fonts", 5 ) == 0 || idStr::Icmpn( _name, "newfonts", 8 ) == 0 )
 	{
 		usage = TD_FONT;
@@ -428,8 +439,7 @@ idImage*	idImageManager::ImageFromFile( const char* _name, textureFilter_t filte
 	if( idStr::Icmpn( _name, "lights", 6 ) == 0 )
 	{
 		usage = TD_LIGHT;
-	}
-	
+	}	
 	// strip any .tga file extensions from anywhere in the _name, including image program parameters
 	idStrStatic< MAX_OSPATH > name = _name;
 	name.Replace( ".tga", "" );
@@ -442,7 +452,7 @@ idImage*	idImageManager::ImageFromFile( const char* _name, textureFilter_t filte
 	int hash = name.FileNameHash();
 	for( int i = imageHash.First( hash ); i != -1; i = imageHash.Next( i ) )
 	{
-		idImage*	 image = images[i];
+		idImage* image = images[i];
 		if( name.Icmp( image->GetName() ) == 0 )
 		{
 			// the built in's, like _white and _flat always match the other options
@@ -450,11 +460,10 @@ idImage*	idImageManager::ImageFromFile( const char* _name, textureFilter_t filte
 			{
 				return image;
 			}
-			if( image->cubeFiles != cubeMap )
+			if( image->layout != layout )
 			{
-				common->Error( "Image '%s' has been referenced with conflicting cube map states", _name );
-			}
-			
+				common->Error( "Image '%s' has been referenced with conflicting layouts", _name );
+			}		
 			if( image->filter != filter || image->repeat != repeat )
 			{
 				// we might want to have the system reset these parameters on every bind and
@@ -466,25 +475,24 @@ idImage*	idImageManager::ImageFromFile( const char* _name, textureFilter_t filte
 				// If an image is used differently then we need 2 copies of it because usage affects the way it's compressed and swizzled
 				continue;
 			}
-			
-			image->usage = usage;
+
 			image->levelLoadReferenced = true;
-			
 			if( ( !insideLevelLoad  || preloadingMapImages ) && !image->IsLoaded() )
 			{
 				image->referencedOutsideLevelLoad = ( !insideLevelLoad && !preloadingMapImages );
 				image->ActuallyLoadImage( false );	// load is from front end
 				declManager->MediaPrint( "%ix%i %s (reload for mixed referneces)\n", image->GetUploadWidth(), image->GetUploadHeight(), image->GetName() );
 			}
+
 			return image;
 		}
 	}
 	
 	//
-	// create a new image
+	// Create a new image
 	//
 	idImage* image = CreateImage( name );
-	image->cubeFiles = cubeMap;
+	image->layout = layout;
 	image->usage = usage;
 	image->filter = filter;
 	image->repeat = repeat;
@@ -532,7 +540,7 @@ idImage* idImageManager::ScratchImage( const char* _name, idImageOpts* imgOpts, 
 	int hash = name.FileNameHash();
 	for( int i = imageHash.First( hash ); i != -1; i = imageHash.Next( i ) )
 	{
-		idImage*	 image = images[i];
+		idImage* image = images[i];
 		if( name.Icmp( image->GetName() ) == 0 )
 		{
 			// the built in's, like _white and _flat always match the other options
@@ -585,7 +593,6 @@ idImageManager::GetImage
 */
 idImage* idImageManager::GetImage( const char* _name ) const
 {
-
 	if( !_name || !_name[0] || idStr::Icmp( _name, "default" ) == 0 || idStr::Icmp( _name, "_default" ) == 0 )
 	{
 		declManager->MediaPrint( "DEFAULTED\n" );
@@ -659,16 +666,17 @@ void R_CombineCubeImages_f( const idCmdArgs& args )
 		return;
 	}
 	
-	idStr	baseName = args.Argv( 1 );
+	idStr baseName = args.Argv( 1 );
 	common->SetRefreshOnPrint( true );
 	
-	for( int frameNum = 1 ; frameNum < 10000 ; frameNum++ )
+	for( int frameNum = 1 ; frameNum < 10000 ; ++frameNum )
 	{
 		char	filename[MAX_IMAGE_NAME];
 		byte*	pics[6];
 		int		width = 0, height = 0;
 		int		side;
 		int		orderRemap[6] = { 1, 3, 4, 2, 5, 6 };
+
 		for( side = 0 ; side < 6 ; side++ )
 		{
 			sprintf( filename, "%s%i%04i.tga", baseName.c_str(), orderRemap[side], frameNum );
@@ -718,7 +726,7 @@ void R_CombineCubeImages_f( const idCmdArgs& args )
 		}
 		
 		idTempArray<byte> buf( width * height * 6 * 4 );
-		byte*	combined = ( byte* )buf.Ptr();
+		byte* combined = ( byte* )buf.Ptr();
 		for( side = 0 ; side < 6 ; side++ )
 		{
 			memcpy( combined + width * height * 4 * side, pics[side], width * height * 4 );
@@ -743,20 +751,8 @@ void idImageManager::UnbindAll()
 	for( int i = 0; i < MAX_PROG_TEXTURE_PARMS; ++i )
 	{
 		backEnd.glState.currenttmu = i;
-		BindNull();
 	}
 	backEnd.glState.currenttmu = oldTMU;
-}
-
-/*
-===============
-BindNull
-===============
-*/
-void idImageManager::BindNull()
-{
-	RENDERLOG_PRINTF( "BindNull()\n" );
-	
 }
 
 /*
@@ -766,7 +762,6 @@ Init
 */
 void idImageManager::Init()
 {
-
 	images.Resize( 1024, 1024 );
 	imageHash.ResizeIndex( 1024 );
 	
@@ -801,9 +796,9 @@ void idImageManager::BeginLevelLoad()
 {
 	insideLevelLoad = true;
 	
-	for( int i = 0 ; i < images.Num() ; i++ )
+	for( int i = 0; i < images.Num(); ++i )
 	{
-		idImage*	image = images[ i ];
+		idImage* image = images[ i ];
 		
 		// generator function images are always kept around
 		if( image->generatorFunction )
@@ -871,7 +866,7 @@ void idImageManager::Preload( const idPreloadManifest& manifest, const bool& map
 			const preloadEntry_s& p = manifest.GetPreloadByIndex( i );
 			if( p.resType == PRELOAD_IMAGE && !ExcludePreloadImage( p.resourceName ) )
 			{
-				globalImages->ImageFromFile( p.resourceName, ( textureFilter_t )p.imgData.filter, ( textureRepeat_t )p.imgData.repeat, ( textureUsage_t )p.imgData.usage, ( cubeFiles_t )p.imgData.cubeMap );
+				ImageFromFile( p.resourceName, ( textureFilter_t )p.imgData.filter, ( textureRepeat_t )p.imgData.repeat, ( textureUsage_t )p.imgData.usage, ( textureLayout_t )p.imgData.cubeMap );
 				numLoaded++;
 			}
 		}
@@ -891,7 +886,7 @@ idImageManager::LoadLevelImages
 int idImageManager::LoadLevelImages( bool pacifier )
 {
 	int	loadCount = 0;
-	for( int i = 0 ; i < images.Num() ; i++ )
+	for( int i = 0; i < images.Num(); ++i )
 	{
 		if( pacifier )
 		{
@@ -899,7 +894,7 @@ int idImageManager::LoadLevelImages( bool pacifier )
 			
 		}
 		
-		idImage*	image = images[ i ];
+		idImage* image = images[ i ];
 		if( image->generatorFunction )
 		{
 			continue;
@@ -958,26 +953,23 @@ idImageManager::PrintMemInfo
 void idImageManager::PrintMemInfo( MemInfo_t* mi )
 {
 	int i, j, total = 0;
-	int* sortIndex;
-	idFile* f;
-	
-	f = fileSystem->OpenFileWrite( mi->filebase + "_images.txt" );
-	if( !f )
-	{
+
+	idFileLocal f = fileSystem->OpenFileWrite( mi->filebase + "_images.txt" );
+	if( !f ) {
 		return;
 	}
 	
 	// sort first
-	sortIndex = new( TAG_IMAGE ) int[images.Num()];
+	int* sortIndex = new( TAG_IMAGE ) int[ images.Num() ];
 	
-	for( i = 0; i < images.Num(); i++ )
+	for( i = 0; i < images.Num(); ++i )
 	{
 		sortIndex[i] = i;
 	}
 	
-	for( i = 0; i < images.Num() - 1; i++ )
+	for( i = 0; i < images.Num() - 1; ++i )
 	{
-		for( j = i + 1; j < images.Num(); j++ )
+		for( j = i + 1; j < images.Num(); ++j )
 		{
 			if( images[sortIndex[i]]->StorageSize() < images[sortIndex[j]]->StorageSize() )
 			{
@@ -989,12 +981,10 @@ void idImageManager::PrintMemInfo( MemInfo_t* mi )
 	}
 	
 	// print next
-	for( i = 0; i < images.Num(); i++ )
+	for( i = 0; i < images.Num(); ++i )
 	{
-		idImage* im = images[sortIndex[i]];
-		int size;
-		
-		size = im->StorageSize();
+		idImage* im = images[ sortIndex[ i ] ];
+		int size = im->StorageSize();
 		total += size;
 		
 		f->Printf( "%s %3i %s\n", idStr::FormatNumber( size ).c_str(), im->refCount, im->GetName() );
@@ -1004,5 +994,4 @@ void idImageManager::PrintMemInfo( MemInfo_t* mi )
 	mi->imageAssetsTotal = total;
 	
 	f->Printf( "\nTotal image bytes allocated: %s\n", idStr::FormatNumber( total ).c_str() );
-	fileSystem->CloseFile( f );
 }

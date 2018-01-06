@@ -83,6 +83,8 @@ public:
 	
 	void				Sort( const idSort<type>& sort = idSort_QuickDefault<type>() );
 	
+	ID_INLINE void		FillZero() { memset( list, 0, Allocated() ); }
+
 private:
 	int					num;
 	type 				list[ size ];

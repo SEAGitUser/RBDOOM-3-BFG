@@ -10599,7 +10599,7 @@ void idPlayer::CalculateRenderView()
 	{
 		renderView = new( TAG_ENTITY ) renderView_t;
 	}
-	memset( renderView, 0, sizeof( *renderView ) );
+	renderView->Clear();
 	
 	// copy global shader parms
 	for( i = 0; i < MAX_GLOBAL_SHADER_PARMS; i++ )

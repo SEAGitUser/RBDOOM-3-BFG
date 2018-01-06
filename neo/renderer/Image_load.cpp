@@ -221,19 +221,20 @@ void idImage::AllocImage( const idImageOpts& imgOpts, textureFilter_t tf, textur
 GenerateImage
 ================
 */
-void idImage::GenerateImage( const byte* pic, int width, int height, textureFilter_t filterParm, textureRepeat_t repeatParm, textureUsage_t usageParm, int msaaSamples )
+void idImage::GenerateImage( const byte* pic, int width, int height, int depth, int msaaSamples, 
+	textureFilter_t filterParm, textureRepeat_t repeatParm, textureUsage_t usageParm )
 {
 	PurgeImage();
 	
 	filter = filterParm;
 	repeat = repeatParm;
 	usage = usageParm;
-	cubeFiles = CF_2D;
+	layout = IMG_LAYOUT_2D;
 	
 	opts.textureType = TT_2D;
 	opts.width = Max( width, 1 );
 	opts.height = Max( height, 1 );
-	opts.depth = 1;
+	opts.depth = Max( depth, 1 );
 	opts.numLevels = 0;
 	opts.numSamples = msaaSamples;
 	DeriveOpts();
@@ -251,36 +252,34 @@ void idImage::GenerateImage( const byte* pic, int width, int height, textureFilt
 	if( pic == NULL || GetOpts().IsMultisampled() )
 	{
 		AllocImage();
+		return;
 	}
-	else
-	{
-		idBinaryImage im( GetName() );
-				
-		// foresthale 2014-05-30: give a nice progress display when binarizing
-		commonLocal.LoadPacifierBinarizeFilename( GetName() , "generated image" );
 
-		if( GetOpts().numLevels > 1 )
-		{
-			commonLocal.LoadPacifierBinarizeProgressTotal( GetOpts().width * GetOpts().height * 4 / 3 );
-		}
-		else {
-			commonLocal.LoadPacifierBinarizeProgressTotal( GetOpts().width * GetOpts().height );
-		}
-		
-		im.Load2DFromMemory( width, height, pic, GetOpts().numLevels, opts.format, opts.colorFormat, GetOpts().gammaMips );
-		
-		commonLocal.LoadPacifierBinarizeEnd();
-		
-		AllocImage();
-		
-		for( int i = 0; i < im.NumImages(); ++i )
-		{
-			const bimageImage_t& img = im.GetImageHeader( i );
-			const byte* data = im.GetImageData( i );
-			SubImageUpload( img.level, 0, 0, img.destZ, img.width, img.height, data );
-		}
+	idBinaryImage im( GetName() );
+				
+	// foresthale 2014-05-30: give a nice progress display when binarizing
+	commonLocal.LoadPacifierBinarizeFilename( GetName() , "generated image" );
+
+	if( GetOpts().numLevels > 1 )
+	{
+		commonLocal.LoadPacifierBinarizeProgressTotal( GetOpts().width * GetOpts().height * 4 / 3 );
 	}
-	// RB end
+	else {
+		commonLocal.LoadPacifierBinarizeProgressTotal( GetOpts().width * GetOpts().height );
+	}
+		
+	im.Load2DFromMemory( width, height, pic, GetOpts().numLevels, opts.format, opts.colorFormat, GetOpts().gammaMips );
+		
+	commonLocal.LoadPacifierBinarizeEnd();
+		
+	AllocImage();
+		
+	for( int i = 0; i < im.NumImages(); ++i )
+	{
+		const bimageImage_t& img = im.GetImageHeader( i );
+		const byte* data = im.GetImageData( i );
+		SubImageUpload( img.level, 0, 0, img.destZ, img.width, img.height, data );
+	}
 }
 
 /*
@@ -290,20 +289,20 @@ GenerateCubeImage
 Non-square cube sides are not allowed
 ====================
 */
-void idImage::GenerateCubeImage( const byte* pic[6], int size, textureFilter_t filterParm, textureUsage_t usageParm )
+void idImage::GenerateCubeImage( const byte* pic[6], int size, int depth, textureFilter_t filterParm, textureUsage_t usageParm )
 {
 	PurgeImage();
 	
 	filter = filterParm;
 	repeat = TR_CLAMP;
 	usage = usageParm;
-	cubeFiles = CF_NATIVE;
+	layout = IMG_LAYOUT_CUBE_NATIVE;
 	
 	opts.textureType = TT_CUBIC;
-	opts.width = Max( size, 1 );
-	opts.height = opts.width;
-	opts.depth = 1;
+	opts.width = opts.height = Max( size, 1 );
+	opts.depth = Max( depth, 1 );
 	opts.numLevels = 0;
+	opts.numSamples = 1;
 	DeriveOpts();
 	
 	// if we don't have a rendering context, just return after we
@@ -312,6 +311,12 @@ void idImage::GenerateCubeImage( const byte* pic[6], int size, textureFilter_t f
 	// the generated texture
 	if( !R_IsInitialized() )
 	{
+		return;
+	}
+
+	if( pic == NULL )
+	{
+		AllocImage();
 		return;
 	}
 	
@@ -323,8 +328,7 @@ void idImage::GenerateCubeImage( const byte* pic[6], int size, textureFilter_t f
 	{
 		commonLocal.LoadPacifierBinarizeProgressTotal( opts.width * opts.width * 6 * 4 / 3 );
 	}
-	else
-	{
+	else {
 		commonLocal.LoadPacifierBinarizeProgressTotal( opts.width * opts.width * 6 );
 	}
 	
@@ -342,23 +346,29 @@ void idImage::GenerateCubeImage( const byte* pic[6], int size, textureFilter_t f
 	}
 }
 
-// RB begin
-void idImage::GenerateShadowArray( int width, int height, textureFilter_t filterParm, textureRepeat_t repeatParm, textureUsage_t usageParm )
+/*
+===============
+ Generate3DImage
+===============
+*/
+void idImage::Generate3DImage( const byte* pic, int width, int height, int depth, 
+	textureFilter_t filterParm, textureRepeat_t repeatParm, textureUsage_t usageParm )
 {
 	PurgeImage();
-	
+
 	filter = filterParm;
 	repeat = repeatParm;
 	usage = usageParm;
-	cubeFiles = CF_2D;
-	
-	opts.textureType = TT_2D;
+	layout = IMG_LAYOUT_2D;
+
+	opts.textureType = TT_3D;
 	opts.width = Max( width, 1 );
 	opts.height = Max( height, 1 );
-	opts.depth = 6;
+	opts.depth = Max( depth, 1 );
 	opts.numLevels = 0;
+	opts.numSamples = 1;
 	DeriveOpts();
-	
+
 	// if we don't have a rendering context, just return after we
 	// have filled in the parms.  We must have the values set, or
 	// an image match from a shader before the render starts would miss
@@ -367,31 +377,48 @@ void idImage::GenerateShadowArray( int width, int height, textureFilter_t filter
 	{
 		return;
 	}
-	
-	//idBinaryImage im( GetName() );
-	//im.Load2DFromMemory( width, height, pic, opts.numLevels, opts.format, opts.colorFormat, opts.gammaMips );
-	
+
+	if( pic == NULL )
+	{
+		AllocImage();
+		return;
+	}
+
+	idBinaryImage im( GetName() );
+
+	// foresthale 2014-05-30: give a nice progress display when binarizing
+	commonLocal.LoadPacifierBinarizeFilename( GetName(), "generated image" );
+
+	if( GetOpts().numLevels > 1 )
+	{
+		commonLocal.LoadPacifierBinarizeProgressTotal( GetOpts().width * GetOpts().height * 4 / 3 );
+	}
+	else {
+		commonLocal.LoadPacifierBinarizeProgressTotal( GetOpts().width * GetOpts().height );
+	}
+
+	im.Load2DFromMemory( width, height, pic, GetOpts().numLevels, opts.format, opts.colorFormat, GetOpts().gammaMips );
+
+	commonLocal.LoadPacifierBinarizeEnd();
+
 	AllocImage();
-	
-	/*
-	for( int i = 0; i < im.NumImages(); i++ )
+
+	for( int i = 0; i < im.NumImages(); ++i )
 	{
 		const bimageImage_t& img = im.GetImageHeader( i );
 		const byte* data = im.GetImageData( i );
 		SubImageUpload( img.level, 0, 0, img.destZ, img.width, img.height, data );
 	}
-	*/
 }
-// RB end
 
 /*
 ===============
-GetGeneratedName
+ GetGeneratedName
 
-name contains GetName() upon entry
+	name contains GetName() upon entry
 ===============
 */
-void idImage::GetGeneratedName( idStr& _name, const textureUsage_t& _usage, const cubeFiles_t& _cube )
+void idImage::GetGeneratedName( idStr& _name, const textureUsage_t& _usage, const textureLayout_t& _cube )
 {
 	idStrStatic< 64 > extension;
 	
@@ -405,13 +432,12 @@ void idImage::GetGeneratedName( idStr& _name, const textureUsage_t& _usage, cons
 	}
 }
 
-
 /*
 ===============
-ActuallyLoadImage
+ ActuallyLoadImage
 
-Absolutely every image goes through this path
-On exit, the idImage will have a valid OpenGL texture number that can be bound
+	Absolutely every image goes through this path
+	On exit, the idImage will have a valid OpenGL texture number that can be bound
 ===============
 */
 void idImage::ActuallyLoadImage( bool fromBackEnd )
@@ -432,22 +458,20 @@ void idImage::ActuallyLoadImage( bool fromBackEnd )
 	if( com_productionMode.GetInteger() != 0 )
 	{
 		sourceFileTime = FILE_NOT_FOUND_TIMESTAMP;
-		if( cubeFiles != CF_2D )
+		if( layout != IMG_LAYOUT_2D )
 		{
 			opts.textureType = TT_CUBIC;
 			repeat = TR_CLAMP;
 		}
 	}
-	else
-	{
-		if( cubeFiles != CF_2D )
+	else {
+		if( layout != IMG_LAYOUT_2D )
 		{
 			opts.textureType = TT_CUBIC;
 			repeat = TR_CLAMP;
-			R_LoadCubeImages( GetName(), cubeFiles, NULL, NULL, &sourceFileTime );
+			R_LoadCubeImages( GetName(), layout, NULL, NULL, &sourceFileTime );
 		}
-		else
-		{
+		else {
 			opts.textureType = TT_2D;
 			R_LoadImageProgram( GetName(), NULL, NULL, NULL, &sourceFileTime, &usage );
 		}
@@ -457,7 +481,7 @@ void idImage::ActuallyLoadImage( bool fromBackEnd )
 	DeriveOpts();
 	
 	idStrStatic< MAX_OSPATH > generatedName = GetName();
-	GetGeneratedName( generatedName, usage, cubeFiles );
+	GetGeneratedName( generatedName, usage, layout );
 	
 	idBinaryImage im( generatedName );
 	binaryFileTime = im.LoadFromGeneratedFile( sourceFileTime );
@@ -523,7 +547,7 @@ void idImage::ActuallyLoadImage( bool fromBackEnd )
 		if( cvarSystem->GetCVarBool( "fs_buildresources" ) )
 		{
 			// for resource gathering write this image to the preload file for this map
-			fileSystem->AddImagePreload( GetName(), filter, repeat, usage, cubeFiles );
+			fileSystem->AddImagePreload( GetName(), filter, repeat, usage, layout );
 		}
 	}
 	else
@@ -548,12 +572,12 @@ void idImage::ActuallyLoadImage( bool fromBackEnd )
 		//else if( toolUsage )
 		//	binarizeReason = va( "binarize: tool usage '%s'", generatedName.c_str() );
 		
-		if( cubeFiles != CF_2D )
+		if( layout != IMG_LAYOUT_2D )
 		{
 			int size;
 			byte* pics[6];
 			
-			if( !R_LoadCubeImages( GetName(), cubeFiles, pics, &size, &sourceFileTime ) || size == 0 )
+			if( !R_LoadCubeImages( GetName(), layout, pics, &size, &sourceFileTime ) || size == 0 )
 			{
 				idLib::Warning( "Couldn't load cube image: %s", GetName() );
 				return;
@@ -679,17 +703,18 @@ int MakePowerOfTwo( int num )
 idImage::Resize
 ========================
 */
-void idImage::Resize( int width, int height, int depth )
+bool idImage::Resize( int width, int height, int depth )
 {
 	if( opts.width == width && opts.height == height && opts.depth == depth )
-	{
-		return;
-	}
+		return false;
+
 	opts.width = width;
 	opts.height = height;
 	opts.depth = depth;
 
 	AllocImage();
+
+	return true;
 }
 
 /*
@@ -702,7 +727,7 @@ if rows = cols * 6, assume it is a cube map animation
 void idImage::UploadScratch( const byte* data, int cols, int rows )
 {
 	// if rows = cols * 6, assume it is a cube map animation
-	if( rows == cols * 6 )
+	if( rows == ( cols * 6 ) )
 	{
 		rows /= 6;
 		const byte* pic[6];
@@ -713,9 +738,10 @@ void idImage::UploadScratch( const byte* data, int cols, int rows )
 		
 		if( opts.textureType != TT_CUBIC || usage != TD_LOOKUP_TABLE_RGBA )
 		{
-			GenerateCubeImage( pic, cols, TF_LINEAR, TD_LOOKUP_TABLE_RGBA );
+			GenerateCubeImage( pic, cols, 1, TF_LINEAR, TD_LOOKUP_TABLE_RGBA );
 			return;
 		}
+
 		if( opts.width != cols || opts.height != rows )
 		{
 			opts.width = cols;
@@ -726,16 +752,15 @@ void idImage::UploadScratch( const byte* data, int cols, int rows )
 		for( int i = 0; i < 6; i++ )
 		{
 			SubImageUpload( 0, 0, 0, i, opts.width, opts.height, pic[i] );
-		}
-		
+		}		
 	}
-	else
-	{
+	else {
 		if( opts.textureType != TT_2D || usage != TD_LOOKUP_TABLE_RGBA )
 		{
-			GenerateImage( data, cols, rows, TF_LINEAR, TR_REPEAT, TD_LOOKUP_TABLE_RGBA );
+			GenerateImage( data, cols, rows, 1, 1, TF_LINEAR, TR_REPEAT, TD_LOOKUP_TABLE_RGBA );
 			return;
 		}
+
 		if( opts.width != cols || opts.height != rows )
 		{
 			opts.width = cols;
@@ -758,7 +783,11 @@ int idImage::StorageSize() const
 	{
 		return 0;
 	}
-	int baseSize = opts.width * opts.height * opts.depth;
+
+	int baseSize = opts.width * opts.height;// * opts.depth;
+	//if( opts.textureType == TT_CUBIC ) {  SEA ???
+	//	baseSize *= 6;
+	//}
 	if( opts.numLevels > 1 )
 	{
 		baseSize *= 4;
@@ -901,7 +930,7 @@ void idImage::Print() const
 			break;
 	}
 	
-	common->Printf( "%4ik ", StorageSize() / 1024 );
+	common->Printf( "%4ik ", SIZE_MB( StorageSize() ) );
 	
 	common->Printf( " %s\n", GetName() );
 }
@@ -925,9 +954,9 @@ void idImage::Reload( bool force )
 	if( !force )
 	{
 		ID_TIME_T current;
-		if( cubeFiles != CF_2D )
+		if( layout != IMG_LAYOUT_2D )
 		{
-			R_LoadCubeImages( imgName, cubeFiles, NULL, NULL, &current );
+			R_LoadCubeImages( imgName, layout, NULL, NULL, &current );
 		}
 		else {
 			// get the current values

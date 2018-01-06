@@ -98,12 +98,12 @@ void idDeclParticle::GetStageBounds( idParticleStage* stage )
 	
 	particleGen_t g;
 	
-	renderEntity_t	renderEntity;
-	memset( &renderEntity, 0, sizeof( renderEntity ) );
+	renderEntity_t renderEntity;
+	renderEntity.Clear();
 	renderEntity.axis = mat3_identity;
 	
-	renderView_t	renderView;
-	memset( &renderView, 0, sizeof( renderView ) );
+	renderView_t renderView;
+	renderView.Clear();
 	renderView.viewaxis = mat3_identity;
 	
 	g.renderEnt = &renderEntity;
@@ -111,7 +111,7 @@ void idDeclParticle::GetStageBounds( idParticleStage* stage )
 	g.origin.Zero();
 	g.axis = mat3_identity;
 	
-	idRandom	steppingRandom;
+	idRandom steppingRandom;
 	steppingRandom.SetSeed( 0 );
 	
 	// just step through a lot of possible particles as a representative sampling
@@ -1555,8 +1555,8 @@ int	idParticleStage::ParticleVerts( particleGen_t* g, idVec3 origin, idDrawVert*
 	}
 	
 	angle = angle / 180 * idMath::PI;
-	float c = idMath::Cos16( angle );
-	float s = idMath::Sin16( angle );
+	float c, s;
+	idMath::SinCos16( angle, s, c );
 	
 	if( orientation  == POR_Z )
 	{

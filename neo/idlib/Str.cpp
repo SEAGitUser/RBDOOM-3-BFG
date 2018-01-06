@@ -76,7 +76,7 @@ struct strColor_t {
 #endif
 };
 
-static const int COLOR_BITS = _countof( g_color_table ) - 1;
+const int COLOR_BITS = _countof( g_color_table ) - 1;
 
 const char* units[2][4] =
 {

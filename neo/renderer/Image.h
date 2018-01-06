@@ -65,11 +65,11 @@ enum textureUsage_t
 	// RB end
 };
 
-enum cubeFiles_t
+enum textureLayout_t
 {
-	CF_2D,			// not a cube map
-	CF_NATIVE,		// _px, _nx, _py, etc, directly sent to GL
-	CF_CAMERA,		// _forward, _back, etc, rotated and flipped as needed before sending to GL
+	IMG_LAYOUT_2D,				// not a cube map
+	IMG_LAYOUT_CUBE_NATIVE,		// cube map _px, _nx, _py, etc, directly sent to GL
+	IMG_LAYOUT_CUBE_CAMERA,		// cube map _forward, _back, etc, rotated and flipped as needed before sending to GL
 };
 
 // moved from image.h for default parm
@@ -129,15 +129,71 @@ struct idTextureSampler {
 };
 
 #if 0
+struct idFileProps 
+{
+	void	Clear();
+	int64 	timestamp;
+	bool 	writable;
+};
+
+struct imageProperties_t {
+	mtr;
+	x;
+	y;
+	width;
+	height;
+	area;
+};
+
+class idMaterialMapping
+{
+	materialName;
+	materialChecksum;
+	materialTimestamp;
+	x;
+	y;
+	width;
+	height;
+	scaleBias;
+	specularFile;
+	coverFile;
+	diffuseFile;
+	bumpFile;
+	powerFile;
+};
+
+class idMaterialMap
+{
+	GetImageDimensions()
+	GetSpecularImageData()
+	GetCoverImageData()
+	GetDiffuseImageData()
+	GetBumpImageData()
+	GetPowerImageData()
+	GetSpecularImageFileData()
+	GetCoverImageFileData()
+	GetDiffuseImageFileData()
+	GetBumpImageFileData()
+	GetPowerImageFileData()
+private:
+	int name;
+	int width;
+	int height;
+	bool skinFileTimeStamp;
+	idList< idMaterialMapping > mappings;
+	GetRenderParmImageFileProps();
+};
+
 class idImageData {
 	idImageData();
 	~idImageData();
 
-	void width;
-	void height;
-	void data;
-	void floatData;
-
+	int width;
+	int height;
+	union {
+		byte * data;
+		float * floatData;
+	};
 	void LoadImageProgram();
 	void WritePNG( const char *filename );
 	void WriteTGA( const char *filename );
@@ -262,11 +318,6 @@ public:
 	
 	ID_INLINE const char * 	GetName() const { return imgName; }
 	
-	// Makes this image active on the current GL texture unit.
-	// automatically enables or disables cube mapping
-	// May perform file loading if the image was not preloaded.
-	void		Bind();
-	
 	// Should be called at least once
 	void		SetSamplerState( textureFilter_t, textureRepeat_t );
 	
@@ -274,13 +325,9 @@ public:
 	// data goes from the bottom to the top line of the image, as OpenGL expects it
 	// These perform an implicit Bind() on the current texture unit
 	// FIXME: should we implement cinematics this way, instead of with explicit calls?
-	void		GenerateImage( const byte* pic, int width, int height, textureFilter_t, textureRepeat_t, textureUsage_t, int msaaSamples = 0 );
-	void		GenerateCubeImage( const byte* pic[6], int size, textureFilter_t, textureUsage_t );							   
-	// RB begin
-	void		GenerateShadowArray( int width, int height, textureFilter_t, textureRepeat_t, textureUsage_t );
-	// RB end
-	void		CopyFramebuffer( int x, int y, int width, int height );
-	void		CopyDepthbuffer( int x, int y, int width, int height );
+	void		GenerateImage( const byte* pic, int width, int height, int depth, int numSamples, textureFilter_t, textureRepeat_t, textureUsage_t );
+	void		GenerateCubeImage( const byte* pic[6], int size, int depth, textureFilter_t, textureUsage_t );
+	void		Generate3DImage( const byte* pic, int width, int height, int depth, textureFilter_t, textureRepeat_t, textureUsage_t );
 	
 	void		UploadScratch( const byte* pic, int width, int height );
 	
@@ -334,19 +381,26 @@ public:
 	// some scratch images are dynamically resized based on the display window size.  This
 	// simply purges the image and recreates it if the sizes are different, so it should not be
 	// done under any normal circumstances, and probably not at all on consoles.
-	void		Resize( int width, int height, int depth = 1 );
+	// Returns true if resized.
+	bool		Resize( int width, int height, int depth = 1 );
 	
-	ID_INLINE bool		IsCompressed() const { return ( opts.format == FMT_DXT1 || opts.format == FMT_DXT5 ); }
-	
-	void				SetTexParameters();	// update aniso and trilinear
-	
-	ID_INLINE bool		IsLoaded() const { return texnum != TEXTURE_NOT_LOADED; }
-	
-	static void			GetGeneratedName( idStr& _name, const textureUsage_t&, const cubeFiles_t& );
+	ID_INLINE bool		IsCompressed() const { return opts.IsCompressed(); }
+	ID_INLINE bool		IsArray() const { return opts.IsArray(); }
+	ID_INLINE bool		IsMultisampled() const { return opts.IsMultisampled(); }
+	ID_INLINE bool		IsDepth() const { return opts.IsDepth(); }
+	ID_INLINE bool		IsDepthStencil() const { return opts.IsDepthStencil(); }
 
-	ID_INLINE void *	GetAPIObject() const { return reinterpret_cast< void *>( texnum ); }
+	ID_INLINE bool		IsLoaded() const { return apiObject != nullptr; }
+	ID_INLINE void *	GetAPIObject() const { return apiObject; }
+
+	void				SetTexParameters();	// update aniso and trilinear
+	void				EnableDepthCompareModeOGL();
+
+	static void			GetGeneratedName( idStr& _name, const textureUsage_t&, const textureLayout_t& );
 
 	static int			BitsForFormat( textureFormat_t format );
+
+	//idImageData		GetImageData(); 
 	
 private:
 	friend class idImageManager;
@@ -355,15 +409,15 @@ private:
 	void				DeriveOpts();
 	
 	// parameters that define this image
-	idStr				imgName;				// game path, including extension (except for cube maps), may be an image program
-	cubeFiles_t			cubeFiles;				// If this is a cube map, and if so, what kind
-	void	( *generatorFunction )( idImage* image );	// NULL for files
+	idStr				imgName;				// game path, including extension (except for cube maps), may be an image program	
+	void ( *generatorFunction )( idImage* image );	// NULL for files
+	textureLayout_t		layout;					// If this is a cube map, and if so, what kind
 	textureUsage_t		usage;					// Used to determine the type of compression to use
-	idImageOpts			opts;					// Parameters that determine the storage method
 	
-	// Sampler settings
 	textureFilter_t		filter;
 	textureRepeat_t		repeat;
+
+	idImageOpts			opts;					// Parameters that determine the storage method
 	
 	bool				referencedOutsideLevelLoad;
 	bool				levelLoadReferenced;	// for determining if it needs to be purged
@@ -373,19 +427,17 @@ private:
 	
 	int					refCount;				// overall ref count
 	
-	static const GLuint TEXTURE_NOT_LOADED = 0xFFFFFFFF;
-	
-	GLuint				texnum;				// gl texture binding	
+	void *				apiObject;
 };
 
 ID_INLINE idImage::idImage( const char* name ) : imgName( name )
 {
-	texnum = TEXTURE_NOT_LOADED;
+	apiObject = nullptr;
 	generatorFunction = NULL;
 	filter = TF_DEFAULT;
 	repeat = TR_REPEAT;
 	usage = TD_DEFAULT;
-	cubeFiles = CF_2D;
+	layout = IMG_LAYOUT_2D;
 	
 	referencedOutsideLevelLoad = false;
 	levelLoadReferenced = false;
@@ -424,13 +476,13 @@ public:
 	// If the load fails for any reason, the image will be filled in with the default
 	// grid pattern.
 	// Will automatically execute image programs if needed.
-	idImage* 			ImageFromFile( const char* name, textureFilter_t, textureRepeat_t, textureUsage_t, cubeFiles_t = CF_2D );
+	idImage* 			ImageFromFile( const char* name, textureFilter_t, textureRepeat_t, textureUsage_t, textureLayout_t = IMG_LAYOUT_2D );
 									   
 	// look for a loaded image, whatever the parameters
 	idImage* 			GetImage( const char* name ) const;
 	
 	// look for a loaded image, whatever the parameters
-	idImage* 			GetImageWithParameters( const char* name, textureFilter_t, textureRepeat_t, textureUsage_t, cubeFiles_t ) const;
+	idImage* 			GetImageWithParameters( const char* name, textureFilter_t, textureRepeat_t, textureUsage_t, textureLayout_t ) const;
 	
 	// The callback will be issued immediately, and later if images are reloaded or vid_restart
 	// The callback function should call one of the idImage::Generate* functions to fill in the data
@@ -447,10 +499,7 @@ public:
 	
 	// unbind all textures from all texture units
 	void				UnbindAll();
-	
-	// disable the active texture unit
-	void				BindNull();
-	
+		
 	// Called only by renderSystem::BeginLevelLoad
 	void				BeginLevelLoad();
 	
@@ -480,6 +529,7 @@ public:
 	idImage* 			fogEnterImage;				// adjust fogImage alpha based on terminator plane
 	// RB begin
 	idImage*			shadowImage[5];
+	idImage*			shadowMapArray;				// 2Ddepth[6]
 	idImage*			jitterImage1;				// shadow jitter
 	idImage*			jitterImage4;
 	idImage*			jitterImage16;
@@ -507,7 +557,7 @@ public:
 	idImage* 			scratchImage2;
 	idImage* 			accumImage;
 	idImage* 			currentRenderImage;				// for SS_POST_PROCESS shaders
-	idImage* 			currentDepthImage;				// for motion blur
+	idImage* 			currentDepthImage;				// screen depth24 stencil8
 	idImage* 			originalCurrentRenderImage;		// currentRenderImage before any changes for stereo rendering
 	idImage* 			loadingIconImage;				// loading icon must exist always
 	idImage* 			hellLoadingIconImage;				// loading icon must exist always
@@ -516,6 +566,7 @@ public:
 	
 	idImage* 			CreateImage( const char* name );
 	idImage* 			CreateStandaloneImage( const char* name );
+	void				DestroyStandaloneImage( idImage* ) const;
 	
 	bool				ExcludePreloadImage( const char* name );
 	
@@ -526,7 +577,7 @@ public:
 	bool				preloadingMapImages;		// unless this is set
 };
 
-extern idImageManager*	globalImages;		// pointer to global list for the rest of the system
+extern idImageManager *	renderImageManager;		// pointer to global list for the rest of the system
 
 int MakePowerOfTwo( int num );
 
@@ -562,7 +613,7 @@ IMAGEFILES
 
 void R_LoadImage( const char* name, byte** pic, int* width, int* height, ID_TIME_T* timestamp, bool makePowerOf2 );
 // pic is in top to bottom raster format
-bool R_LoadCubeImages( const char* cname, cubeFiles_t extensions, byte* pic[6], int* size, ID_TIME_T* timestamp );
+bool R_LoadCubeImages( const char* cname, textureLayout_t extensions, byte* pic[6], int* size, ID_TIME_T* timestamp );
 
 /*
 ====================================================================

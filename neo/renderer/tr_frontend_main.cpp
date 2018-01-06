@@ -51,10 +51,12 @@ extern void R_AddModels( idRenderView * const );
 R_SortDrawSurfs
 =================
 */
-static void R_SortDrawSurfs( drawSurf_t** drawSurfs, const int numDrawSurfs )
+static void R_SortDrawSurfs( idRenderView * renderView )
 {
-#if 1
+	drawSurf_t ** drawSurfs = renderView->drawSurfs;
+	const int numDrawSurfs = renderView->numDrawSurfs;
 
+#if 1
 	uint64* indices = ( uint64* ) _alloca16( numDrawSurfs * sizeof( indices[0] ) );
 	
 	// sort the draw surfs based on:
@@ -64,15 +66,18 @@ static void R_SortDrawSurfs( drawSurf_t** drawSurfs, const int numDrawSurfs )
 	assert( numDrawSurfs <= 0xFFFF );
 	for( int i = 0; i < numDrawSurfs; i++ )
 	{
-		float sort = SS_POST_PROCESS - drawSurfs[i]->sort;
+		auto const surf = drawSurfs[ i ];
+		auto const material = drawSurfs[ i ]->material;
+
+		float sort = SS_POST_PROCESS - surf->sort;
 		assert( sort >= 0.0f );
 		
 		uint64 dist = 0;
-		if( drawSurfs[i]->frontEndGeo != NULL )
+		if( surf->frontEndGeo != NULL )
 		{
 			float min = 0.0f;
 			float max = 1.0f;
-			idRenderMatrix::DepthBoundsForBounds( min, max, drawSurfs[i]->space->mvp, drawSurfs[i]->frontEndGeo->bounds );
+			idRenderMatrix::DepthBoundsForBounds( min, max, surf->space->mvp, surf->frontEndGeo->GetBounds() );
 			dist = idMath::Ftoui16( min * 0xFFFF );
 		}
 		
@@ -222,7 +227,7 @@ void R_RenderView( idRenderView * renderView )
 	R_OptimizeViewLightsList( renderView );
 	
 	// sort all the ambient surfaces for translucency ordering
-	R_SortDrawSurfs( renderView->drawSurfs, renderView->numDrawSurfs );
+	R_SortDrawSurfs( renderView );
 	
 	// generate any subviews (mirrors, cameras, etc) before adding this view
 	if( R_GenerateSubViews( renderView ) )

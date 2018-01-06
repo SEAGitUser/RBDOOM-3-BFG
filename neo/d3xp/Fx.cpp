@@ -126,7 +126,7 @@ void idEntityFx::Restore( idRestoreGame* savefile )
 		}
 		else
 		{
-			memset( &actions[i].renderLight, 0, sizeof( renderLight_t ) );
+			actions[i].renderLight.Clear();
 			actions[i].lightDefHandle = -1;
 		}
 		
@@ -138,7 +138,7 @@ void idEntityFx::Restore( idRestoreGame* savefile )
 		}
 		else
 		{
-			memset( &actions[i].renderEntity, 0, sizeof( renderEntity_t ) );
+			actions[i].renderEntity.Clear();
 			actions[i].modelDefHandle = -1;
 		}
 		
@@ -476,7 +476,7 @@ void idEntityFx::Run( int time )
 				{
 					if( fxaction.type == FX_LIGHT )
 					{
-						memset( &useAction->renderLight, 0, sizeof( renderLight_t ) );
+						useAction->renderLight.Clear();
 						useAction->renderLight.origin = GetPhysics()->GetOrigin() + fxaction.offset;
 						useAction->renderLight.axis = GetPhysics()->GetAxis();
 						useAction->renderLight.lightRadius[0] = fxaction.lightRadius;

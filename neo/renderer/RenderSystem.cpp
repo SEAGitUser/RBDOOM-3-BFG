@@ -207,12 +207,12 @@ void R_AddDrawPostProcess( idRenderView* parms )
 
 /*
 =============
-R_CheckCvars
+ R_CheckCvars
 
-See if some cvars that we watch have changed
+	See if some cvars that we watch have changed
 =============
 */
-static void R_CheckCvars()
+static void UpdateCvars()
 {
 	// gamma stuff
 	if( r_gamma.IsModified() || r_brightness.IsModified() )
@@ -229,12 +229,13 @@ static void R_CheckCvars()
 		r_maxAnisotropicFiltering.ClearModified();
 		r_useTrilinearFiltering.ClearModified();
 		r_lodBias.ClearModified();
-		for( int i = 0 ; i < globalImages->images.Num() ; i++ )
+		for( int i = 0; i < renderImageManager->images.Num(); ++i )
 		{
-			if( globalImages->images[i] )
+			if( renderImageManager->images[i] )
 			{
-				globalImages->images[i]->Bind();
-				globalImages->images[i]->SetTexParameters();
+				///renderImageManager->images[i]->Bind();
+				GL_BindTexture( GL_GetCurrentTextureUnit(), renderImageManager->images[ i ] );
+				renderImageManager->images[i]->SetTexParameters();
 			}
 		}
 	}
@@ -249,8 +250,7 @@ static void R_CheckCvars()
 			{
 				glEnable( GL_TEXTURE_CUBE_MAP_SEAMLESS );
 			}
-			else
-			{
+			else {
 				glDisable( GL_TEXTURE_CUBE_MAP_SEAMLESS );
 			}
 		}
@@ -303,7 +303,6 @@ static void R_CheckCvars()
 	// RB: turn off shadow mapping for OpenGL drivers that are too slow
 	switch( glConfig.driverType )
 	{
-		case GLDRV_OPENGL_ES2:
 		case GLDRV_OPENGL_ES3:
 			//case GLDRV_OPENGL_MESA:
 			r_useShadowMapping.SetInteger( 0 );
@@ -765,11 +764,9 @@ void idRenderSystemLocal::SwapCommandBuffers_FinishRendering(
 	R_PerformanceCounters();
 	
 	// check for dynamic changes that require some initialization
-	R_CheckCvars();
+	UpdateCvars();
 	
-	// RB: resize HDR buffers
-	Framebuffer::CheckFramebuffers();
-	// RB end
+	renderDestManager.Update();
 	
 	// check for errors
 	GL_CheckErrors();
@@ -1028,13 +1025,13 @@ void idRenderSystemLocal::CaptureRenderToImage( const char* imageName, bool clea
 			common->Printf( "write DC_CAPTURE_RENDER: %s\n", imageName );
 		}
 	}
-	idImage* image = globalImages->GetImage( imageName );
+	idImage* image = renderImageManager->GetImage( imageName );
 	if( image == NULL )
 	{
-		image = globalImages->CreateImage( imageName );
+		image = renderImageManager->CreateImage( imageName );
 	}
 	
-	idScreenRect& rc = renderCrops[currentRenderCrop];
+	idScreenRect& rc = renderCrops[ currentRenderCrop ];
 	
 	auto cmd = allocManager.GetEmptyFrameCmd<copyRenderCommand_t>();
 	cmd->commandId = RC_COPY_RENDER;
@@ -1125,7 +1122,7 @@ idRenderSystemLocal::PrintMemInfo
 void idRenderSystemLocal::PrintMemInfo( MemInfo_t* mi )
 {
 	// sum up image totals
-	globalImages->PrintMemInfo( mi );
+	renderImageManager->PrintMemInfo( mi );
 	
 	// sum up model totals
 	renderModelManager->PrintMemInfo( mi );
@@ -1141,7 +1138,7 @@ idRenderSystemLocal::UploadImage
 */
 bool idRenderSystemLocal::UploadImage( const char* imageName, const byte* data, int width, int height )
 {
-	idImage* image = globalImages->GetImage( imageName );
+	idImage* image = renderImageManager->GetImage( imageName );
 	if( !image )
 	{
 		return false;

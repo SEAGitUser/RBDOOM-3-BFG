@@ -39,7 +39,7 @@ Contains the Image implementation for OpenGL.
 
 struct glTextureObject_t 
 {
-	glTextureObject_t() : target( GL_TEXTURE_2D ), uploadTarget( GL_TEXTURE_2D ), /*texnum( GL_NONE ),*/
+	glTextureObject_t() : target( GL_TEXTURE_2D ), uploadTarget( GL_TEXTURE_2D ), texnum( GL_NONE ),
 		internalFormat( GL_RGBA8 ), dataFormat( GL_RGBA ), dataType( GL_UNSIGNED_BYTE ) {
 	}
 	glTextureObject_t( const idImage *img )
@@ -47,7 +47,7 @@ struct glTextureObject_t
 		DeriveTargetInfo( img );
 		DeriveFormatInfo( img );
 	}
-	//GLuint	texnum;
+	GLuint	texnum;
 	GLenum	target;
 	GLenum	uploadTarget;
 	GLenum	internalFormat;
@@ -110,8 +110,19 @@ struct glTextureObject_t
 				uploadTarget = GL_TEXTURE_2D;
 			}
 
-		//texnum = reinterpret_cast< GLuint >( img->GetAPIObject() );
+		texnum = reinterpret_cast< GLuint >( img->GetAPIObject() );
 	}
+
+	// target
+	// 
+	/*void * PackTextureInfo()
+	{
+		uint64 apiObject = texnum;
+
+		apiObject |= ;
+
+		return reinterpret_cast<void*>( apiObject );
+	}*/
 
 	void DeriveFormatInfo( const idImage *img )
 	{
@@ -267,10 +278,7 @@ void idImage::SubImageUpload( int mipLevel, int x, int y, int z, int width, int 
 			height = opts.height - x;
 		}
 	}
-	else
-	{
-		assert( x + width <= opts.width && y + height <= opts.height );
-	}
+	else assert( x + width <= opts.width && y + height <= opts.height );
 
 	glTextureObject_t tex( this );
 
@@ -278,7 +286,7 @@ void idImage::SubImageUpload( int mipLevel, int x, int y, int z, int width, int 
 		tex.uploadTarget += z;
 	}
 
-	glBindTexture( tex.target, this->texnum );
+	glBindTexture( tex.target, tex.texnum );
 	
 	if( pixelPitch != 0 )
 	{
@@ -509,14 +517,28 @@ void idImage::SetTexParameters()
 	if( usage == TD_SHADOWMAP )
 	//if( opts.format == FMT_DEPTH || opts.format == FMT_DEPTH_STENCIL )
 	{
-		// GL_INTENSITY = dddd
-		// GL_LUMINANCE = ddd1
-		// GL_ALPHA = 000d
-		// GL_RED = d001
-		//glTexParameteri( tex.target, GL_DEPTH_TEXTURE_MODE, GL_INTENSITY );
 		glTexParameteri( tex.target, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_R_TO_TEXTURE );
 		glTexParameteri( tex.target, GL_TEXTURE_COMPARE_FUNC, GL_LEQUAL );
 	}
+}
+
+/*
+========================
+idImage::EnableDepthCompareMode
+========================
+*/
+void idImage::EnableDepthCompareModeOGL()
+{
+	glTextureObject_t tex;
+	tex.DeriveTargetInfo( this );
+
+	// GL_INTENSITY = dddd
+	// GL_LUMINANCE = ddd1
+	// GL_ALPHA = 000d
+	// GL_RED = d001
+	glTexParameteri( tex.target, GL_DEPTH_TEXTURE_MODE, GL_INTENSITY );
+	glTexParameteri( tex.target, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_R_TO_TEXTURE );
+	glTexParameteri( tex.target, GL_TEXTURE_COMPARE_FUNC, GL_LEQUAL );
 }
 
 /*
@@ -538,23 +560,27 @@ void idImage::AllocImage()
 	// have filled in the parms.  We must have the values set, or
 	// an image match from a shader before OpenGL starts would miss
 	// the generated texture
-	if( !R_IsInitialized() )
+	if( !tr.IsOpenGLRunning() )
 	{
 		return;
 	}
 
 	// generate the texture number
-	glGenTextures( 1, ( GLuint* )&texnum );
-	assert( texnum != TEXTURE_NOT_LOADED );
+	{
+		GLuint texnum = GL_NONE;
+		glGenTextures( 1, ( GLuint* )&texnum );
+		assert( texnum != GL_NONE );
+		apiObject = reinterpret_cast< void* >( texnum );
+	}
 
 	glTextureObject_t tex( this );
-	glBindTexture( tex.target, this->texnum );
+	glBindTexture( tex.target, tex.texnum );
 
 	if( GLEW_KHR_debug )
 	{
 		idStrStatic<128> name;
-		name.Format( "idImage(%p.%u)", this, this->texnum );
-		glObjectLabel( GL_TEXTURE, this->texnum, name.Length(), name.c_str() );
+		name.Format( "idImage(%p.%u)", this, tex.texnum );
+		glObjectLabel( GL_TEXTURE, tex.texnum, name.Length(), name.c_str() );
 	}
 
 	//----------------------------------------------------
@@ -578,12 +604,12 @@ void idImage::AllocImage()
 		else if( tex.target == GL_TEXTURE_2D_MULTISAMPLE )
 		{
 			// 2DMS
-			glTexStorage2DMultisample( GL_TEXTURE_2D_MULTISAMPLE, numSamples, tex.internalFormat, w, h, true );
+			glTexStorage2DMultisample( GL_TEXTURE_2D_MULTISAMPLE, numSamples, tex.internalFormat, w, h, GL_FALSE );
 		}
 		else if( tex.target == GL_TEXTURE_2D_MULTISAMPLE_ARRAY )
 		{
 			// 2DMSArray
-			glTexStorage3DMultisample( GL_TEXTURE_2D_MULTISAMPLE_ARRAY, numSamples, tex.internalFormat, w, h, depth, true );
+			glTexStorage3DMultisample( GL_TEXTURE_2D_MULTISAMPLE_ARRAY, numSamples, tex.internalFormat, w, h, depth, GL_FALSE );
 		}
 		else// if( tex.target == GL_TEXTURE_3D || tex.target == GL_TEXTURE_2D_ARRAY || tex.target == GL_TEXTURE_CUBE_MAP_ARRAY )
 		{
@@ -686,234 +712,21 @@ idImage::PurgeImage
 */
 void idImage::PurgeImage()
 {
-	if( texnum != TEXTURE_NOT_LOADED )
+	if( IsLoaded() )
 	{
-		glDeleteTextures( 1, ( GLuint* )&texnum );	// this should be the ONLY place it is ever called!
-		texnum = TEXTURE_NOT_LOADED;
+		GLuint texnum[ 1 ] = { reinterpret_cast<GLuint>( apiObject ) };
+		glDeleteTextures( 1, texnum );	// this should be the ONLY place it is ever called!
+		apiObject = nullptr;
 	}
+
 	// clear all the current binding caches, so the next bind will do a real one
 	for( int i = 0; i < MAX_MULTITEXTURE_UNITS; i++ )
 	{
 		for( int j = 0; j < target_Max; j++ )
 		{
-			backEnd.glState.tmu[ i ].currentTarget[ j ] = TEXTURE_NOT_LOADED;
+			backEnd.glState.tmu[ i ].currentTarget[ j ] = GL_NONE;
 		}
 	}
-}
-
-/*
-====================
-CopyFramebuffer
-====================
-*/
-void idImage::CopyFramebuffer( int x, int y, int imageWidth, int imageHeight )
-{
-	glTextureObject_t tex;
-	tex.DeriveTargetInfo( this );
-	glBindTexture( tex.target, this->texnum );
-
-#if !defined( USE_GLES2 )
-	if( Framebuffer::IsDefaultFramebufferActive() )
-	{
-		glReadBuffer( GL_BACK );
-	}
-#endif
-
-	Resize( imageWidth, imageHeight, 1 );
-
-#if defined( USE_GLES2 )
-	glCopyTexImage2D( GL_TEXTURE_2D, 0, GL_RGBA, x, y, imageWidth, imageHeight, 0 );
-#else
-	if( r_useHDR.GetBool() && globalFramebuffers.hdrFBO->IsBound() )
-	{
-		//if( backEnd.glState.currentFramebuffer != NULL && backEnd.glState.currentFramebuffer->IsMultiSampled() )
-
-	#if defined(USE_HDR_MSAA)
-		if( globalFramebuffers.hdrFBO->IsMultiSampled() )
-		{
-			glBindFramebuffer( GL_READ_FRAMEBUFFER, globalFramebuffers.hdrFBO->GetFramebuffer() );
-			glBindFramebuffer( GL_DRAW_FRAMEBUFFER, globalFramebuffers.hdrNonMSAAFBO->GetFramebuffer() );
-			glBlitFramebuffer( 0, 0, glConfig.nativeScreenWidth, glConfig.nativeScreenHeight,
-							   0, 0, glConfig.nativeScreenWidth, glConfig.nativeScreenHeight,
-							   GL_COLOR_BUFFER_BIT, GL_LINEAR );
-
-			globalFramebuffers.hdrNonMSAAFBO->Bind();
-
-			glCopyTexImage2D( tex.target, 0, GL_RGBA16F, x, y, imageWidth, imageHeight, 0 );
-
-			globalFramebuffers.hdrFBO->Bind();
-		}
-		else
-		#endif
-		{
-			if( GLEW_ARB_texture_storage )
-			{
-				glCopyTexSubImage2D( tex.target, 0, 0, 0, x, y, imageWidth, imageHeight );
-			}
-			else
-			{
-				glCopyTexImage2D( tex.target, 0, GL_RGBA16F, x, y, imageWidth, imageHeight, 0 );
-			}
-		}
-	}
-	else
-	{
-		if( GLEW_ARB_texture_storage )
-		{
-			glCopyTexSubImage2D( tex.target, 0, 0, 0, x, y, imageWidth, imageHeight );
-		}
-		else
-		{
-			glCopyTexImage2D( tex.target, 0, GL_RGBA8, x, y, imageWidth, imageHeight, 0 );
-		}
-	}
-#endif
-
-	// these shouldn't be necessary if the image was initialized properly
-	glTexParameterf( tex.target, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
-	glTexParameterf( tex.target, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
-
-	glTexParameterf( tex.target, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE );
-	glTexParameterf( tex.target, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE );
-
-	backEnd.pc.c_copyFrameBuffer++;
-}
-
-/*
-====================
-CopyDepthbuffer
-====================
-*/
-void idImage::CopyDepthbuffer( int x, int y, int imageWidth, int imageHeight )
-{
-	glTextureObject_t tex;
-	tex.DeriveTargetInfo( this );
-	glBindTexture( tex.target, this->texnum );
-
-	Resize( imageWidth, imageHeight, 1 );
-
-	if( GLEW_ARB_texture_storage )
-	{
-		glCopyTexSubImage2D( GL_TEXTURE_2D, 0, 0, 0, x, y, imageWidth, imageHeight );
-	}
-	else
-	{
-		glCopyTexImage2D( GL_TEXTURE_2D, 0, GL_DEPTH_STENCIL, x, y, imageWidth, imageHeight, 0 );
-	}
-
-	backEnd.pc.c_copyFrameBuffer++;
-}
-
-/*
-==============
-Bind
-
-Automatically enables 2D mapping or cube mapping if needed
-==============
-*/
-void idImage::Bind()
-{
-	RENDERLOG_PRINTF( "idImage::Bind( %s )\n", GetName() );
-
-	// load the image if necessary (FIXME: not SMP safe!)
-	if( !IsLoaded() )
-	{
-		// load the image on demand here, which isn't our normal game operating mode
-		ActuallyLoadImage( true );
-	}
-
-	const int texUnit = backEnd.glState.currenttmu;
-
-	auto glBindTexObject = []( uint32 currentType, GLenum _unit, GLenum _target, GLuint _name )
-	{
-		if( backEnd.glState.tmu[ _unit ].currentTarget[ currentType ] != _name )
-		{
-			backEnd.glState.tmu[ _unit ].currentTarget[ currentType ] = _name;
-
-		#if !defined( USE_GLES2 ) && !defined( USE_GLES3 )
-			if( glConfig.directStateAccess )
-			{
-				glBindMultiTextureEXT( GL_TEXTURE0 + _unit, _target, _name );
-			}
-			else
-		#endif
-			{
-				glActiveTexture( GL_TEXTURE0 + _unit );
-				glBindTexture( _target, _name );
-			}
-		}
-	};
-
-	if( GetOpts().textureType == TT_2D )
-	{
-		if( GetOpts().IsMultisampled() )
-		{
-			if( GetOpts().IsArray() )
-			{
-				glBindTexObject( target_2DMSArray, texUnit, GL_TEXTURE_2D_MULTISAMPLE_ARRAY, this->texnum );
-			}
-			else
-			{
-				glBindTexObject( target_2DMS, texUnit, GL_TEXTURE_2D_MULTISAMPLE, this->texnum );
-			}
-		}
-		else
-		{
-			if( GetOpts().IsArray() )
-			{
-				glBindTexObject( target_2DArray, texUnit, GL_TEXTURE_2D_ARRAY, this->texnum );
-			}
-			else
-			{
-				glBindTexObject( target_2D, texUnit, GL_TEXTURE_2D, this->texnum );
-			}
-		}
-	}
-	else if( GetOpts().textureType == TT_CUBIC )
-	{
-		if( GetOpts().IsArray() )
-		{
-			glBindTexObject( target_CubeMapArray, texUnit, GL_TEXTURE_CUBE_MAP_ARRAY, this->texnum );
-		}
-		else
-		{
-			glBindTexObject( target_CubeMap, texUnit, GL_TEXTURE_CUBE_MAP, this->texnum );
-		}
-	}
-	else if( GetOpts().textureType == TT_3D )
-	{
-		glBindTexObject( target_3D, texUnit, GL_TEXTURE_3D, this->texnum );
-	}
-
-#if 0 //SEA: later ;)
-	const struct glTypeInfo_t {
-		GLenum target;
-		//uint32 tmuIndex;
-	} glInfo[ 7 ] = {
-		GL_TEXTURE_2D,
-		GL_TEXTURE_2D_MULTISAMPLE,
-		GL_TEXTURE_2D_ARRAY,
-		GL_TEXTURE_2D_MULTISAMPLE_ARRAY,
-		GL_TEXTURE_CUBE_MAP,
-		GL_TEXTURE_CUBE_MAP_ARRAY,
-		GL_TEXTURE_3D
-	};
-	if( backEnd.glState.tmu[ texUnit ].currentTarget[ currentType ] != this->texnum )
-	{
-		backEnd.glState.tmu[ texUnit ].currentTarget[ currentType ] = this->texnum;
-
-	#if !defined( USE_GLES2 ) && !defined( USE_GLES3 )
-		if( glConfig.directStateAccess )
-		{
-			glBindMultiTextureEXT( GL_TEXTURE0 + texUnit, glInfo[].target, this->texnum );
-		} else
-	#endif
-		{
-			glActiveTexture( GL_TEXTURE0 + texUnit );
-			glBindTexture( glInfo[].target, this->texnum );
-		}
-	}
-#endif
 }
 
 /*
@@ -924,15 +737,14 @@ idImage::SetSamplerState
 void idImage::SetSamplerState( textureFilter_t tf, textureRepeat_t tr )
 {
 	if( tf == filter && tr == repeat )
-	{
 		return;
-	}
+
 	filter = tf;
 	repeat = tr;
 
 	glTextureObject_t tex;
 	tex.DeriveTargetInfo( this );
-	glBindTexture( tex.target, this->texnum );
+	glBindTexture( tex.target, tex.texnum );
 
 	SetTexParameters();
 }

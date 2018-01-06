@@ -200,15 +200,15 @@ idSWF::idSWF( const char* filename_, idSoundWorld* soundWorld_ )
 	{
 		idStrStatic< MAX_OSPATH > generatedName = atlasFileName;
 		generatedName.StripFileExtension();
-		idImage::GetGeneratedName( generatedName, TD_DEFAULT, CF_2D );
+		idImage::GetGeneratedName( generatedName, TD_DEFAULT, IMG_LAYOUT_2D );
 		
 		idBinaryImage im( generatedName );
 		ID_TIME_T binaryFileTime = im.LoadFromGeneratedFile( FILE_NOT_FOUND_TIMESTAMP );
 		
 		if( binaryFileTime != FILE_NOT_FOUND_TIMESTAMP )
 		{
-			const bimageFile_t& imgHeader = im.GetFileHeader();
-			const bimageImage_t& img = im.GetImageHeader( 0 );
+			auto & imgHeader = im.GetFileHeader();
+			auto & img = im.GetImageHeader( 0 );
 			
 			const byte* data = im.GetImageData( 0 );
 			
@@ -234,9 +234,7 @@ idSWF::idSWF( const char* filename_, idSoundWorld* soundWorld_ )
 				{
 					dxt.DecompressYCoCgDXT5( data, rgba.Ptr(), img.width, img.height );
 				}
-				else
-				{
-				
+				else {			
 					dxt.DecompressImageDXT5( data, rgba.Ptr(), img.width, img.height );
 				}
 			}

@@ -51,7 +51,8 @@ If you have questions concerning this license or the applicable additional terms
 class idImage;
 class idTriangles;
 class idRenderModelSurface;
-class idDeclRenderProgram;
+class idDeclRenderParm;
+class idDeclRenderProg;
 class idRenderTexture;
 
 static const int MAX_OCCLUSION_QUERIES = 4096;
@@ -182,13 +183,31 @@ void			GL_Color( float r, float g, float b );
 void			GL_Color( float r, float g, float b, float a );
 
 void			GL_SelectTexture( int unit );
+int				GL_GetCurrentTextureUnit();
+// Makes this image active on the given texture unit.
+// automatically enables or disables cube mapping
+// May perform file loading if the image was not preloaded.
 void			GL_BindTexture( int unit, idImage * );
 void			GL_ResetTexturesState();
+
+void			GL_SetNativeRenderDestination();
+void			GL_SetRenderDestination( const idRenderDestination * );
+void			GL_BlitRenderBuffer(
+					const idRenderDestination * src, const idScreenRect & srcRect,
+					const idRenderDestination * dst, const idScreenRect & dstRect,
+					bool color, bool linearFiltering );
+bool			GL_IsNativeFramebufferActive();
+bool			GL_IsBound( const idRenderDestination * );
+
+//SEA: depricated!
+void			GL_CopyCurrentColorToTexture( idImage *, int x, int y, int newImageWidth, int newImageHeight );
+void			GL_CopyCurrentDepthToTexture( idImage *, int x, int y, int newImageWidth, int newImageHeight );
 
 void			GL_Flush();		// flush the GPU command buffer
 void			GL_Finish();	// wait for the GPU to have executed all commands
 
-void			GL_DrawElementsWithCounters( const drawSurf_t*, /*vertexFormat,*/int globalInstCount = 1 );
+void			GL_SetVertexLayout( vertexLayoutType_t );
+void			GL_DrawIndexed( const drawSurf_t*, /*vertexFormat,*/int globalInstCount = 1 );
 
 // RB begin
 bool			GL_CheckErrors_( const char* filename, int line );

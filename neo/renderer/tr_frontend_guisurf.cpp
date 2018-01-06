@@ -159,7 +159,7 @@ void R_AddInGameGuis( idRenderView * const renderView )
 		}
 		
 		idBounds ndcBounds;
-		if( !R_PreciseCullSurface( drawSurf, ndcBounds ) )
+		if( !renderView->PreciseCullSurface( drawSurf, ndcBounds ) )
 		{
 			// did we ever use this to forward an entity color to a gui that didn't set color?
 			//	memcpy( tr.guiShaderParms, shaderParms, sizeof( tr.guiShaderParms ) );
@@ -213,43 +213,4 @@ void R_AddInGameGuis( idRenderView * const renderView )
 			tr.guiRecursionLevel--;
 		}
 	}
-}
-
-/*
-================,
-R_ReloadGuis_f
-
-Reloads any guis that have had their file timestamps changed.
-An optional "all" parameter will cause all models to reload, even
-if they are not out of date.
-
-Should we also reload the map models?
-================
-*/
-void R_ReloadGuis_f( const idCmdArgs& args )
-{
-	bool all;
-	
-	if( !idStr::Icmp( args.Argv( 1 ), "all" ) )
-	{
-		all = true;
-		common->Printf( "Reloading all gui files...\n" );
-	}
-	else
-	{
-		all = false;
-		common->Printf( "Checking for changed gui files...\n" );
-	}
-	
-	uiManager->Reload( all );
-}
-
-/*
-================,
-R_ListGuis_f
-================
-*/
-void R_ListGuis_f( const idCmdArgs& args )
-{
-	uiManager->ListGuis();
 }

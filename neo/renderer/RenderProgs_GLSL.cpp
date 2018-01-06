@@ -45,16 +45,21 @@ idCVar r_alwaysExportGLSL( "r_alwaysExportGLSL", "1", CVAR_BOOL, "" );
 // RB end
 
 #define VERTEX_UNIFORM_ARRAY_NAME				"_va_"
+#define GEOMETRY_UNIFORM_ARRAY_NAME				"_ga_"
 #define FRAGMENT_UNIFORM_ARRAY_NAME				"_fa_"
 
 static const int AT_VS_IN  = BIT( 1 );
 static const int AT_VS_OUT = BIT( 2 );
-static const int AT_PS_IN  = BIT( 3 );
-static const int AT_PS_OUT = BIT( 4 );
+
+static const int AT_GS_IN  = BIT( 3 );
+static const int AT_GS_OUT = BIT( 4 );
+
+static const int AT_PS_IN  = BIT( 5 );
+static const int AT_PS_OUT = BIT( 6 );
 // RB begin
-static const int AT_VS_OUT_RESERVED = BIT( 5 );
-static const int AT_PS_IN_RESERVED	= BIT( 6 );
-static const int AT_PS_OUT_RESERVED = BIT( 7 );
+static const int AT_VS_OUT_RESERVED = BIT( 7 );
+static const int AT_PS_IN_RESERVED	= BIT( 8 );
+static const int AT_PS_OUT_RESERVED = BIT( 9 );
 // RB end
 
 struct idCGBlock
@@ -133,10 +138,14 @@ attribInfo_t attribsPC[] =
 	// fragment program output
 	{ "float4",		"color",		"COLOR",		"fo_FragColor",		0,	AT_PS_OUT /*| AT_PS_OUT_RESERVED*/,		0 }, // GLSL version 1.2 doesn't allow for custom color name mappings
 	{ "half4",		"hcolor",		"COLOR",		"fo_FragColor",		0,	AT_PS_OUT /*| AT_PS_OUT_RESERVED*/,		0 },
-	{ "float4",		"color0",		"COLOR0",		"fo_FragColor",		0,	AT_PS_OUT /*| AT_PS_OUT_RESERVED*/,		0 },
-	{ "float4",		"color1",		"COLOR1",		"fo_FragColor",		1,	AT_PS_OUT /*| AT_PS_OUT_RESERVED*/,		0 },
-	{ "float4",		"color2",		"COLOR2",		"fo_FragColor",		2,	AT_PS_OUT /*| AT_PS_OUT_RESERVED*/,		0 },
-	{ "float4",		"color3",		"COLOR3",		"fo_FragColor",		3,	AT_PS_OUT /*| AT_PS_OUT_RESERVED*/,		0 },
+	{ "float4",		"color0",		"COLOR0",		"fo_FragColor0",	0,	AT_PS_OUT /*| AT_PS_OUT_RESERVED*/,		0 },
+	{ "float4",		"color1",		"COLOR1",		"fo_FragColor1",	1,	AT_PS_OUT /*| AT_PS_OUT_RESERVED*/,		0 },
+	{ "float4",		"color2",		"COLOR2",		"fo_FragColor2",	2,	AT_PS_OUT /*| AT_PS_OUT_RESERVED*/,		0 },
+	{ "float4",		"color3",		"COLOR3",		"fo_FragColor3",	3,	AT_PS_OUT /*| AT_PS_OUT_RESERVED*/,		0 },
+	{ "float4",		"color4",		"COLOR4",		"fo_FragColor4",	4,	AT_PS_OUT /*| AT_PS_OUT_RESERVED*/,		0 },
+	{ "float4",		"color5",		"COLOR5",		"fo_FragColor5",	5,	AT_PS_OUT /*| AT_PS_OUT_RESERVED*/,		0 },
+	{ "float4",		"color6",		"COLOR6",		"fo_FragColor6",	6,	AT_PS_OUT /*| AT_PS_OUT_RESERVED*/,		0 },
+	{ "float4",		"color7",		"COLOR7",		"fo_FragColor7",	7,	AT_PS_OUT /*| AT_PS_OUT_RESERVED*/,		0 },
 	{ "float",		"depth",		"DEPTH",		"gl_FragDepth",		4,	AT_PS_OUT | AT_PS_OUT_RESERVED,		0 },
 	
 	// vertex to fragment program pass through
@@ -149,8 +158,7 @@ attribInfo_t attribsPC[] =
 	{ "float4",		"color0",		"COLOR0",		"vofi_Color",				0,	AT_VS_OUT,	0 },
 	{ "float4",		"color1",		"COLOR1",		"vofi_SecondaryColor",		0,	AT_VS_OUT,	0 },
 #endif
-	
-	
+		
 	{ "float4",		"color",		"COLOR",		"vofi_Color",				0,	AT_PS_IN,	0 },
 	{ "float4",		"color0",		"COLOR0",		"vofi_Color",				0,	AT_PS_IN,	0 },
 	{ "float4",		"color1",		"COLOR1",		"vofi_SecondaryColor",		0,	AT_PS_IN,	0 },
@@ -238,10 +246,13 @@ const char* prefixes[] =
 	"sampler2DArrayShadow",	// GLSL
 	"sampler3DShadow",		// GLSL
 	"samplerCubeShadow",	// GLSL
+	"samplerCubeArrayShadow",	// GLSL
 	
 	"sampler2DArray",		// GLSL"
+	"samplerCubeArray",
 	
 	"sampler2DMS",			// GLSL
+	"sampler2DMSArray",		// GLSL
 };
 static const int numPrefixes = sizeof( prefixes ) / sizeof( prefixes[0] );
 
@@ -511,6 +522,7 @@ private:
 };
 // RB end
 
+
 /*
 ========================
 StripDeadCode
@@ -539,7 +551,7 @@ idStr StripDeadCode( const idStr& in, const char* name, const idStrList& compile
 	
 	switch( glConfig.driverType )
 	{
-		case GLDRV_OPENGL_ES2:
+		//case GLDRV_OPENGL_ES2:
 		case GLDRV_OPENGL_ES3:
 			//src.AddDefine( "GLES2" );
 			break;
@@ -776,6 +788,11 @@ struct typeConversion_t
 	{ "int2",				"ivec2" },
 	{ "int3",				"ivec3" },
 	{ "int4",				"ivec4" },
+
+	{ "uint",				"uint" },
+	{ "uint2",				"uvec2" },
+	{ "uint3",				"uvec3" },
+	{ "uint4",				"uvec4" },
 	
 	{ "bool",				"bool" },
 	{ "bool2",				"bvec2" },
@@ -798,62 +815,36 @@ struct typeConversion_t
 	{ "sampler2D",			"sampler2D" },
 	{ "sampler3D",			"sampler3D" },
 	{ "samplerCUBE",		"samplerCube" },
+
+	//SEA: is this needed?
 	
-	{ "sampler1DShadow",	"sampler1DShadow" },
-	{ "sampler2DShadow",	"sampler2DShadow" },
-	{ "sampler3DShadow",	"sampler3DShadow" },
-	{ "samplerCubeShadow",	"samplerCubeShadow" },
-	
+	{ "sampler1DShadow",		"sampler1DShadow" },
+	{ "sampler2DShadow",		"sampler2DShadow" },
+	{ "sampler2DArrayShadow",	"sampler2DArrayShadow" },
+	{ "sampler3DShadow",		"sampler3DShadow" },
+	{ "samplerCubeShadow",		"samplerCubeShadow" },
+	{ "samplerCubeArrayShadow",	"samplerCubeArrayShadow" },
+
+	{ "sampler2DArray",		"sampler2DArray" },
+	{ "samplerCubeArray",	"samplerCubeArray" },
+
 	{ "sampler2DMS",		"sampler2DMS" },
-	
+	{ "sampler2DMSArray",	"sampler2DMSArray" },
+
 	{ NULL, NULL }
 };
 
-// RB begin
-#if defined(USE_GLES2)
-const char* vertexInsert_GLSL_ES_1_0 =
-{
-	"#version 100\n"
-	"#define GLES2\n"
-	"#define PC\n"
-	"precision mediump float;\n"
-	"\n"
-	"float saturate( float v ) { return clamp( v, 0.0, 1.0 ); }\n"
-	"vec2 saturate( vec2 v ) { return clamp( v, 0.0, 1.0 ); }\n"
-	"vec3 saturate( vec3 v ) { return clamp( v, 0.0, 1.0 ); }\n"
-	"vec4 saturate( vec4 v ) { return clamp( v, 0.0, 1.0 ); }\n"
-	//"vec4 tex2Dlod( sampler2D sampler, vec4 texcoord ) { return textureLod( sampler, texcoord.xy, texcoord.w ); }\n"
-	"\n"
-};
-#else
-const char* vertexInsert_GLSL_ES_1_0 =
-{
-	"#version 100\n"
-	
-#if !defined(USE_MESA)
-	"#define GLES2\n"
-#endif
-	
-	"#define PC\n"
-	
-#if 1 //defined(__ANDROID__)
-	"precision mediump float;\n"
-#else
-	"precision highp float;\n"
-#endif
-	
-#if defined(USE_GPU_SKINNING) && !defined(__ANDROID__)
-	"#extension GL_ARB_gpu_shader5 : enable\n"
-#endif
-	"\n"
-	"float saturate( float v ) { return clamp( v, 0.0, 1.0 ); }\n"
-	"vec2 saturate( vec2 v ) { return clamp( v, 0.0, 1.0 ); }\n"
-	"vec3 saturate( vec3 v ) { return clamp( v, 0.0, 1.0 ); }\n"
-	"vec4 saturate( vec4 v ) { return clamp( v, 0.0, 1.0 ); }\n"
-	//"vec4 tex2Dlod( sampler2D sampler, vec4 texcoord ) { return textureLod( sampler, texcoord.xy, texcoord.w ); }\n"
-	"\n"
-};
-#endif // #if defined(USE_GLES2)
+// #extension extension_name : require
+// Give an error on the #extension if the extension extension_name is not
+// supported, or if all is specified.
+
+// #ifdef OES_extension_name
+//	 #extension OES_extension_name : enable
+//	 code that requires the extension
+// #else
+//	 alternative code
+// #endif
+//SEA: TODO! read from file
 
 const char* vertexInsert_GLSL_ES_3_00 =
 {
@@ -883,105 +874,6 @@ const char* vertexInsert_GLSL_1_50 =
 	"vec4 tex2Dlod( sampler2D sampler, vec4 texcoord ) { return textureLod( sampler, texcoord.xy, texcoord.w ); }\n"
 	"\n"
 };
-
-
-#if defined(USE_GLES2)
-const char* fragmentInsert_GLSL_ES_1_0 =
-{
-	"#version 100\n"
-	"#define GLES2\n"
-	"#define PC\n"
-	"precision mediump float;\n"
-	"#extension GL_OES_standard_derivatives : enable\n"
-	"\n"
-	"void clip( float v ) { if ( v < 0.0 ) { discard; } }\n"
-	"void clip( vec2 v ) { if ( any( lessThan( v, vec2( 0.0 ) ) ) ) { discard; } }\n"
-	"void clip( vec3 v ) { if ( any( lessThan( v, vec3( 0.0 ) ) ) ) { discard; } }\n"
-	"void clip( vec4 v ) { if ( any( lessThan( v, vec4( 0.0 ) ) ) ) { discard; } }\n"
-	"\n"
-	"float saturate( float v ) { return clamp( v, 0.0, 1.0 ); }\n"
-	"vec2 saturate( vec2 v ) { return clamp( v, 0.0, 1.0 ); }\n"
-	"vec3 saturate( vec3 v ) { return clamp( v, 0.0, 1.0 ); }\n"
-	"vec4 saturate( vec4 v ) { return clamp( v, 0.0, 1.0 ); }\n"
-	"\n"
-	"vec4 tex2D( sampler2D sampler, vec2 texcoord ) { return texture2D( sampler, texcoord.xy ); }\n"
-	//"vec4 tex2D( sampler2DShadow sampler, vec3 texcoord ) { return vec4( texture( sampler, texcoord.xyz ) ); }\n"
-	"\n"
-	//"vec4 tex2D( sampler2D sampler, vec2 texcoord, vec2 dx, vec2 dy ) { return textureGrad( sampler, texcoord.xy, dx, dy ); }\n"
-	//"vec4 tex2D( sampler2DShadow sampler, vec3 texcoord, vec2 dx, vec2 dy ) { return vec4( textureGrad( sampler, texcoord.xyz, dx, dy ) ); }\n"
-	//"\n"
-	"vec4 texCUBE( samplerCube sampler, vec3 texcoord ) { return textureCube( sampler, texcoord.xyz ); }\n"
-	//"vec4 texCUBE( samplerCubeShadow sampler, vec4 texcoord ) { return vec4( textureCube( sampler, texcoord.xyzw ) ); }\n"
-	"\n"
-	//"vec4 tex1Dproj( sampler1D sampler, vec2 texcoord ) { return textureProj( sampler, texcoord ); }\n"
-	"vec4 tex2Dproj( sampler2D sampler, vec3 texcoord ) { return texture2DProj( sampler, texcoord ); }\n"
-	//"vec4 tex3Dproj( sampler3D sampler, vec4 texcoord ) { return textureProj( sampler, texcoord ); }\n"
-	"\n"
-	//"vec4 tex1Dbias( sampler1D sampler, vec4 texcoord ) { return texture( sampler, texcoord.x, texcoord.w ); }\n"
-	//"vec4 tex2Dbias( sampler2D sampler, vec4 texcoord ) { return texture( sampler, texcoord.xy, texcoord.w ); }\n"
-	//"vec4 tex3Dbias( sampler3D sampler, vec4 texcoord ) { return texture( sampler, texcoord.xyz, texcoord.w ); }\n"
-	//"vec4 texCUBEbias( samplerCube sampler, vec4 texcoord ) { return texture( sampler, texcoord.xyz, texcoord.w ); }\n"
-	//"\n"
-	//"vec4 tex1Dlod( sampler1D sampler, vec4 texcoord ) { return textureLod( sampler, texcoord.x, texcoord.w ); }\n"
-	//"vec4 tex2Dlod( sampler2D sampler, vec4 texcoord ) { return textureLod( sampler, texcoord.xy, texcoord.w ); }\n"
-	//"vec4 tex3Dlod( sampler3D sampler, vec4 texcoord ) { return textureLod( sampler, texcoord.xyz, texcoord.w ); }\n"
-	//"vec4 texCUBElod( samplerCube sampler, vec4 texcoord ) { return textureLod( sampler, texcoord.xyz, texcoord.w ); }\n"
-	//"\n"
-};
-#else
-const char* fragmentInsert_GLSL_ES_1_0 =
-{
-	"#version 100\n"
-	
-#if !defined(USE_MESA)
-	"#define GLES2\n"
-#endif
-	
-	"#define PC\n"
-	
-#if 1 //defined(__ANDROID__)
-	"precision mediump float;\n"
-	//"#extension GL_OES_standard_derivatives : enable\n"
-#else
-	"precision highp float;\n"
-#endif
-	"\n"
-	"void clip( float v ) { if ( v < 0.0 ) { discard; } }\n"
-	"void clip( vec2 v ) { if ( any( lessThan( v, vec2( 0.0 ) ) ) ) { discard; } }\n"
-	"void clip( vec3 v ) { if ( any( lessThan( v, vec3( 0.0 ) ) ) ) { discard; } }\n"
-	"void clip( vec4 v ) { if ( any( lessThan( v, vec4( 0.0 ) ) ) ) { discard; } }\n"
-	"\n"
-	"float saturate( float v ) { return clamp( v, 0.0, 1.0 ); }\n"
-	"vec2 saturate( vec2 v ) { return clamp( v, 0.0, 1.0 ); }\n"
-	"vec3 saturate( vec3 v ) { return clamp( v, 0.0, 1.0 ); }\n"
-	"vec4 saturate( vec4 v ) { return clamp( v, 0.0, 1.0 ); }\n"
-	"\n"
-	"vec4 tex2D( sampler2D sampler, vec2 texcoord ) { return texture2D( sampler, texcoord.xy ); }\n"
-	//"vec4 tex2D( sampler2DShadow sampler, vec3 texcoord ) { return vec4( texture( sampler, texcoord.xyz ) ); }\n"
-	"\n"
-	//"vec4 tex2D( sampler2D sampler, vec2 texcoord, vec2 dx, vec2 dy ) { return textureGrad( sampler, texcoord.xy, dx, dy ); }\n"
-	//"vec4 tex2D( sampler2DShadow sampler, vec3 texcoord, vec2 dx, vec2 dy ) { return vec4( textureGrad( sampler, texcoord.xyz, dx, dy ) ); }\n"
-	//"\n"
-	"vec4 texCUBE( samplerCube sampler, vec3 texcoord ) { return textureCube( sampler, texcoord.xyz ); }\n"
-	//"vec4 texCUBE( samplerCubeShadow sampler, vec4 texcoord ) { return vec4( textureCube( sampler, texcoord.xyzw ) ); }\n"
-	"\n"
-	//"vec4 tex1Dproj( sampler1D sampler, vec2 texcoord ) { return textureProj( sampler, texcoord ); }\n"
-	"vec4 tex2Dproj( sampler2D sampler, vec3 texcoord ) { return texture2DProj( sampler, texcoord ); }\n"
-	//"vec4 tex3Dproj( sampler3D sampler, vec4 texcoord ) { return textureProj( sampler, texcoord ); }\n"
-	"\n"
-	//"vec4 tex1Dbias( sampler1D sampler, vec4 texcoord ) { return texture( sampler, texcoord.x, texcoord.w ); }\n"
-	//"vec4 tex2Dbias( sampler2D sampler, vec4 texcoord ) { return texture( sampler, texcoord.xy, texcoord.w ); }\n"
-	//"vec4 tex3Dbias( sampler3D sampler, vec4 texcoord ) { return texture( sampler, texcoord.xyz, texcoord.w ); }\n"
-	//"vec4 texCUBEbias( samplerCube sampler, vec4 texcoord ) { return texture( sampler, texcoord.xyz, texcoord.w ); }\n"
-	//"\n"
-	//"vec4 tex1Dlod( sampler1D sampler, vec4 texcoord ) { return textureLod( sampler, texcoord.x, texcoord.w ); }\n"
-	//"vec4 tex2Dlod( sampler2D sampler, vec4 texcoord ) { return textureLod( sampler, texcoord.xy, texcoord.w ); }\n"
-	//"vec4 tex3Dlod( sampler3D sampler, vec4 texcoord ) { return textureLod( sampler, texcoord.xyz, texcoord.w ); }\n"
-	//"vec4 texCUBElod( samplerCube sampler, vec4 texcoord ) { return textureLod( sampler, texcoord.xyz, texcoord.w ); }\n"
-	//"\n"
-};
-#endif // #if defined(USE_GLES2)
-
 
 const char* fragmentInsert_GLSL_ES_3_00 =
 {
@@ -1262,8 +1154,7 @@ idStr ConvertCG2GLSL( const idStr& in, const char* name, bool isVertexProgram, i
 				{
 					if( varsIn[i].declareInOut )
 					{
-						// RB begin
-						switch( glConfig.driverType )
+						/*switch( glConfig.driverType )
 						{
 							case GLDRV_OPENGL_ES2:
 							case GLDRV_OPENGL_ES3:
@@ -1274,12 +1165,10 @@ idStr ConvertCG2GLSL( const idStr& in, const char* name, bool isVertexProgram, i
 							}
 							
 							default:
-							{
 								program += "in " + varsIn[i].type + " " + varsIn[i].nameGLSL + ";\n";
 								break;
-							}
-						}
-						// RB end
+						}*/
+						program += "in " + varsIn[ i ].type + " " + varsIn[ i ].nameGLSL + ";\n";
 					}
 				}
 				continue;
@@ -1295,10 +1184,8 @@ idStr ConvertCG2GLSL( const idStr& in, const char* name, bool isVertexProgram, i
 				{
 					if( varsOut[i].declareInOut )
 					{
-						// RB begin
-						switch( glConfig.driverType )
+						/*switch( glConfig.driverType )
 						{
-							case GLDRV_OPENGL_ES2:
 							case GLDRV_OPENGL_ES3:
 								//case GLDRV_OPENGL_MESA:
 							{
@@ -1307,12 +1194,10 @@ idStr ConvertCG2GLSL( const idStr& in, const char* name, bool isVertexProgram, i
 							}
 							
 							default:
-							{
 								program += "out " + varsOut[i].type + " " + varsOut[i].nameGLSL + ";\n";
 								break;
-							}
-						}
-						// RB end
+						}*/
+						program += "out " + varsOut[ i ].type + " " + varsOut[ i ].nameGLSL + ";\n";
 					}
 				}
 				continue;
@@ -1325,10 +1210,8 @@ idStr ConvertCG2GLSL( const idStr& in, const char* name, bool isVertexProgram, i
 				{
 					if( varsIn[i].declareInOut )
 					{
-						// RB begin
-						switch( glConfig.driverType )
+						/*switch( glConfig.driverType )
 						{
-							case GLDRV_OPENGL_ES2:
 							case GLDRV_OPENGL_ES3:
 								//case GLDRV_OPENGL_MESA:
 							{
@@ -1339,8 +1222,8 @@ idStr ConvertCG2GLSL( const idStr& in, const char* name, bool isVertexProgram, i
 							default:
 								program += "in " + varsIn[i].type + " " + varsIn[i].nameGLSL + ";\n";
 								break;
-						}
-						// RB end
+						}*/
+						program += "in " + varsIn[ i ].type + " " + varsIn[ i ].nameGLSL + ";\n";
 					}
 				}
 				inOutVariable_t var;
@@ -1352,16 +1235,26 @@ idStr ConvertCG2GLSL( const idStr& in, const char* name, bool isVertexProgram, i
 			}
 			else if( src.CheckTokenString( "PS_OUT" ) )
 			{
-				// RB begin
-				ParseInOutStruct( src, AT_PS_OUT, AT_PS_OUT_RESERVED, varsOut );
-				// RB end
-				
+				// GL_ARB_explicit_attrib_location	#extension GL_ARB_explicit_attrib_location : recuired
+				const char * layout[] = {
+					"layout( location = 0 ) out ", 
+					"layout( location = 1 ) out ", 
+					"layout( location = 2 ) out ", 
+					"layout( location = 3 ) out ", 
+					"layout( location = 4 ) out ", 
+					"layout( location = 5 ) out ", 
+					"layout( location = 6 ) out ", 
+					"layout( location = 7 ) out " 
+				};
+				ParseInOutStruct( src, AT_PS_OUT, AT_PS_OUT_RESERVED, varsOut );				
 				program += "\n";
 				for( int i = 0; i < varsOut.Num(); i++ )
 				{
-					if( varsOut[i].declareInOut )
+					if( varsOut[ i ].declareInOut )
 					{
-						program += "out " + varsOut[i].type + " " + varsOut[i].nameGLSL + ";\n";
+						program += "out " + varsOut[ i ].type + " " + varsOut[ i ].nameGLSL + ";\n";
+						
+						//program += layout[ i ] + varsOut[ i ].type + " " + varsOut[ i ].nameGLSL + ";\n";
 					}
 				}
 				continue;
@@ -1503,9 +1396,8 @@ idStr ConvertCG2GLSL( const idStr& in, const char* name, bool isVertexProgram, i
 		
 		// check for input/output parameters
 		if( src.CheckTokenString( "." ) )
-		{
-		
-			if( token == "vertex" || token == "fragment" )
+		{	
+			if( token == "vertex" || token == "fragment" || token == "input" )
 			{
 				idToken member;
 				src.ReadToken( &member );
@@ -1532,7 +1424,7 @@ idStr ConvertCG2GLSL( const idStr& in, const char* name, bool isVertexProgram, i
 				continue;
 			}
 			
-			if( token == "result" )
+			if( token == "result" || token == "output" )
 			{
 				idToken member;
 				src.ReadToken( &member );
@@ -1596,15 +1488,7 @@ idStr ConvertCG2GLSL( const idStr& in, const char* name, bool isVertexProgram, i
 	{
 		switch( glConfig.driverType )
 		{
-			case GLDRV_OPENGL_ES2:
 			case GLDRV_OPENGL_ES3:
-			{
-				out.ReAllocate( idStr::Length( vertexInsert_GLSL_ES_1_0 ) + in.Length() * 2, false );
-				out += filenameHint;
-				out += vertexInsert_GLSL_ES_1_0;
-				break;
-			}
-			
 			case GLDRV_OPENGL_MESA:
 			{
 				out.ReAllocate( idStr::Length( vertexInsert_GLSL_ES_3_00 ) + in.Length() * 2, false );
@@ -1628,15 +1512,7 @@ idStr ConvertCG2GLSL( const idStr& in, const char* name, bool isVertexProgram, i
 	{
 		switch( glConfig.driverType )
 		{
-			case GLDRV_OPENGL_ES2:
 			case GLDRV_OPENGL_ES3:
-			{
-				out.ReAllocate( idStr::Length( fragmentInsert_GLSL_ES_1_0 ) + in.Length() * 2, false );
-				out += filenameHint;
-				out += fragmentInsert_GLSL_ES_1_0;
-				break;
-			}
-			
 			case GLDRV_OPENGL_MESA:
 			{
 				out.ReAllocate( idStr::Length( fragmentInsert_GLSL_ES_3_00 ) + in.Length() * 2, false );
@@ -1702,7 +1578,6 @@ idRenderProgManager::LoadGLSLShader
 */
 GLuint idRenderProgManager::LoadGLSLShader( GLenum target, const char* name, const char* nameOutSuffix, uint32 shaderFeatures, bool builtin, idList<int>& uniforms )
 {
-
 	idStr inFile;
 	idStr outFileHLSL;
 	idStr outFileGLSL;
@@ -1716,14 +1591,7 @@ GLuint idRenderProgManager::LoadGLSLShader( GLenum target, const char* name, con
 	
 	switch( glConfig.driverType )
 	{
-		case GLDRV_OPENGL_ES2:
 		case GLDRV_OPENGL_ES3:
-		{
-			outFileGLSL.Format( "renderprogs/glsles-1_0/%s%s", name, nameOutSuffix );
-			outFileUniforms.Format( "renderprogs/glsles-1_0/%s%s", name, nameOutSuffix );
-			break;
-		}
-		
 		case GLDRV_OPENGL_MESA:
 		{
 			outFileGLSL.Format( "renderprogs/glsles-3_00/%s%s", name, nameOutSuffix );
@@ -1744,15 +1612,22 @@ GLuint idRenderProgManager::LoadGLSLShader( GLenum target, const char* name, con
 	if( target == GL_FRAGMENT_SHADER )
 	{
 		inFile += ".pixel";
-		outFileHLSL += "_fragment.hlsl";
-		outFileGLSL += "_fragment.glsl";
+		outFileHLSL		+= "_fragment.hlsl";
+		outFileGLSL		+= "_fragment.glsl";
 		outFileUniforms += "_fragment.uniforms";
 	}
+	else if( target == GL_GEOMETRY_SHADER )
+	{
+		inFile += ".geom";
+		outFileHLSL		+= "_geometry.hlsl";
+		outFileGLSL		+= "_geometry.glsl";
+		outFileUniforms += "_geometry.uniforms";
+	} 
 	else
 	{
 		inFile += ".vertex";
-		outFileHLSL += "_vertex.hlsl";
-		outFileGLSL += "_vertex.glsl";
+		outFileHLSL		+= "_vertex.hlsl";
+		outFileGLSL		+= "_vertex.glsl";
 		outFileUniforms += "_vertex.uniforms";
 	}
 	
@@ -1779,7 +1654,7 @@ GLuint idRenderProgManager::LoadGLSLShader( GLenum target, const char* name, con
 			{
 				return false;
 			}
-			len = strlen( hlslFileBuffer );
+			len = idStr::Length( hlslFileBuffer );
 		}
 		else
 		{
@@ -1891,7 +1766,7 @@ GLuint idRenderProgManager::LoadGLSLShader( GLenum target, const char* name, con
 			
 			// catch the strings the ATI and Intel drivers output on success
 			if( strstr( infoLog.Ptr(), "successfully compiled to run on hardware" ) != NULL ||
-					strstr( infoLog.Ptr(), "No errors." ) != NULL )
+				strstr( infoLog.Ptr(), "No errors." ) != NULL )
 			{
 				//idLib::Printf( "%s program %s from %s compiled to run on hardware\n", typeName, GetName(), GetFileName() );
 			}
@@ -1939,7 +1814,6 @@ idRenderProgManager::FindGLSLProgram
 */
 int	 idRenderProgManager::FindGLSLProgram( const char* name, int vIndex, int fIndex )
 {
-
 	for( int i = 0; i < glslPrograms.Num(); ++i )
 	{
 		if( ( glslPrograms[i].vertexShaderIndex == vIndex ) && ( glslPrograms[i].fragmentShaderIndex == fIndex ) )
@@ -2126,8 +2000,7 @@ void idRenderProgManager::LoadGLSLProgram( const int programIndex, const int ver
 	
 	const GLuint program = glCreateProgram();
 	if( program )
-	{
-	
+	{	
 		if( vertexProgID != INVALID_PROGID )
 		{
 			glAttachShader( program, vertexProgID );
@@ -2140,12 +2013,21 @@ void idRenderProgManager::LoadGLSLProgram( const int programIndex, const int ver
 			glDeleteShader( fragmentProgID );
 		}
 		
-		// bind vertex attribute locations
+		// bind vertex input locations
 		for( int i = 0; attribsPC[i].glsl != NULL; i++ )
 		{
 			if( ( attribsPC[i].flags & AT_VS_IN ) != 0 )
 			{
 				glBindAttribLocation( program, attribsPC[i].bind, attribsPC[i].glsl );
+			}
+		}
+
+		// bind fragment output locations
+		for( int i = 0; attribsPC[ i ].glsl != NULL; i++ )
+		{
+			if( !!( attribsPC[ i ].flags & AT_PS_OUT ) && !( attribsPC[ i ].flags & AT_PS_OUT_RESERVED ) )
+			{
+				glBindFragDataLocation( program, attribsPC[ i ].bind, attribsPC[ i ].glsl );
 			}
 		}
 		

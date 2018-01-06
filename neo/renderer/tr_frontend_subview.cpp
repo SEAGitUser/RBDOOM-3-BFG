@@ -31,7 +31,7 @@ If you have questions concerning this license or the applicable additional terms
 #include "precompiled.h"
 
 #include "tr_local.h"
-#include "Model_local.h"
+//#include "Model_local.h"
 
 /*
 ==========================================================================================
@@ -127,130 +127,13 @@ FIXME: check for degenerate triangle?
 */
 static void R_PlaneForSurface( const idTriangles* tri, idPlane& plane )
 {
-	idDrawVert* v1 = tri->verts + tri->indexes[0];
-	idDrawVert* v2 = tri->verts + tri->indexes[1];
-	idDrawVert* v3 = tri->verts + tri->indexes[2];
-	plane.FromPoints( v1->GetPosition(), v2->GetPosition(), v3->GetPosition() );
+	auto & v1 = tri->GetIVertex( 0 );
+	auto & v2 = tri->GetIVertex( 1 );
+	auto & v3 = tri->GetIVertex( 2 );
+
+	plane.FromPoints( v1.GetPosition(), v2.GetPosition(), v3.GetPosition() );
 }
 
-/*
-=========================
-R_PreciseCullSurface
-
-Check the surface for visibility on a per-triangle basis
-for cases when it is going to be VERY expensive to draw (subviews)
-
-If not culled, also returns the bounding box of the surface in
-Normalized Device Coordinates, so it can be used to crop the scissor rect.
-
-OPTIMIZE: we could also take exact portal passing into consideration
-=========================
-*/
-bool R_PreciseCullSurface( const drawSurf_t* const drawSurf, idBounds& ndcBounds )
-{
-	const idTriangles* tri = drawSurf->frontEndGeo;
-	
-	unsigned int pointOr = 0;
-	unsigned int pointAnd = ( unsigned int )~0;
-	
-	// get an exact bounds of the triangles for scissor cropping
-	ndcBounds.Clear();
-	
-	// RB: added check wether GPU skinning is available at all
-	const idJointMat* joints = ( tri->staticModelWithJoints != NULL && r_useGPUSkinning.GetBool() && glConfig.gpuSkinningAvailable ) ? tri->staticModelWithJoints->jointsInverted : NULL;
-	// RB end
-
-	for( int i = 0; i < tri->numVerts; i++ )
-	{
-		const idVec3 vXYZ = idDrawVert::GetSkinnedDrawVertPosition( tri->verts[i], joints );
-		
-		idVec4 eye, clip;
-		idRenderMatrix::TransformModelToClip( vXYZ, drawSurf->space->modelViewMatrix, tr.viewDef->GetProjectionMatrix(), eye, clip );
-		
-		unsigned int pointFlags = 0;
-		for( int j = 0; j < 3; j++ )
-		{
-			if( clip[j] >= clip[3] )
-			{
-				pointFlags |= ( 1 << ( j * 2 + 0 ) );
-			}
-			else if( clip[j] <= -clip[3] )  	// FIXME: the D3D near clip plane is at zero instead of -1
-			{
-				pointFlags |= ( 1 << ( j * 2 + 1 ) );
-			}
-		}
-		
-		pointAnd &= pointFlags;
-		pointOr |= pointFlags;
-	}
-	
-	// trivially reject
-	if( pointAnd != 0 )
-	{
-		return true;
-	}
-	
-	// backface and frustum cull
-	idVec3 localViewOrigin;
-	drawSurf->space->modelMatrix.InverseTransformPoint( tr.viewDef->GetOrigin(), localViewOrigin );
-	
-	for( int i = 0; i < tri->numIndexes; i += 3 )
-	{
-		const idVec3 v1 = idDrawVert::GetSkinnedDrawVertPosition( tri->GetIVertex( i + 0 ), joints );
-		const idVec3 v2 = idDrawVert::GetSkinnedDrawVertPosition( tri->GetIVertex( i + 1 ), joints );
-		const idVec3 v3 = idDrawVert::GetSkinnedDrawVertPosition( tri->GetIVertex( i + 2 ), joints );
-		
-		// this is a hack, because R_GlobalPointToLocal doesn't work with the non-normalized
-		// axis that we get from the gui view transform.  It doesn't hurt anything, because
-		// we know that all gui generated surfaces are front facing
-		if( tr.guiRecursionLevel == 0 )
-		{
-			// we don't care that it isn't normalized,
-			// all we want is the sign
-			const idVec3 d1 = v2 - v1;
-			const idVec3 d2 = v3 - v1;
-			const idVec3 normal = d2.Cross( d1 );
-			
-			const idVec3 dir = v1 - localViewOrigin;
-			
-			const float dot = normal * dir;
-			if( dot >= 0.0f )
-			{
-				return true;
-			}
-		}
-		
-		// now find the exact screen bounds of the clipped triangle
-		idFixedWinding w;
-		w.SetNumPoints( 3 );
-		drawSurf->space->modelMatrix.TransformPoint( v1, w[ 0 ].ToVec3() );
-		drawSurf->space->modelMatrix.TransformPoint( v2, w[ 1 ].ToVec3() );
-		drawSurf->space->modelMatrix.TransformPoint( v3, w[ 2 ].ToVec3() );
-		w[0].s = w[0].t = w[1].s = w[1].t = w[2].s = w[2].t = 0.0f;
-		
-		for( int j = 0; j < 4; j++ )
-		{
-			if( !w.ClipInPlace( -tr.viewDef->GetBaseFrustum()[j], 0.1f ) )
-			{
-				break;
-			}
-		}
-		for( int j = 0; j < w.GetNumPoints(); j++ )
-		{
-			idVec3 screen;			
-			tr.viewDef->GlobalToNormalizedDeviceCoordinates( w[j].ToVec3(), screen );
-			ndcBounds.AddPoint( screen );
-		}
-	}
-	
-	// if we don't enclose any area, return
-	if( ndcBounds.IsCleared() )
-	{
-		return true;
-	}
-	
-	return false;
-}
 
 /*
 ========================
@@ -310,7 +193,7 @@ static idRenderView* R_MirrorViewBySurface( const idRenderView * const baseView,
 	R_MirrorVector( baseView->GetAxis()[2], &surface, &camera, view->parms.viewaxis[2] );
 	
 	// make the view origin 16 units away from the center of the surface
-	const idVec3 center = ( drawSurf->frontEndGeo->bounds[0] + drawSurf->frontEndGeo->bounds[1] ) * 0.5f;
+	const idVec3 center = ( drawSurf->frontEndGeo->GetBounds()[0] + drawSurf->frontEndGeo->GetBounds()[1] ) * 0.5f;
 	const idVec3 viewOrigin = center + ( originalPlane.Normal() * 16.0f );
 	
 	drawSurf->space->modelMatrix.TransformPoint( viewOrigin, view->initialViewAreaOrigin );
@@ -358,7 +241,14 @@ static void R_RemoteRender( idRenderView * const baseView, const drawSurf_t* sur
 	
 	view->baseView = baseView;
 	view->subviewSurface = surf;
-	
+#if 0
+	stage->dynamicFrameCount = tr.GetFrameCount();
+	if( stage->image == NULL )
+	{
+		stage->image = renderImageManager->scratchImage;
+	}
+	tr.SetBuffer( stage->image, tr.GetFrameCount() );
+#endif
 	// generate render commands for it
 	R_RenderView( view );
 	
@@ -366,8 +256,9 @@ static void R_RemoteRender( idRenderView * const baseView, const drawSurf_t* sur
 	stage->dynamicFrameCount = tr.GetFrameCount();
 	if( stage->image == NULL )
 	{
-		stage->image = globalImages->scratchImage;
+		stage->image = renderImageManager->scratchImage;
 	}
+	//view->subviewRenderTexture = stage->image;
 	
 	tr.CaptureRenderToImage( stage->image->GetName(), true );
 	tr.UnCrop();
@@ -391,6 +282,8 @@ static void R_MirrorRender( idRenderView * const baseView, const drawSurf_t* con
 
 	tr.CropRenderSize( stage->width, stage->height );	
 	tr.GetCroppedViewport( &view->viewport );
+
+	//render->SetRenderSize( renderView, screenRect, fracX, fracY );
 	
 	view->scissor.x1 = 0;
 	view->scissor.y1 = 0;
@@ -405,10 +298,14 @@ static void R_MirrorRender( idRenderView * const baseView, const drawSurf_t* con
 	
 	// generate render commands for it
 	R_RenderView( view );
+
+	//render->RenderSingleView( hdc, world_, renderView_, screenRect );
 	
 	// copy this rendering to the image
 	stage->dynamicFrameCount = tr.GetFrameCount();
-	stage->image = globalImages->scratchImage;
+	stage->image = renderImageManager->scratchImage;
+	
+	//view->subviewRenderTexture = stage->image;
 	
 	tr.CaptureRenderToImage( stage->image->GetName() );
 	tr.UnCrop();
@@ -450,7 +347,9 @@ static void R_XrayRender( idRenderView * const baseView, const drawSurf_t* const
 	
 	// copy this rendering to the image
 	stage->dynamicFrameCount = tr.GetFrameCount();
-	stage->image = globalImages->scratchImage2;
+	stage->image = renderImageManager->scratchImage2;
+
+	//view->subviewRenderTexture = stage->image;
 	
 	tr.CaptureRenderToImage( stage->image->GetName(), true );
 	tr.UnCrop();
@@ -464,7 +363,7 @@ R_GenerateSurfaceSubview
 static bool R_GenerateSurfaceSubview( idRenderView * const baseView, const drawSurf_t * const drawSurf )
 {
 	idBounds ndcBounds;
-	if( R_PreciseCullSurface( drawSurf, ndcBounds ) )
+	if( baseView->PreciseCullSurface( drawSurf, ndcBounds ) )
 	{
 		return false;
 	}
@@ -474,9 +373,9 @@ static bool R_GenerateSurfaceSubview( idRenderView * const baseView, const drawS
 	idRenderView* view = NULL;
 	for( view = baseView; view != NULL; view = view->baseView )
 	{
-		if( view->subviewSurface != NULL
-			&& view->subviewSurface->frontEndGeo == drawSurf->frontEndGeo
-			&& view->subviewSurface->space->entityDef == drawSurf->space->entityDef )
+		if( view->subviewSurface != NULL &&
+			view->subviewSurface->frontEndGeo == drawSurf->frontEndGeo &&
+			view->subviewSurface->space->entityDef == drawSurf->space->entityDef )
 		{
 			break;
 		}

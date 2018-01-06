@@ -94,17 +94,17 @@ typedef enum
 
 #include "SoundVoice.h"
 
-#if defined(USE_OPENAL)
+#if defined( USE_OPENAL )
 
 //#define AL_ALEXT_PROTOTYPES
 
 #ifdef __APPLE__
-#include <OpenAL/al.h>
-#include <OpenAL/alc.h>
+	#include <OpenAL/al.h>
+	#include <OpenAL/alc.h>
 #else
-#include <AL/al.h>
-#include <AL/alc.h>
-#include <AL/alext.h>
+	#include <AL/al.h>
+	#include <AL/alc.h>
+	#include <AL/alext.h>
 #endif
 
 #include "OpenAL/AL_SoundSample.h"

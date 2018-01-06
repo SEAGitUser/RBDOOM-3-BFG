@@ -1,4 +1,4 @@
-/*
+﻿/*
 ===========================================================================
 
 Doom 3 BFG Edition GPL Source Code
@@ -61,7 +61,7 @@ If you have questions concerning this license or the applicable additional terms
 idCVar r_showCenterOfProjection( "r_showCenterOfProjection", "0", CVAR_RENDERER | CVAR_BOOL, "Draw a cross to show the center of projection" );
 idCVar r_showLines( "r_showLines", "0", CVAR_RENDERER | CVAR_INTEGER, "1 = draw alternate horizontal lines, 2 = draw alternate vertical lines" );
 
-
+extern void RB_SetMVP( const idRenderMatrix& mvp );
 
 #define MAX_DEBUG_LINES			16384
 
@@ -332,7 +332,7 @@ static void R_ColorByStencilBuffer()
 	for( i = 0; i < 6; i++ )
 	{
 		GL_Color( colors[i] );
-		renderProgManager.BindShader_Color();
+		renderProgManager.BindShader_Color( false );
 		glStencilFunc( GL_EQUAL, i, 255 );
 		RB_PolygonClear();
 	}
@@ -344,31 +344,28 @@ static void R_ColorByStencilBuffer()
 
 /*
 ==================
-RB_ShowOverdraw
+ RB_ShowOverdraw
 ==================
 */
 void RB_ShowOverdraw()
 {
-	const idMaterial* 	material;
-	int					i;
-	drawSurf_t** 		drawSurfs;
-	const drawSurf_t* 	surf;
-	int					numDrawSurfs;
-	viewLight_t* 		vLight;
+	const drawSurf_t * surf;
+	viewLight_t * vLight;
+	int i;
 	
 	if( r_showOverDraw.GetInteger() == 0 )
 	{
 		return;
 	}
 	
-	material = declManager->FindMaterial( "textures/common/overdrawtest", false );
+	const idMaterial * material = declManager->FindMaterial( "textures/common/overdrawtest", false );
 	if( material == NULL )
 	{
 		return;
 	}
 	
-	drawSurfs = backEnd.viewDef->drawSurfs;
-	numDrawSurfs = backEnd.viewDef->numDrawSurfs;
+	drawSurf_t** drawSurfs = backEnd.viewDef->drawSurfs;
+	int numDrawSurfs = backEnd.viewDef->numDrawSurfs;
 	
 	int interactions = 0;
 	for( vLight = backEnd.viewDef->viewLights; vLight; vLight = vLight->next )
@@ -385,7 +382,7 @@ void RB_ShowOverdraw()
 	
 	// FIXME: can't frame alloc from the renderer back-end
 	auto newDrawSurfs = allocManager.FrameAlloc<drawSurf_t*, FRAME_ALLOC_DRAW_SURFACE_POINTER>( numDrawSurfs + interactions );
-	
+
 	for( i = 0; i < numDrawSurfs; i++ )
 	{
 		surf = drawSurfs[i];
@@ -431,11 +428,11 @@ void RB_ShowOverdraw()
 
 /*
 ===================
-RB_ShowIntensity
+ RB_ShowIntensity
 
-Debugging tool to see how much dynamic range a scene is using.
-The greatest of the rgb values at each pixel will be used, with
-the resulting color shading from red at 0 to green at 128 to blue at 255
+	Debugging tool to see how much dynamic range a scene is using.
+	The greatest of the rgb values at each pixel will be used, with
+	the resulting color shading from red at 0 to green at 128 to blue at 255
 ===================
 */
 static void RB_ShowIntensity()
@@ -485,7 +482,7 @@ static void RB_ShowIntensity()
 	glRasterPos2f( 0, 0 );
 	glPopMatrix();
 	GL_Color( 1, 1, 1 );
-	globalImages->BindNull();
+	GL_ResetTexturesState();
 	glMatrixMode( GL_MODELVIEW );
 	
 	glDrawPixels( renderSystem->GetWidth(), renderSystem->GetHeight(), GL_RGBA , GL_UNSIGNED_BYTE, colorReadback.Ptr() );
@@ -519,7 +516,7 @@ static void RB_ShowDepthBuffer()
 	
 	GL_State( GLS_DEPTHFUNC_ALWAYS );
 	GL_Color( 1, 1, 1 );
-	globalImages->BindNull();
+	GL_ResetTexturesState();
 
 	idTempArray<byte> depthReadback( renderSystem->GetWidth() * renderSystem->GetHeight() * 4 );
 	depthReadback.Zero();
@@ -570,7 +567,8 @@ static void RB_ShowLightCount()
 		GL_State( GLS_DEPTHFUNC_EQUAL | GLS_STENCIL_OP_FAIL_KEEP | GLS_STENCIL_OP_ZFAIL_KEEP | GLS_STENCIL_OP_PASS_INCR );
 	}
 	
-	globalImages->defaultImage->Bind();
+	///renderImageManager->defaultImage->Bind();
+	GL_BindTexture( 0, renderImageManager->defaultImage );
 	
 	for( vLight = backEnd.viewDef->viewLights; vLight; vLight = vLight->next )
 	{
@@ -579,7 +577,7 @@ static void RB_ShowLightCount()
 			for( surf = i ? vLight->localInteractions : vLight->globalInteractions; surf; surf = ( drawSurf_t* )surf->nextOnLight )
 			{
 				RB_SimpleSurfaceSetup( surf );
-				GL_DrawElementsWithCounters( surf );
+				GL_DrawIndexed( surf );
 			}
 		}
 	}
@@ -741,15 +739,9 @@ static void RB_RenderDrawSurfListWithFunction( const drawSurf_t * const * drawSu
 			}
 		}
 #endif
-		
-		if( drawSurf->jointCache )
-		{
-			renderProgManager.BindShader_ColorSkinned();
-		}
-		else
-		{
-			renderProgManager.BindShader_Color();
-		}
+
+		renderProgManager.BindShader_Color( drawSurf->jointCache );
+
 		// RB end
 		
 		// change the scissor if needed
@@ -798,10 +790,10 @@ static void RB_ShowSilhouette()
 	}
 	
 	// clear all triangle edges to black
-	globalImages->BindNull();
+	GL_ResetTexturesState();
 	
 	// RB begin
-	renderProgManager.BindShader_Color();
+	renderProgManager.BindShader_Color( false );
 	// RB end
 	
 	GL_Color( 0, 0, 0 );
@@ -810,7 +802,7 @@ static void RB_ShowSilhouette()
 	
 	GL_Cull( CT_TWO_SIDED );
 	
-	RB_RenderDrawSurfListWithFunction( backEnd.viewDef->drawSurfs, backEnd.viewDef->numDrawSurfs, GL_DrawElementsWithCounters );
+	RB_RenderDrawSurfListWithFunction( backEnd.viewDef->drawSurfs, backEnd.viewDef->numDrawSurfs, GL_DrawIndexed );
 									   									   
 	// now blend in edges that cast silhouettes
 	RB_SimpleWorldSetup();
@@ -916,7 +908,7 @@ static void RB_ShowTris( const drawSurf_t * const * drawSurfs, int numDrawSurfs 
 	
 	GL_Color( color );
 	
-	RB_RenderDrawSurfListWithFunction( drawSurfs, numDrawSurfs, GL_DrawElementsWithCounters );
+	RB_RenderDrawSurfListWithFunction( drawSurfs, numDrawSurfs, GL_DrawIndexed );
 	
 	if( r_showTris.GetInteger() == 3 )
 	{
@@ -978,15 +970,13 @@ static void RB_ShowSurfaceInfo( const drawSurf_t * const * drawSurfs, int numDra
 		return;
 	}
 	
-	// globalImages->BindNull();
-	// qglDisable( GL_TEXTURE_2D );
+	GL_ResetTexturesState();
 	
 	RB_SimpleWorldSetup();
 	
 	// foresthale 2014-05-02: don't use a shader for tools
 	//renderProgManager.BindShader_TextureVertexColor();
-	GL_SelectTexture( 0 );
-	globalImages->whiteImage->Bind();
+	GL_BindTexture( 0, renderImageManager->whiteImage );
 	
 	RB_SetVertexColorParms( SVC_MODULATE );
 	// foresthale 2014-05-02: don't use a shader for tools
@@ -1041,9 +1031,9 @@ static void RB_ShowViewEntitys( viewModel_t* vModels )
 		common->Printf( "\n" );
 	}
 	
-	globalImages->BindNull();
+	GL_ResetTexturesState();
 	
-	renderProgManager.BindShader_Color();
+	renderProgManager.BindShader_Color( false );
 	
 	GL_Color( 1, 1, 1 );
 	GL_State( GLS_DEPTHFUNC_ALWAYS | GLS_POLYMODE_LINE );
@@ -1119,7 +1109,7 @@ static void RB_ShowTexturePolarity( const drawSurf_t * const * drawSurfs, int nu
 	{
 		return;
 	}
-	globalImages->BindNull();
+	GL_ResetTexturesState();
 	
 	GL_State( GLS_SRCBLEND_SRC_ALPHA | GLS_DSTBLEND_ONE_MINUS_SRC_ALPHA );
 	
@@ -1196,7 +1186,7 @@ static void RB_ShowUnsmoothedTangents( const drawSurf_t * const * drawSurfs, int
 	{
 		return;
 	}
-	globalImages->BindNull();
+	GL_ResetTexturesState();
 	
 	GL_State( GLS_SRCBLEND_SRC_ALPHA | GLS_DSTBLEND_ONE_MINUS_SRC_ALPHA );
 	
@@ -1255,7 +1245,7 @@ static void RB_ShowTangentSpace( const drawSurf_t * const * drawSurfs, int numDr
 	{
 		return;
 	}
-	globalImages->BindNull();
+	GL_ResetTexturesState();
 	
 	GL_State( GLS_SRCBLEND_SRC_ALPHA | GLS_DSTBLEND_ONE_MINUS_SRC_ALPHA );
 	
@@ -1319,8 +1309,8 @@ static void RB_ShowVertexColor( const drawSurf_t * const * drawSurfs, int numDra
 	{
 		return;
 	}
-	globalImages->BindNull();
-	
+	GL_ResetTexturesState();
+
 	// RB begin
 	renderProgManager.BindShader_VertexColor();
 	
@@ -1377,7 +1367,7 @@ static void RB_ShowNormals( const drawSurf_t * const * drawSurfs, int numDrawSur
 		return;
 	}
 	
-	globalImages->BindNull();
+	GL_ResetTexturesState();
 	
 	if( !r_debugLineDepthTest.GetBool() )
 	{
@@ -1493,7 +1483,7 @@ static void RB_AltShowNormals( drawSurf_t** drawSurfs, int numDrawSurfs )
 		return;
 	}
 	
-	globalImages->BindNull();
+	GL_ResetTexturesState();
 	
 	GL_State( GLS_DEPTHFUNC_ALWAYS );
 	
@@ -1567,7 +1557,7 @@ static void RB_ShowTextureVectors( const drawSurf_t * const * drawSurfs, int num
 	
 	GL_State( GLS_DEPTHFUNC_LESS );
 	
-	globalImages->BindNull();
+	GL_ResetTexturesState();
 	
 	for( int i = 0; i < numDrawSurfs; ++i )
 	{
@@ -1665,7 +1655,7 @@ Draw lines from each vertex to the dominant triangle center
 */
 static void RB_ShowDominantTris( const drawSurf_t * const * drawSurfs, int numDrawSurfs )
 {
-	int			i, j;
+	int	i, j;
 
 	if( !r_showDominantTri.GetBool() )
 	{
@@ -1677,7 +1667,7 @@ static void RB_ShowDominantTris( const drawSurf_t * const * drawSurfs, int numDr
 	GL_PolygonOffset( -1, -2 );
 	glEnable( GL_POLYGON_OFFSET_LINE );
 	
-	globalImages->BindNull();
+	GL_ResetTexturesState();
 	
 	for( i = 0; i < numDrawSurfs; ++i )
 	{
@@ -1738,7 +1728,7 @@ static void RB_ShowEdges( const drawSurf_t * const * drawSurfs, int numDrawSurfs
 		return;
 	}
 	
-	globalImages->BindNull();
+	GL_ResetTexturesState();
 	
 	GL_State( GLS_DEPTHFUNC_ALWAYS );
 	
@@ -1845,9 +1835,9 @@ static void RB_ShowLights()
 	
 	GL_State( GLS_DEFAULT );
 	
-	globalImages->BindNull();
+	GL_ResetTexturesState();
 	
-	renderProgManager.BindShader_Color();
+	renderProgManager.BindShader_Color( false );
 	
 	GL_Cull( CT_TWO_SIDED );
 	
@@ -1861,41 +1851,58 @@ static void RB_ShowLights()
 		// depth buffered planes
 		if( r_showLights.GetInteger() >= 2 )
 		{
-			GL_State( GLS_DEPTHFUNC_ALWAYS | GLS_SRCBLEND_SRC_ALPHA | GLS_DSTBLEND_ONE_MINUS_SRC_ALPHA | GLS_DEPTHMASK );
+			GL_State( GLS_DEPTHFUNC_LESS | GLS_SRCBLEND_SRC_ALPHA | GLS_DSTBLEND_ONE_MINUS_SRC_ALPHA | GLS_DEPTHMASK );
 			
 			// RB: show different light types
 			if( vLight->parallel )
 			{
-				GL_Color( 1.0f, 0.0f, 0.0f, 0.25f );
+				GL_Color( 1.0f, 0.0f, 0.0f, 0.15f );
 			}
 			else if( vLight->pointLight )
 			{
-				GL_Color( 0.0f, 0.0f, 1.0f, 0.25f );
+				GL_Color( 0.0f, 0.0f, 1.0f, 0.15f );
 			}
 			else
 			{
-				GL_Color( 0.0f, 1.0f, 0.0f, 0.25f );
+				GL_Color( 0.0f, 1.0f, 0.0f, 0.15f );
 			}
 			// RB end
+
+			//glEnable( GL_POLYGON_STIPPLE );
+			//glPolygonStipple( stipple_pattern );
+			// Specifies a pointer to a 32 × 32 stipple pattern that will be unpacked from memory in the same way that glDrawPixels unpacks pixels.
 			
 			idRenderMatrix invProjectMVPMatrix;
 			idRenderMatrix::Multiply( backEnd.viewDef->GetMVPMatrix(), vLight->inverseBaseLightProject, invProjectMVPMatrix );
 			RB_SetMVP( invProjectMVPMatrix );
-			GL_DrawElementsWithCounters( &backEnd.zeroOneCubeSurface );
+			GL_DrawIndexed( &backEnd.zeroOneCubeSurface );
 		}
 		
 		// non-hidden lines
 		if( r_showLights.GetInteger() >= 3 )
 		{
-			GL_State( GLS_DEPTHFUNC_ALWAYS | GLS_POLYMODE_LINE | GLS_DEPTHMASK );
-			GL_Color( 1.0f, 1.0f, 1.0f );
 			idRenderMatrix invProjectMVPMatrix;
 			idRenderMatrix::Multiply( backEnd.viewDef->GetMVPMatrix(), vLight->inverseBaseLightProject, invProjectMVPMatrix );
 			RB_SetMVP( invProjectMVPMatrix );
-			GL_DrawElementsWithCounters( &backEnd.zeroOneCubeSurface );
+
+			GL_State( GLS_DEPTHFUNC_LESS | GLS_POLYMODE_LINE | GLS_DEPTHMASK );
+			GL_Color( 1.0f, 1.0f, 1.0f, 0.3f );			
+			GL_DrawIndexed( &backEnd.zeroOneCubeSurface );
+
+			//glPushAttrib( GL_ENABLE_BIT ); // to return everything to normal after drawing
+
+			glLineStipple( 4, 0xAAAA );
+			glEnable( GL_LINE_STIPPLE );
+
+			GL_State( GLS_DEPTHFUNC_GREATER | GLS_POLYMODE_LINE | GLS_DEPTHMASK );
+			GL_Color( colorMdGrey.x, colorMdGrey.y, colorMdGrey.z, 0.2f );
+			GL_DrawIndexed( &backEnd.zeroOneCubeSurface );
+
+			glDisable( GL_LINE_STIPPLE );
+			//glPopAttrib();
 		}
 		
-		common->Printf( "%i ", vLight->lightDef->GetIndex() );
+		common->Printf( "%i %s %f", vLight->lightDef->GetIndex(), vLight->lightShader->GetName(), vLight->lightDef->GetAxialSize() );
 	}
 	
 	common->Printf( " = %i total\n", count );
@@ -1911,9 +1918,9 @@ static void RB_ShowShadowMapLODs()
 	
 	GL_State( GLS_DEFAULT );
 	
-	globalImages->BindNull();
+	GL_ResetTexturesState();
 	
-	renderProgManager.BindShader_Color();
+	renderProgManager.BindShader_Color( false );
 	
 	GL_Cull( CT_TWO_SIDED );
 	
@@ -1970,7 +1977,7 @@ static void RB_ShowShadowMapLODs()
 			idRenderMatrix invProjectMVPMatrix;
 			idRenderMatrix::Multiply( backEnd.viewDef->GetMVPMatrix(), vLight->inverseBaseLightProject, invProjectMVPMatrix );
 			RB_SetMVP( invProjectMVPMatrix );
-			GL_DrawElementsWithCounters( &backEnd.zeroOneCubeSurface );
+			GL_DrawIndexed( &backEnd.zeroOneCubeSurface );
 		}
 		
 		// non-hidden lines
@@ -1981,7 +1988,7 @@ static void RB_ShowShadowMapLODs()
 			idRenderMatrix invProjectMVPMatrix;
 			idRenderMatrix::Multiply( backEnd.viewDef->GetMVPMatrix(), vLight->inverseBaseLightProject, invProjectMVPMatrix );
 			RB_SetMVP( invProjectMVPMatrix );
-			GL_DrawElementsWithCounters( &backEnd.zeroOneCubeSurface );
+			GL_DrawIndexed( &backEnd.zeroOneCubeSurface );
 		}
 		
 		common->Printf( "%i ", vLight->lightDef->GetIndex() );
@@ -2008,8 +2015,9 @@ static void RB_ShowPortals()
 	// all portals are expressed in world coordinates
 	RB_SimpleWorldSetup();
 	
-	globalImages->BindNull();
-	renderProgManager.BindShader_Color();
+	GL_ResetTexturesState();
+
+	renderProgManager.BindShader_Color( false );
 	GL_State( GLS_DEPTHFUNC_ALWAYS );
 	
 	( ( idRenderWorldLocal* )backEnd.viewDef->renderWorld )->ShowPortals();
@@ -2139,7 +2147,7 @@ RB_DrawText
 */
 static void RB_DrawText( const char* text, const idVec3& origin, float scale, const idVec4& color, const idMat3& viewAxis, const int align )
 {
-	renderProgManager.BindShader_Color();
+	renderProgManager.BindShader_Color( false );
 	
 	// RB begin
 	GL_Color( color[0], color[1], color[2], 1 /*color[3]*/ );
@@ -2248,7 +2256,7 @@ void RB_ShowDebugText()
 	// all lines are expressed in world coordinates
 	RB_SimpleWorldSetup();
 	
-	globalImages->BindNull();
+	GL_ResetTexturesState();
 	
 	width = r_debugLineWidth.GetInteger();
 	if( width < 1 )
@@ -2379,7 +2387,7 @@ void RB_ShowDebugLines()
 	renderProgManager.CommitUniforms();
 	// RB end
 	
-	globalImages->BindNull();
+	GL_ResetTexturesState();
 	
 	width = r_debugLineWidth.GetInteger();
 	if( width < 1 )
@@ -2520,7 +2528,7 @@ void RB_ShowDebugPolygons()
 	renderProgManager.CommitUniforms();
 	// RB end
 	
-	globalImages->BindNull();
+	GL_ResetTexturesState();
 	
 	if( r_debugPolygonFilled.GetBool() )
 	{
@@ -2855,8 +2863,7 @@ void RB_TestImage()
 		w = 0.25;
 		h = 0.25;
 	}
-	else
-	{
+	else {
 		max = image->GetUploadWidth() > image->GetUploadHeight() ? image->GetUploadWidth() : image->GetUploadHeight();
 		
 		w = 0.25 * image->GetUploadWidth() / max;
@@ -2906,29 +2913,25 @@ void RB_TestImage()
 //	glLoadIdentity();
 
 	// Set Color
-	GL_Color( 1, 1, 1, 1 );
+	GL_Color( 1.0f, 1.0f, 1.0f, 1.0f );
 	
 	// Bind the Texture
 	if( ( imageCr != NULL ) && ( imageCb != NULL ) )
 	{
-		GL_SelectTexture( 0 );
-		image->Bind();
-		GL_SelectTexture( 1 );
-		imageCr->Bind();
-		GL_SelectTexture( 2 );
-		imageCb->Bind();
+		GL_BindTexture( 0, image );
+		GL_BindTexture( 1, imageCr );
+		GL_BindTexture( 2, imageCb );
+
 		renderProgManager.BindShader_Bink();
 	}
-	else
-	{
-		GL_SelectTexture( 0 );
-		image->Bind();
-		// Set Shader
+	else {
+		GL_BindTexture( 0, image );
+
 		renderProgManager.BindShader_Texture();
 	}
 	
 	// Draw!
-	GL_DrawElementsWithCounters( &backEnd.testImageSurface );
+	GL_DrawIndexed( &backEnd.testImageSurface );
 }
 
 // RB begin
@@ -2941,7 +2944,7 @@ void RB_ShowShadowMaps()
 	if( !r_showShadowMaps.GetBool() )
 		return;
 		
-	image = globalImages->shadowImage[0];
+	image = renderImageManager->shadowImage[0];
 	if( !image )
 	{
 		return;
@@ -3005,15 +3008,13 @@ void RB_ShowShadowMaps()
 		
 		// Set Color
 		GL_Color( 1, 1, 1, 1 );
-		
-		GL_SelectTexture( 0 );
-		image->Bind();
+
+		GL_BindTexture( 0, image );
 		glTexParameteri( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_COMPARE_MODE, GL_NONE );
-		
-		
+			
 		renderProgManager.BindShader_DebugShadowMap();
 		
-		GL_DrawElementsWithCounters( &backEnd.testImageSurface );
+		GL_DrawIndexed( &backEnd.testImageSurface );
 	}
 	
 	glTexParameteri( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_R_TO_TEXTURE );
@@ -3105,9 +3106,7 @@ FIXME: not thread safe!
 static void RB_ShowTrace( const drawSurf_t* const* drawSurfs, int numDrawSurfs )
 {
 	if( r_showTrace.GetInteger() == 0 )
-	{
 		return;
-	}
 	
 	float radius = ( r_showTrace.GetInteger() == 2 )? 5.0f : 0.0f;
 
@@ -3116,7 +3115,7 @@ static void RB_ShowTrace( const drawSurf_t* const* drawSurfs, int numDrawSurfs )
 	idVec3 end = start + 4000 * backEnd.viewDef->GetAxis()[0];
 	
 	// check and draw the surfaces
-	globalImages->whiteImage->Bind();
+	GL_BindTexture( 0, renderImageManager->whiteImage );
 	
 	// find how many are ambient
 	for( int i = 0; i < numDrawSurfs; i++ )
@@ -3125,9 +3124,7 @@ static void RB_ShowTrace( const drawSurf_t* const* drawSurfs, int numDrawSurfs )
 		auto tri = surf->frontEndGeo;
 		
 		if( tri == NULL || tri->verts == NULL )
-		{
 			continue;
-		}
 
 		idVec3 localStart, localEnd;
 
@@ -3137,9 +3134,7 @@ static void RB_ShowTrace( const drawSurf_t* const* drawSurfs, int numDrawSurfs )
 		
 		// check the bounding box
 		if( !tri->bounds.Expand( radius ).LineIntersection( localStart, localEnd ) )
-		{
 			continue;
-		}
 		
 		glLoadTransposeMatrixf( surf->space->modelViewMatrix.Ptr() );
 		
@@ -3147,7 +3142,7 @@ static void RB_ShowTrace( const drawSurf_t* const* drawSurfs, int numDrawSurfs )
 		GL_State( GLS_SRCBLEND_SRC_ALPHA | GLS_DSTBLEND_ONE_MINUS_SRC_ALPHA );
 		
 		GL_Color( 1, 0, 0, 0.25 );
-		GL_DrawElementsWithCounters( surf );
+		GL_DrawIndexed( surf );
 		
 		// draw the bounding box
 		GL_State( GLS_DEPTHFUNC_ALWAYS );
@@ -3179,8 +3174,10 @@ RB_RenderDebugTools
 */
 void RB_RenderDebugTools( const drawSurf_t * const * drawSurfs, int numDrawSurfs )
 {
+	//return;
+
 	RENDERLOG_OPEN_MAINBLOCK( MRB_DRAW_DEBUG_TOOLS );
-	RENDERLOG_PRINTF( "---------- RB_RenderDebugTools ----------\n" );
+	RENDERLOG_OPEN_BLOCK( "RB_RenderDebugTools" );
 
 	// don't do much if this was a 2D rendering
 	if( !backEnd.viewDef->viewEntitys )
@@ -3189,7 +3186,7 @@ void RB_RenderDebugTools( const drawSurf_t * const * drawSurfs, int numDrawSurfs
 		RB_ShowLines();
 		return;
 	}
-		
+
 	GL_State( GLS_DEFAULT );
 	
 	GL_Scissor( backEnd.viewDef->GetViewport().x1 + backEnd.viewDef->GetScissor().x1,
@@ -3235,7 +3232,8 @@ void RB_RenderDebugTools( const drawSurf_t * const * drawSurfs, int numDrawSurfs
 	RB_ShowDebugText();
 	RB_ShowDebugPolygons();
 	RB_ShowTrace( drawSurfs, numDrawSurfs );
-	
+
+	RENDERLOG_CLOSE_BLOCK();
 	RENDERLOG_CLOSE_MAINBLOCK();
 }
 

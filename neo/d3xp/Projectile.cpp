@@ -97,7 +97,7 @@ idProjectile::idProjectile() :
 	mTouchTriggers		= false;
 	mNoExplodeDisappear = false;
 	memset( &projectileFlags, 0, sizeof( projectileFlags ) );
-	memset( &renderLight, 0, sizeof( renderLight ) );
+	renderLight.Clear();
 	
 	// note: for net_instanthit projectiles, we will force this back to false at spawn time
 	fl.networkSync		= true;
@@ -248,7 +248,7 @@ void idProjectile::Create( idEntity* owner, const idVec3& start, const idVec3& d
 	
 	this->owner = owner;
 	
-	memset( &renderLight, 0, sizeof( renderLight ) );
+	renderLight.Clear();
 	shaderName = spawnArgs.GetString( "mtr_light_shader" );
 	if( *( const char* )shaderName )
 	{

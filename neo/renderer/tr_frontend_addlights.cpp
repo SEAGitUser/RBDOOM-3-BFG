@@ -42,16 +42,16 @@ idCVar r_useParallelAddLights( "r_useParallelAddLights", "1", CVAR_RENDERER | CV
 
 /*
 ============================
-R_ShadowBounds
+ R_ShadowBounds
 
-Even though the extruded shadows are drawn projected to infinity, their effects are limited
-to a fraction of the light's volume.  An extruded box would require 12 faces to specify and
-be a lot of trouble, but an axial bounding box is quick and easy to determine.
+	Even though the extruded shadows are drawn projected to infinity, their effects are limited
+	to a fraction of the light's volume.  An extruded box would require 12 faces to specify and
+	be a lot of trouble, but an axial bounding box is quick and easy to determine.
 
-If the light is completely contained in the view, there is no value in trying to cull the
-shadows, as they will all pass.
+	If the light is completely contained in the view, there is no value in trying to cull the
+	shadows, as they will all pass.
 
-Pure function.
+	Pure function.
 ============================
 */
 void R_ShadowBounds( const idBounds& modelBounds, const idBounds& lightBounds, const idVec3& lightOrigin, idBounds& shadowBounds )
@@ -65,18 +65,18 @@ void R_ShadowBounds( const idBounds& modelBounds, const idBounds& lightBounds, c
 
 /*
 ===================
-R_AddSingleLight
+ R_AddSingleLight
 
-May be run in parallel.
+	May be run in parallel.
 
-Sets vLight->removeFromList to true if the light should be removed from the list.
-Builds a chain of entities that need to be added for shadows only off vLight->shadowOnlyViewEntities.
-Allocates and fills in vLight->entityInteractionState.
+	Sets vLight->removeFromList to true if the light should be removed from the list.
+	Builds a chain of entities that need to be added for shadows only off vLight->shadowOnlyViewEntities.
+	Allocates and fills in vLight->entityInteractionState.
 
-Calc the light shader values, removing any light from the viewLight list
-if it is determined to not have any visible effect due to being flashed off or turned off.
+	Calc the light shader values, removing any light from the viewLight list
+	if it is determined to not have any visible effect due to being flashed off or turned off.
 
-Add any precomputed shadow volumes.
+	Add any precomputed shadow volumes.
 ===================
 */
 static void R_AddSingleLight( viewLight_t* vLight )
@@ -87,8 +87,7 @@ static void R_AddSingleLight( viewLight_t* vLight )
 	vLight->preLightShadowVolumes = NULL;
 	
 	// globals we really should pass in...
-	const idRenderView* viewDef = tr.viewDef;
-	
+	const idRenderView* viewDef = tr.viewDef;	
 	const idRenderLightLocal* light = vLight->lightDef;
 	const idMaterial* lightShader = light->lightShader;
 	if( lightShader == NULL )
@@ -160,21 +159,10 @@ static void R_AddSingleLight( viewLight_t* vLight )
 	// copy data used by backend
 	//--------------------------------------------
 	vLight->globalLightOrigin = light->globalLightOrigin;
-	vLight->lightProject[0] = light->lightProject[0];
-	vLight->lightProject[1] = light->lightProject[1];
-	vLight->lightProject[2] = light->lightProject[2];
-	vLight->lightProject[3] = light->lightProject[3];
-	
-	// the fog plane is the light far clip plane
-	/*idPlane fogPlane(	light->baseLightProject[2][0] - light->baseLightProject[3][0],
-						light->baseLightProject[2][1] - light->baseLightProject[3][1],
-						light->baseLightProject[2][2] - light->baseLightProject[3][2],
-						light->baseLightProject[2][3] - light->baseLightProject[3][3] );
-	const float planeScale = idMath::InvSqrt( fogPlane.Normal().LengthSqr() );
-	vLight->fogPlane[0] = fogPlane[0] * planeScale;
-	vLight->fogPlane[1] = fogPlane[1] * planeScale;
-	vLight->fogPlane[2] = fogPlane[2] * planeScale;
-	vLight->fogPlane[3] = fogPlane[3] * planeScale;*/
+	vLight->lightProject[ 0 ] = light->lightProject[ 0 ];
+	vLight->lightProject[ 1 ] = light->lightProject[ 1 ];
+	vLight->lightProject[ 2 ] = light->lightProject[ 2 ];
+	vLight->lightProject[ 3 ] = light->lightProject[ 3 ];
 	
 	// copy the matrix for deforming the 'zeroOneCubeModel' to exactly cover the light volume in world space
 	vLight->inverseBaseLightProject.Copy( light->inverseBaseLightProject );
@@ -209,30 +197,29 @@ static void R_AddSingleLight( viewLight_t* vLight )
 		{
 			idRenderMatrix::ProjectedNearClippedBounds( projected, invProjectMVPMatrix, bounds_zeroOneCube );
 		}
-		else
-		{
+		else {
 			idRenderMatrix::ProjectedFullyClippedBounds( projected, invProjectMVPMatrix, bounds_zeroOneCube );
 		}
 		
-		if( projected[0][2] >= projected[1][2] )
+		if( projected[ 0 ][ 2 ] >= projected[ 1 ][ 2 ] )
 		{
 			// the light was culled to the view frustum
 			return;
 		}
 		
-		float screenWidth = ( float )viewDef->viewport.x2 - ( float )viewDef->viewport.x1;
-		float screenHeight = ( float )viewDef->viewport.y2 - ( float )viewDef->viewport.y1;
+		float screenWidth  = ( float )viewDef->GetViewport().x2 - ( float )viewDef->GetViewport().x1;
+		float screenHeight = ( float )viewDef->GetViewport().y2 - ( float )viewDef->GetViewport().y1;
 		
 		idScreenRect lightScissorRect;
-		lightScissorRect.x1 = idMath::Ftoi( projected[0][0] * screenWidth );
-		lightScissorRect.x2 = idMath::Ftoi( projected[1][0] * screenWidth );
-		lightScissorRect.y1 = idMath::Ftoi( projected[0][1] * screenHeight );
-		lightScissorRect.y2 = idMath::Ftoi( projected[1][1] * screenHeight );
+		lightScissorRect.x1 = idMath::Ftoi16( projected[ 0 ][ 0 ] * screenWidth );
+		lightScissorRect.x2 = idMath::Ftoi16( projected[ 1 ][ 0 ] * screenWidth );
+		lightScissorRect.y1 = idMath::Ftoi16( projected[ 0 ][ 1 ] * screenHeight );
+		lightScissorRect.y2 = idMath::Ftoi16( projected[ 1 ][ 1 ] * screenHeight );
 		lightScissorRect.Expand();
-		
+
 		vLight->scissorRect.Intersect( lightScissorRect );
-		vLight->scissorRect.zmin = projected[0][2];
-		vLight->scissorRect.zmax = projected[1][2];
+		vLight->scissorRect.zmin = projected[ 0 ][ 2 ];
+		vLight->scissorRect.zmax = projected[ 1 ][ 2 ];
 		
 		// RB: calculate shadow LOD similar to Q3A .md3 LOD code
 		vLight->shadowLOD = 0;
@@ -528,7 +515,8 @@ static void R_AddSingleLight( viewLight_t* vLight )
 			shadowParms->shadowVolumeState = & shadowDrawSurf->shadowVolumeState;
 			
 			// the pre-light shadow volume "_prelight_light_3297" in "d3xpdm2" is malformed in that it contains the light origin so the precise inside test always fails
-			if( tr.primaryWorld->mapName.IcmpPath( "maps/game/mp/d3xpdm2.map" ) == 0 && idStr::Icmp( light->GetParms().prelightModel->Name(), "_prelight_light_3297" ) == 0 )
+			if( tr.primaryWorld->mapName.IcmpPath( "maps/game/mp/d3xpdm2.map" ) == 0 && 
+				idStr::Icmp( light->GetParms().prelightModel->Name(), "_prelight_light_3297" ) == 0 )
 			{
 				shadowParms->useShadowPreciseInsideTest = false;
 			}
@@ -569,8 +557,7 @@ void R_AddLights( idRenderView * const view )
 		tr.frontEndJobList->Submit();
 		tr.frontEndJobList->Wait();
 	}
-	else
-	{
+	else {
 		for( viewLight_t* vLight = view->viewLights; vLight != NULL; vLight = vLight->next )
 		{
 			R_AddSingleLight( vLight );
@@ -626,8 +613,7 @@ void R_AddLights( idRenderView * const view )
 			vLight->preLightShadowVolumes = NULL;
 		}
 	}
-	else
-	{
+	else {
 		int start = Sys_Microseconds();
 		
 		for( viewLight_t* vLight = view->viewLights; vLight != NULL; vLight = vLight->next )
@@ -672,35 +658,33 @@ void R_OptimizeViewLightsList( idRenderView * const renderView )
 		// rects aren't actually the surface, but only the portal clippings.
 		for( viewLight_t* vLight = renderView->viewLights; vLight; vLight = vLight->next )
 		{
-			drawSurf_t* surf;
-			idScreenRect surfRect;
-			
 			if( !vLight->lightShader->LightCastsShadows() )
 			{
 				continue;
 			}
-			
+
+			idScreenRect surfRect;
 			surfRect.Clear();
 			
-			for( surf = vLight->globalInteractions; surf != NULL; surf = surf->nextOnLight )
+			for( auto surf = vLight->globalInteractions; surf != NULL; surf = surf->nextOnLight )
 			{
 				surfRect.Union( surf->scissorRect );
 			}
-			for( surf = vLight->localShadows; surf != NULL; surf = surf->nextOnLight )
+			for( auto surf = vLight->localShadows; surf != NULL; surf = surf->nextOnLight )
 			{
 				surf->scissorRect.Intersect( surfRect );
 			}
 			
-			for( surf = vLight->localInteractions; surf != NULL; surf = surf->nextOnLight )
+			for( auto surf = vLight->localInteractions; surf != NULL; surf = surf->nextOnLight )
 			{
 				surfRect.Union( surf->scissorRect );
 			}
-			for( surf = vLight->globalShadows; surf != NULL; surf = surf->nextOnLight )
+			for( auto surf = vLight->globalShadows; surf != NULL; surf = surf->nextOnLight )
 			{
 				surf->scissorRect.Intersect( surfRect );
 			}
 			
-			for( surf = vLight->translucentInteractions; surf != NULL; surf = surf->nextOnLight )
+			for( auto surf = vLight->translucentInteractions; surf != NULL; surf = surf->nextOnLight )
 			{
 				surfRect.Union( surf->scissorRect );
 			}

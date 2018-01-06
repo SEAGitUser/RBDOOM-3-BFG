@@ -40,3 +40,6 @@ If you have questions concerning this license or the applicable additional terms
 #else
 
 #endif
+
+//#define USE_OPENAL
+#define USE_OPENGL

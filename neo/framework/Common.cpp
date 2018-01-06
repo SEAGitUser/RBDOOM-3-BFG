@@ -832,7 +832,7 @@ Com_StartBuild_f
 */
 CONSOLE_COMMAND( startBuild, "prepares to make a build", NULL )
 {
-	globalImages->StartBuild();
+	renderImageManager->StartBuild();
 }
 
 /*
@@ -846,7 +846,7 @@ CONSOLE_COMMAND( finishBuild, "finishes the build process", NULL )
 	{
 		game->CacheDictionaryMedia( NULL );
 	}
-	globalImages->FinishBuild( ( args.Argc() > 1 ) );
+	renderImageManager->FinishBuild( ( args.Argc() > 1 ) );
 }
 
 /*
@@ -1413,7 +1413,7 @@ void idCommonLocal::Init( int argc, const char* const* argv, const char* cmdline
 		{
 			idPreloadManifest manifest;
 			manifest.LoadManifest( "_common.preload" );
-			globalImages->Preload( manifest, false );
+			renderImageManager->Preload( manifest, false );
 			soundSystem->Preload( manifest );
 		}
 		
@@ -1423,7 +1423,7 @@ void idCommonLocal::Init( int argc, const char* const* argv, const char* cmdline
 #if defined(USE_DOOMCLASSIC)
 		// Initialize support for Doom classic.
 		doomClassicMaterial = declManager->FindMaterial( "_doomClassic" );
-		idImage* image = globalImages->GetImage( "_doomClassic" );
+		idImage* image = renderImageManager->GetImage( "_doomClassic" );
 		if( image != NULL )
 		{
 			idImageOpts opts;

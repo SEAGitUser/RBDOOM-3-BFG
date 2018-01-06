@@ -71,6 +71,34 @@ bool IsWriteCombined( void* base )
 #endif
 // RB end
 
+/*
+===================================================================================
+First, the frequency of access (modification and usage), and second, the nature of that access. 
+	The frequency of access may be one of these:
+
+STREAM
+The data store contents will be modified once and used at most a few times.
+
+STATIC
+The data store contents will be modified once and used many times.
+
+DYNAMIC
+The data store contents will be modified repeatedly and used many times.
+
+	The nature of access may be one of these:
+
+DRAW
+The data store contents are modified by the application, and used as the source for GL drawing and image specification commands.
+
+READ
+The data store contents are modified by reading data from the GL, and used to return that data when queried by the application.
+
+COPY
+The data store contents are modified by reading data from the GL, and used as the source for GL drawing and image specification commands.
+
+===================================================================================
+*/
+
 static void * GL_CreateBuffer( const char *class_name, const void *class_ptr, GLenum target, bufferUsageType_t allocUsage, GLsizeiptr numBytes, const void * data )
 {
 	GLuint bufferObject = MAX_UNSIGNED_TYPE( GLuint );
@@ -146,7 +174,7 @@ static GLbitfield GetMapFlags( bufferMapType_t mapType, bool bInvalidateRange )
 	}
 	else if( mapType == BM_READ_NOSYNC )
 	{
-		return GL_MAP_READ_BIT | GL_MAP_UNSYNCHRONIZED_BIT;
+		return GL_MAP_READ_BIT /*| GL_MAP_UNSYNCHRONIZED_BIT*/;
 	}
 	else if( mapType == BM_WRITE )
 	{

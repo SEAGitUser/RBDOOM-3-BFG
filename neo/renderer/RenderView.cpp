@@ -218,11 +218,11 @@ void idRenderView::GlobalToNormalizedDeviceCoordinates( const idVec3& global, id
 */
 void idRenderView::ScreenRectFromWinding( const idWinding & w, const idRenderMatrix & modelMatrix, idScreenRect & screenRect ) const
 {
-	const float viewWidth  = ( float )this->viewport.x2 - ( float )this->viewport.x1;
-	const float viewHeight = ( float )this->viewport.y2 - ( float )this->viewport.y1;
+	const float viewWidth  = ( float )this->GetViewport().x2 - ( float )this->GetViewport().x1;
+	const float viewHeight = ( float )this->GetViewport().y2 - ( float )this->GetViewport().y1;
 
 	screenRect.Clear();
-	for( int i = 0; i < w.GetNumPoints(); i++ )
+	for( int i = 0; i < w.GetNumPoints(); ++i )
 	{
 		idVec3 v, ndc;
 
@@ -237,4 +237,206 @@ void idRenderView::ScreenRectFromWinding( const idWinding & w, const idRenderMat
 	}
 
 	screenRect.Expand();
+}
+
+// transform Z in eye coordinates to window coordinates
+static void R_TransformEyeZToWin( float src_z, const idRenderMatrix & projectionMatrix, float &dst_z )
+{
+	// projection
+	//float clip_z = src_z * projectionMatrix[ 2 + 2 * 4 ] + projectionMatrix[ 2 + 3 * 4 ];
+	//float clip_w = src_z * projectionMatrix[ 3 + 2 * 4 ] + projectionMatrix[ 3 + 3 * 4 ];
+
+	//float clip_z = src_z * projectionMatrix[ 10 ] + projectionMatrix[ 14 ];
+	//float clip_w = src_z * projectionMatrix[ 11 ] + projectionMatrix[ 15 ];
+
+	float clip_z = src_z * projectionMatrix[ 2 ][ 2 ] + projectionMatrix[ 2 ][ 3 ];
+	float clip_w = src_z * projectionMatrix[ 3 ][ 2 ] + projectionMatrix[ 3 ][ 3 ];
+
+	if( clip_w <= 0.0f )
+	{
+		dst_z = 0.0f;	// clamp to near plane
+	}
+	else {
+		dst_z = clip_z / clip_w;
+		dst_z = dst_z * 0.5f + 0.5f;	// convert to window coords
+	}
+}
+
+/*
+======================
+ R_ScreenRectFromViewFrustumBounds
+======================
+*/
+void idRenderView::ScreenRectFromViewFrustumBounds( const idBounds &bounds, idScreenRect & screenRect ) const
+{
+	float screenWidth  = ( float )this->GetViewport().x2 - ( float )this->GetViewport().x1;
+	float screenHeight = ( float )this->GetViewport().y2 - ( float )this->GetViewport().y1;
+
+	screenRect.x1 = idMath::Ftoi16( 0.5f * ( 1.0f - bounds[ 1 ].y ) * screenWidth  );
+	screenRect.x2 = idMath::Ftoi16( 0.5f * ( 1.0f - bounds[ 0 ].y ) * screenWidth  );
+	screenRect.y1 = idMath::Ftoi16( 0.5f * ( 1.0f + bounds[ 0 ].z ) * screenHeight );
+	screenRect.y2 = idMath::Ftoi16( 0.5f * ( 1.0f + bounds[ 1 ].z ) * screenHeight );
+
+	//if( r_useDepthBoundsTest.GetInteger() )
+	//{
+		R_TransformEyeZToWin( -bounds[ 0 ].x, this->projectionMatrix, screenRect.zmin );
+		R_TransformEyeZToWin( -bounds[ 1 ].x, this->projectionMatrix, screenRect.zmax );
+	//}
+}
+
+#include "Model_local.h"
+
+/*
+=========================
+ R_PreciseCullSurface
+
+	Check the surface for visibility on a per-triangle basis
+	for cases when it is going to be VERY expensive to draw (subviews)
+
+	If not culled, also returns the bounding box of the surface in
+	Normalized Device Coordinates, so it can be used to crop the scissor rect.
+
+	OPTIMIZE: we could also take exact portal passing into consideration
+=========================
+*/
+bool idRenderView::PreciseCullSurface( const drawSurf_t * const drawSurf, idBounds & ndcBounds ) const
+{
+	const idTriangles* tri = drawSurf->frontEndGeo;
+
+	unsigned int pointOr = 0;
+	unsigned int pointAnd = ( unsigned int )~0;
+
+	// get an exact bounds of the triangles for scissor cropping
+	ndcBounds.Clear();
+
+	// RB: added check wether GPU skinning is available at all
+	const idJointMat* joints = ( tri->staticModelWithJoints != NULL && r_useGPUSkinning.GetBool() && glConfig.gpuSkinningAvailable ) ? tri->staticModelWithJoints->jointsInverted : NULL;
+	// RB end
+
+	for( int i = 0; i < tri->numVerts; i++ )
+	{
+		const idVec3 vXYZ = idDrawVert::GetSkinnedDrawVertPosition( tri->GetVertex( i ), joints );
+
+		idVec4 eye, clip;
+		idRenderMatrix::TransformModelToClip( vXYZ, drawSurf->space->modelViewMatrix, this->GetProjectionMatrix(), eye, clip );
+
+		unsigned int pointFlags = 0;
+		for( int j = 0; j < 3; j++ )
+		{
+			if( clip[ j ] >= clip[ 3 ] )
+			{
+				pointFlags |= ( 1 << ( j * 2 + 0 ) );
+			}
+			else if( clip[ j ] <= -clip[ 3 ] )  	// FIXME: the D3D near clip plane is at zero instead of -1
+			{
+				pointFlags |= ( 1 << ( j * 2 + 1 ) );
+			}
+		}
+
+		pointAnd &= pointFlags;
+		pointOr |= pointFlags;
+	}
+
+	// trivially reject
+	if( pointAnd != 0 )
+	{
+		return true;
+	}
+
+	// backface and frustum cull
+	idVec3 localViewOrigin;
+	drawSurf->space->modelMatrix.InverseTransformPoint( this->GetOrigin(), localViewOrigin );
+
+	for( int i = 0; i < tri->numIndexes; i += 3 )
+	{
+		const idVec3 v1 = idDrawVert::GetSkinnedDrawVertPosition( tri->GetIVertex( i + 0 ), joints );
+		const idVec3 v2 = idDrawVert::GetSkinnedDrawVertPosition( tri->GetIVertex( i + 1 ), joints );
+		const idVec3 v3 = idDrawVert::GetSkinnedDrawVertPosition( tri->GetIVertex( i + 2 ), joints );
+
+		// this is a hack, because R_GlobalPointToLocal doesn't work with the non-normalized
+		// axis that we get from the gui view transform.  It doesn't hurt anything, because
+		// we know that all gui generated surfaces are front facing
+		if( tr.guiRecursionLevel == 0 )
+		{
+			// we don't care that it isn't normalized,
+			// all we want is the sign
+			const idVec3 d1 = v2 - v1;
+			const idVec3 d2 = v3 - v1;
+			const idVec3 normal = d2.Cross( d1 );
+
+			const idVec3 dir = v1 - localViewOrigin;
+
+			const float dot = normal * dir;
+			if( dot >= 0.0f )
+			{
+				return true;
+			}
+		}
+
+		// now find the exact screen bounds of the clipped triangle
+		idFixedWinding w;
+		w.SetNumPoints( 3 );
+		drawSurf->space->modelMatrix.TransformPoint( v1, w[ 0 ].ToVec3() );
+		drawSurf->space->modelMatrix.TransformPoint( v2, w[ 1 ].ToVec3() );
+		drawSurf->space->modelMatrix.TransformPoint( v3, w[ 2 ].ToVec3() );
+		w[ 0 ].s = w[ 0 ].t = w[ 1 ].s = w[ 1 ].t = w[ 2 ].s = w[ 2 ].t = 0.0f;
+
+		for( int j = 0; j < 4; j++ )
+		{
+			if( !w.ClipInPlace( -this->GetBaseFrustum()[ j ], 0.1f ) )
+			{
+				break;
+			}
+		}
+		for( int j = 0; j < w.GetNumPoints(); j++ )
+		{
+			idVec3 screen;
+			this->GlobalToNormalizedDeviceCoordinates( w[ j ].ToVec3(), screen );
+			ndcBounds.AddPoint( screen );
+		}
+	}
+
+	// if we don't enclose any area, return
+	if( ndcBounds.IsCleared() )
+	{
+		return true;
+	}
+
+	return false;
+}
+
+
+/*
+======================
+R_ScreenRectFromViewFrustumBounds
+======================
+*/
+bool CullLightToView( const idRenderLightLocal* light, idBounds *_projected )
+{
+	// Calculate the matrix that projects the zero-to-one cube to exactly cover the
+	// light frustum in clip space.
+	idRenderMatrix invProjectMVPMatrix;
+	idRenderMatrix::Multiply( tr.viewDef->GetMVPMatrix(), light->inverseBaseLightProject, invProjectMVPMatrix );
+
+	// Calculate the projected bounds, either not clipped at all, near clipped, or fully clipped.
+	idBounds projected;
+	if( r_useLightScissors.GetInteger() == 1 )
+	{
+		idRenderMatrix::ProjectedBounds( projected, invProjectMVPMatrix, bounds_zeroOneCube );
+	}
+	else if( r_useLightScissors.GetInteger() == 2 )
+	{
+		idRenderMatrix::ProjectedNearClippedBounds( projected, invProjectMVPMatrix, bounds_zeroOneCube );
+	}
+	else {
+		idRenderMatrix::ProjectedFullyClippedBounds( projected, invProjectMVPMatrix, bounds_zeroOneCube );
+	}
+
+	if( _projected ) 
+	{
+		*_projected = projected;
+	}
+
+	// 'true' if the light was culled to the view frustum
+	return( projected[ 0 ][ 2 ] >= projected[ 1 ][ 2 ] );
 }

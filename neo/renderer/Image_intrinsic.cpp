@@ -102,9 +102,7 @@ void idImage::MakeDefault()
 		}
 	}
 	
-	GenerateImage( ( byte* )data,
-				   DEFAULT_SIZE, DEFAULT_SIZE,
-				   TF_DEFAULT, TR_REPEAT, TD_DEFAULT );
+	GenerateImage( ( byte* )data,  DEFAULT_SIZE, DEFAULT_SIZE, 1, 1, TF_DEFAULT, TR_REPEAT, TD_DEFAULT );
 				   
 	defaulted = true;
 }
@@ -116,27 +114,25 @@ static void R_DefaultImage( idImage* image )
 
 static void R_WhiteImage( idImage* image )
 {
-	byte	data[DEFAULT_SIZE][DEFAULT_SIZE][4];
+	byte data[DEFAULT_SIZE][DEFAULT_SIZE][4];
 	
 	// solid white texture
 	memset( data, 255, sizeof( data ) );
-	image->GenerateImage( ( byte* )data, DEFAULT_SIZE, DEFAULT_SIZE,
-						  TF_DEFAULT, TR_REPEAT, TD_DEFAULT );
+	image->GenerateImage( ( byte* )data, DEFAULT_SIZE, DEFAULT_SIZE, 1, 1, TF_DEFAULT, TR_REPEAT, TD_DEFAULT );
 }
 
 static void R_BlackImage( idImage* image )
 {
-	byte	data[DEFAULT_SIZE][DEFAULT_SIZE][4];
+	byte data[DEFAULT_SIZE][DEFAULT_SIZE][4];
 	
 	// solid black texture
 	memset( data, 0, sizeof( data ) );
-	image->GenerateImage( ( byte* )data, DEFAULT_SIZE, DEFAULT_SIZE,
-						  TF_DEFAULT, TR_REPEAT, TD_DEFAULT );
+	image->GenerateImage( ( byte* )data, DEFAULT_SIZE, DEFAULT_SIZE, 1, 1, TF_DEFAULT, TR_REPEAT, TD_DEFAULT );
 }
 
 static void R_RGBA8Image( idImage* image )
 {
-	byte	data[DEFAULT_SIZE][DEFAULT_SIZE][4];
+	byte data[DEFAULT_SIZE][DEFAULT_SIZE][4];
 	
 	memset( data, 0, sizeof( data ) );
 	data[0][0][0] = 16;
@@ -144,12 +140,12 @@ static void R_RGBA8Image( idImage* image )
 	data[0][0][2] = 48;
 	data[0][0][3] = 96;
 	
-	image->GenerateImage( ( byte* )data, DEFAULT_SIZE, DEFAULT_SIZE, TF_DEFAULT, TR_REPEAT, TD_LOOKUP_TABLE_RGBA );
+	image->GenerateImage( ( byte* )data, DEFAULT_SIZE, DEFAULT_SIZE, 1, 1, TF_DEFAULT, TR_REPEAT, TD_LOOKUP_TABLE_RGBA );
 }
 
 static void R_RGBA8LinearImage( idImage* image )
 {
-	byte	data[DEFAULT_SIZE][DEFAULT_SIZE][4];
+	byte data[DEFAULT_SIZE][DEFAULT_SIZE][4];
 	
 	memset( data, 0, sizeof( data ) );
 	data[0][0][0] = 16;
@@ -157,7 +153,7 @@ static void R_RGBA8LinearImage( idImage* image )
 	data[0][0][2] = 48;
 	data[0][0][3] = 96;
 	
-	image->GenerateImage( ( byte* )data, DEFAULT_SIZE, DEFAULT_SIZE, TF_LINEAR, TR_REPEAT, TD_LOOKUP_TABLE_RGBA );
+	image->GenerateImage( ( byte* )data, DEFAULT_SIZE, DEFAULT_SIZE, 1, 1, TF_LINEAR, TR_REPEAT, TD_LOOKUP_TABLE_RGBA );
 }
 
 static void R_DepthImage( idImage* image )
@@ -168,7 +164,7 @@ static void R_DepthImage( idImage* image )
 #else
 	int msaaSamples = 0;
 #endif
-	image->GenerateImage( NULL, renderSystem->GetWidth(), renderSystem->GetHeight(), TF_NEAREST, TR_CLAMP, TD_DEPTH, msaaSamples );
+	image->GenerateImage( NULL, renderSystem->GetWidth(), renderSystem->GetHeight(), 1, msaaSamples, TF_NEAREST, TR_CLAMP, TD_DEPTH );
 	// RB end
 }
 
@@ -180,43 +176,43 @@ static void R_HDR_RGBA16FImage_ResNative( idImage* image )
 #else
 	int msaaSamples = 0;
 #endif
-	image->GenerateImage( NULL, renderSystem->GetWidth(), renderSystem->GetHeight(), TF_NEAREST, TR_CLAMP, TD_RGBA16F, msaaSamples );
+	image->GenerateImage( NULL, renderSystem->GetWidth(), renderSystem->GetHeight(), 1, msaaSamples, TF_NEAREST, TR_CLAMP, TD_RGBA16F );
 }
 
 static void R_HDR_RGBA16FImage_ResNative_NoMSAA( idImage* image )
 {
-	image->GenerateImage( NULL, renderSystem->GetWidth(), renderSystem->GetHeight(), TF_NEAREST, TR_CLAMP, TD_RGBA16F );
+	image->GenerateImage( NULL, renderSystem->GetWidth(), renderSystem->GetHeight(), 1, 1, TF_NEAREST, TR_CLAMP, TD_RGBA16F );
 }
 
 static void R_HDR_RGBA16FImage_ResQuarter( idImage* image )
 {
-	image->GenerateImage( NULL, renderSystem->GetWidth() / 4, renderSystem->GetHeight() / 4, TF_NEAREST, TR_CLAMP, TD_RGBA16F );
+	image->GenerateImage( NULL, renderSystem->GetWidth() / 4, renderSystem->GetHeight() / 4, 1, 1, TF_NEAREST, TR_CLAMP, TD_RGBA16F );
 }
 
 static void R_HDR_RGBA16FImage_ResQuarter_Linear( idImage* image )
 {
-	image->GenerateImage( NULL, renderSystem->GetWidth() / 4, renderSystem->GetHeight() / 4, TF_LINEAR, TR_CLAMP, TD_LOOKUP_TABLE_RGBA );
+	image->GenerateImage( NULL, renderSystem->GetWidth() / 4, renderSystem->GetHeight() / 4, 1, 1, TF_LINEAR, TR_CLAMP, TD_LOOKUP_TABLE_RGBA );
 }
 
 static void R_HDR_RGBA16FImage_Res64( idImage* image )
 {
-	image->GenerateImage( NULL, 64, 64, TF_NEAREST, TR_CLAMP, TD_RGBA16F );
+	image->GenerateImage( NULL, 64, 64, 1, 1, TF_NEAREST, TR_CLAMP, TD_RGBA16F );
 }
 
 static void R_SMAAImage_ResNative( idImage* image )
 {
-	image->GenerateImage( NULL, renderSystem->GetWidth(), renderSystem->GetHeight(), TF_LINEAR, TR_CLAMP, TD_LOOKUP_TABLE_RGBA );
+	image->GenerateImage( NULL, renderSystem->GetWidth(), renderSystem->GetHeight(), 1, 1, TF_LINEAR, TR_CLAMP, TD_LOOKUP_TABLE_RGBA );
 }
 
 static void R_HierarchicalZBufferImage_ResNative( idImage* image )
 {
-	image->GenerateImage( NULL, renderSystem->GetWidth(), renderSystem->GetHeight(), TF_NEAREST_MIPMAP, TR_CLAMP, TD_R32F );
+	image->GenerateImage( NULL, renderSystem->GetWidth(), renderSystem->GetHeight(), 1, 1, TF_NEAREST_MIPMAP, TR_CLAMP, TD_R32F );
 }
 // RB end
 
 static void R_AlphaNotchImage( idImage* image )
 {
-	byte	data[2][4];
+	byte data[2][4];
 	
 	// this is used for alpha test clip planes
 	
@@ -225,12 +221,12 @@ static void R_AlphaNotchImage( idImage* image )
 	data[1][0] = data[1][1] = data[1][2] = 255;
 	data[1][3] = 255;
 	
-	image->GenerateImage( ( byte* )data, 2, 1, TF_NEAREST, TR_CLAMP, TD_LOOKUP_TABLE_ALPHA );
+	image->GenerateImage( ( byte* )data, 2, 1, 1, 1, TF_NEAREST, TR_CLAMP, TD_LOOKUP_TABLE_ALPHA );
 }
 
 static void R_FlatNormalImage( idImage* image )
 {
-	byte	data[DEFAULT_SIZE][DEFAULT_SIZE][4];
+	byte data[DEFAULT_SIZE][DEFAULT_SIZE][4];
 	
 	// flat normal map for default bunp mapping
 	for( int i = 0 ; i < 4 ; i++ )
@@ -240,7 +236,7 @@ static void R_FlatNormalImage( idImage* image )
 		data[0][i][2] = 255;
 		data[0][i][3] = 255;
 	}
-	image->GenerateImage( ( byte* )data, 2, 2, TF_DEFAULT, TR_REPEAT, TD_BUMP );
+	image->GenerateImage( ( byte* )data, 2, 2, 1, 1, TF_DEFAULT, TR_REPEAT, TD_BUMP );
 }
 
 /*
@@ -252,8 +248,8 @@ This is a solid white texture that is zero clamped.
 */
 static void R_CreateNoFalloffImage( idImage* image )
 {
-	int		x, y;
-	byte	data[16][FALLOFF_TEXTURE_SIZE][4];
+	int	x, y;
+	byte data[16][FALLOFF_TEXTURE_SIZE][4];
 	
 	memset( data, 0, sizeof( data ) );
 	for( x = 1 ; x < FALLOFF_TEXTURE_SIZE - 1 ; x++ )
@@ -266,7 +262,7 @@ static void R_CreateNoFalloffImage( idImage* image )
 			data[y][x][3] = 255;
 		}
 	}
-	image->GenerateImage( ( byte* )data, FALLOFF_TEXTURE_SIZE, 16, TF_DEFAULT, TR_CLAMP_TO_ZERO, TD_LOOKUP_TABLE_MONO );
+	image->GenerateImage( ( byte* )data, FALLOFF_TEXTURE_SIZE, 16, 1, 1, TF_DEFAULT, TR_CLAMP_TO_ZERO, TD_LOOKUP_TABLE_MONO );
 }
 
 /*
@@ -325,9 +321,8 @@ void R_FogImage( idImage* image )
 		}
 	}
 	
-	image->GenerateImage( ( byte* )data, FOG_SIZE, FOG_SIZE, TF_LINEAR, TR_CLAMP, TD_LOOKUP_TABLE_ALPHA );
+	image->GenerateImage( ( byte* )data, FOG_SIZE, FOG_SIZE, 1, 1, TF_LINEAR, TR_CLAMP, TD_LOOKUP_TABLE_ALPHA );
 }
-
 
 /*
 ================
@@ -338,7 +333,7 @@ Height values below zero are inside the fog volume
 */
 static const float	RAMP_RANGE =	8;
 static const float	DEEP_RANGE =	-30;
-static float	FogFraction( float viewHeight, float targetHeight )
+static float FogFraction( float viewHeight, float targetHeight )
 {
 	float	total = idMath::Fabs( targetHeight - viewHeight );
 	
@@ -453,9 +448,8 @@ void R_FogEnterImage( idImage* image )
 	}
 	
 	// if mipmapped, acutely viewed surfaces fade wrong
-	image->GenerateImage( ( byte* )data, FOG_ENTER_SIZE, FOG_ENTER_SIZE, TF_LINEAR, TR_CLAMP, TD_LOOKUP_TABLE_ALPHA );
+	image->GenerateImage( ( byte* )data, FOG_ENTER_SIZE, FOG_ENTER_SIZE, 1, 1, TF_LINEAR, TR_CLAMP, TD_LOOKUP_TABLE_ALPHA );
 }
-
 
 /*
 ================
@@ -471,15 +465,12 @@ void R_QuadraticImage( idImage* image )
 	int		x, y;
 	byte	data[QUADRATIC_HEIGHT][QUADRATIC_WIDTH][4];
 	int		b;
-	
-	
+		
 	for( x = 0 ; x < QUADRATIC_WIDTH ; x++ )
 	{
 		for( y = 0 ; y < QUADRATIC_HEIGHT ; y++ )
 		{
-			float	d;
-			
-			d = x - ( QUADRATIC_WIDTH / 2 - 0.5 );
+			float d = x - ( QUADRATIC_WIDTH / 2 - 0.5 );
 			d = idMath::Fabs( d );
 			d -= 0.5;
 			d /= QUADRATIC_WIDTH / 2;
@@ -503,38 +494,59 @@ void R_QuadraticImage( idImage* image )
 		}
 	}
 	
-	image->GenerateImage( ( byte* )data, QUADRATIC_WIDTH, QUADRATIC_HEIGHT, TF_DEFAULT, TR_CLAMP, TD_LOOKUP_TABLE_RGB1 );
+	image->GenerateImage( ( byte* )data, QUADRATIC_WIDTH, QUADRATIC_HEIGHT, 1, 1, TF_DEFAULT, TR_CLAMP, TD_LOOKUP_TABLE_RGB1 );
 }
 
 // RB begin
 static void R_CreateShadowMapImage_Res0( idImage* image )
 {
 	int size = shadowMapResolutions[0];
-	image->GenerateShadowArray( size, size, TF_LINEAR, TR_CLAMP_TO_ZERO_ALPHA, TD_SHADOWMAP );
+	image->GenerateImage( nullptr, size, size, 6, 1, TF_LINEAR, TR_CLAMP_TO_ZERO_ALPHA, TD_SHADOWMAP );
 }
 
 static void R_CreateShadowMapImage_Res1( idImage* image )
 {
 	int size = shadowMapResolutions[1];
-	image->GenerateShadowArray( size, size, TF_LINEAR, TR_CLAMP_TO_ZERO_ALPHA, TD_SHADOWMAP );
+	image->GenerateImage( nullptr, size, size, 6, 1, TF_LINEAR, TR_CLAMP_TO_ZERO_ALPHA, TD_SHADOWMAP );
 }
 
 static void R_CreateShadowMapImage_Res2( idImage* image )
 {
 	int size = shadowMapResolutions[2];
-	image->GenerateShadowArray( size, size, TF_LINEAR, TR_CLAMP_TO_ZERO_ALPHA, TD_SHADOWMAP );
+	image->GenerateImage( nullptr, size, size, 6, 1, TF_LINEAR, TR_CLAMP_TO_ZERO_ALPHA, TD_SHADOWMAP );
 }
 
 static void R_CreateShadowMapImage_Res3( idImage* image )
 {
 	int size = shadowMapResolutions[3];
-	image->GenerateShadowArray( size, size, TF_LINEAR, TR_CLAMP_TO_ZERO_ALPHA, TD_SHADOWMAP );
+	image->GenerateImage( nullptr, size, size, 6, 1, TF_LINEAR, TR_CLAMP_TO_ZERO_ALPHA, TD_SHADOWMAP );
 }
 
 static void R_CreateShadowMapImage_Res4( idImage* image )
 {
 	int size = shadowMapResolutions[4];
-	image->GenerateShadowArray( size, size, TF_LINEAR, TR_CLAMP_TO_ZERO_ALPHA, TD_SHADOWMAP );
+	image->GenerateImage( nullptr, size, size, 6, 1, TF_LINEAR, TR_CLAMP_TO_ZERO_ALPHA, TD_SHADOWMAP );
+}
+
+static void R_CreateShadowMapImage( idImage* image )
+{
+	//int size = shadowMapResolutions[ 0 ];
+	//image->GenerateImage( nullptr, size, size, 6, 1, TF_LINEAR, TR_CLAMP_TO_ZERO_ALPHA, TD_SHADOWMAP );
+	
+	idImageOpts opts;
+	opts.textureType = TT_2D;
+	opts.format = FMT_DEPTH;
+	opts.colorFormat = CFM_DEFAULT;
+	opts.width = shadowMapResolutions[0];
+	opts.height = shadowMapResolutions[0];
+	opts.depth = 6;
+	opts.numLevels = 1;
+	opts.numSamples = 1;
+	opts.gammaMips = false;
+	opts.readback = false;
+
+	image->AllocImage( opts, TF_LINEAR, TR_CLAMP_TO_ZERO_ALPHA );
+	image->EnableDepthCompareModeOGL();
 }
 
 const static int JITTER_SIZE = 128;
@@ -559,12 +571,12 @@ static void R_CreateJitterImage16( idImage* image )
 		}
 	}
 	
-	image->GenerateImage( ( byte* )data, JITTER_SIZE * 16, JITTER_SIZE, TF_NEAREST, TR_REPEAT, TD_LOOKUP_TABLE_RGBA );
+	image->GenerateImage( ( byte* )data, JITTER_SIZE * 16, JITTER_SIZE, 1, 1, TF_NEAREST, TR_REPEAT, TD_LOOKUP_TABLE_RGBA );
 }
 
 static void R_CreateJitterImage4( idImage* image )
 {
-	byte	data[JITTER_SIZE][JITTER_SIZE * 4][4];
+	byte data[JITTER_SIZE][JITTER_SIZE * 4][4];
 	
 	for( int i = 0 ; i < JITTER_SIZE ; i++ )
 	{
@@ -583,12 +595,12 @@ static void R_CreateJitterImage4( idImage* image )
 		}
 	}
 	
-	image->GenerateImage( ( byte* )data, JITTER_SIZE * 4, JITTER_SIZE, TF_NEAREST, TR_REPEAT, TD_LOOKUP_TABLE_RGBA );
+	image->GenerateImage( ( byte* )data, JITTER_SIZE * 4, JITTER_SIZE, 1, 1, TF_NEAREST, TR_REPEAT, TD_LOOKUP_TABLE_RGBA );
 }
 
 static void R_CreateJitterImage1( idImage* image )
 {
-	byte	data[JITTER_SIZE][JITTER_SIZE][4];
+	byte data[JITTER_SIZE][JITTER_SIZE][4];
 	
 	for( int i = 0 ; i < JITTER_SIZE ; i++ )
 	{
@@ -601,12 +613,12 @@ static void R_CreateJitterImage1( idImage* image )
 		}
 	}
 	
-	image->GenerateImage( ( byte* )data, JITTER_SIZE, JITTER_SIZE, TF_NEAREST, TR_REPEAT, TD_LOOKUP_TABLE_RGBA );
+	image->GenerateImage( ( byte* )data, JITTER_SIZE, JITTER_SIZE, 1, 1, TF_NEAREST, TR_REPEAT, TD_LOOKUP_TABLE_RGBA );
 }
 
 static void R_CreateRandom256Image( idImage* image )
 {
-	byte	data[256][256][4];
+	byte data[256][256][4];
 	
 	for( int i = 0 ; i < 256 ; i++ )
 	{
@@ -619,15 +631,13 @@ static void R_CreateRandom256Image( idImage* image )
 		}
 	}
 	
-	image->GenerateImage( ( byte* )data, 256, 256, TF_NEAREST, TR_REPEAT, TD_LOOKUP_TABLE_RGBA );
+	image->GenerateImage( ( byte* )data, 256, 256, 1, 1, TF_NEAREST, TR_REPEAT, TD_LOOKUP_TABLE_RGBA );
 }
-
-
 
 static void R_CreateHeatmap5ColorsImage( idImage* image )
 {
-	int		x, y;
-	byte	data[16][FALLOFF_TEXTURE_SIZE][4];
+	int	x, y;
+	byte data[16][FALLOFF_TEXTURE_SIZE][4];
 	
 	const int numColors = 5;
 	static idVec4 colors[numColors] = { colorBlue, colorCyan, colorGreen, colorYellow, colorRed };
@@ -649,8 +659,7 @@ static void R_CreateHeatmap5ColorsImage( idImage* image )
 		{
 			index1 = index2 = numColors - 1;
 		}
-		else
-		{
+		else {
 			value = value * ( numColors - 1 );
 			index1 = idMath::Floor( value );
 			index2 = index1 + 1;
@@ -672,13 +681,13 @@ static void R_CreateHeatmap5ColorsImage( idImage* image )
 		}
 	}
 	
-	image->GenerateImage( ( byte* )data, FALLOFF_TEXTURE_SIZE, 16, TF_LINEAR, TR_CLAMP, TD_LOOKUP_TABLE_RGBA );
+	image->GenerateImage( ( byte* )data, FALLOFF_TEXTURE_SIZE, 16, 1, 1, TF_LINEAR, TR_CLAMP, TD_LOOKUP_TABLE_RGBA );
 }
 
 static void R_CreateHeatmap7ColorsImage( idImage* image )
 {
-	int		x, y;
-	byte	data[16][FALLOFF_TEXTURE_SIZE][4];
+	int	x, y;
+	byte data[16][FALLOFF_TEXTURE_SIZE][4];
 	
 	const int numColors = 7;
 	static idVec4 colors[numColors] = { colorBlack, colorBlue, colorCyan, colorGreen, colorYellow, colorRed, colorWhite };
@@ -700,8 +709,7 @@ static void R_CreateHeatmap7ColorsImage( idImage* image )
 		{
 			index1 = index2 = numColors - 1;
 		}
-		else
-		{
+		else {
 			value = value * ( numColors - 1 );
 			index1 = idMath::Floor( value );
 			index2 = index1 + 1;
@@ -723,7 +731,7 @@ static void R_CreateHeatmap7ColorsImage( idImage* image )
 		}
 	}
 	
-	image->GenerateImage( ( byte* )data, FALLOFF_TEXTURE_SIZE, 16, TF_LINEAR, TR_CLAMP, TD_LOOKUP_TABLE_RGBA );
+	image->GenerateImage( ( byte* )data, FALLOFF_TEXTURE_SIZE, 16, 1, 1, TF_LINEAR, TR_CLAMP, TD_LOOKUP_TABLE_RGBA );
 }
 
 static void R_CreateGrainImage1( idImage* image )
@@ -738,24 +746,24 @@ static void R_CreateGrainImage1( idImage* image )
 	{
 		for( int j = 0 ; j < GRAIN_SIZE ; j++ )
 		{
-#if 0
+		#if 0
 			//int value = 127 - 8 + ( rand() & 15 ); //random.RandomInt( 127 );
 			int value = 127 - 8 + random.RandomInt( 15 );
-			
-			data[i][j][0] = value;
-			data[i][j][1] = value;
-			data[i][j][2] = value;
-			data[i][j][3] = 0;
-#else
-			data[i][j][0] = 127 - 8 + random.RandomInt( 15 );
-			data[i][j][1] = 127 - 8 + random.RandomInt( 15 );
-			data[i][j][2] = 127 - 8 + random.RandomInt( 15 );
-			data[i][j][3] = 0;
-#endif
+
+			data[ i ][ j ][ 0 ] = value;
+			data[ i ][ j ][ 1 ] = value;
+			data[ i ][ j ][ 2 ] = value;
+			data[ i ][ j ][ 3 ] = 0;
+		#else
+			data[ i ][ j ][ 0 ] = 127 - 8 + random.RandomInt( 15 );
+			data[ i ][ j ][ 1 ] = 127 - 8 + random.RandomInt( 15 );
+			data[ i ][ j ][ 2 ] = 127 - 8 + random.RandomInt( 15 );
+			data[ i ][ j ][ 3 ] = 0;
+		#endif
 		}
 	}
 	
-	image->GenerateImage( ( byte* )data, GRAIN_SIZE, GRAIN_SIZE, TF_NEAREST, TR_REPEAT, TD_LOOKUP_TABLE_RGBA );
+	image->GenerateImage( ( byte* )data, GRAIN_SIZE, GRAIN_SIZE, 1, 1, TF_NEAREST, TR_REPEAT, TD_LOOKUP_TABLE_RGBA );
 }
 
 static void R_CreateSMAAAreaImage( idImage* image )
@@ -768,21 +776,21 @@ static void R_CreateSMAAAreaImage( idImage* image )
 	{
 		for( int y = 0; y < AREATEX_HEIGHT; y++ )
 		{
-#if 0
-			data[AREATEX_HEIGHT - y][x][0] = areaTexBytes[ y * AREATEX_PITCH + x * 2 + 0 ];
-			data[AREATEX_HEIGHT - y][x][1] = areaTexBytes[ y * AREATEX_PITCH + x * 2 + 1 ];
-			data[AREATEX_HEIGHT - y][x][2] = 0;
-			data[AREATEX_HEIGHT - y][x][3] = 1;
-#else
-			data[y][x][0] = areaTexBytes[ y * AREATEX_PITCH + x * 2 + 0 ];
-			data[y][x][1] = areaTexBytes[ y * AREATEX_PITCH + x * 2 + 1 ];
-			data[y][x][2] = 0;
-			data[y][x][3] = 1;
-#endif
+		#if 0
+			data[ AREATEX_HEIGHT - y ][ x ][ 0 ] = areaTexBytes[ y * AREATEX_PITCH + x * 2 + 0 ];
+			data[ AREATEX_HEIGHT - y ][ x ][ 1 ] = areaTexBytes[ y * AREATEX_PITCH + x * 2 + 1 ];
+			data[ AREATEX_HEIGHT - y ][ x ][ 2 ] = 0;
+			data[ AREATEX_HEIGHT - y ][ x ][ 3 ] = 1;
+		#else
+			data[ y ][ x ][ 0 ] = areaTexBytes[ y * AREATEX_PITCH + x * 2 + 0 ];
+			data[ y ][ x ][ 1 ] = areaTexBytes[ y * AREATEX_PITCH + x * 2 + 1 ];
+			data[ y ][ x ][ 2 ] = 0;
+			data[ y ][ x ][ 3 ] = 1;
+		#endif
 		}
 	}
 	
-	image->GenerateImage( ( byte* )data, AREATEX_WIDTH, AREATEX_HEIGHT, TF_LINEAR, TR_CLAMP, TD_LOOKUP_TABLE_RGBA );
+	image->GenerateImage( ( byte* )data, AREATEX_WIDTH, AREATEX_HEIGHT, 1, 1, TF_LINEAR, TR_CLAMP, TD_LOOKUP_TABLE_RGBA );
 }
 
 static void R_CreateSMAASearchImage( idImage* image )
@@ -809,7 +817,7 @@ static void R_CreateSMAASearchImage( idImage* image )
 		}
 	}
 
-	image->GenerateImage( ( byte* )data, SEARCHTEX_WIDTH, SEARCHTEX_HEIGHT, TF_LINEAR, TR_CLAMP, TD_LOOKUP_TABLE_MONO );
+	image->GenerateImage( ( byte* )data, SEARCHTEX_WIDTH, SEARCHTEX_HEIGHT, 1, 1, TF_LINEAR, TR_CLAMP, TD_LOOKUP_TABLE_MONO );
 #if 0
 	idImageOpts opts;
 	opts.textureType = TT_2D;
@@ -823,7 +831,7 @@ static void R_CreateSMAASearchImage( idImage* image )
 	opts.gammaMips = false;
 	opts.readback = false;
 
-	idImage *img = globalImages->CreateImage( "_SMAASearchImage" );
+	idImage *img = renderImageManager->CreateImage( "_SMAASearchImage" );
 	img->AllocImage( opts, TF_LINEAR, TR_CLAMP );
 #endif
 };
@@ -853,35 +861,37 @@ void idImageManager::CreateIntrinsicImages()
 	shadowImage[2] = ImageFromFunction( va( "_shadowMapArray2_%i", shadowMapResolutions[2] ), R_CreateShadowMapImage_Res2 );
 	shadowImage[3] = ImageFromFunction( va( "_shadowMapArray3_%i", shadowMapResolutions[3] ), R_CreateShadowMapImage_Res3 );
 	shadowImage[4] = ImageFromFunction( va( "_shadowMapArray4_%i", shadowMapResolutions[4] ), R_CreateShadowMapImage_Res4 );
+
+	shadowMapArray = ImageFromFunction( "_shadowMapArray", R_CreateShadowMapImage );
 	
-	jitterImage1 = globalImages->ImageFromFunction( "_jitter1", R_CreateJitterImage1 );
-	jitterImage4 = globalImages->ImageFromFunction( "_jitter4", R_CreateJitterImage4 );
-	jitterImage16 = globalImages->ImageFromFunction( "_jitter16", R_CreateJitterImage16 );
+	jitterImage1 = renderImageManager->ImageFromFunction( "_jitter1", R_CreateJitterImage1 );
+	jitterImage4 = renderImageManager->ImageFromFunction( "_jitter4", R_CreateJitterImage4 );
+	jitterImage16 = renderImageManager->ImageFromFunction( "_jitter16", R_CreateJitterImage16 );
 	
-	randomImage256 = globalImages->ImageFromFunction( "_random256", R_CreateRandom256Image );
+	randomImage256 = renderImageManager->ImageFromFunction( "_random256", R_CreateRandom256Image );
 	
-	currentRenderHDRImage = globalImages->ImageFromFunction( "_currentRenderHDR", R_HDR_RGBA16FImage_ResNative );
+	currentRenderHDRImage = renderImageManager->ImageFromFunction( "_currentRenderHDR", R_HDR_RGBA16FImage_ResNative );
 #if defined( USE_HDR_MSAA )
-	currentRenderHDRImageNoMSAA = globalImages->ImageFromFunction( "_currentRenderHDRNoMSAA", R_HDR_RGBA16FImage_ResNative_NoMSAA );
+	currentRenderHDRImageNoMSAA = renderImageManager->ImageFromFunction( "_currentRenderHDRNoMSAA", R_HDR_RGBA16FImage_ResNative_NoMSAA );
 #endif
-	currentRenderHDRImageQuarter = globalImages->ImageFromFunction( "_currentRenderHDRQuarter", R_HDR_RGBA16FImage_ResQuarter );
-	currentRenderHDRImage64 = globalImages->ImageFromFunction( "_currentRenderHDR64", R_HDR_RGBA16FImage_Res64 );
+	currentRenderHDRImageQuarter = renderImageManager->ImageFromFunction( "_currentRenderHDRQuarter", R_HDR_RGBA16FImage_ResQuarter );
+	currentRenderHDRImage64 = renderImageManager->ImageFromFunction( "_currentRenderHDR64", R_HDR_RGBA16FImage_Res64 );
 	
-	bloomRenderImage[0] = globalImages->ImageFromFunction( "_bloomRender0", R_HDR_RGBA16FImage_ResQuarter_Linear );
-	bloomRenderImage[1] = globalImages->ImageFromFunction( "_bloomRender1", R_HDR_RGBA16FImage_ResQuarter_Linear );
+	bloomRenderImage[0] = renderImageManager->ImageFromFunction( "_bloomRender0", R_HDR_RGBA16FImage_ResQuarter_Linear );
+	bloomRenderImage[1] = renderImageManager->ImageFromFunction( "_bloomRender1", R_HDR_RGBA16FImage_ResQuarter_Linear );
 	
 	heatmap5Image = ImageFromFunction( "_heatmap5", R_CreateHeatmap5ColorsImage );
 	heatmap7Image = ImageFromFunction( "_heatmap7", R_CreateHeatmap7ColorsImage );
 	
-	grainImage1 = globalImages->ImageFromFunction( "_grain1", R_CreateGrainImage1 );
+	grainImage1 = renderImageManager->ImageFromFunction( "_grain1", R_CreateGrainImage1 );
 	
 	smaaInputImage = ImageFromFunction( "_smaaInput", R_RGBA8LinearImage );
 	
-	smaaAreaImage = globalImages->ImageFromFunction( "_smaaArea", R_CreateSMAAAreaImage );
-	smaaSearchImage = globalImages->ImageFromFunction( "_smaaSearch", R_CreateSMAASearchImage );
+	smaaAreaImage = renderImageManager->ImageFromFunction( "_smaaArea", R_CreateSMAAAreaImage );
+	smaaSearchImage = renderImageManager->ImageFromFunction( "_smaaSearch", R_CreateSMAASearchImage );
 	
-	smaaEdgesImage = globalImages->ImageFromFunction( "_smaaEdges", R_SMAAImage_ResNative );
-	smaaBlendImage = globalImages->ImageFromFunction( "_smaaBlend", R_SMAAImage_ResNative );
+	smaaEdgesImage = renderImageManager->ImageFromFunction( "_smaaEdges", R_SMAAImage_ResNative );
+	smaaBlendImage = renderImageManager->ImageFromFunction( "_smaaBlend", R_SMAAImage_ResNative );
 	
 	currentNormalsImage = ImageFromFunction( "_currentNormals", R_SMAAImage_ResNative );
 	
@@ -902,8 +912,8 @@ void idImageManager::CreateIntrinsicImages()
 	// reassigned during stereo rendering
 	originalCurrentRenderImage = currentRenderImage;
 	
-	loadingIconImage = ImageFromFile( "textures/loadingicon2", TF_DEFAULT, TR_CLAMP, TD_DEFAULT, CF_2D );
-	hellLoadingIconImage = ImageFromFile( "textures/loadingicon3", TF_DEFAULT, TR_CLAMP, TD_DEFAULT, CF_2D );
+	loadingIconImage = ImageFromFile( "textures/loadingicon2", TF_DEFAULT, TR_CLAMP, TD_DEFAULT );
+	hellLoadingIconImage = ImageFromFile( "textures/loadingicon3", TF_DEFAULT, TR_CLAMP, TD_DEFAULT );
 	
 	release_assert( loadingIconImage->referencedOutsideLevelLoad );
 	release_assert( hellLoadingIconImage->referencedOutsideLevelLoad );

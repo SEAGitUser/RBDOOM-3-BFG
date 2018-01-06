@@ -822,6 +822,13 @@ void idRenderLightLocal::DeriveData()
 {
 	idRenderLightLocal* light = this;
 
+	/*{ //SEA: FuglyHack 
+		if( light->parms.pointLight && GetAxialSize() > 1000.0 )
+		{
+			light->parms.parallel = true;
+		}
+	}*/
+
 	// decide which light shader we are going to use
 	if( light->parms.shader != NULL )
 	{

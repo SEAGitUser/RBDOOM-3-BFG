@@ -199,8 +199,11 @@ public:
 	bool				gammaMips;		// if true, mips will be generated with gamma correction
 	bool				readback;		// 360 specific - cpu reads back from this texture, so allocate with cached memory
 
-	bool IsArray() const { return( depth > 1 ); }
-	bool IsMultisampled() const { return( numSamples > 1 ); }
+	ID_INLINE bool		IsCompressed() const { return( format == FMT_DXT1 || format == FMT_DXT5 ); }
+	ID_INLINE bool		IsArray() const { return( depth > 1 ); }
+	ID_INLINE bool		IsMultisampled() const { return( numSamples > 1 ); }
+	ID_INLINE bool		IsDepth() const { return( format == FMT_DEPTH ); }
+	ID_INLINE bool		IsDepthStencil() const { return( format == FMT_DEPTH_STENCIL ); }
 
 	void Init2D( uint32 width, uint32 height );
 	void Init2DArray( uint32 width, uint32 height, uint32 depth );
