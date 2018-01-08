@@ -95,31 +95,29 @@ void idAASBuild::Shutdown()
 idAASBuild::ParseProcNodes
 ================
 */
-void idAASBuild::ParseProcNodes( idLexer* src )
+void idAASBuild::ParseProcNodes( idLexer & src )
 {
-	int i;
+	src.ExpectTokenString( "{" );
 	
-	src->ExpectTokenString( "{" );
-	
-	idAASBuild::numProcNodes = src->ParseInt();
+	idAASBuild::numProcNodes = src.ParseInt();
 	if( idAASBuild::numProcNodes < 0 )
 	{
-		src->Error( "idAASBuild::ParseProcNodes: bad numProcNodes" );
+		src.Error( "idAASBuild::ParseProcNodes: bad numProcNodes" );
 	}
 	idAASBuild::procNodes = ( aasProcNode_t* )Mem_ClearedAlloc( idAASBuild::numProcNodes * sizeof( aasProcNode_t ), TAG_TOOLS );
 	
-	for( i = 0; i < idAASBuild::numProcNodes; i++ )
+	for( int i = 0; i < idAASBuild::numProcNodes; i++ )
 	{
 		aasProcNode_t* node;
 		
 		node = &( idAASBuild::procNodes[i] );
 		
-		src->Parse1DMatrix( 4, node->plane.ToFloatPtr() );
-		node->children[0] = src->ParseInt();
-		node->children[1] = src->ParseInt();
+		src.Parse1DMatrix( 4, node->plane.ToFloatPtr() );
+		node->children[0] = src.ParseInt();
+		node->children[1] = src.ParseInt();
 	}
 	
-	src->ExpectTokenString( "}" );
+	src.ExpectTokenString( "}" );
 }
 
 /*
@@ -129,58 +127,58 @@ idAASBuild::LoadProcBSP
 */
 bool idAASBuild::LoadProcBSP( const char* name, ID_TIME_T minFileTime )
 {
-	idStr fileName;
-	idToken token;
-	idLexer* src;
-	
 	// load it
-	fileName = name;
+	idStr fileName = name;
 	fileName.SetFileExtension( PROC_FILE_EXT );
-	src = new idLexer( fileName, LEXFL_NOSTRINGCONCAT | LEXFL_NODOLLARPRECOMPILE );
-	if( !src->IsLoaded() )
+
+	idLexer src( fileName, LEXFL_NOSTRINGCONCAT | LEXFL_NODOLLARPRECOMPILE );
+	//src = new idLexer( fileName, LEXFL_NOSTRINGCONCAT | LEXFL_NODOLLARPRECOMPILE );
+	if( !src.IsLoaded() )
 	{
 		common->Warning( "idAASBuild::LoadProcBSP: couldn't load %s", fileName.c_str() );
-		delete src;
+		//delete src;
 		return false;
 	}
 	
 	// if the file is too old
-	if( src->GetFileTime() < minFileTime )
+	if( src.GetFileTime() < minFileTime )
 	{
-		delete src;
+		//delete src;
 		return false;
 	}
+
+	idToken token;
 	
-	if( !src->ReadToken( &token ) || token.Icmp( PROC_FILE_ID ) )
+	if( !src.ReadToken( &token ) || token.Icmp( PROC_FILE_ID ) )
 	{
 		common->Warning( "idAASBuild::LoadProcBSP: bad id '%s' instead of '%s'", token.c_str(), PROC_FILE_ID );
-		delete src;
+		//delete src;
 		return false;
 	}
 	
 	// parse the file
 	while( 1 )
 	{
-		if( !src->ReadToken( &token ) )
+		if( !src.ReadToken( &token ) )
 		{
 			break;
 		}
 		
 		if( token == "model" )
 		{
-			src->SkipBracedSection();
+			src.SkipBracedSection();
 			continue;
 		}
 		
 		if( token == "shadowModel" )
 		{
-			src->SkipBracedSection();
+			src.SkipBracedSection();
 			continue;
 		}
 		
 		if( token == "interAreaPortals" )
 		{
-			src->SkipBracedSection();
+			src.SkipBracedSection();
 			continue;
 		}
 		
@@ -190,10 +188,10 @@ bool idAASBuild::LoadProcBSP( const char* name, ID_TIME_T minFileTime )
 			break;
 		}
 		
-		src->Error( "idAASBuild::LoadProcBSP: bad token \"%s\"", token.c_str() );
+		src.Error( "idAASBuild::LoadProcBSP: bad token \"%s\"", token.c_str() );
 	}
 	
-	delete src;
+	//delete src;
 	
 	return true;
 }

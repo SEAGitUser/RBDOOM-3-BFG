@@ -39,34 +39,6 @@ static const int NUM_SERVER_LIST_ITEMS = 10;
 
 /*
 ================================================
-idPair is is a template class Container composed of two objects, which can be of
-any type, and provides accessors to these objects as well as Pair equality operators. The main
-uses of Pairs in the engine are for the Tools and for callbacks.
-================================================
-*/
-template<class T, class U>
-class idPair
-{
-public:
-	idPair() { }
-	idPair( const T& f, const U& s ) : first( f ), second( s ) { }
-	
-	const bool	operator==( const idPair<T, U>& rhs ) const
-	{
-		return ( rhs.first == first ) && ( rhs.second == second );
-	}
-	
-	const bool	operator!=( const idPair<T, U>& rhs ) const
-	{
-		return !( *this == rhs );
-	}
-	
-	T first;
-	U second;
-};
-
-/*
-================================================
 idSort_PlayerGamesList
 ================================================
 */

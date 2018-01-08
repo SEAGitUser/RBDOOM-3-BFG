@@ -43,19 +43,15 @@ If you have questions concerning this license or the applicable additional terms
 #define MA_VERBOSE( x ) { if ( maGlobal.verbose ) { common->Printf x ; } }
 
 // working variables used during parsing
-typedef struct
-{
+static struct ma_t {
 	bool			verbose;
 	maModel_t*		model;
 	maObject_t*		currentObject;
-} ma_t;
-
-static ma_t maGlobal;
+} maGlobal;
 
 
 void MA_ParseNodeHeader( idParser& parser, maNodeHeader_t* header )
 {
-
 	memset( header, 0, sizeof( maNodeHeader_t ) );
 	
 	idToken token;
@@ -84,11 +80,10 @@ void MA_ParseNodeHeader( idParser& parser, maNodeHeader_t* header )
 
 bool MA_ParseHeaderIndex( maAttribHeader_t* header, int& minIndex, int& maxIndex, const char* headerType, const char* skipString )
 {
-
 	idParser miniParse;
 	idToken token;
 	
-	miniParse.LoadMemory( header->name, strlen( header->name ), headerType );
+	miniParse.LoadMemory( header->name, idStr::Length( header->name ), headerType );
 	if( skipString )
 	{
 		miniParse.SkipUntilString( skipString );
@@ -114,7 +109,6 @@ bool MA_ParseHeaderIndex( maAttribHeader_t* header, int& minIndex, int& maxIndex
 
 bool MA_ParseAttribHeader( idParser& parser, maAttribHeader_t* header )
 {
-
 	idToken token;
 	
 	memset( header, 0, sizeof( maAttribHeader_t ) );
@@ -1155,9 +1149,8 @@ maModel_t* MA_Parse( const char* buffer, const char* filename, bool verbose )
 	maGlobal.model->materials.Resize( 32, 32 );
 	
 	
-	idParser parser;
-	parser.SetFlags( LEXFL_NOSTRINGCONCAT );
-	parser.LoadMemory( buffer, strlen( buffer ), filename );
+	idParser parser( LEXFL_NOSTRINGCONCAT );
+	parser.LoadMemory( buffer, idStr::Length( buffer ), filename );
 	
 	idToken token;
 	while( parser.ReadToken( &token ) )

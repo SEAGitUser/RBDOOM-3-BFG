@@ -223,4 +223,28 @@ public:
 
 extern idFileSystem* 		fileSystem;
 
+
+// Auto-close files on destruction
+// Prefer this to using idFile* in most cases, since this is exception-safe
+struct idCleanupPolicy_CloseFile {
+	static void Free( idFile* fp )
+	{
+		fileSystem->CloseFile( fp );
+	}
+};
+typedef idAutoPtr< idFile, idCleanupPolicy_CloseFile > idFilePtr;
+typedef idAutoPtr< idFile_Memory, idCleanupPolicy_CloseFile > iFileMemoryPtr;
+
+
+// idLib versions
+struct idCleanupPolicy_idLibCloseFile {
+	static void Free( idFile* fp )
+	{
+		idLib::fileSystem->CloseFile( fp );
+	}
+};
+typedef idAutoPtr< idFile, idCleanupPolicy_idLibCloseFile > idLibFilePtr;
+typedef idAutoPtr< idFile_Memory, idCleanupPolicy_idLibCloseFile > idLibFileMemoryPtr;
+
+
 #endif /* !__FILESYSTEM_H__ */

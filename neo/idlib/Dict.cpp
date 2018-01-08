@@ -275,13 +275,13 @@ int	idDict::Checksum() const
 	idList<idKeyValue> sorted = args;
 	sorted.SortWithTemplate( idSort_KeyValue() );
 	n = sorted.Num();
-	CRC32_InitChecksum( ret );
+	idHashing::CRC32_InitChecksum( ret );
 	for( i = 0; i < n; i++ )
 	{
-		CRC32_UpdateChecksum( ret, sorted[i].GetKey().c_str(), sorted[i].GetKey().Length() );
-		CRC32_UpdateChecksum( ret, sorted[i].GetValue().c_str(), sorted[i].GetValue().Length() );
+		idHashing::CRC32_UpdateChecksum( ret, sorted[i].GetKey().c_str(), sorted[i].GetKey().Length() );
+		idHashing::CRC32_UpdateChecksum( ret, sorted[i].GetValue().c_str(), sorted[i].GetValue().Length() );
 	}
-	CRC32_FinishChecksum( ret );
+	idHashing::CRC32_FinishChecksum( ret );
 	return ret;
 }
 

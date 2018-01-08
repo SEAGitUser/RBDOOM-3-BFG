@@ -92,13 +92,16 @@ enum utf8Encoding_t
 #define vsnwprintf		use_idWStr_vsnPrintf
 
 class idVec4;
+class idCmdArgs;
 
 #ifndef FILE_HASH_SIZE
 #define FILE_HASH_SIZE		1024
 #endif
 
-//const int COLOR_BITS				= 31;	//15;
-extern const int COLOR_BITS;
+const int COLOR_BITS				= 15;	// 31
+const int DW_COLOR_BITS				= 31;
+
+//SEA: MAGENTA <-> ORANGE ?
 
 // color escape character
 const int C_COLOR_ESCAPE			= '^';
@@ -359,7 +362,7 @@ public:
 	static int				IcmpPath( const char* s1, const char* s2 );			// compares paths and makes sure folders come first
 	static int				IcmpnPath( const char* s1, const char* s2, int n );	// compares paths and makes sure folders come first
 	static void				Append( char* dest, int size, const char* src );
-	static void				Copynz( char* dest, const char* src, int destsize );
+	static void				Copynz( char* dest, const char* src, size_t destsize );
 	static void				Copy( char* dest, const char* src );
 	static int				snPrintf( char* dest, int size, VERIFY_FORMAT_STRING const char* fmt, ... );
 	static int				vsnPrintf( char* dest, int size, const char* fmt, va_list argptr );

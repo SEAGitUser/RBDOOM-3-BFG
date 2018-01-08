@@ -26,25 +26,25 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
+#include "../precompiled.h"
 #pragma hdrstop
-#include "precompiled.h"
 
 idBox box_zero( vec3_zero, vec3_zero, mat3_identity );
 
 /*
-            4---{4}---5
+			4---{4}---5
  +         /|        /|
  Z      {7} {8}   {5} |
  -     /    |    /    {9}
-      7--{6}----6     |
-      |     |   |     |
-    {11}    0---|-{0}-1
-      |    /    |    /       -
-      | {3}  {10} {1}       Y
-      |/        |/         +
-      3---{2}---2
+	  7--{6}----6     |
+	  |     |   |     |
+	{11}    0---|-{0}-1
+	  |    /    |    /       -
+	  | {3}  {10} {1}       Y
+	  |/        |/         +
+	  3---{2}---2
 
-	    - X +
+		- X +
 
   plane bits:
   0 = min x

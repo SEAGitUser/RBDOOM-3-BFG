@@ -141,14 +141,14 @@ extern idCVar binaryLoadRenderModels;
 idRenderWorldLocal::ParseModel
 ================
 */
-idRenderModel* idRenderWorldLocal::ParseModel( idLexer* src, const char* mapName, ID_TIME_T mapTimeStamp, idFile* fileOut )
+idRenderModel* idRenderWorldLocal::ParseModel( idLexer& src, const char* mapName, ID_TIME_T mapTimeStamp, idFile* fileOut )
 {
 	idToken token;
 	
-	src->ExpectTokenString( "{" );
+	src.ExpectTokenString( "{" );
 	
 	// parse the name
-	src->ExpectAnyToken( &token );
+	src.ExpectAnyToken( &token );
 	
 	idRenderModel* model = renderModelManager->AllocModel();
 	model->InitEmpty( token );
@@ -160,17 +160,17 @@ idRenderModel* idRenderWorldLocal::ParseModel( idLexer* src, const char* mapName
 		fileOut->WriteString( token );
 	}
 	
-	int numSurfaces = src->ParseInt();
+	int numSurfaces = src.ParseInt();
 	if( numSurfaces < 0 )
 	{
-		src->Error( "R_ParseModel: bad numSurfaces" );
+		src.Error( "R_ParseModel: bad numSurfaces" );
 	}
 	
 	for( int i = 0; i < numSurfaces; i++ )
 	{
-		src->ExpectTokenString( "{" );
+		src.ExpectTokenString( "{" );
 		
-		src->ExpectAnyToken( &token );
+		src.ExpectAnyToken( &token );
 		
 		modelSurface_t surf;
 		surf.shader = declManager->FindMaterial( token );
@@ -180,21 +180,21 @@ idRenderModel* idRenderWorldLocal::ParseModel( idLexer* src, const char* mapName
 		auto tri = idTriangles::AllocStatic();
 		surf.geometry = tri;
 		
-		tri->numVerts = src->ParseInt();
-		tri->numIndexes = src->ParseInt();
+		tri->numVerts = src.ParseInt();
+		tri->numIndexes = src.ParseInt();
 		
 		// parse the vertices
 		idTempArray<float> verts( tri->numVerts * 8 );
 		for( int j = 0; j < tri->numVerts; j++ )
 		{
-			src->Parse1DMatrix( 8, &verts[j * 8] );
+			src.Parse1DMatrix( 8, &verts[j * 8] );
 		}
 		
 		// parse the indices
 		idTempArray<triIndex_t> indexes( tri->numIndexes );
 		for( int j = 0; j < tri->numIndexes; j++ )
 		{
-			indexes[j] = src->ParseInt();
+			indexes[j] = src.ParseInt();
 		}
 		
 #if 1
@@ -286,13 +286,13 @@ idRenderModel* idRenderWorldLocal::ParseModel( idLexer* src, const char* mapName
 		{
 			tri->indexes[j] = indexes[j];
 		}
-		src->ExpectTokenString( "}" );
+		src.ExpectTokenString( "}" );
 		
 		// add the completed surface to the model
 		model->AddSurface( surf );
 	}
 	
-	src->ExpectTokenString( "}" );
+	src.ExpectTokenString( "}" );
 	
 	model->FinishSurfaces();
 	
@@ -326,14 +326,14 @@ idRenderModel* idRenderWorldLocal::ReadBinaryShadowModel( idFile* fileIn )
 idRenderWorldLocal::ParseShadowModel
 ================
 */
-idRenderModel* idRenderWorldLocal::ParseShadowModel( idLexer* src, idFile* fileOut )
+idRenderModel* idRenderWorldLocal::ParseShadowModel( idLexer& src, idFile* fileOut )
 {
 	idToken token;
 	
-	src->ExpectTokenString( "{" );
+	src.ExpectTokenString( "{" );
 	
 	// parse the name
-	src->ExpectAnyToken( &token );
+	src.ExpectAnyToken( &token );
 	
 	idRenderModel* model = renderModelManager->AllocModel();
 	model->InitEmpty( token );
@@ -347,11 +347,11 @@ idRenderModel* idRenderWorldLocal::ParseShadowModel( idLexer* src, idFile* fileO
 	
 	auto tri = idTriangles::AllocStatic();
 	
-	tri->numVerts = src->ParseInt();
-	tri->numShadowIndexesNoCaps = src->ParseInt();
-	tri->numShadowIndexesNoFrontCaps = src->ParseInt();
-	tri->numIndexes = src->ParseInt();
-	tri->shadowCapPlaneBits = src->ParseInt();
+	tri->numVerts = src.ParseInt();
+	tri->numShadowIndexesNoCaps = src.ParseInt();
+	tri->numShadowIndexesNoFrontCaps = src.ParseInt();
+	tri->numIndexes = src.ParseInt();
+	tri->shadowCapPlaneBits = src.ParseInt();
 	
 	assert( ( tri->numVerts & 1 ) == 0 );
 	
@@ -361,7 +361,7 @@ idRenderModel* idRenderWorldLocal::ParseShadowModel( idLexer* src, idFile* fileO
 	{
 		float vec[8];
 		
-		src->Parse1DMatrix( 3, vec );
+		src.Parse1DMatrix( 3, vec );
 		tri->preLightShadowVertexes[j].xyzw[0] = vec[0];
 		tri->preLightShadowVertexes[j].xyzw[1] = vec[1];
 		tri->preLightShadowVertexes[j].xyzw[2] = vec[2];
@@ -381,7 +381,7 @@ idRenderModel* idRenderWorldLocal::ParseShadowModel( idLexer* src, idFile* fileO
 	tri->AllocStaticIndexes( tri->numIndexes );
 	for( int j = 0; j < tri->numIndexes; j++ )
 	{
-		tri->indexes[j] = src->ParseInt();
+		tri->indexes[j] = src.ParseInt();
 	}
 	
 	// add the completed surface to the model
@@ -392,7 +392,7 @@ idRenderModel* idRenderWorldLocal::ParseShadowModel( idLexer* src, idFile* fileO
 	
 	model->AddSurface( surf );
 	
-	src->ExpectTokenString( "}" );
+	src.ExpectTokenString( "}" );
 	
 	// NOTE: we do NOT do a model->FinishSurfaceces, because we don't need sil edges, planes, tangents, etc.
 	
@@ -425,14 +425,14 @@ void idRenderWorldLocal::SetupAreaRefs()
 idRenderWorldLocal::ParseInterAreaPortals
 ================
 */
-void idRenderWorldLocal::ParseInterAreaPortals( idLexer* src, idFile* fileOut )
+void idRenderWorldLocal::ParseInterAreaPortals( idLexer& src, idFile* fileOut )
 {
-	src->ExpectTokenString( "{" );
+	src.ExpectTokenString( "{" );
 	
-	numPortalAreas = src->ParseInt();
+	numPortalAreas = src.ParseInt();
 	if( numPortalAreas < 0 )
 	{
-		src->Error( "R_ParseInterAreaPortals: bad numPortalAreas" );
+		src.Error( "R_ParseInterAreaPortals: bad numPortalAreas" );
 		return;
 	}
 	
@@ -448,10 +448,10 @@ void idRenderWorldLocal::ParseInterAreaPortals( idLexer* src, idFile* fileOut )
 	// set the doubly linked lists
 	SetupAreaRefs();
 	
-	numInterAreaPortals = src->ParseInt();
+	numInterAreaPortals = src.ParseInt();
 	if( numInterAreaPortals < 0 )
 	{
-		src->Error( "R_ParseInterAreaPortals: bad numInterAreaPortals" );
+		src.Error( "R_ParseInterAreaPortals: bad numInterAreaPortals" );
 		return;
 	}
 	
@@ -465,9 +465,9 @@ void idRenderWorldLocal::ParseInterAreaPortals( idLexer* src, idFile* fileOut )
 					
 	for( int i = 0; i < numInterAreaPortals; ++i )
 	{
-		int numPoints = src->ParseInt();
-		int a1 = src->ParseInt();
-		int a2 = src->ParseInt();
+		int numPoints = src.ParseInt();
+		int a1 = src.ParseInt();
+		int a2 = src.ParseInt();
 		
 		if( fileOut != NULL )
 		{
@@ -480,7 +480,7 @@ void idRenderWorldLocal::ParseInterAreaPortals( idLexer* src, idFile* fileOut )
 		w->SetNumPoints( numPoints );
 		for( int j = 0; j < numPoints; ++j )
 		{
-			src->Parse1DMatrix( 3, ( *w )[j].ToFloatPtr() );
+			src.Parse1DMatrix( 3, ( *w )[j].ToFloatPtr() );
 			
 			if( fileOut != NULL )
 			{
@@ -522,7 +522,7 @@ void idRenderWorldLocal::ParseInterAreaPortals( idLexer* src, idFile* fileOut )
 		doublePortals[i].portals[1] = p;
 	}
 	
-	src->ExpectTokenString( "}" );
+	src.ExpectTokenString( "}" );
 }
 
 /*
@@ -599,14 +599,14 @@ void idRenderWorldLocal::ReadBinaryAreaPortals( idFile* file )
 idRenderWorldLocal::ParseNodes
 ================
 */
-void idRenderWorldLocal::ParseNodes( idLexer* src, idFile* fileOut )
+void idRenderWorldLocal::ParseNodes( idLexer& src, idFile* fileOut )
 {
-	src->ExpectTokenString( "{" );
+	src.ExpectTokenString( "{" );
 	
-	numAreaNodes = src->ParseInt();
+	numAreaNodes = src.ParseInt();
 	if( numAreaNodes < 0 )
 	{
-		src->Error( "R_ParseNodes: bad numAreaNodes" );
+		src.Error( "R_ParseNodes: bad numAreaNodes" );
 	}
 
 	areaNodes = allocManager.StaticAlloc<areaNode_t, TAG_RENDER_PVS, true>( numAreaNodes );
@@ -626,10 +626,10 @@ void idRenderWorldLocal::ParseNodes( idLexer* src, idFile* fileOut )
 	{
 		areaNode_t* node = &areaNodes[i];
 		
-		src->Parse1DMatrix( 4, node->plane.ToFloatPtr() );
+		src.Parse1DMatrix( 4, node->plane.ToFloatPtr() );
 		
-		node->children[0] = src->ParseInt();
-		node->children[1] = src->ParseInt();
+		node->children[0] = src.ParseInt();
+		node->children[1] = src.ParseInt();
 		
 		if( fileOut != NULL )
 		{
@@ -643,7 +643,7 @@ void idRenderWorldLocal::ParseNodes( idLexer* src, idFile* fileOut )
 		
 	}
 	
-	src->ExpectTokenString( "}" );
+	src.ExpectTokenString( "}" );
 }
 
 /*
@@ -902,8 +902,8 @@ bool idRenderWorldLocal::InitFromMap( const char* name )
 	
 	if( !loaded )
 	{	
-		auto src = new( TAG_RENDER ) idLexer( filename, LEXFL_NOSTRINGCONCAT | LEXFL_NODOLLARPRECOMPILE );
-		if( !src->IsLoaded() )
+		idLexer src( filename, LEXFL_NOSTRINGCONCAT | LEXFL_NODOLLARPRECOMPILE );
+		if( !src.IsLoaded() )
 		{
 			common->Printf( "idRenderWorldLocal::InitFromMap: %s not found\n", filename.c_str() );
 			ClearWorld();
@@ -921,10 +921,9 @@ bool idRenderWorldLocal::InitFromMap( const char* name )
 
 		idToken token;
 		
-		if( !src->ReadToken( &token ) || token.Icmp( PROC_FILE_ID ) )
+		if( !src.ReadToken( &token ) || token.Icmp( PROC_FILE_ID ) )
 		{
 			common->Printf( "idRenderWorldLocal::InitFromMap: bad id '%s' instead of '%s'\n", token.c_str(), PROC_FILE_ID );
-			delete src;
 			return false;
 		}
 		
@@ -942,7 +941,7 @@ bool idRenderWorldLocal::InitFromMap( const char* name )
 		// parse the file
 		while( 1 )
 		{
-			if( !src->ReadToken( &token ) )
+			if( !src.ReadToken( &token ) )
 			{
 				break;
 			}
@@ -994,10 +993,8 @@ bool idRenderWorldLocal::InitFromMap( const char* name )
 				continue;
 			}
 			
-			src->Error( "idRenderWorldLocal::InitFromMap: bad token \"%s\"", token.c_str() );
+			src.Error( "idRenderWorldLocal::InitFromMap: bad token \"%s\"", token.c_str() );
 		}
-		
-		delete src;
 		
 		if( outputFile != NULL )
 		{
@@ -1005,8 +1002,7 @@ bool idRenderWorldLocal::InitFromMap( const char* name )
 			int magic = BPROC_MAGIC;
 			outputFile->WriteBig( magic );
 			outputFile->WriteBig( numEntries );
-		}
-		
+		}		
 	}
 		
 	// if it was a trivial map without any areas, create a single area

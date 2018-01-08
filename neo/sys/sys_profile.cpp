@@ -271,7 +271,7 @@ void idProfileMgr::OnLoadSettingsCompleted( idSaveLoadParms* parms )
 		profileFile->ReadBigArray( buffer.Ptr(), dataLength );
 		
 		// Validate the checksum before we let the game serialize the settings
-		unsigned int checksum = MD5_BlockChecksum( buffer.Ptr(), dataLength );
+		unsigned int checksum = idHashing::MD5_BlockChecksum( buffer.Ptr(), dataLength );
 		if( originalChecksum != checksum )
 		{
 			idLib::Warning( "Checksum: 0x%08x, originalChecksum: 0x%08x, size = %d", checksum, originalChecksum, dataLength );
@@ -353,7 +353,7 @@ bool idSaveGameProcessorSaveProfile::InitSaveProfile( idPlayerProfile* profile_,
 	profile_->Serialize( ser );
 	
 	// Get and write the checksum & length first
-	unsigned int checksum = MD5_BlockChecksum( msg.GetReadData(), msg.GetSize() );
+	unsigned int checksum = idHashing::MD5_BlockChecksum( msg.GetReadData(), msg.GetSize() );
 	profileFile->WriteBig( checksum );
 	
 	idLib::PrintfIf( profile_verbose.GetBool(), "checksum: 0x%08x, length: %d\n", checksum, msg.GetSize() );

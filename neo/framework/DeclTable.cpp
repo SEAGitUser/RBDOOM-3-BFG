@@ -124,12 +124,11 @@ idDeclTable::Parse
 */
 bool idDeclTable::Parse( const char* text, const int textLength, bool allowBinaryVersion )
 {
-	idLexer src;
 	idToken token;
 	float v;
 	
-	src.LoadMemory( text, textLength, GetFileName(), GetLineNum() );
-	src.SetFlags( DECL_LEXER_FLAGS );
+	idLexer src( text, textLength, GetFileName(), DECL_LEXER_FLAGS, GetLineNum() );
+
 	src.SkipUntilString( "{" );
 	
 	snap = false;

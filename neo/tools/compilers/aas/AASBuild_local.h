@@ -96,7 +96,7 @@ private:
 	idBrushMap* 			ledgeMap;
 	
 private:	// map loading
-	void					ParseProcNodes( idLexer* src );
+	void					ParseProcNodes( idLexer & src );
 	bool					LoadProcBSP( const char* name, ID_TIME_T minFileTime );
 	void					DeleteProcBSP();
 	bool					ChoppedAwayByProcBSP( int nodeNum, idFixedWinding* w, const idVec3& normal, const idVec3& origin, const float radius );

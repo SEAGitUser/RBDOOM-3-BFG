@@ -68,19 +68,16 @@ idDeclPDA::Parse
 */
 bool idDeclPDA::Parse( const char* text, const int textLength, bool allowBinaryVersion )
 {
-	idLexer src;
-	idToken token;
-	
 	idStr baseStrId = va( "#str_%s_pda_", GetName() );
 	
-	src.LoadMemory( text, textLength, GetFileName(), GetLineNum() );
-	src.SetFlags( DECL_LEXER_FLAGS );
+	idToken token;
+	idLexer src( text, textLength, GetFileName(), DECL_LEXER_FLAGS, GetLineNum() );	
+	
 	src.SkipUntilString( "{" );
 	
 	// scan through, identifying each individual parameter
 	while( 1 )
-	{
-	
+	{	
 		if( !src.ReadToken( &token ) )
 		{
 			break;
@@ -318,12 +315,13 @@ idDeclEmail::Parse
 bool idDeclEmail::Parse( const char* _text, const int textLength, bool allowBinaryVersion )
 {
 	idLexer src;
-	idToken token;
-	
+	idToken token;	
+
 	idStr baseStrId = va( "#str_%s_email_", GetName() );
-	
+
+	src.SetFlags( LEXFL_NOSTRINGCONCAT | LEXFL_ALLOWPATHNAMES | LEXFL_ALLOWMULTICHARLITERALS | LEXFL_ALLOWBACKSLASHSTRINGCONCAT | LEXFL_NOFATALERRORS );
 	src.LoadMemory( _text, textLength, GetFileName(), GetLineNum() );
-	src.SetFlags( LEXFL_NOSTRINGCONCAT | LEXFL_ALLOWPATHNAMES |	LEXFL_ALLOWMULTICHARLITERALS | LEXFL_ALLOWBACKSLASHSTRINGCONCAT | LEXFL_NOFATALERRORS );
+	
 	src.SkipUntilString( "{" );
 	
 	text = "";
@@ -493,8 +491,9 @@ bool idDeclVideo::Parse( const char* text, const int textLength, bool allowBinar
 	
 	idStr baseStrId = va( "#str_%s_video_", GetName() );
 	
+	src.SetFlags( LEXFL_NOSTRINGCONCAT | LEXFL_ALLOWPATHNAMES | LEXFL_ALLOWMULTICHARLITERALS | LEXFL_ALLOWBACKSLASHSTRINGCONCAT | LEXFL_NOFATALERRORS );
 	src.LoadMemory( text, textLength, GetFileName(), GetLineNum() );
-	src.SetFlags( LEXFL_NOSTRINGCONCAT | LEXFL_ALLOWPATHNAMES |	LEXFL_ALLOWMULTICHARLITERALS | LEXFL_ALLOWBACKSLASHSTRINGCONCAT | LEXFL_NOFATALERRORS );
+	
 	src.SkipUntilString( "{" );
 	
 	// scan through, identifying each individual parameter
@@ -636,8 +635,9 @@ bool idDeclAudio::Parse( const char* text, const int textLength, bool allowBinar
 	
 	idStr baseStrId = va( "#str_%s_audio_", GetName() );
 	
+	src.SetFlags( LEXFL_NOSTRINGCONCAT | LEXFL_ALLOWPATHNAMES | LEXFL_ALLOWMULTICHARLITERALS | LEXFL_ALLOWBACKSLASHSTRINGCONCAT | LEXFL_NOFATALERRORS );
 	src.LoadMemory( text, textLength, GetFileName(), GetLineNum() );
-	src.SetFlags( LEXFL_NOSTRINGCONCAT | LEXFL_ALLOWPATHNAMES |	LEXFL_ALLOWMULTICHARLITERALS | LEXFL_ALLOWBACKSLASHSTRINGCONCAT | LEXFL_NOFATALERRORS );
+	
 	src.SkipUntilString( "{" );
 	
 	// scan through, identifying each individual parameter

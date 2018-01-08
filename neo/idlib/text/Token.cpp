@@ -26,7 +26,7 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
-#include "precompiled.h"
+#include "../precompiled.h"
 #pragma hdrstop
 
 
@@ -122,12 +122,11 @@ void idToken::NumberValue()
 	}
 	else if( subtype & TT_DECIMAL )
 	{
-		while( *p )
-		{
-			intvalue = intvalue * 10 + ( *p - '0' );
+		while( *p ) {
+			intvalue = intvalue * 10 + (*p - '0');
+			floatvalue = floatvalue * 10.0 + (double) (*p - '0');
 			p++;
 		}
-		floatvalue = intvalue;
 	}
 	else if( subtype & TT_IPADDRESS )
 	{

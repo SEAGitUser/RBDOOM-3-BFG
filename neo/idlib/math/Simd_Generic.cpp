@@ -26,8 +26,9 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
+#include "../precompiled.h"
 #pragma hdrstop
-#include "precompiled.h"
+
 #include "Simd_Generic.h"
 
 //===============================================================
@@ -134,7 +135,7 @@ void VPCALL idSIMD_Generic::MinMax( idVec3& min, idVec3& max, const idDrawVert* 
 idSIMD_Generic::Memcpy
 ================
 */
-void VPCALL idSIMD_Generic::Memcpy( void* dst, const void* src, const int count )
+void VPCALL idSIMD_Generic::Memcpy( void* dst, const void* src, const size_t count )
 {
 	memcpy( dst, src, count );
 }
@@ -144,7 +145,7 @@ void VPCALL idSIMD_Generic::Memcpy( void* dst, const void* src, const int count 
 idSIMD_Generic::Memset
 ================
 */
-void VPCALL idSIMD_Generic::Memset( void* dst, const int val, const int count )
+void VPCALL idSIMD_Generic::Memset( void* dst, const int val, const size_t count )
 {
 	memset( dst, val, count );
 }

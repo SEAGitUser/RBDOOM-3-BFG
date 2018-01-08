@@ -105,9 +105,9 @@ unsigned int NetGetVersionChecksum()
 #else
 	unsigned int ret = 0;
 	
-	CRC32_InitChecksum( ret );
-	CRC32_UpdateChecksum( ret, netVersion.string, idStr::Length( netVersion.string ) );
-	CRC32_FinishChecksum( ret );
+	idHashing::CRC32_InitChecksum( ret );
+	idHashing::CRC32_UpdateChecksum( ret, netVersion.string, idStr::Length( netVersion.string ) );
+	idHashing::CRC32_FinishChecksum( ret );
 	
 	NET_VERBOSE_PRINT( "NetGetVersionChecksum - string   : %s\n", netVersion.string );
 	NET_VERBOSE_PRINT( "NetGetVersionChecksum - checksum : %u\n", ret );

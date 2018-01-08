@@ -199,7 +199,7 @@ public:
 	int		FindFragmentShader( const char* name );
 	
 	// RB: added progIndex to handle many custom renderprogs
-	void BindShader( int progIndex, int vIndex, int fIndex, bool builtin );
+	void BindShader( int progIndex, int vIndex, int gIndex, int fIndex, bool builtin );
 	// RB end
 	
 	void BindShader_GUI( ) {
@@ -230,6 +230,9 @@ public:
 	}
 	void BindShader_DepthWorld() {
 		BindShader_Builtin( BUILTIN_DEPTH_WORLD );
+	}
+	void BindShader_FillShadowDepthBufferOnePass() {
+		//BindShader_Builtin( BUILTIN_DEPTH_WORLD );
 	}
 //SEA <-
 
@@ -539,7 +542,7 @@ protected:
 	int builtinShaders[MAX_BUILTINS];
 	void BindShader_Builtin( int i )
 	{
-		BindShader( -1, builtinShaders[i], builtinShaders[i], true );
+		BindShader( -1, builtinShaders[i], builtinShaders[i], builtinShaders[i], true );
 	}
 	
 	enum shaderFeature_t
@@ -559,7 +562,7 @@ protected:
 	
 	bool	CompileGLSL( GLenum target, const char* name );
 	GLuint	LoadGLSLShader( GLenum target, const char* name, const char* nameOutSuffix, uint32 shaderFeatures, bool builtin, idList<int>& uniforms );
-	void	LoadGLSLProgram( const int programIndex, const int vertexShaderIndex, const int fragmentShaderIndex );
+	void	LoadGLSLProgram( const int programIndex, const int vertexShaderIndex, const int geometryShaderIndex, const int fragmentShaderIndex );
 	
 	static const GLuint INVALID_PROGID = MAX_UNSIGNED_TYPE( GLuint );
 		
@@ -623,9 +626,9 @@ protected:
 	idList<glslProgram_t, TAG_RENDER> glslPrograms;
 	idStaticList < idVec4, RENDERPARM_USER + MAX_GLSL_USER_PARMS > glslUniforms;
 	
-	int	currentVertexShader;
-	int	currentGeometryShader;
-	int	currentFragmentShader;
+	int	currentVertexShader = -1;
+	int	currentGeometryShader = -1;
+	int	currentFragmentShader = -1;
 	idList<vertexShader_t, TAG_RENDER> vertexShaders;
 	idList<geometryShader_t, TAG_RENDER> geometryShaders;
 	idList<fragmentShader_t, TAG_RENDER> fragmentShaders;

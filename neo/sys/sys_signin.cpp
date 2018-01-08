@@ -253,14 +253,14 @@ Uniquely generate a handle based on name and time
 */
 localUserHandle_t idSignInManagerBase::GetUniqueLocalUserHandle( const char* name )
 {
-	MD5_CTX			ctx;
+	idHashing::MD5_CTX ctx;
 	unsigned char	digest[16];
 	int64			clockTicks = Sys_GetClockTicks();
 	
-	MD5_Init( &ctx );
-	MD5_Update( &ctx, ( const unsigned char* )name, idStr::Length( name ) );
-	MD5_Update( &ctx, ( const unsigned char* )&clockTicks, sizeof( clockTicks ) );
-	MD5_Final( &ctx, ( unsigned char* )digest );
+	idHashing::MD5_Init( &ctx );
+	idHashing::MD5_Update( &ctx, ( const unsigned char* )name, idStr::Length( name ) );
+	idHashing::MD5_Update( &ctx, ( const unsigned char* )&clockTicks, sizeof( clockTicks ) );
+	idHashing::MD5_Final( &ctx, ( unsigned char* )digest );
 	
 	// Quantize the 128 bit hash down to the number of bits needed for a localUserHandle_t
 	const int STRIDE_BYTES	= sizeof( localUserHandle_t::userHandleType_t );

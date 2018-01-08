@@ -237,7 +237,6 @@ void RB_StencilShadowPass( const drawSurf_t* const drawSurfs, const viewLight_t*
 
 				backEnd.glState.vertexLayout = LAYOUT_DRAW_SHADOW_VERT_SKINNED;
 			}
-
 		}
 		else
 		{

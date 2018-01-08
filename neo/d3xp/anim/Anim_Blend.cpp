@@ -3258,7 +3258,6 @@ bool idDeclModelDef::Parse( const char* text, const int textLength, bool allowBi
 	idStr				extension;
 	const idMD5Joint*	md5joint;
 	const idMD5Joint*	md5joints;
-	idLexer				src;
 	idToken				token;
 	idToken				token2;
 	idStr				jointnames;
@@ -3267,8 +3266,10 @@ bool idDeclModelDef::Parse( const char* text, const int textLength, bool allowBi
 	idList<jointHandle_t> jointList;
 	int					numDefaultAnims;
 	
-	src.LoadMemory( text, textLength, GetFileName(), GetLineNum() );
-	src.SetFlags( DECL_LEXER_FLAGS );
+	//src.SetFlags( DECL_LEXER_FLAGS );
+	//src.LoadMemory( text, textLength, GetFileName(), DECL_LEXER_FLAGS, GetLineNum() );
+	idLexer src( text, textLength, GetFileName(), DECL_LEXER_FLAGS, GetLineNum() );
+
 	src.SkipUntilString( "{" );
 	
 	numDefaultAnims = 0;

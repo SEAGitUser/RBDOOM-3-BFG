@@ -3881,7 +3881,7 @@ void idLobby::ServerUpdateBandwidthTest()
 			msg.WriteByte( random.RandomInt( 255 ) );
 		}
 		
-		unsigned int checksum = MD5_BlockChecksum( &buffer[8], randomSize );
+		unsigned int checksum = idHashing::MD5_BlockChecksum( &buffer[8], randomSize );
 		msg.WriteLong( checksum );
 		
 		NET_VERBOSE_PRINT( "Net: Sending bw challenge to peer %d time %d packet size %d\n", i, time, msg.GetSize() );

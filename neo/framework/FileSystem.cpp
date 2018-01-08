@@ -2823,21 +2823,20 @@ void idFileSystemLocal::CreateCRCsForResourceFileList( const idFileList& list )
 		{
 			const char* innerFileDataBegin = currentFile->GetDataPtr() + cacheEntries[innerFileIndex].offset;
 			
-			innerFileCRCs[innerFileIndex] = CRC32_BlockChecksum( innerFileDataBegin, cacheEntries[innerFileIndex].length );
+			innerFileCRCs[innerFileIndex] = idHashing::CRC32_BlockChecksum( innerFileDataBegin, cacheEntries[innerFileIndex].length );
 		}
 		
 		// Get the CRC for all the CRCs.
-		const unsigned int totalCRC = CRC32_BlockChecksum( innerFileCRCs.Ptr(), innerFileCRCs.Size() ); // DG: use int instead of long for 64bit compatibility
+		const unsigned int totalCRC = idHashing::CRC32_BlockChecksum( innerFileCRCs.Ptr(), innerFileCRCs.Size() ); // DG: use int instead of long for 64bit compatibility
 		
 		// Write the .crc file corresponding to the .resources file.
 		idStr crcFilename = list.GetFile( fileIndex );
 		crcFilename.SetFileExtension( ".crc" );
 		std::auto_ptr<idFile> crcOutputFile( fileSystem->OpenFileWrite( crcFilename, "fs_basepath" ) );
+		//idFilePtr crcOutputFile( fileSystem->OpenFileWrite( crcFilename, "fs_basepath" ) );
 		if( crcOutputFile.get() == NULL )
 		{
-			// RB: fixed potential crash because of "cannot pass objects of non-trivially-copyable type 'class idStr' through '...'"
 			idLib::Printf( "Error writing CRC file %s.\n", crcFilename.c_str() );
-			// RB end
 			continue;
 		}
 		

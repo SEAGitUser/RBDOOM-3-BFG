@@ -26,8 +26,8 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
+#include "../precompiled.h"
 #pragma hdrstop
-#include "precompiled.h"
 
 idVec2 vec2_origin( 0.0f, 0.0f );
 idVec3 vec3_origin( 0.0f, 0.0f, 0.0f );

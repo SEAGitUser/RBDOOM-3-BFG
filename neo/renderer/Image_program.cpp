@@ -691,9 +691,8 @@ R_LoadImageProgram
 */
 void R_LoadImageProgram( const char* name, byte** pic, int* width, int* height, ID_TIME_T* timestamps, textureUsage_t* usage )
 {
-	idLexer src;	
+	idLexer src( LEXFL_NOFATALERRORS | LEXFL_NOSTRINGCONCAT | LEXFL_NOSTRINGESCAPECHARS | LEXFL_ALLOWPATHNAMES );
 	src.LoadMemory( name, idStr::Length( name ), name );
-	src.SetFlags( LEXFL_NOFATALERRORS | LEXFL_NOSTRINGCONCAT | LEXFL_NOSTRINGESCAPECHARS | LEXFL_ALLOWPATHNAMES );
 	
 	parseBuffer[0] = 0;
 	if( timestamps )

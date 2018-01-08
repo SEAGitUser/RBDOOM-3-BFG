@@ -458,7 +458,7 @@ private:			// CollisionMap_load.cpp
 	void			FindInternalEdges( cm_model_t* model, cm_node_t* node );
 	void			FindContainedEdges( cm_model_t* model, cm_polygon_t* p );
 	// loading of proc BSP tree
-	void			ParseProcNodes( idLexer* src );
+	void			ParseProcNodes( idLexer& src );
 	void			LoadProcBSP( const char* name );
 	// removal of contained polygons
 	int				R_ChoppedAwayByProcBSP( int nodeNum, idFixedWinding* w, const idVec3& normal, const idVec3& origin, const float radius );
@@ -523,12 +523,12 @@ private:			// CollisionMap_files.cpp
 	void			WriteCollisionModel( idFile* fp, cm_model_t* model );
 	void			WriteCollisionModelsToFile( const char* filename, int firstModel, int lastModel, unsigned int mapFileCRC );
 	// loading
-	cm_node_t* 		ParseNodes( idLexer* src, cm_model_t* model, cm_node_t* parent );
-	void			ParseVertices( idLexer* src, cm_model_t* model );
-	void			ParseEdges( idLexer* src, cm_model_t* model );
-	void			ParsePolygons( idLexer* src, cm_model_t* model );
-	void			ParseBrushes( idLexer* src, cm_model_t* model );
-	cm_model_t* 	ParseCollisionModel( idLexer* src );
+	cm_node_t* 		ParseNodes( idLexer& src, cm_model_t* model, cm_node_t* parent );
+	void			ParseVertices( idLexer& src, cm_model_t* model );
+	void			ParseEdges( idLexer& src, cm_model_t* model );
+	void			ParsePolygons( idLexer& src, cm_model_t* model );
+	void			ParseBrushes( idLexer& src, cm_model_t* model );
+	cm_model_t* 	ParseCollisionModel( idLexer& src );
 	bool			LoadCollisionModelFile( const char* name, unsigned int mapFileCRC );
 	
 private:			// CollisionMap_debug

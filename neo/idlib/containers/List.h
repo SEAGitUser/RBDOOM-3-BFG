@@ -1111,6 +1111,26 @@ ID_INLINE void idList<_type_, _tag_>::SortWithTemplate( const idSort<_type_>& so
 //	qsort( ( void * )( &list[startIndex] ), ( size_t )( endIndex - startIndex + 1 ), sizeof( _type_ ), vCompare );
 //}
 
+
+/*
+================
+idList<type>::Swap
+
+Swaps the contents of two lists
+================
+*/
+template< typename _type_, memTag_t _tag_ >
+ID_INLINE void idList<_type_, _tag_>::Swap( idList &other )
+{
+	assert( memTag == other.memTag );
+
+	SwapValues( num, other.num );
+	SwapValues( size, other.size );
+	SwapValues( granularity, other.granularity );
+	SwapValues( list, other.list );
+}
+
+
 /*
 ========================
 FindFromGeneric

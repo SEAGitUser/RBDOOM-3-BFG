@@ -349,22 +349,20 @@ Loading of collision model file
 idCollisionModelManagerLocal::ParseVertices
 ================
 */
-void idCollisionModelManagerLocal::ParseVertices( idLexer* src, cm_model_t* model )
+void idCollisionModelManagerLocal::ParseVertices( idLexer& src, cm_model_t* model )
 {
-	int i;
-	
-	src->ExpectTokenString( "{" );
-	model->numVertices = src->ParseInt();
+	src.ExpectTokenString( "{" );
+	model->numVertices = src.ParseInt();
 	model->maxVertices = model->numVertices;
 	model->vertices = ( cm_vertex_t* ) Mem_ClearedAlloc( model->maxVertices * sizeof( cm_vertex_t ), TAG_COLLISION );
-	for( i = 0; i < model->numVertices; i++ )
+	for( int i = 0; i < model->numVertices; i++ )
 	{
-		src->Parse1DMatrix( 3, model->vertices[i].p.ToFloatPtr() );
+		src.Parse1DMatrix( 3, model->vertices[i].p.ToFloatPtr() );
 		model->vertices[i].side = 0;
 		model->vertices[i].sideSet = 0;
 		model->vertices[i].checkcount = 0;
 	}
-	src->ExpectTokenString( "}" );
+	src.ExpectTokenString( "}" );
 }
 
 /*
@@ -372,29 +370,27 @@ void idCollisionModelManagerLocal::ParseVertices( idLexer* src, cm_model_t* mode
 idCollisionModelManagerLocal::ParseEdges
 ================
 */
-void idCollisionModelManagerLocal::ParseEdges( idLexer* src, cm_model_t* model )
+void idCollisionModelManagerLocal::ParseEdges( idLexer& src, cm_model_t* model )
 {
-	int i;
-	
-	src->ExpectTokenString( "{" );
-	model->numEdges = src->ParseInt();
+	src.ExpectTokenString( "{" );
+	model->numEdges = src.ParseInt();
 	model->maxEdges = model->numEdges;
 	model->edges = ( cm_edge_t* ) Mem_ClearedAlloc( model->maxEdges * sizeof( cm_edge_t ), TAG_COLLISION );
-	for( i = 0; i < model->numEdges; i++ )
+	for( int i = 0; i < model->numEdges; i++ )
 	{
-		src->ExpectTokenString( "(" );
-		model->edges[i].vertexNum[0] = src->ParseInt();
-		model->edges[i].vertexNum[1] = src->ParseInt();
-		src->ExpectTokenString( ")" );
+		src.ExpectTokenString( "(" );
+		model->edges[i].vertexNum[0] = src.ParseInt();
+		model->edges[i].vertexNum[1] = src.ParseInt();
+		src.ExpectTokenString( ")" );
 		model->edges[i].side = 0;
 		model->edges[i].sideSet = 0;
-		model->edges[i].internal = src->ParseInt();
-		model->edges[i].numUsers = src->ParseInt();
+		model->edges[i].internal = src.ParseInt();
+		model->edges[i].numUsers = src.ParseInt();
 		model->edges[i].normal = vec3_origin;
 		model->edges[i].checkcount = 0;
 		model->numInternalEdges += model->edges[i].internal;
 	}
-	src->ExpectTokenString( "}" );
+	src.ExpectTokenString( "}" );
 }
 
 /*
@@ -402,7 +398,7 @@ void idCollisionModelManagerLocal::ParseEdges( idLexer* src, cm_model_t* model )
 idCollisionModelManagerLocal::ParseNodes
 ================
 */
-cm_node_t* idCollisionModelManagerLocal::ParseNodes( idLexer* src, cm_model_t* model, cm_node_t* parent )
+cm_node_t* idCollisionModelManagerLocal::ParseNodes( idLexer& src, cm_model_t* model, cm_node_t* parent )
 {
 	cm_node_t* node;
 	
@@ -411,10 +407,10 @@ cm_node_t* idCollisionModelManagerLocal::ParseNodes( idLexer* src, cm_model_t* m
 	node->brushes = NULL;
 	node->polygons = NULL;
 	node->parent = parent;
-	src->ExpectTokenString( "(" );
-	node->planeType = src->ParseInt();
-	node->planeDist = src->ParseFloat();
-	src->ExpectTokenString( ")" );
+	src.ExpectTokenString( "(" );
+	node->planeType = src.ParseInt();
+	node->planeDist = src.ParseFloat();
+	src.ExpectTokenString( ")" );
 	if( node->planeType != -1 )
 	{
 		node->children[0] = ParseNodes( src, model, node );
@@ -428,39 +424,39 @@ cm_node_t* idCollisionModelManagerLocal::ParseNodes( idLexer* src, cm_model_t* m
 idCollisionModelManagerLocal::ParsePolygons
 ================
 */
-void idCollisionModelManagerLocal::ParsePolygons( idLexer* src, cm_model_t* model )
+void idCollisionModelManagerLocal::ParsePolygons( idLexer& src, cm_model_t* model )
 {
 	cm_polygon_t* p;
 	int i, numEdges;
 	idVec3 normal;
 	idToken token;
 	
-	if( src->CheckTokenType( TT_NUMBER, 0, &token ) )
+	if( src.CheckTokenType( TT_NUMBER, 0, &token ) )
 	{
 		model->polygonBlock = ( cm_polygonBlock_t* ) Mem_ClearedAlloc( sizeof( cm_polygonBlock_t ) + token.GetIntValue(), TAG_COLLISION );
 		model->polygonBlock->bytesRemaining = token.GetIntValue();
 		model->polygonBlock->next = ( ( byte* ) model->polygonBlock ) + sizeof( cm_polygonBlock_t );
 	}
 	
-	src->ExpectTokenString( "{" );
-	while( !src->CheckTokenString( "}" ) )
+	src.ExpectTokenString( "{" );
+	while( !src.CheckTokenString( "}" ) )
 	{
 		// parse polygon
-		numEdges = src->ParseInt();
+		numEdges = src.ParseInt();
 		p = AllocPolygon( model, numEdges );
 		p->numEdges = numEdges;
-		src->ExpectTokenString( "(" );
+		src.ExpectTokenString( "(" );
 		for( i = 0; i < p->numEdges; i++ )
 		{
-			p->edges[i] = src->ParseInt();
+			p->edges[i] = src.ParseInt();
 		}
-		src->ExpectTokenString( ")" );
-		src->Parse1DMatrix( 3, normal.ToFloatPtr() );
+		src.ExpectTokenString( ")" );
+		src.Parse1DMatrix( 3, normal.ToFloatPtr() );
 		p->plane.SetNormal( normal );
-		p->plane.SetDist( src->ParseFloat() );
-		src->Parse1DMatrix( 3, p->bounds[0].ToFloatPtr() );
-		src->Parse1DMatrix( 3, p->bounds[1].ToFloatPtr() );
-		src->ExpectTokenType( TT_STRING, 0, &token );
+		p->plane.SetDist( src.ParseFloat() );
+		src.Parse1DMatrix( 3, p->bounds[0].ToFloatPtr() );
+		src.Parse1DMatrix( 3, p->bounds[1].ToFloatPtr() );
+		src.ExpectTokenType( TT_STRING, 0, &token );
 		// get material
 		p->material = declManager->FindMaterial( token );
 		p->contents = p->material->GetContentFlags();
@@ -475,38 +471,38 @@ void idCollisionModelManagerLocal::ParsePolygons( idLexer* src, cm_model_t* mode
 idCollisionModelManagerLocal::ParseBrushes
 ================
 */
-void idCollisionModelManagerLocal::ParseBrushes( idLexer* src, cm_model_t* model )
+void idCollisionModelManagerLocal::ParseBrushes( idLexer& src, cm_model_t* model )
 {
 	cm_brush_t* b;
 	int i, numPlanes;
 	idVec3 normal;
 	idToken token;
 	
-	if( src->CheckTokenType( TT_NUMBER, 0, &token ) )
+	if( src.CheckTokenType( TT_NUMBER, 0, &token ) )
 	{
 		model->brushBlock = ( cm_brushBlock_t* ) Mem_ClearedAlloc( sizeof( cm_brushBlock_t ) + token.GetIntValue(), TAG_COLLISION );
 		model->brushBlock->bytesRemaining = token.GetIntValue();
 		model->brushBlock->next = ( ( byte* ) model->brushBlock ) + sizeof( cm_brushBlock_t );
 	}
 	
-	src->ExpectTokenString( "{" );
-	while( !src->CheckTokenString( "}" ) )
+	src.ExpectTokenString( "{" );
+	while( !src.CheckTokenString( "}" ) )
 	{
 		// parse brush
-		numPlanes = src->ParseInt();
+		numPlanes = src.ParseInt();
 		b = AllocBrush( model, numPlanes );
 		b->numPlanes = numPlanes;
-		src->ExpectTokenString( "{" );
+		src.ExpectTokenString( "{" );
 		for( i = 0; i < b->numPlanes; i++ )
 		{
-			src->Parse1DMatrix( 3, normal.ToFloatPtr() );
+			src.Parse1DMatrix( 3, normal.ToFloatPtr() );
 			b->planes[i].SetNormal( normal );
-			b->planes[i].SetDist( src->ParseFloat() );
+			b->planes[i].SetDist( src.ParseFloat() );
 		}
-		src->ExpectTokenString( "}" );
-		src->Parse1DMatrix( 3, b->bounds[0].ToFloatPtr() );
-		src->Parse1DMatrix( 3, b->bounds[1].ToFloatPtr() );
-		src->ReadToken( &token );
+		src.ExpectTokenString( "}" );
+		src.Parse1DMatrix( 3, b->bounds[0].ToFloatPtr() );
+		src.Parse1DMatrix( 3, b->bounds[1].ToFloatPtr() );
+		src.ReadToken( &token );
 		if( token.type == TT_NUMBER )
 		{
 			b->contents = token.GetIntValue();		// old .cm files use a single integer
@@ -528,9 +524,8 @@ void idCollisionModelManagerLocal::ParseBrushes( idLexer* src, cm_model_t* model
 idCollisionModelManagerLocal::ParseCollisionModel
 ================
 */
-cm_model_t* idCollisionModelManagerLocal::ParseCollisionModel( idLexer* src )
+cm_model_t* idCollisionModelManagerLocal::ParseCollisionModel( idLexer& src )
 {
-
 	cm_model_t* model;
 	idToken token;
 	
@@ -543,13 +538,12 @@ cm_model_t* idCollisionModelManagerLocal::ParseCollisionModel( idLexer* src )
 	models[numModels ] = model;
 	numModels++;
 	// parse the file
-	src->ExpectTokenType( TT_STRING, 0, &token );
+	src.ExpectTokenType( TT_STRING, 0, &token );
 	model->name = token;
-	src->ExpectTokenString( "{" );
-	while( !src->CheckTokenString( "}" ) )
+	src.ExpectTokenString( "{" );
+	while( !src.CheckTokenString( "}" ) )
 	{
-	
-		src->ReadToken( &token );
+		src.ReadToken( &token );
 		
 		if( token == "vertices" )
 		{
@@ -565,9 +559,9 @@ cm_model_t* idCollisionModelManagerLocal::ParseCollisionModel( idLexer* src )
 		
 		if( token == "nodes" )
 		{
-			src->ExpectTokenString( "{" );
+			src.ExpectTokenString( "{" );
 			model->node = ParseNodes( src, model, NULL );
-			src->ExpectTokenString( "}" );
+			src.ExpectTokenString( "}" );
 			continue;
 		}
 		
@@ -583,7 +577,7 @@ cm_model_t* idCollisionModelManagerLocal::ParseCollisionModel( idLexer* src )
 			continue;
 		}
 		
-		src->Error( "ParseCollisionModel: bad token \"%s\"", token.c_str() );
+		src.Error( "ParseCollisionModel: bad token \"%s\"", token.c_str() );
 	}
 	// calculate edge normals
 	checkCount++;
@@ -599,8 +593,7 @@ cm_model_t* idCollisionModelManagerLocal::ParseCollisionModel( idLexer* src )
 						model->brushMemory +
 						model->numNodes * sizeof( cm_node_t ) +
 						model->numPolygonRefs * sizeof( cm_polygonRef_t ) +
-						model->numBrushRefs * sizeof( cm_brushRef_t );
-						
+						model->numBrushRefs * sizeof( cm_brushRef_t );						
 	return model;
 }
 
@@ -611,8 +604,6 @@ idCollisionModelManagerLocal::LoadCollisionModelFile
 */
 bool idCollisionModelManagerLocal::LoadCollisionModelFile( const char* name, unsigned int mapFileCRC )
 {
-	idToken token;
-	idLexer* src;
 	unsigned int crc;
 	
 	// load it
@@ -661,14 +652,13 @@ bool idCollisionModelManagerLocal::LoadCollisionModelFile( const char* name, uns
 	}
 	
 	if( !loaded )
-	{
-	
+	{	
 		fileName.SetFileExtension( CM_FILE_EXT );
-		src = new( TAG_COLLISION ) idLexer( fileName );
-		src->SetFlags( LEXFL_NOSTRINGCONCAT | LEXFL_NODOLLARPRECOMPILE );
-		if( !src->IsLoaded() )
+
+		idToken token;
+		idLexer src( fileName, LEXFL_NOSTRINGCONCAT | LEXFL_NODOLLARPRECOMPILE );
+		if( !src.IsLoaded() )
 		{
-			delete src;
 			return false;
 		}
 		
@@ -683,24 +673,21 @@ bool idCollisionModelManagerLocal::LoadCollisionModelFile( const char* name, uns
 			outputFile->WriteString( CM_FILEVERSION );
 		}
 		
-		if( !src->ExpectTokenString( CM_FILEID ) )
+		if( !src.ExpectTokenString( CM_FILEID ) )
 		{
 			common->Warning( "%s is not an CM file.", fileName.c_str() );
-			delete src;
 			return false;
 		}
 		
-		if( !src->ReadToken( &token ) || token != CM_FILEVERSION )
+		if( !src.ReadToken( &token ) || token != CM_FILEVERSION )
 		{
 			common->Warning( "%s has version %s instead of %s", fileName.c_str(), token.c_str(), CM_FILEVERSION );
-			delete src;
 			return false;
 		}
 		
-		if( !src->ExpectTokenType( TT_NUMBER, TT_INTEGER, &token ) )
+		if( !src.ExpectTokenType( TT_NUMBER, TT_INTEGER, &token ) )
 		{
 			common->Warning( "%s has no map file CRC", fileName.c_str() );
-			delete src;
 			return false;
 		}
 		
@@ -708,24 +695,22 @@ bool idCollisionModelManagerLocal::LoadCollisionModelFile( const char* name, uns
 		if( mapFileCRC && crc != mapFileCRC )
 		{
 			common->Printf( "%s is out of date\n", fileName.c_str() );
-			delete src;
 			return false;
 		}
 		
 		// parse the file
 		while( 1 )
 		{
-			if( !src->ReadToken( &token ) )
+			if( !src.ReadToken( &token ) )
 			{
 				break;
 			}
 			
 			if( token == "collisionModel" )
 			{
-				cm_model_t* model = ParseCollisionModel( src );
+				auto model = ParseCollisionModel( src );
 				if( model == NULL )
 				{
-					delete src;
 					return false;
 				}
 				if( outputFile != NULL )
@@ -736,9 +721,9 @@ bool idCollisionModelManagerLocal::LoadCollisionModelFile( const char* name, uns
 				continue;
 			}
 			
-			src->Error( "idCollisionModelManagerLocal::LoadCollisionModelFile: bad token \"%s\"", token.c_str() );
+			src.Error( "idCollisionModelManagerLocal::LoadCollisionModelFile: bad token \"%s\"", token.c_str() );
 		}
-		delete src;
+
 		if( outputFile != NULL )
 		{
 			outputFile->Seek( 0, FS_SEEK_SET );

@@ -1,6 +1,6 @@
 
+#include "../precompiled.h"
 #pragma hdrstop
-#include "precompiled.h"
 
 /*
    RSA Data Security, Inc., MD4 message-digest algorithm. (RFC1320)
@@ -263,7 +263,7 @@ MD4_BlockChecksum
 ===============
 */
 // RB: 64 bit fixes, changed long to int
-unsigned int MD4_BlockChecksum( const void* data, int length )
+unsigned int idHashing::MD4_BlockChecksum( const void* data, int length )
 {
 	unsigned int	digest[4];
 	unsigned int	val;

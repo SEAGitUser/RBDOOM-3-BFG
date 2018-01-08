@@ -45,8 +45,11 @@ idCVar r_alwaysExportGLSL( "r_alwaysExportGLSL", "1", CVAR_BOOL, "" );
 // RB end
 
 #define VERTEX_UNIFORM_ARRAY_NAME				"_va_"
+#define TESS_CONTROL_UNIFORM_ARRAY_NAME			"_tca_"
+#define TESS_EVALUATION_UNIFORM_ARRAY_NAME		"_tea_"
 #define GEOMETRY_UNIFORM_ARRAY_NAME				"_ga_"
 #define FRAGMENT_UNIFORM_ARRAY_NAME				"_fa_"
+#define COMPUTE_UNIFORM_ARRAY_NAME				"_ca_"
 
 static const int AT_VS_IN  = BIT( 1 );
 static const int AT_VS_OUT = BIT( 2 );
@@ -61,6 +64,23 @@ static const int AT_VS_OUT_RESERVED = BIT( 7 );
 static const int AT_PS_IN_RESERVED	= BIT( 8 );
 static const int AT_PS_OUT_RESERVED = BIT( 9 );
 // RB end
+
+struct glslShaderInfo_t 
+{
+	GLenum	glTargetType;
+	const char * shaderTypeDeclName;
+	const char * shaderTypeName;
+	const char * uniformArrayName;
+} 
+	glslShaderInfo[ SHT_MAX ] = 
+{
+	{ GL_VERTEX_SHADER, "vertexShader", "vertex", VERTEX_UNIFORM_ARRAY_NAME },
+	{ GL_TESS_CONTROL_SHADER, "tess1Shader", "tess_control", TESS_CONTROL_UNIFORM_ARRAY_NAME },
+	{ GL_TESS_EVALUATION_SHADER, "tess2Shader", "tess_evaluation", TESS_EVALUATION_UNIFORM_ARRAY_NAME },
+	{ GL_GEOMETRY_SHADER, "geometryShader", "geometry", GEOMETRY_UNIFORM_ARRAY_NAME },
+	{ GL_FRAGMENT_SHADER, "fragmentShader", "fragment", FRAGMENT_UNIFORM_ARRAY_NAME },
+	{ GL_COMPUTE_SHADER, "computeShader", "compute", COMPUTE_UNIFORM_ARRAY_NAME },
+};
 
 struct idCGBlock
 {
@@ -401,12 +421,11 @@ static const char* FindEmbeddedSourceShader( const char* name )
 class idParser_EmbeddedGLSL : public idParser
 {
 public:
-	idParser_EmbeddedGLSL( int flags ) : idParser( flags )
-	{
+	idParser_EmbeddedGLSL( int flags ) : idParser( flags ) {
 	}
 	
 private:
-	int		Directive_include( idToken* token, bool supressWarning )
+	virtual bool Directive_include( idToken* token, bool supressWarning ) final
 	{
 		if( idParser::Directive_include( token, true ) )
 		{
@@ -420,22 +439,23 @@ private:
 		
 		/*
 		token was already parsed
-		if( !idParser::ReadSourceToken( &token ) )
+		if( !ReadSourceToken( &token ) )
 		{
-			idParser::Error( "#include without file name" );
+			Error( "#include without file name" );
 			return false;
 		}
 		*/
 		
 		if( token->linesCrossed > 0 )
 		{
-			idParser::Error( "#include without file name" );
+			Error( "#include without file name" );
 			return false;
 		}
 		
 		if( token->type == TT_STRING )
 		{
-			script = new idLexer;
+			script = new( TAG_IDLIB_PARSER ) idLexer( flags );
+			script->SetPunctuations( punctuations );
 			
 			// try relative to the current file
 			path = scriptstack->GetFileName();
@@ -467,11 +487,11 @@ private:
 		else if( token->type == TT_PUNCTUATION && *token == "<" )
 		{
 			path = idParser::includepath;
-			while( idParser::ReadSourceToken( token ) )
+			while( ReadSourceToken( token ) )
 			{
 				if( token->linesCrossed > 0 )
 				{
-					idParser::UnreadSourceToken( token );
+					UnreadSourceToken( token );
 					break;
 				}
 				if( token->type == TT_PUNCTUATION && *token == ">" )
@@ -482,18 +502,19 @@ private:
 			}
 			if( *token != ">" )
 			{
-				idParser::Warning( "#include missing trailing >" );
+				Warning( "#include missing trailing >" );
 			}
 			if( !path.Length() )
 			{
-				idParser::Error( "#include without file name between < >" );
+				Error( "#include without file name between < >" );
 				return false;
 			}
 			if( idParser::flags & LEXFL_NOBASEINCLUDES )
 			{
 				return true;
 			}
-			script = new idLexer;
+			script = new( TAG_IDLIB_PARSER ) idLexer( flags );
+			script->SetPunctuations( punctuations );
 			
 			const char* embeddedSource = FindEmbeddedSourceShader( includepath + path );
 			
@@ -505,18 +526,17 @@ private:
 		}
 		else
 		{
-			idParser::Error( "#include without file name" );
+			Error( "#include without file name" );
 			return false;
 		}
 		
 		if( !script )
 		{
-			idParser::Error( "file '%s' not found", path.c_str() );
+			Error( "file '%s' not found", path.c_str() );
 			return false;
 		}
-		script->SetFlags( idParser::flags );
-		script->SetPunctuations( idParser::punctuations );
-		idParser::PushScript( script );
+
+		PushScript( script );
 		return true;
 	}
 };
@@ -764,57 +784,58 @@ idStr StripDeadCode( const idStr& in, const char* name, const idStrList& compile
 	return out;
 }
 
-struct typeConversion_t
+struct typeConversion_t 
 {
 	const char* typeCG;
 	const char* typeGLSL;
-} typeConversion[] =
+}
+	typeConversion[] = 
 {
-	{ "void",				"void" },
+	{ "void",			"void" },
 	
-	{ "fixed",				"float" },
+	{ "fixed",			"float" },
 	
-	{ "float",				"float" },
-	{ "float2",				"vec2" },
-	{ "float3",				"vec3" },
-	{ "float4",				"vec4" },
+	{ "float",			"float" },
+	{ "float2",			"vec2" },
+	{ "float3",			"vec3" },
+	{ "float4",			"vec4" },
 	
-	{ "half",				"float" },
-	{ "half2",				"vec2" },
-	{ "half3",				"vec3" },
-	{ "half4",				"vec4" },
+	{ "half",			"float" },
+	{ "half2",			"vec2" },
+	{ "half3",			"vec3" },
+	{ "half4",			"vec4" },
 	
-	{ "int",				"int" },
-	{ "int2",				"ivec2" },
-	{ "int3",				"ivec3" },
-	{ "int4",				"ivec4" },
+	{ "int",			"int" },
+	{ "int2",			"ivec2" },
+	{ "int3",			"ivec3" },
+	{ "int4",			"ivec4" },
 
-	{ "uint",				"uint" },
-	{ "uint2",				"uvec2" },
-	{ "uint3",				"uvec3" },
-	{ "uint4",				"uvec4" },
+	{ "uint",			"uint" },
+	{ "uint2",			"uvec2" },
+	{ "uint3",			"uvec3" },
+	{ "uint4",			"uvec4" },
 	
-	{ "bool",				"bool" },
-	{ "bool2",				"bvec2" },
-	{ "bool3",				"bvec3" },
-	{ "bool4",				"bvec4" },
+	{ "bool",			"bool" },
+	{ "bool2",			"bvec2" },
+	{ "bool3",			"bvec3" },
+	{ "bool4",			"bvec4" },
 	
-	{ "float2x2",			"mat2x2" },
-	{ "float2x3",			"mat2x3" },
-	{ "float2x4",			"mat2x4" },
+	{ "float2x2",		"mat2x2" },
+	{ "float2x3",		"mat2x3" },
+	{ "float2x4",		"mat2x4" },
 	
-	{ "float3x2",			"mat3x2" },
-	{ "float3x3",			"mat3x3" },
-	{ "float3x4",			"mat3x4" },
+	{ "float3x2",		"mat3x2" },
+	{ "float3x3",		"mat3x3" },
+	{ "float3x4",		"mat3x4" },
 	
-	{ "float4x2",			"mat4x2" },
-	{ "float4x3",			"mat4x3" },
-	{ "float4x4",			"mat4x4" },
+	{ "float4x2",		"mat4x2" },
+	{ "float4x3",		"mat4x3" },
+	{ "float4x4",		"mat4x4" },
 	
-	{ "sampler1D",			"sampler1D" },
-	{ "sampler2D",			"sampler2D" },
-	{ "sampler3D",			"sampler3D" },
-	{ "samplerCUBE",		"samplerCube" },
+	{ "sampler1D",		"sampler1D" },
+	{ "sampler2D",		"sampler2D" },
+	{ "sampler3D",		"sampler3D" },
+	{ "samplerCUBE",	"samplerCube" },
 
 	//SEA: is this needed?
 	
@@ -843,7 +864,8 @@ struct typeConversion_t
 //	 code that requires the extension
 // #else
 //	 alternative code
-// #endif
+// #endif
+
 //SEA: TODO! read from file
 
 const char* vertexInsert_GLSL_ES_3_00 =
@@ -968,7 +990,8 @@ struct builtinConversion_t
 {
 	const char* nameCG;
 	const char* nameGLSL;
-} builtinConversion[] =
+} 
+	builtinConversion[] =
 {
 	{ "frac",		"fract" },
 	{ "lerp",		"mix" },
@@ -1504,9 +1527,7 @@ idStr ConvertCG2GLSL( const idStr& in, const char* name, bool isVertexProgram, i
 				out += vertexInsert_GLSL_1_50;
 				break;
 			}
-		}
-		
-		
+		}		
 	}
 	else
 	{
@@ -1652,7 +1673,7 @@ GLuint idRenderProgManager::LoadGLSLShader( GLenum target, const char* name, con
 			hlslFileBuffer = FindEmbeddedSourceShader( inFile.c_str() );
 			if( hlslFileBuffer == NULL )
 			{
-				return false;
+				return INVALID_PROGID;
 			}
 			len = idStr::Length( hlslFileBuffer );
 		}
@@ -1663,7 +1684,7 @@ GLuint idRenderProgManager::LoadGLSLShader( GLenum target, const char* name, con
 		
 		if( len <= 0 )
 		{
-			return false;
+			return INVALID_PROGID;
 		}
 		
 		idStrList compileMacros;
@@ -1812,13 +1833,13 @@ GLuint idRenderProgManager::LoadGLSLShader( GLenum target, const char* name, con
 idRenderProgManager::FindGLSLProgram
 ================================================================================================
 */
-int	 idRenderProgManager::FindGLSLProgram( const char* name, int vIndex, int fIndex )
+int idRenderProgManager::FindGLSLProgram( const char* name, int vIndex, int fIndex )
 {
 	for( int i = 0; i < glslPrograms.Num(); ++i )
 	{
 		if( ( glslPrograms[i].vertexShaderIndex == vIndex ) && ( glslPrograms[i].fragmentShaderIndex == fIndex ) )
 		{
-			LoadGLSLProgram( i, vIndex, fIndex );
+			LoadGLSLProgram( i, vIndex, -1, fIndex );
 			return i;
 		}
 	}
@@ -1826,7 +1847,7 @@ int	 idRenderProgManager::FindGLSLProgram( const char* name, int vIndex, int fIn
 	glslProgram_t program;
 	program.name = name;
 	int index = glslPrograms.Append( program );
-	LoadGLSLProgram( index, vIndex, fIndex );
+	LoadGLSLProgram( index, vIndex, -1, fIndex );
 	return index;
 }
 
@@ -1876,66 +1897,94 @@ idRenderProgManager::CommitUnforms
 void idRenderProgManager::CommitUniforms()
 {
 	const int progID = GetGLSLCurrentProgram();
-	const glslProgram_t& prog = glslPrograms[progID];
-	
+	const glslProgram_t& prog = glslPrograms[ progID ];
+
 	//GL_CheckErrors();
-	
+
 	if( r_useUniformArrays.GetBool() )
 	{
-		ALIGNTYPE16 idVec4 localVectors[RENDERPARM_USER + MAX_GLSL_USER_PARMS];
-		
+		ALIGNTYPE16 idVec4 localVectors[ RENDERPARM_USER + MAX_GLSL_USER_PARMS ];
+
 		if( prog.vertexShaderIndex >= 0 )
 		{
-			const idList<int>& vertexUniforms = vertexShaders[prog.vertexShaderIndex].uniforms;
+			const idList<int>& vertexUniforms = vertexShaders[ prog.vertexShaderIndex ].uniforms;
 			if( prog.vertexUniformArray != -1 && vertexUniforms.Num() > 0 )
 			{
 				int totalUniforms = 0;
 				for( int i = 0; i < vertexUniforms.Num(); i++ )
 				{
 					// RB: HACK rpShadowMatrices[6 * 4]
-					if( vertexUniforms[i] == RENDERPARM_SHADOW_MATRIX_0_X )
+					if( vertexUniforms[ i ] == RENDERPARM_SHADOW_MATRIX_0_X )
 					{
 						for( int j = 0; j < ( 6 * 4 ); j++ )
 						{
-							localVectors[i + j] = glslUniforms[vertexUniforms[i] + j];
+							localVectors[ i + j ] = glslUniforms[ vertexUniforms[ i ] + j ];
 							totalUniforms++;
 						}
-						
+
 					}
 					else
 					{
-						localVectors[i] = glslUniforms[vertexUniforms[i]];
+						localVectors[ i ] = glslUniforms[ vertexUniforms[ i ] ];
 						totalUniforms++;
 					}
 				}
 				glUniform4fv( prog.vertexUniformArray, totalUniforms, localVectors->ToFloatPtr() );
 			}
 		}
-		
+
+		if( prog.geometryShaderIndex >= 0 )
+		{
+			const idList<int>& geometryUniforms = geometryShaders[ prog.geometryShaderIndex ].uniforms;
+			if( prog.geometryUniformArray != -1 && geometryUniforms.Num() > 0 )
+			{
+				int totalUniforms = 0;
+				for( int i = 0; i < geometryUniforms.Num(); i++ )
+				{
+					// RB: HACK rpShadowMatrices[6 * 4]
+					if( geometryUniforms[ i ] == RENDERPARM_SHADOW_MATRIX_0_X )
+					{
+						for( int j = 0; j < ( 6 * 4 ); j++ )
+						{
+							localVectors[ i + j ] = glslUniforms[ geometryUniforms[ i ] + j ];
+							totalUniforms++;
+						}
+
+					}
+					else
+					{
+						localVectors[ i ] = glslUniforms[ geometryUniforms[ i ] ];
+						totalUniforms++;
+					}
+				}
+				glUniform4fv( prog.geometryUniformArray, totalUniforms, localVectors->ToFloatPtr() );
+			}
+		}
+
 		if( prog.fragmentShaderIndex >= 0 )
 		{
-			const idList<int>& fragmentUniforms = fragmentShaders[prog.fragmentShaderIndex].uniforms;
+			const idList<int>& fragmentUniforms = fragmentShaders[ prog.fragmentShaderIndex ].uniforms;
 			if( prog.fragmentUniformArray != -1 && fragmentUniforms.Num() > 0 )
 			{
 				int totalUniforms = 0;
 				for( int i = 0; i < fragmentUniforms.Num(); i++ )
 				{
 					// RB: HACK rpShadowMatrices[6 * 4]
-					if( fragmentUniforms[i] == RENDERPARM_SHADOW_MATRIX_0_X )
+					if( fragmentUniforms[ i ] == RENDERPARM_SHADOW_MATRIX_0_X )
 					{
 						for( int j = 0; j < ( 6 * 4 ); j++ )
 						{
-							localVectors[i + j] = glslUniforms[fragmentUniforms[i] + j];
+							localVectors[ i + j ] = glslUniforms[ fragmentUniforms[ i ] + j ];
 							totalUniforms++;
 						}
-						
+
 					}
 					else
 					{
-						localVectors[i] = glslUniforms[fragmentUniforms[i]];
+						localVectors[ i ] = glslUniforms[ fragmentUniforms[ i ] ];
 						totalUniforms++;
 					}
-				}
+				}				
 				glUniform4fv( prog.fragmentUniformArray, totalUniforms, localVectors->ToFloatPtr() );
 			}
 		}
@@ -1944,31 +1993,30 @@ void idRenderProgManager::CommitUniforms()
 	{
 		for( int i = 0; i < prog.uniformLocations.Num(); i++ )
 		{
-			const glslUniformLocation_t& uniformLocation = prog.uniformLocations[i];
-			
+			const glslUniformLocation_t& uniformLocation = prog.uniformLocations[ i ];
+
 			// RB: HACK rpShadowMatrices[6 * 4]
 			if( uniformLocation.parmIndex == RENDERPARM_SHADOW_MATRIX_0_X )
 			{
-				glUniform4fv( uniformLocation.uniformIndex, 6 * 4, glslUniforms[uniformLocation.parmIndex].ToFloatPtr() );
+				glUniform4fv( uniformLocation.uniformIndex, 6 * 4, glslUniforms[ uniformLocation.parmIndex ].ToFloatPtr() );
 			}
-			else
-			{
-				glUniform4fv( uniformLocation.uniformIndex, 1, glslUniforms[uniformLocation.parmIndex].ToFloatPtr() );
-				
-#if 0
+			else {
+				glUniform4fv( uniformLocation.uniformIndex, 1, glslUniforms[ uniformLocation.parmIndex ].ToFloatPtr() );
+
+			#if 0
 				if( GL_CheckErrors() )
 				{
 					const char* parmName = GetGLSLParmName( uniformLocation.parmIndex );
-					const char* value = glslUniforms[uniformLocation.parmIndex].ToString();
-					
+					const char* value = glslUniforms[ uniformLocation.parmIndex ].ToString();
+
 					idLib::Printf( "glUniform4fv( %i = %s, value = %s ) failed for %s\n", uniformLocation.parmIndex, parmName, value, prog.name.c_str() );
 				}
-#endif
+			#endif
 			}
 			// RB end
 		}
 	}
-	
+
 	//GL_CheckErrors();
 }
 
@@ -1986,29 +2034,33 @@ public:
 idRenderProgManager::LoadGLSLProgram
 ================================================================================================
 */
-void idRenderProgManager::LoadGLSLProgram( const int programIndex, const int vertexShaderIndex, const int fragmentShaderIndex )
+void idRenderProgManager::LoadGLSLProgram( const int programIndex, 
+	const int vertexShaderIndex, const int geometryShaderIndex, const int fragmentShaderIndex )
 {
-	glslProgram_t& prog = glslPrograms[programIndex];
+	glslProgram_t& prog = glslPrograms[ programIndex ];
 	
-	if( prog.progId != INVALID_PROGID )
-	{
+	if( prog.progId != INVALID_PROGID ) {
 		return; // Already loaded
 	}
 	
 	GLuint vertexProgID = ( vertexShaderIndex != -1 ) ? vertexShaders[ vertexShaderIndex ].progId : INVALID_PROGID;
+	GLuint geometryProgID = ( geometryShaderIndex != -1 ) ? geometryShaders[ geometryShaderIndex ].progId : INVALID_PROGID;
 	GLuint fragmentProgID = ( fragmentShaderIndex != -1 ) ? fragmentShaders[ fragmentShaderIndex ].progId : INVALID_PROGID;
 	
 	const GLuint program = glCreateProgram();
 	if( program )
 	{	
-		if( vertexProgID != INVALID_PROGID )
-		{
+		if( vertexProgID != INVALID_PROGID ) {
 			glAttachShader( program, vertexProgID );
 			glDeleteShader( vertexProgID );
 		}
+
+		if( geometryProgID != INVALID_PROGID ) {
+			glAttachShader( program, geometryProgID );
+			glDeleteShader( geometryProgID );
+		}
 		
-		if( fragmentProgID != INVALID_PROGID )
-		{
+		if( fragmentProgID != INVALID_PROGID ) {
 			glAttachShader( program, fragmentProgID );
 			glDeleteShader( fragmentProgID );
 		}
@@ -2051,6 +2103,7 @@ void idRenderProgManager::LoadGLSLProgram( const int programIndex, const int ver
 				idLib::Printf( "While linking GLSL program %d with vertexShader %s and fragmentShader %s\n",
 							   programIndex,
 							   ( vertexShaderIndex >= 0 ) ? vertexShaders[vertexShaderIndex].name.c_str() : "<Invalid>",
+							   ( geometryShaderIndex >= 0 ) ? geometryShaders[ geometryShaderIndex ].name.c_str() : "<Invalid>",
 							   ( fragmentShaderIndex >= 0 ) ? fragmentShaders[ fragmentShaderIndex ].name.c_str() : "<Invalid>" );
 				idLib::Printf( "%s\n", infoLog );
 			}
@@ -2067,6 +2120,7 @@ void idRenderProgManager::LoadGLSLProgram( const int programIndex, const int ver
 		idLib::Error( "While linking GLSL program %d with vertexShader %s and fragmentShader %s\n",
 					  programIndex,
 					  ( vertexShaderIndex >= 0 ) ? vertexShaders[vertexShaderIndex].name.c_str() : "<Invalid>",
+					  ( geometryShaderIndex >= 0 ) ? geometryShaders[ geometryShaderIndex ].name.c_str() : "<Invalid>",
 					  ( fragmentShaderIndex >= 0 ) ? fragmentShaders[ fragmentShaderIndex ].name.c_str() : "<Invalid>" );
 		return;
 	}
@@ -2074,9 +2128,11 @@ void idRenderProgManager::LoadGLSLProgram( const int programIndex, const int ver
 	if( r_useUniformArrays.GetBool() )
 	{
 		prog.vertexUniformArray = glGetUniformLocation( program, VERTEX_UNIFORM_ARRAY_NAME );
+		prog.geometryUniformArray = glGetUniformLocation( program, GEOMETRY_UNIFORM_ARRAY_NAME );
 		prog.fragmentUniformArray = glGetUniformLocation( program, FRAGMENT_UNIFORM_ARRAY_NAME );
 		
 		assert( prog.vertexUniformArray != -1 || vertexShaderIndex < 0 || vertexShaders[vertexShaderIndex].uniforms.Num() == 0 );
+		assert( prog.geometryUniformArray != -1 || geometryShaderIndex < 0 || geometryShaders[ geometryShaderIndex ].uniforms.Num() == 0 );
 		assert( prog.fragmentUniformArray != -1 || fragmentShaderIndex < 0 || fragmentShaders[fragmentShaderIndex].uniforms.Num() == 0 );
 	}
 	else
@@ -2115,7 +2171,7 @@ void idRenderProgManager::LoadGLSLProgram( const int programIndex, const int ver
 	}
 
 	{ // global_ubo
-	  // get the uniform buffer binding for global parameters
+		// get the uniform buffer binding for global parameters
 		GLint blockIndex = glGetUniformBlockIndex( program, "global_ubo" );
 		if( blockIndex != -1 )
 		{

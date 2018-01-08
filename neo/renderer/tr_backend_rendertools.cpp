@@ -62,6 +62,9 @@ idCVar r_showCenterOfProjection( "r_showCenterOfProjection", "0", CVAR_RENDERER 
 idCVar r_showLines( "r_showLines", "0", CVAR_RENDERER | CVAR_INTEGER, "1 = draw alternate horizontal lines, 2 = draw alternate vertical lines" );
 
 extern void RB_SetMVP( const idRenderMatrix& mvp );
+extern void SetVertexParm( renderParm_t, const float* value );
+extern void SetVertexParms( renderParm_t, const float* value, int num );
+extern void SetFragmentParm( renderParm_t, const float* value );
 
 #define MAX_DEBUG_LINES			16384
 
@@ -125,31 +128,32 @@ void RB_DrawBounds( const idBounds& bounds )
 	{
 		return;
 	}
+
 	glBegin( GL_LINE_LOOP );
-	glVertex3f( bounds[0][0], bounds[0][1], bounds[0][2] );
-	glVertex3f( bounds[0][0], bounds[1][1], bounds[0][2] );
-	glVertex3f( bounds[1][0], bounds[1][1], bounds[0][2] );
-	glVertex3f( bounds[1][0], bounds[0][1], bounds[0][2] );
+		glVertex3f( bounds[0][0], bounds[0][1], bounds[0][2] );
+		glVertex3f( bounds[0][0], bounds[1][1], bounds[0][2] );
+		glVertex3f( bounds[1][0], bounds[1][1], bounds[0][2] );
+		glVertex3f( bounds[1][0], bounds[0][1], bounds[0][2] );
 	glEnd();
 	glBegin( GL_LINE_LOOP );
-	glVertex3f( bounds[0][0], bounds[0][1], bounds[1][2] );
-	glVertex3f( bounds[0][0], bounds[1][1], bounds[1][2] );
-	glVertex3f( bounds[1][0], bounds[1][1], bounds[1][2] );
-	glVertex3f( bounds[1][0], bounds[0][1], bounds[1][2] );
+		glVertex3f( bounds[0][0], bounds[0][1], bounds[1][2] );
+		glVertex3f( bounds[0][0], bounds[1][1], bounds[1][2] );
+		glVertex3f( bounds[1][0], bounds[1][1], bounds[1][2] );
+		glVertex3f( bounds[1][0], bounds[0][1], bounds[1][2] );
 	glEnd();
 	
 	glBegin( GL_LINES );
-	glVertex3f( bounds[0][0], bounds[0][1], bounds[0][2] );
-	glVertex3f( bounds[0][0], bounds[0][1], bounds[1][2] );
+		glVertex3f( bounds[0][0], bounds[0][1], bounds[0][2] );
+		glVertex3f( bounds[0][0], bounds[0][1], bounds[1][2] );
 	
-	glVertex3f( bounds[0][0], bounds[1][1], bounds[0][2] );
-	glVertex3f( bounds[0][0], bounds[1][1], bounds[1][2] );
+		glVertex3f( bounds[0][0], bounds[1][1], bounds[0][2] );
+		glVertex3f( bounds[0][0], bounds[1][1], bounds[1][2] );
 	
-	glVertex3f( bounds[1][0], bounds[0][1], bounds[0][2] );
-	glVertex3f( bounds[1][0], bounds[0][1], bounds[1][2] );
+		glVertex3f( bounds[1][0], bounds[0][1], bounds[0][2] );
+		glVertex3f( bounds[1][0], bounds[0][1], bounds[1][2] );
 	
-	glVertex3f( bounds[1][0], bounds[1][1], bounds[0][2] );
-	glVertex3f( bounds[1][0], bounds[1][1], bounds[1][2] );
+		glVertex3f( bounds[1][0], bounds[1][1], bounds[0][2] );
+		glVertex3f( bounds[1][0], bounds[1][1], bounds[1][2] );
 	glEnd();
 }
 
@@ -164,21 +168,21 @@ static void RB_SimpleSurfaceSetup( const drawSurf_t* drawSurf )
 	// change the matrix if needed
 	if( drawSurf->space != backEnd.currentSpace )
 	{
-		// RB begin
-		RB_SetMVP( drawSurf->space->mvp );
-		//qglLoadMatrixf( drawSurf->space->modelViewMatrix );
-		// RB end
 		backEnd.currentSpace = drawSurf->space;
+
+		SetVertexParms( RENDERPARM_MODELMATRIX_X, drawSurf->space->modelMatrix.Ptr(), 4 );
+		SetVertexParms( RENDERPARM_MODELVIEWMATRIX_X, drawSurf->space->modelViewMatrix.Ptr(), 4 );
+		RB_SetMVP( drawSurf->space->mvp );
 	}
 	
 	// change the scissor if needed
 	if( !backEnd.currentScissor.Equals( drawSurf->scissorRect ) && r_useScissor.GetBool() )
 	{
-		GL_Scissor( backEnd.viewDef->viewport.x1 + drawSurf->scissorRect.x1,
-					backEnd.viewDef->viewport.y1 + drawSurf->scissorRect.y1,
+		backEnd.currentScissor = drawSurf->scissorRect;
+		GL_Scissor( backEnd.viewDef->GetViewport().x1 + drawSurf->scissorRect.x1,
+					backEnd.viewDef->GetViewport().y1 + drawSurf->scissorRect.y1,
 					drawSurf->scissorRect.x2 + 1 - drawSurf->scissorRect.x1,
 					drawSurf->scissorRect.y2 + 1 - drawSurf->scissorRect.y1 );
-		backEnd.currentScissor = drawSurf->scissorRect;
 	}
 }
 
@@ -191,15 +195,15 @@ static void RB_SimpleWorldSetup()
 {
 	backEnd.currentSpace = &backEnd.viewDef->GetWorldSpace();
 	
-	// RB begin
+	SetVertexParms( RENDERPARM_PROJMATRIX_X, backEnd.viewDef->GetProjectionMatrix().Ptr(), 4 );
+
 	//qglLoadMatrixf( backEnd.viewDef->worldSpace.modelViewMatrix );
 	RB_SetMVP( backEnd.viewDef->GetMVPMatrix() );
-	// RB end
 	
-	GL_Scissor( backEnd.viewDef->viewport.x1 + backEnd.viewDef->scissor.x1,
-				backEnd.viewDef->viewport.y1 + backEnd.viewDef->scissor.y1,
-				backEnd.viewDef->scissor.x2 + 1 - backEnd.viewDef->scissor.x1,
-				backEnd.viewDef->scissor.y2 + 1 - backEnd.viewDef->scissor.y1 );
+	GL_Scissor( backEnd.viewDef->GetViewport().x1 + backEnd.viewDef->GetScissor().x1,
+				backEnd.viewDef->GetViewport().y1 + backEnd.viewDef->GetScissor().y1,
+				backEnd.viewDef->GetScissor().GetWidth(),
+				backEnd.viewDef->GetScissor().GetHeight() );
 	backEnd.currentScissor = backEnd.viewDef->scissor;
 }
 
@@ -207,10 +211,10 @@ static void RB_SimpleWorldSetup()
 =================
 RB_PolygonClear
 
-This will cover the entire screen with normal rasterization.
-Texturing is disabled, but the existing glColor, glDepthMask,
-glColorMask, and the enabled state of depth buffering and
-stenciling will matter.
+	This will cover the entire screen with normal rasterization.
+	Texturing is disabled, but the existing glColor, glDepthMask,
+	glColorMask, and the enabled state of depth buffering and
+	stenciling will matter.
 =================
 */
 void RB_PolygonClear()
@@ -222,12 +226,14 @@ void RB_PolygonClear()
 	glDisable( GL_DEPTH_TEST );
 	glDisable( GL_CULL_FACE );
 	glDisable( GL_SCISSOR_TEST );
+
 	glBegin( GL_POLYGON );
-	glVertex3f( -20, -20, -10 );
-	glVertex3f( 20, -20, -10 );
-	glVertex3f( 20, 20, -10 );
-	glVertex3f( -20, 20, -10 );
+		glVertex3f( -20, -20, -10 );
+		glVertex3f( 20, -20, -10 );
+		glVertex3f( 20, 20, -10 );
+		glVertex3f( -20, 20, -10 );
 	glEnd();
+
 	glPopAttrib();
 	glPopMatrix();
 }
@@ -248,13 +254,12 @@ void RB_ShowDestinationAlpha()
 ===================
 RB_ScanStencilBuffer
 
-Debugging tool to see what values are in the stencil buffer
+	Debugging tool to see what values are in the stencil buffer
 ===================
 */
 void RB_ScanStencilBuffer()
 {
-	int	counts[256];
-	memset( counts, 0, sizeof( counts ) );
+	int	counts[ 256 ] = { 0 };
 	{
 		idTempArray<byte> stencilReadback( renderSystem->GetWidth() * renderSystem->GetHeight() );
 
@@ -280,7 +285,7 @@ void RB_ScanStencilBuffer()
 ===================
 RB_CountStencilBuffer
 
-Print an overdraw count based on stencil index values
+	Print an overdraw count based on stencil index values
 ===================
 */
 static void RB_CountStencilBuffer()
@@ -304,16 +309,14 @@ static void RB_CountStencilBuffer()
 ===================
 R_ColorByStencilBuffer
 
-Sets the screen colors based on the contents of the
-stencil buffer.  Stencil of 0 = black, 1 = red, 2 = green,
-3 = blue, ..., 7+ = white
+	Sets the screen colors based on the contents of the
+	stencil buffer.  Stencil of 0 = black, 1 = red, 2 = green,
+	3 = blue, ..., 7+ = white
 ===================
 */
 static void R_ColorByStencilBuffer()
 {
-	int		i;
-	static idVec3	colors[8] =
-	{
+	static const idVec3 colors[8] = {
 		idVec3( 0, 0, 0 ),
 		idVec3( 1, 0, 0 ),
 		idVec3( 0, 1, 0 ),
@@ -323,16 +326,17 @@ static void R_ColorByStencilBuffer()
 		idVec3( 1, 1, 0 ),
 		idVec3( 1, 1, 1 ),
 	};
+
+	renderProgManager.BindShader_Color( false );
 	
 	// clear color buffer to white (>6 passes)
 	GL_Clear( true, false, false, 0, 1.0f, 1.0f, 1.0f, 1.0f );
 	
 	// now draw color for each stencil value
 	glStencilOp( GL_KEEP, GL_KEEP, GL_KEEP );
-	for( i = 0; i < 6; i++ )
+	for( int i = 0; i < 6; i++ )
 	{
 		GL_Color( colors[i] );
-		renderProgManager.BindShader_Color( false );
 		glStencilFunc( GL_EQUAL, i, 255 );
 		RB_PolygonClear();
 	}
@@ -1009,7 +1013,7 @@ Debugging tool
 */
 static void RB_ShowViewEntitys( viewModel_t* vModels )
 {
-	if( !r_showViewEntitys.GetBool() )
+	if( r_showViewEntitys.GetInteger() > 0 )
 	{
 		return;
 	}
@@ -1041,13 +1045,15 @@ static void RB_ShowViewEntitys( viewModel_t* vModels )
 	
 	for( const viewModel_t* vModel = vModels; vModel; vModel = vModel->next )
 	{
-		//glLoadMatrixf( vModel->modelViewMatrix );
+		///glLoadMatrixf( vModel->modelViewMatrix );
 		
 		const idRenderEntityLocal* edef = vModel->entityDef;
 		if( !edef )
 		{
 			continue;
 		}
+
+		///RB_SetMVP( vModel->modelViewMatrix );
 		
 		// draw the model bounds in white if directly visible,
 		// or, blue if it is only-for-sahdow
@@ -3167,6 +3173,9 @@ static void RB_ShowTrace( const drawSurf_t* const* drawSurfs, int numDrawSurfs )
 	}
 }
 
+idCVar r_useRenderDebugTools( "r_useRenderDebugTools", "0", CVAR_RENDERER | CVAR_BOOL, "" );
+extern idCVar com_smp;
+
 /*
 =================
 RB_RenderDebugTools
@@ -3174,7 +3183,14 @@ RB_RenderDebugTools
 */
 void RB_RenderDebugTools( const drawSurf_t * const * drawSurfs, int numDrawSurfs )
 {
-	//return;
+	if( !r_useRenderDebugTools.GetBool() ) {
+		return;
+	}
+
+	if( com_smp.GetBool() ) {
+		com_smp.SetBool( false );
+		return;
+	}
 
 	RENDERLOG_OPEN_MAINBLOCK( MRB_DRAW_DEBUG_TOOLS );
 	RENDERLOG_OPEN_BLOCK( "RB_RenderDebugTools" );

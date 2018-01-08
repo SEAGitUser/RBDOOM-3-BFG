@@ -2099,17 +2099,17 @@ void idMaterial::AddImplicitStages( const textureRepeat_t trpDefault /* = TR_REP
 	if( !hasBump )
 	{
 		idStr::snPrintf( buffer, sizeof( buffer ), "blend bumpmap\nmap _flat\n}\n" );
-		newSrc.LoadMemory( buffer, idStr::Length( buffer ), "bumpmap" );
 		newSrc.SetFlags( LEXFL_NOFATALERRORS | LEXFL_NOSTRINGCONCAT | LEXFL_NOSTRINGESCAPECHARS | LEXFL_ALLOWPATHNAMES );
+		newSrc.LoadMemory( buffer, idStr::Length( buffer ), "bumpmap" );
 		ParseStage( newSrc, trpDefault );
 		newSrc.FreeSource();
 	}
 	
 	if( !hasDiffuse && !hasSpecular && !hasReflection )
 	{
-		idStr::snPrintf( buffer, sizeof( buffer ), "blend diffusemap\nmap _white\n}\n" );
-		newSrc.LoadMemory( buffer, idStr::Length( buffer ), "diffusemap" );
+		idStr::snPrintf( buffer, sizeof( buffer ), "blend diffusemap\nmap _white\n}\n" );	
 		newSrc.SetFlags( LEXFL_NOFATALERRORS | LEXFL_NOSTRINGCONCAT | LEXFL_NOSTRINGESCAPECHARS | LEXFL_ALLOWPATHNAMES );
+		newSrc.LoadMemory( buffer, idStr::Length( buffer ), "diffusemap" );
 		ParseStage( newSrc, trpDefault );
 		newSrc.FreeSource();
 	}
@@ -2454,8 +2454,8 @@ void idMaterial::ParseMaterial( idLexer& src )
 		{
 			str = R_ParsePastImageProgram( src );
 			idStr::snPrintf( buffer, sizeof( buffer ), "blend diffusemap\nmap %s\n}\n", str );
-			newSrc.LoadMemory( buffer, idStr::Length( buffer ), "diffusemap" );
 			newSrc.SetFlags( LEXFL_NOFATALERRORS | LEXFL_NOSTRINGCONCAT | LEXFL_NOSTRINGESCAPECHARS | LEXFL_ALLOWPATHNAMES );
+			newSrc.LoadMemory( buffer, idStr::Length( buffer ), "diffusemap" );
 			ParseStage( newSrc, trpDefault );
 			newSrc.FreeSource();
 			continue;
@@ -2465,8 +2465,8 @@ void idMaterial::ParseMaterial( idLexer& src )
 		{
 			str = R_ParsePastImageProgram( src );
 			idStr::snPrintf( buffer, sizeof( buffer ), "blend specularmap\nmap %s\n}\n", str );
-			newSrc.LoadMemory( buffer, idStr::Length( buffer ), "specularmap" );
 			newSrc.SetFlags( LEXFL_NOFATALERRORS | LEXFL_NOSTRINGCONCAT | LEXFL_NOSTRINGESCAPECHARS | LEXFL_ALLOWPATHNAMES );
+			newSrc.LoadMemory( buffer, idStr::Length( buffer ), "specularmap" );
 			ParseStage( newSrc, trpDefault );
 			newSrc.FreeSource();
 			continue;
@@ -2476,8 +2476,8 @@ void idMaterial::ParseMaterial( idLexer& src )
 		{
 			str = R_ParsePastImageProgram( src );
 			idStr::snPrintf( buffer, sizeof( buffer ), "blend bumpmap\nmap %s\n}\n", str );
-			newSrc.LoadMemory( buffer, idStr::Length( buffer ), "bumpmap" );
 			newSrc.SetFlags( LEXFL_NOFATALERRORS | LEXFL_NOSTRINGCONCAT | LEXFL_NOSTRINGESCAPECHARS | LEXFL_ALLOWPATHNAMES );
+			newSrc.LoadMemory( buffer, idStr::Length( buffer ), "bumpmap" );
 			ParseStage( newSrc, trpDefault );
 			newSrc.FreeSource();
 			continue;
@@ -2608,12 +2608,11 @@ Parses the current material definition and finds all necessary images.
 */
 bool idMaterial::Parse( const char* text, const int textLength, bool allowBinaryVersion )
 {
-	idLexer	src;
 	idToken	token;
 	mtrParsingData_t parsingData;
 	
-	src.LoadMemory( text, textLength, GetFileName(), GetLineNum() );
-	src.SetFlags( DECL_LEXER_FLAGS );
+	idLexer src( text, textLength, GetFileName(), DECL_LEXER_FLAGS, GetLineNum() );
+
 	src.SkipUntilString( "{" );
 	
 	// reset to the unparsed state

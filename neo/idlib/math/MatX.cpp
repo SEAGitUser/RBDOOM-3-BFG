@@ -27,8 +27,8 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
+#include "../precompiled.h"
 #pragma hdrstop
-#include "precompiled.h"
 
 //===============================================================
 //
@@ -871,9 +871,9 @@ idMatX::Update_RowColumn
 
   Updates the matrix to obtain the matrix:
 
-      [ 0  a  0 ]
+	  [ 0  a  0 ]
   A + [ d  b  e ]
-      [ 0  c  0 ]
+	  [ 0  c  0 ]
 
   where: a = v[0,r-1], b = v[r], c = v[r+1,numRows-1], d = w[0,r-1], w[r] = 0.0f, e = w[r+1,numColumns-1]
 ============
@@ -902,9 +902,9 @@ idMatX::Update_RowColumnSymmetric
 
   Updates the matrix to obtain the matrix:
 
-      [ 0  a  0 ]
+	  [ 0  a  0 ]
   A + [ a  b  c ]
-      [ 0  c  0 ]
+	  [ 0  c  0 ]
 
   where: a = v[0,r-1], b = v[r], c = v[r+1,numRows-1]
 ============
@@ -1157,9 +1157,9 @@ idMatX::Inverse_UpdateRowColumn
 
   Updates the in-place inverse to obtain the inverse for the matrix:
 
-      [ 0  a  0 ]
+	  [ 0  a  0 ]
   A + [ d  b  e ]
-      [ 0  c  0 ]
+	  [ 0  c  0 ]
 
   where: a = v[0,r-1], b = v[r], c = v[r+1,numRows-1], d = w[0,r-1], w[r] = 0.0f, e = w[r+1,numColumns-1]
 ============
@@ -1460,9 +1460,9 @@ idMatX::LU_UpdateRowColumn
 
   Updates the in-place LU factorization to obtain the factors for the matrix:
 
-       [ 0  a  0 ]
+	   [ 0  a  0 ]
   LU + [ d  b  e ]
-       [ 0  c  0 ]
+	   [ 0  c  0 ]
 
   where: a = v[0,r-1], b = v[r], c = v[r+1,numRows-1], d = w[0,r-1], w[r] = 0.0f, e = w[r+1,numColumns-1]
 ============
@@ -2137,9 +2137,9 @@ idMatX::QR_UpdateRowColumn
 
   Updates the unpacked QR factorization to obtain the factors for the matrix:
 
-       [ 0  a  0 ]
+	   [ 0  a  0 ]
   QR + [ d  b  e ]
-       [ 0  c  0 ]
+	   [ 0  c  0 ]
 
   where: a = v[0,r-1], b = v[r], c = v[r+1,numRows-1], d = w[0,r-1], w[r] = 0.0f, e = w[r+1,numColumns-1]
 ============
@@ -3067,9 +3067,9 @@ idMatX::Cholesky_UpdateRowColumn
 
   Updates the in-place Cholesky factorization to obtain the factors for the matrix:
 
-        [ 0  a  0 ]
+		[ 0  a  0 ]
   LL' + [ a  b  c ]
-        [ 0  c  0 ]
+		[ 0  c  0 ]
 
   where: a = v[0,r-1], b = v[r], c = v[r+1,numRows-1]
 ============
@@ -3576,9 +3576,9 @@ idMatX::LDLT_UpdateRowColumn
 
   Updates the in-place LDL' factorization to obtain the factors for the matrix:
 
-         [ 0  a  0 ]
+		 [ 0  a  0 ]
   LDL' + [ a  b  c ]
-         [ 0  c  0 ]
+		 [ 0  c  0 ]
 
   where: a = v[0,r-1], b = v[r], c = v[r+1,numRows-1]
 ============

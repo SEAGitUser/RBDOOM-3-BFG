@@ -57,11 +57,9 @@ idDeclEntityDef::Parse
 */
 bool idDeclEntityDef::Parse( const char* text, const int textLength, bool allowBinaryVersion )
 {
-	idLexer src;
-	idToken	token, token2;
+	idToken	token, token2;	
+	idLexer src( text, textLength, GetFileName(), DECL_LEXER_FLAGS, GetLineNum() );
 	
-	src.LoadMemory( text, textLength, GetFileName(), GetLineNum() );
-	src.SetFlags( DECL_LEXER_FLAGS );
 	src.SkipUntilString( "{" );
 	
 	while( 1 )

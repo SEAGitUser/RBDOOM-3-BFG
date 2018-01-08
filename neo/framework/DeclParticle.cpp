@@ -527,10 +527,7 @@ bool idDeclParticle::Parse( const char* text, const int textLength, bool allowBi
 	{
 		fileSystem->AddParticlePreload( GetName() );
 	}
-	
-	idLexer src;
-	idToken	token;
-	
+		
 	unsigned int sourceChecksum = 0;
 	idStrStatic< MAX_OSPATH > generatedFileName;
 	if( allowBinaryVersion )
@@ -544,16 +541,17 @@ bool idDeclParticle::Parse( const char* text, const int textLength, bool allowBi
 		generatedFileName.SetFileExtension( ".bprt" );
 		
 		idFileLocal file( fileSystem->OpenFileReadMemory( generatedFileName ) );
-		sourceChecksum = MD5_BlockChecksum( text, textLength );
+		sourceChecksum = idHashing::MD5_BlockChecksum( text, textLength );
 		
 		if( binaryLoadParticles.GetBool() && LoadBinary( file, sourceChecksum ) )
 		{
 			return true;
 		}
 	}
-	
-	src.LoadMemory( text, textLength, GetFileName(), GetLineNum() );
-	src.SetFlags( DECL_LEXER_FLAGS );
+
+	idToken	token;
+	idLexer src( text, textLength, GetFileName(), DECL_LEXER_FLAGS, GetLineNum() );
+
 	src.SkipUntilString( "{" );
 	
 	depthHack = 0.0f;

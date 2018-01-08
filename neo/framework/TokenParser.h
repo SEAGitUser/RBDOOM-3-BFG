@@ -28,6 +28,7 @@ If you have questions concerning this license or the applicable additional terms
 
 #ifndef __TOKENPARSER_H__
 #define __TOKENPARSER_H__
+
 class idBinaryToken
 {
 public:

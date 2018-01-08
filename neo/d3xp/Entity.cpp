@@ -4129,7 +4129,7 @@ bool idEntity::HandleGuiCommands( idEntity* entityGui, const char* cmds )
 	{
 		idLexer src;
 		idToken token, token2, token3, token4;
-		src.LoadMemory( cmds, strlen( cmds ), "guiCommands" );
+		src.LoadMemory( cmds, idStr::Length( cmds ), "guiCommands" );
 		while( 1 )
 		{
 		

@@ -452,17 +452,14 @@ idDeclFX::Parse
 */
 bool idDeclFX::Parse( const char* text, const int textLength, bool allowBinaryVersion )
 {
-	idLexer src;
-	idToken token;
+	idToken token;	
+	idLexer src( text, textLength, GetFileName(), DECL_LEXER_FLAGS, GetLineNum() );
 	
-	src.LoadMemory( text, textLength, GetFileName(), GetLineNum() );
-	src.SetFlags( DECL_LEXER_FLAGS );
 	src.SkipUntilString( "{" );
 	
 	// scan through, identifying each individual parameter
 	while( 1 )
-	{
-	
+	{	
 		if( !src.ReadToken( &token ) )
 		{
 			break;

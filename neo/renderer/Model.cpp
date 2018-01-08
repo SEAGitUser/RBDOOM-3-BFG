@@ -130,7 +130,7 @@ idRenderModelStatic::Memory
 */
 int idRenderModelStatic::Memory() const
 {
-	int totalBytes = sizeof( *this );
+	size_t totalBytes = sizeof( *this );
 	totalBytes += name.DynamicMemoryUsed();
 	totalBytes += surfaces.MemoryUsed();
 	

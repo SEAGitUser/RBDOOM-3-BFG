@@ -26,8 +26,8 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
+#include "../precompiled.h"
 #pragma hdrstop
-#include "precompiled.h"
 
 int idHashIndex::INVALID_INDEX[1] = { -1 };
 
@@ -162,7 +162,7 @@ int idHashIndex::GetSpread() const
 	error = 0;
 	for( i = 0; i < hashSize; i++ )
 	{
-		e = abs( numHashItems[i] - average );
+		e = idMath::Abs( numHashItems[i] - average );
 		if( e > 1 )
 		{
 			error += e - 1;

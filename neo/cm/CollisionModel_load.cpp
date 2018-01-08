@@ -83,31 +83,27 @@ Proc BSP tree for data pruning
 idCollisionModelManagerLocal::ParseProcNodes
 ================
 */
-void idCollisionModelManagerLocal::ParseProcNodes( idLexer* src )
+void idCollisionModelManagerLocal::ParseProcNodes( idLexer& src )
 {
-	int i;
+	src.ExpectTokenString( "{" );
 	
-	src->ExpectTokenString( "{" );
-	
-	numProcNodes = src->ParseInt();
+	numProcNodes = src.ParseInt();
 	if( numProcNodes < 0 )
 	{
-		src->Error( "ParseProcNodes: bad numProcNodes" );
+		src.Error( "ParseProcNodes: bad numProcNodes" );
 	}
 	procNodes = ( cm_procNode_t* )Mem_ClearedAlloc( numProcNodes * sizeof( cm_procNode_t ), TAG_COLLISION );
 	
-	for( i = 0; i < numProcNodes; i++ )
+	for( int i = 0; i < numProcNodes; i++ )
 	{
-		cm_procNode_t* node;
+		auto & node = procNodes[i];
 		
-		node = &procNodes[i];
-		
-		src->Parse1DMatrix( 4, node->plane.ToFloatPtr() );
-		node->children[0] = src->ParseInt();
-		node->children[1] = src->ParseInt();
+		src.Parse1DMatrix( 4, node.plane.ToFloatPtr() );
+		node.children[0] = src.ParseInt();
+		node.children[1] = src.ParseInt();
 	}
 	
-	src->ExpectTokenString( "}" );
+	src.ExpectTokenString( "}" );
 }
 
 /*
@@ -119,51 +115,48 @@ idCollisionModelManagerLocal::LoadProcBSP
 */
 void idCollisionModelManagerLocal::LoadProcBSP( const char* name )
 {
-	idStr filename;
-	idToken token;
-	idLexer* src;
-	
 	// load it
-	filename = name;
+	idStr filename = name;
 	filename.SetFileExtension( PROC_FILE_EXT );
-	src = new( TAG_COLLISION ) idLexer( filename, LEXFL_NOSTRINGCONCAT | LEXFL_NODOLLARPRECOMPILE );
-	if( !src->IsLoaded() )
+
+	idLexer src( filename, LEXFL_NOSTRINGCONCAT | LEXFL_NODOLLARPRECOMPILE );
+	if( !src.IsLoaded() )
 	{
 		common->Warning( "idCollisionModelManagerLocal::LoadProcBSP: couldn't load %s", filename.c_str() );
-		delete src;
 		return;
 	}
+
+	idToken token;
 	
-	if( !src->ReadToken( &token ) || token.Icmp( PROC_FILE_ID ) )
+	if( !src.ReadToken( &token ) || token.Icmp( PROC_FILE_ID ) )
 	{
 		common->Warning( "idCollisionModelManagerLocal::LoadProcBSP: bad id '%s' instead of '%s'", token.c_str(), PROC_FILE_ID );
-		delete src;
 		return;
 	}
 	
 	// parse the file
 	while( 1 )
 	{
-		if( !src->ReadToken( &token ) )
+		if( !src.ReadToken( &token ) )
 		{
 			break;
 		}
 		
 		if( token == "model" )
 		{
-			src->SkipBracedSection();
+			src.SkipBracedSection();
 			continue;
 		}
 		
 		if( token == "shadowModel" )
 		{
-			src->SkipBracedSection();
+			src.SkipBracedSection();
 			continue;
 		}
 		
 		if( token == "interAreaPortals" )
 		{
-			src->SkipBracedSection();
+			src.SkipBracedSection();
 			continue;
 		}
 		
@@ -173,10 +166,8 @@ void idCollisionModelManagerLocal::LoadProcBSP( const char* name )
 			break;
 		}
 		
-		src->Error( "idCollisionModelManagerLocal::LoadProcBSP: bad token \"%s\"", token.c_str() );
+		src.Error( "idCollisionModelManagerLocal::LoadProcBSP: bad token \"%s\"", token.c_str() );
 	}
-	
-	delete src;
 }
 
 /*

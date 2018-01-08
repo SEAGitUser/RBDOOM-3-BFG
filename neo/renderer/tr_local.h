@@ -1393,7 +1393,7 @@ public:
 	template< typename _T_, frameAllocType_t frameAllocType = FRAME_ALLOC_UNKNOWN, bool bCleared = false >
 	_T_ * FrameAlloc( uint32 count = 1 )
 	{
-		const size_t bytes = sizeof( _T_ ) * count;
+		const int bytes = (int)sizeof( _T_ ) * count;
 		if( bCleared )
 		{
 			return reinterpret_cast< _T_* >( _ClearedFrameAlloc( bytes, frameAllocType ) );
@@ -1407,7 +1407,7 @@ public:
 	template< typename _T_, memTag_t memTag = TAG_RENDER_STATIC, bool bCleared = false >
 	_T_ * StaticAlloc( uint32 count = 1 )
 	{
-		const size_t bytes = sizeof( _T_ ) * count;
+		const int bytes = (int)sizeof( _T_ ) * count;
 		if( bCleared )
 		{
 			return reinterpret_cast< _T_* >( _ClearedStaticAlloc( bytes, memTag ) );

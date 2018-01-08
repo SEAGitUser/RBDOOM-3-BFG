@@ -491,8 +491,7 @@ void idResourceContainer::WriteResourceFile( const char* manifestName, const idS
 			ent.length = 0;
 			ent.offset = 0;
 			
-			idFile* file = fileSystem->OpenFileReadMemory( ent.filename, false );
-			idFile_Memory* fm = dynamic_cast< idFile_Memory* >( file );
+			idFile_Memory* fm = dynamic_cast< idFile_Memory* >( fileSystem->OpenFileReadMemory( ent.filename, false ) );
 			if( fm == NULL )
 			{
 				continue;

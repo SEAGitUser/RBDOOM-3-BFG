@@ -730,11 +730,10 @@ idDeclAF::ContentsFromString
 */
 int idDeclAF::ContentsFromString( const char* str )
 {
-	int c;
 	idToken token;
 	idLexer src( str, idStr::Length( str ), "idDeclAF::ContentsFromString" );
 	
-	c = 0;
+	int c = 0;
 	while( src.ReadToken( &token ) )
 	{
 		if( token.Icmp( "none" ) == 0 )
@@ -909,8 +908,7 @@ bool idDeclAF::ParseBody( idLexer& src )
 	
 	body->SetDefault( this );
 	
-	if( !src.ExpectTokenType( TT_STRING, 0, &token ) ||
-			!src.ExpectTokenString( "{" ) )
+	if( !src.ExpectTokenType( TT_STRING, 0, &token ) || !src.ExpectTokenString( "{" ) )
 	{
 		return false;
 	}
@@ -923,8 +921,7 @@ bool idDeclAF::ParseBody( idLexer& src )
 	}
 	
 	while( src.ReadToken( &token ) )
-	{
-	
+	{	
 		if( !token.Icmp( "model" ) )
 		{
 			if( !src.ExpectTokenType( TT_NAME, 0, &token ) )
@@ -1783,13 +1780,11 @@ idDeclAF::Parse
 bool idDeclAF::Parse( const char* text, const int textLength, bool allowBinaryVersion )
 {
 	int i, j;
-	idLexer src;
-	idToken token;
+	idToken token;	
+	idLexer src( text, textLength, GetFileName(), DECL_LEXER_FLAGS, GetLineNum() );
 	
-	src.LoadMemory( text, textLength, GetFileName(), GetLineNum() );
-	src.SetFlags( DECL_LEXER_FLAGS );
 	src.SkipUntilString( "{" );
-	
+
 	while( src.ReadToken( &token ) )
 	{
 	

@@ -26,8 +26,8 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
+#include "../precompiled.h"
 #pragma hdrstop
-#include "precompiled.h"
 
 /*
 ================================================================================================
@@ -204,7 +204,7 @@ MD5_Init
 MD5 initialization. Begins an MD5 operation, writing a new context.
 ========================
 */
-void MD5_Init( MD5_CTX* ctx )
+void idHashing::MD5_Init( MD5_CTX* ctx )
 {
 	ctx->state[0] = 0x67452301;
 	ctx->state[1] = 0xefcdab89;
@@ -223,7 +223,7 @@ MD5 block update operation. Continues an MD5 message-digest operation, processin
 message block, and updating the context.
 ========================
 */
-void MD5_Update( MD5_CTX* context, unsigned char const* input, size_t inputLen )
+void idHashing::MD5_Update( MD5_CTX* context, unsigned char const* input, size_t inputLen )
 {
 	unsigned int i, index, partLen;
 	
@@ -270,7 +270,7 @@ MD5 finalization. Ends an MD5 message-digest operation, writing the message dige
 zero-izing the context.
 ========================
 */
-void MD5_Final( MD5_CTX* context, unsigned char digest[16] )
+void idHashing::MD5_Final( MD5_CTX* context, unsigned char digest[16] )
 {
 	unsigned char bits[8];
 	unsigned int index, padLen;
@@ -299,7 +299,7 @@ MD5_BlockChecksum
 ========================
 */
 
-unsigned int MD5_BlockChecksum( const void* data, size_t length )
+unsigned int idHashing::MD5_BlockChecksum( const void* data, size_t length )
 {
 	unsigned char	digest[16];
 	unsigned int	val;

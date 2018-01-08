@@ -67,6 +67,9 @@ void* 		Mem_ClearedAlloc( const size_t size, const memTag_t tag );
 char* 		Mem_CopyString( const char* in );
 // RB end
 
+#pragma warning( push )
+#pragma warning( disable : 4595 )
+
 ID_INLINE void* operator new( size_t s )
 #if !defined(_MSC_VER)
 throw( std::bad_alloc ) // DG: standard signature seems to include throw(..)
@@ -120,6 +123,8 @@ ID_INLINE void operator delete[]( void* p, memTag_t tag ) throw() // DG: delete 
 {
 	Mem_Free( p );
 }
+
+#pragma warning( pop )
 
 // Define replacements for the PS3 library's aligned new operator.
 // Without these, allocations of objects with 32 byte or greater alignment

@@ -2447,7 +2447,7 @@ int idProgram::CalculateChecksum() const
 		statementList[i].file = statements[i].file;
 	}
 	
-	result = MD4_BlockChecksum( statementList, ( sizeof( statementBlock_t ) * statements.Num() ) );
+	result = idHashing::MD4_BlockChecksum( statementList, ( sizeof( statementBlock_t ) * statements.Num() ) );
 	
 	delete [] statementList;
 	

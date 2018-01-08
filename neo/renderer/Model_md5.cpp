@@ -1542,7 +1542,7 @@ idRenderModelMD5::Memory
 */
 int	idRenderModelMD5::Memory() const
 {
-	int total = sizeof( *this );
+	size_t total = sizeof( *this );
 	total += joints.MemoryUsed() + defaultPose.MemoryUsed() + meshes.MemoryUsed();
 	
 	// count up strings

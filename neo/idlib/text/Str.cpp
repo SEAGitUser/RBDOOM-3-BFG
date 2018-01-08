@@ -27,7 +27,7 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
-#include "precompiled.h"
+#include "../precompiled.h"
 #pragma hdrstop
 
 #ifdef USE_STRING_DATA_ALLOCATOR
@@ -57,11 +57,11 @@ struct strColor_t {
 	{	idVec4( 0.0f,  0.0f,  0.5f,  1.0f ), "^>" }, 			// > - S_COLOR_MD_BLUE			14
 	{	idVec4( 0.5f,  0.0f,  0.0f,  1.0f ), "^?" }, 			// ? - S_COLOR_MD_RED			15
 #if 0 //SEA: Console colors gone mad with this :(	TOFIX!
-	{	idVec4( 0.5f,  0.25f, 0.0f,  1.0f ), "^@" }, 			// @ - md.orange				16
-	{	idVec4( 1.0f,  0.6f,  0.1f,  1.0f ), "^A" }, 			// A - lt.orange				17
-	{	idVec4( 0.0f,  0.5f,  0.5f,  1.0f ), "^B" }, 			// B - md.cyan					18
-	{	idVec4( 0.5f,  0.0f,  0.5f,  1.0f ), "^C" }, 			// C - md.purple				19
-	{	idVec4( 1.0f,  0.0f,  1.0f,  1.0f ), "^D" }, 			// D - orange					20
+	{	idVec4( 0.5f,  0.25f, 0.0f,  1.0f ), "^@" }, 			// @ - S_COLOR_MD_ORANGE		16
+	{	idVec4( 1.0f,  0.6f,  0.1f,  1.0f ), "^A" }, 			// A - S_COLOR_LT_ORANGE		17
+	{	idVec4( 0.0f,  0.5f,  0.5f,  1.0f ), "^B" }, 			// B - S_COLOR_MD_CYAN			18
+	{	idVec4( 0.5f,  0.0f,  0.5f,  1.0f ), "^C" }, 			// C - S_COLOR_MD_PURPLE 		19
+	{	idVec4( 1.0f,  0.0f,  1.0f,  1.0f ), "^D" }, 			// D - S_COLOR_MAGENTA			20
 	{	idVec4( 0.5f,  0.0f,  1.0f,  1.0f ), "^E" }, 			// E							21
 	{	idVec4( 0.2f,  0.6f,  0.8f,  1.0f ), "^F" }, 			// F							22
 	{	idVec4( 0.8f,  1.0f,  0.8f,  1.0f ), "^G" }, 			// G							23
@@ -76,7 +76,80 @@ struct strColor_t {
 #endif
 };
 
-const int COLOR_BITS = _countof( g_color_table ) - 1;
+//const int COLOR_BITS = _countof( g_color_table ) - 1;
+
+dword g_dword_color_table[ DW_COLOR_BITS + 1 ] = {
+#if defined( _XENON ) || ( defined( MACOS_X ) && defined( __ppc__ ) )
+	0x000000FF, // S_COLOR_DEFAULT
+	0xFF0000FF, // S_COLOR_RED
+	0x00FF00FF, // S_COLOR_GREEN
+	0xFFFF00FF, // S_COLOR_YELLOW
+	0x0000FFFF, // S_COLOR_BLUE
+	0x00FFFFFF, // S_COLOR_CYAN
+	0xFF7F00FF, // S_COLOR_ORANGE
+	0xFFFFFFFF, // S_COLOR_WHITE
+	0x7F7F7FFF, // S_COLOR_GRAY
+	0x121212FF, // S_COLOR_BLACK
+	0xBFBFBFFF, // S_COLOR_LT_GREY
+	0x404040FF,	// S_COLOR_DK_GREY
+	0x007F00FF,	// S_COLOR_MD_GREEN
+	0x7F7F00FF,	// S_COLOR_MD_YELLOW
+	0x00007FFF,	// S_COLOR_MD_BLUE
+	0x7F0000FF,	// S_COLOR_MD_RED
+	0x7F3F00FF,	// S_COLOR_MD_ORANGE	
+	0xFF9919FF,	// S_COLOR_LT_ORANGE	
+	0x007F7FFF,	// S_COLOR_MD_CYAN		
+	0x7F007FFF,	// S_COLOR_MD_PURPLE 	
+	0xFF00FFFF,	// S_COLOR_MAGENT
+	0x7F00FFFF,	//
+	0x3399CCFF,	//
+	0xCCFFCCFF,	//
+	0x006633FF,	// 
+	0xFF0033FF,	// 
+	0xB21919FF,	// 
+	0x993300FF,	// 
+	0xCC9933FF,	// 
+	0x999933FF,	// 
+	0xFFFFBFFF,	// 
+	0xFFFF7FFF	// 
+#elif defined( _WIN32 ) || defined( __linux__ ) || ( defined( MACOS_X ) && !defined( __ppc__ ) )
+	0xFF000000, // S_COLOR_DEFAULT
+	0xFF0000FF, // S_COLOR_RED
+	0xFF00FF00, // S_COLOR_GREEN
+	0xFF00FFFF, // S_COLOR_YELLOW
+	0xFFFF0000, // S_COLOR_BLUE
+	0xFFFFFF00, // S_COLOR_CYAN
+	0xFF007FFF, // S_COLOR_ORANGE
+	0xFFFFFFFF, // S_COLOR_WHITE
+	0xFF7F7F7F, // S_COLOR_GRAY
+	0xFF212121, // S_COLOR_BLACK
+	0xFFBFBFBF,	// S_COLOR_LT_GREY
+	0xFF040404,	// S_COLOR_DK_GREY
+	0xFF007F00,	// S_COLOR_MD_GREEN
+	0xFF007F7F,	// S_COLOR_MD_YELLOW
+	0xFF7F0000,	// S_COLOR_MD_BLUE
+	0xFF00007F,	// S_COLOR_MD_RED
+	0xFF003F7F,	// S_COLOR_MD_ORANGE
+	0xFF1999FF,	// S_COLOR_LT_ORANGE
+	0xFF7F7F00,	// S_COLOR_MD_CYAN
+	0xFF7F007F,	// S_COLOR_MD_PURPLE
+	0xFFFF00FF,	// S_COLOR_MAGENT
+	0xFFFF007F,	// 
+	0xFFCC9933,	// 
+	0xFFCCFFCC,	// 
+	0xFF336600,	// 
+	0xFF3300FF,	// 
+	0xFF1919B2,	// 
+	0xFF003399,	// 
+	0xFF3399CC,	// 
+	0xFF339999,	// 
+	0xFFBFFFFF,	// 
+	0xFF7FFFFF	// 
+#else
+	#error OS define is required!
+#endif
+};
+
 
 const char* units[2][4] =
 {
@@ -1984,7 +2057,7 @@ idStr::Copynz
 	NOTE: the specs indicate strncpy pads with zeros up to destination size, which be a bit wasteful
 =============
 */
-void idStr::Copynz( char* dest, const char* src, int destsize )
+void idStr::Copynz( char* dest, const char* src, size_t destsize )
 {
 	if( !src )
 	{

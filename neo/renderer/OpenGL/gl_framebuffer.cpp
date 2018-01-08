@@ -8,6 +8,12 @@
 
 idRenderDestinationManager renderDestManager;
 
+static ID_INLINE GLuint GetGLObject( void * apiObject )
+{
+#pragma warning( suppress: 4311 4302 )
+	return reinterpret_cast<GLuint>( apiObject );
+}
+
 static void _CheckFramebuffer( GLuint fbo, const char * fboName )
 {
 	GLenum status = glCheckFramebufferStatus( GL_FRAMEBUFFER );
@@ -96,7 +102,7 @@ idRenderDestination::~idRenderDestination()
 	assert( tr.IsOpenGLRunning() );
 	if( IsValid() ) 
 	{
-		GLuint fbo = reinterpret_cast< GLuint >( apiObject );
+		GLuint fbo = GetGLObject( apiObject );
 		glDeleteFramebuffers( 1, &fbo );
 		apiObject = nullptr;
 	}
@@ -129,7 +135,7 @@ void idRenderDestination::Clear()
 */
 void idRenderDestination::SetTargetOGL( idImage * target, int iTarget, int layer, int level )
 {
-	GLuint texnum = reinterpret_cast< GLuint >( target->GetAPIObject() );
+	GLuint texnum = GetGLObject( target->GetAPIObject() );
 
 	if( target->IsDepth() )
 	{
@@ -170,11 +176,12 @@ void idRenderDestination::CreateFromImages( const targetList_t *_targetList, idI
 	if( apiObject == nullptr )
 	{
 		glGenFramebuffers( 1, &fbo );
+	#pragma warning( suppress: 4312 )
 		apiObject = reinterpret_cast< void* >( fbo );
 		release_assert( fbo != GL_NONE );
 	}
 	else {
-		fbo = reinterpret_cast< GLuint >( apiObject );
+		fbo = GetGLObject( apiObject );
 	}
 
 	glBindFramebuffer( GL_FRAMEBUFFER, fbo );
@@ -212,7 +219,7 @@ void idRenderDestination::CreateFromImages( const targetList_t *_targetList, idI
 			idLib::Error( "idRenderDestination( %s ): empty target %i", GetName(), i );
 		}
 
-		GLuint texnum = reinterpret_cast< GLuint >( targ.image->GetAPIObject() );
+		GLuint texnum = GetGLObject( targ.image->GetAPIObject() );
 
 		targetBuffers[ buffersCount ] = ( GL_COLOR_ATTACHMENT0 + i );
 		glFramebufferTexture( GL_FRAMEBUFFER, targetBuffers[ buffersCount ], texnum, targ.mipLevel );			
@@ -227,7 +234,7 @@ void idRenderDestination::CreateFromImages( const targetList_t *_targetList, idI
 		if( depth != nullptr )
 		{
 			release_assert( depth->GetOpts().IsDepthStencil() );
-			GLuint texnum = reinterpret_cast< GLuint >( depth->GetAPIObject() );
+			GLuint texnum = GetGLObject( depth->GetAPIObject() );
 			glFramebufferTexture( GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, texnum, 0/*mip*/ );
 			depthImage = stencilImage = depth;
 		}
@@ -235,13 +242,13 @@ void idRenderDestination::CreateFromImages( const targetList_t *_targetList, idI
 	else {
 		if( depth != nullptr )
 		{
-			GLuint texnum = reinterpret_cast< GLuint >( depth->GetAPIObject() );
+			GLuint texnum = GetGLObject( depth->GetAPIObject() );
 			glFramebufferTexture( GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, texnum, 0/*mip*/ );
 			depthImage = depth;
 		}
 		if( stencil != nullptr )
 		{
-			GLuint texnum = reinterpret_cast< GLuint >( stencil->GetAPIObject() );
+			GLuint texnum = GetGLObject( stencil->GetAPIObject() );
 			glFramebufferTexture( GL_FRAMEBUFFER, GL_STENCIL_ATTACHMENT, texnum, 0/*mip*/ );
 			stencilImage = stencil;
 		}

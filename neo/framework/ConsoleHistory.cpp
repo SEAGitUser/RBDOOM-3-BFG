@@ -155,7 +155,7 @@ void idConsoleHistory::LoadHistoryFile()
 	{
 		while( 1 )
 		{
-			idStr	line;
+			idStr line;
 			lex.ParseCompleteLine( line );
 			if( line.IsEmpty() )
 			{

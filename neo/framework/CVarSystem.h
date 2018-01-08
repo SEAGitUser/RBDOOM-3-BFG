@@ -122,12 +122,9 @@ public:
 	}
 	
 	// Always use one of the following constructors.
-	idCVar( const char* name, const char* value, int flags, const char* description,
-			argCompletion_t valueCompletion = NULL );
-	idCVar( const char* name, const char* value, int flags, const char* description,
-			float valueMin, float valueMax, argCompletion_t valueCompletion = NULL );
-	idCVar( const char* name, const char* value, int flags, const char* description,
-			const char** valueStrings, argCompletion_t valueCompletion = NULL );
+	idCVar( const char* name, const char* value, int flags, const char* description, argCompletion_t valueCompletion = NULL );
+	idCVar( const char* name, const char* value, int flags, const char* description, float valueMin, float valueMax, argCompletion_t valueCompletion = NULL );
+	idCVar( const char* name, const char* value, int flags, const char* description, const char** valueStrings, argCompletion_t valueCompletion = NULL );
 			
 	virtual					~idCVar() {}
 	
@@ -183,7 +180,7 @@ public:
 	}
 	bool					GetBool() const
 	{
-		return ( internalVar->integerValue != 0 );
+		return( internalVar->integerValue != 0 );
 	}
 	int						GetInteger() const
 	{
@@ -249,8 +246,7 @@ private:
 	static idCVar* 			staticVars;
 };
 
-ID_INLINE idCVar::idCVar( const char* name, const char* value, int flags, const char* description,
-						  argCompletion_t valueCompletion )
+ID_INLINE idCVar::idCVar( const char* name, const char* value, int flags, const char* description, argCompletion_t valueCompletion )
 {
 	if( !valueCompletion && ( flags & CVAR_BOOL ) )
 	{
@@ -259,14 +255,12 @@ ID_INLINE idCVar::idCVar( const char* name, const char* value, int flags, const 
 	Init( name, value, flags, description, 1, -1, NULL, valueCompletion );
 }
 
-ID_INLINE idCVar::idCVar( const char* name, const char* value, int flags, const char* description,
-						  float valueMin, float valueMax, argCompletion_t valueCompletion )
+ID_INLINE idCVar::idCVar( const char* name, const char* value, int flags, const char* description, float valueMin, float valueMax, argCompletion_t valueCompletion )
 {
 	Init( name, value, flags, description, valueMin, valueMax, NULL, valueCompletion );
 }
 
-ID_INLINE idCVar::idCVar( const char* name, const char* value, int flags, const char* description,
-						  const char** valueStrings, argCompletion_t valueCompletion )
+ID_INLINE idCVar::idCVar( const char* name, const char* value, int flags, const char* description, const char** valueStrings, argCompletion_t valueCompletion )
 {
 	Init( name, value, flags, description, 1, -1, valueStrings, valueCompletion );
 }
@@ -352,7 +346,7 @@ extern idCVarSystem* 		cvarSystem;
 */
 
 ID_INLINE void idCVar::Init( const char* name, const char* value, int flags, const char* description,
-							 float valueMin, float valueMax, const char** valueStrings, argCompletion_t valueCompletion )
+	float valueMin, float valueMax, const char** valueStrings, argCompletion_t valueCompletion )
 {
 	this->name = name;
 	this->value = value;

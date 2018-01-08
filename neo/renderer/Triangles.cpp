@@ -2316,7 +2316,6 @@ void idTriangles::ReadFromFile( idFile *file )
 	file->ReadBig( tri.shadowCapPlaneBits );
 
 	tri.baseTriangles = NULL;
-	tri.nextDeferredFree = NULL;
 	tri.indexCache = 0;
 	tri.vertexCache = 0;
 	tri.shadowCache = 0;

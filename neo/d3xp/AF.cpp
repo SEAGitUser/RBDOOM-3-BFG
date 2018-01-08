@@ -1366,16 +1366,12 @@ void idAF::AddBindConstraints()
 		
 		if( type.Icmp( "fixed" ) == 0 )
 		{
-			idAFConstraint_Fixed* c;
-			
-			c = new( TAG_PHYSICS_AF ) idAFConstraint_Fixed( name, body, NULL );
+			auto c = new( TAG_PHYSICS_AF ) idAFConstraint_Fixed( name, body, NULL );
 			physicsObj.AddConstraint( c );
 		}
 		else if( type.Icmp( "ballAndSocket" ) == 0 )
 		{
-			idAFConstraint_BallAndSocketJoint* c;
-			
-			c = new( TAG_PHYSICS_AF ) idAFConstraint_BallAndSocketJoint( name, body, NULL );
+			auto c = new( TAG_PHYSICS_AF ) idAFConstraint_BallAndSocketJoint( name, body, NULL );
 			physicsObj.AddConstraint( c );
 			lexer.ReadToken( &jointName );
 			
@@ -1390,9 +1386,7 @@ void idAF::AddBindConstraints()
 		}
 		else if( type.Icmp( "universal" ) == 0 )
 		{
-			idAFConstraint_UniversalJoint* c;
-			
-			c = new( TAG_PHYSICS_AF ) idAFConstraint_UniversalJoint( name, body, NULL );
+			auto c = new( TAG_PHYSICS_AF ) idAFConstraint_UniversalJoint( name, body, NULL );
 			physicsObj.AddConstraint( c );
 			lexer.ReadToken( &jointName );
 			

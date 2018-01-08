@@ -49,11 +49,8 @@ If you have questions concerning this license or the applicable additional terms
 */
 
 class idImage;
-class idTriangles;
-class idRenderModelSurface;
 class idDeclRenderParm;
 class idDeclRenderProg;
-class idRenderTexture;
 
 static const int MAX_OCCLUSION_QUERIES = 4096;
 // returned by GL_GetDeferredQueryResult() when the query is from too long ago and the result is no longer available

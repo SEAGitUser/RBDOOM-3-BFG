@@ -440,9 +440,7 @@ idAASSettings::FromFile
 bool idAASSettings::FromFile( const idStr& fileName )
 {
 	idLexer src( LEXFL_ALLOWPATHNAMES | LEXFL_NOSTRINGESCAPECHARS | LEXFL_NOSTRINGCONCAT );
-	idStr name;
-	
-	name = fileName;
+	idStr name = fileName;
 	
 	common->Printf( "loading %s\n", name.c_str() );
 	
@@ -1457,11 +1455,9 @@ bool idAASFileLocal::Load( const idStr& fileName, unsigned int mapFileCRC )
 idAASFileLocal::MemorySize
 ================
 */
-int idAASFileLocal::MemorySize() const
+size_t idAASFileLocal::MemorySize() const
 {
-	int size;
-	
-	size = planeList.Size();
+	size_t size = planeList.Size();
 	size += vertices.Size();
 	size += edges.Size();
 	size += edgeIndex.Size();

@@ -69,8 +69,8 @@ struct idRenderView;
 
 ====================================================================
 */
-struct idTriangles
-{
+class idTriangles {
+public:
 	idTriangles() {} // numVerts_, numIndexes_
 	
 	idBounds					bounds;					// for culling
@@ -115,9 +115,7 @@ struct idTriangles
 	// for light interactions, point back at the original surface that generated
 	// the interaction, which we will get the ambientCache from
 	idTriangles* 				baseTriangles;			
-	
-	idTriangles* 				nextDeferredFree;		// chain of tris to free next frame
-	
+		
 	// for deferred normal / tangent transformations by joints
 	// the jointsInverted list / buffer object on md5WithJoints may be
 	// shared by multiple idTriangles

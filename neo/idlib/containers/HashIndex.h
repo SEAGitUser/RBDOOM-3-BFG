@@ -102,8 +102,25 @@ public:
 	int				GenerateKey( const int n1, const int n2 ) const;
 	// returns a key for a single integer
 	int				GenerateKey( const int n ) const;
-	
+
+	/*
+	================
+	idHashIndex::Swap
+	================
+	*/
+	ID_INLINE void Swap( idHashIndex & rhs )
+	{
+		SwapValues( hashSize, rhs.hashSize );
+		SwapValues( hash, rhs.hash );
+		SwapValues( indexSize, rhs.indexSize );
+		SwapValues( indexChain, rhs.indexChain );
+		SwapValues( granularity, rhs.granularity );
+		SwapValues( hashMask, rhs.hashMask );
+		SwapValues( lookupMask, rhs.lookupMask );
+	};
+
 private:
+
 	int				hashSize;
 	int* 			hash;
 	int				indexSize;

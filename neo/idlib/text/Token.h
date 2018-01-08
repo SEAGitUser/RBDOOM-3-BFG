@@ -70,9 +70,10 @@ If you have questions concerning this license or the applicable additional terms
 
 class idToken : public idStr
 {
-
 	friend class idParser;
 	friend class idLexer;
+	friend class idLexerBinary;
+	friend class idTokenCache;
 	
 public:
 	int				type;								// token type
@@ -88,30 +89,44 @@ public:
 	
 	void			operator=( const idStr& text );
 	void			operator=( const char* text );
-	
+	//idToken&		operator=( const idToken& rhs );
+
 	double			GetDoubleValue();				// double value of TT_NUMBER
 	float			GetFloatValue();				// float value of TT_NUMBER
 	unsigned int	GetUnsignedIntValue();		// unsigned int value of TT_NUMBER
 	int				GetIntValue();				// int value of TT_NUMBER
 	int				WhiteSpaceBeforeToken() const;// returns length of whitespace before token
 	void			ClearTokenWhiteSpace();		// forget whitespace before token
-	
+	unsigned short	GetBinaryIndex() const;			// token index in a binary stream
+
 	void			NumberValue();				// calculate values for a TT_NUMBER
-	
+
 private:
-	// DG: use int instead of long for 64bit compatibility
 	unsigned int	intvalue;							// integer value
-	// DG end
 	double			floatvalue;							// floating point value
 	const char* 	whiteSpaceStart_p;					// start of white space before token, only used by idLexer
 	const char* 	whiteSpaceEnd_p;					// end of white space before token, only used by idLexer
 	idToken* 		next;								// next token in chain, only used by idParser
+	unsigned short	binaryIndex;						// token index in a binary stream
 	
+	// only to be used by parsers
 	void			AppendDirty( const char a );		// append character without adding trailing zero
+	void			SetIntValue( unsigned int intvalue );
+	void			SetFloatValue( double floatvalue );
 };
 
-ID_INLINE idToken::idToken() : type(), subtype(), line(), linesCrossed(), flags()
-{
+ID_INLINE idToken::idToken() :
+	intvalue( 0 ),
+	floatvalue( 0.0 ),
+	whiteSpaceStart_p( NULL ),
+	whiteSpaceEnd_p( NULL ),
+	next( NULL ),
+	type( 0 ),
+	subtype( 0 ),
+	line( 0 ),
+	linesCrossed( 0 ),
+	flags( 0 ),
+	binaryIndex( 0 ) {
 }
 
 ID_INLINE idToken::idToken( const idToken* token )
@@ -125,12 +140,12 @@ ID_INLINE idToken::~idToken()
 
 ID_INLINE void idToken::operator=( const char* text )
 {
-	*static_cast<idStr*>( this ) = text;
+	idStr::operator=( text );
 }
 
 ID_INLINE void idToken::operator=( const idStr& text )
 {
-	*static_cast<idStr*>( this ) = text;
+	idStr::operator=( text );
 }
 
 ID_INLINE double idToken::GetDoubleValue()
@@ -178,6 +193,21 @@ ID_INLINE void idToken::AppendDirty( const char a )
 {
 	EnsureAlloced( len + 2, true );
 	data[len++] = a;
+}
+
+ID_INLINE void idToken::SetIntValue( unsigned int intvalue ) 
+{
+	this->intvalue = intvalue;
+}
+
+ID_INLINE void idToken::SetFloatValue( double floatvalue )
+{
+	this->floatvalue = floatvalue;
+}
+
+ID_INLINE unsigned short idToken::GetBinaryIndex() const 
+{
+	return binaryIndex;
 }
 
 #endif /* !__TOKEN_H__ */

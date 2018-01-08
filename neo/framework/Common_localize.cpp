@@ -41,21 +41,18 @@ LoadMapLocalizeData
 typedef idHashTable<idStrList> ListHash;
 void LoadMapLocalizeData( ListHash& listHash )
 {
-
 	idStr fileName = "map_localize.cfg";
 	const char* buffer = NULL;
 	idLexer src( LEXFL_NOFATALERRORS | LEXFL_NOSTRINGCONCAT | LEXFL_ALLOWMULTICHARLITERALS | LEXFL_ALLOWBACKSLASHSTRINGCONCAT );
 	
 	if( fileSystem->ReadFile( fileName, ( void** )&buffer ) > 0 )
 	{
-		src.LoadMemory( buffer, strlen( buffer ), fileName );
+		src.LoadMemory( buffer, idStr::Length( buffer ), fileName );
 		if( src.IsLoaded() )
 		{
 			idStr classname;
 			idToken token;
-			
-			
-			
+
 			while( src.ReadToken( &token ) )
 			{
 				classname = token;
@@ -75,27 +72,23 @@ void LoadMapLocalizeData( ListHash& listHash )
 			}
 		}
 		fileSystem->FreeFile( ( void* )buffer );
-	}
-	
+	}	
 }
 
 void LoadGuiParmExcludeList( idStrList& list )
 {
-
 	idStr fileName = "guiparm_exclude.cfg";
 	const char* buffer = NULL;
 	idLexer src( LEXFL_NOFATALERRORS | LEXFL_NOSTRINGCONCAT | LEXFL_ALLOWMULTICHARLITERALS | LEXFL_ALLOWBACKSLASHSTRINGCONCAT );
 	
 	if( fileSystem->ReadFile( fileName, ( void** )&buffer ) > 0 )
 	{
-		src.LoadMemory( buffer, strlen( buffer ), fileName );
+		src.LoadMemory( buffer, idStr::Length( buffer ), fileName );
 		if( src.IsLoaded() )
 		{
 			idStr classname;
 			idToken token;
-			
-			
-			
+
 			while( src.ReadToken( &token ) )
 			{
 				list.Append( token );
@@ -111,14 +104,12 @@ bool TestMapVal( idStr& str )
 	if( str.Find( "#str_" ) != -1 )
 	{
 		return false;
-	}
-	
+	}	
 	return true;
 }
 
 bool TestGuiParm( const char* parm, const char* value, idStrList& excludeList )
 {
-
 	idStr testVal = value;
 	
 	//Already Localized?
@@ -155,7 +146,6 @@ bool TestGuiParm( const char* parm, const char* value, idStrList& excludeList )
 
 void GetFileList( const char* dir, const char* ext, idStrList& list )
 {
-
 	//Recurse Subdirectories
 	idStrList dirList;
 	Sys_ListFiles( dir, "/", dirList );
@@ -180,7 +170,6 @@ void GetFileList( const char* dir, const char* ext, idStrList& list )
 
 int LocalizeMap( const char* mapName, idLangDict& langDict, ListHash& listHash, idStrList& excludeList, bool writeFile )
 {
-
 	common->Printf( "Localizing Map '%s'\n", mapName );
 	
 	int strCount = 0;
@@ -650,7 +639,7 @@ void idCommonLocal::LocalizeMapData( const char* fileName, idLangDict& langDict 
 	
 	if( fileSystem->ReadFile( fileName, ( void** )&buffer ) > 0 )
 	{
-		src.LoadMemory( buffer, strlen( buffer ), fileName );
+		src.LoadMemory( buffer, idStr::Length( buffer ), fileName );
 		if( src.IsLoaded() )
 		{
 			common->Printf( "Processing %s\n", fileName );

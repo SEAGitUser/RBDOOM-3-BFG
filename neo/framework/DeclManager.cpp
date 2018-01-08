@@ -32,33 +32,33 @@ If you have questions concerning this license or the applicable additional terms
 
 /*
 
-GUIs and script remain separately parsed
+	GUIs and script remain separately parsed
 
-Following a parse, all referenced media (and other decls) will have been touched.
+	Following a parse, all referenced media (and other decls) will have been touched.
 
-sinTable and cosTable are required for the rotate material keyword to function
+	sinTable and cosTable are required for the rotate material keyword to function
 
-A new FindType on a purged decl will cause it to be reloaded, but a stale pointer to a purged
-decl will look like a defaulted decl.
+	A new FindType on a purged decl will cause it to be reloaded, but a stale pointer to a purged
+	decl will look like a defaulted decl.
 
-Moving a decl from one file to another will not be handled correctly by a reload, the material
-will be defaulted.
+	Moving a decl from one file to another will not be handled correctly by a reload, the material
+	will be defaulted.
 
-NULL or empty decl names will always return NULL
-	Should probably make a default decl for this
+	NULL or empty decl names will always return NULL
+		Should probably make a default decl for this
 
-Decls are initially created without a textSource
-A parse without textSource set should always just call MakeDefault()
-A parse that has an error should internally call MakeDefault()
-A purge does nothing to a defaulted decl
+	Decls are initially created without a textSource
+	A parse without textSource set should always just call MakeDefault()
+	A parse that has an error should internally call MakeDefault()
+	A purge does nothing to a defaulted decl
 
-Should we have a "purged" media state separate from the "defaulted" media state?
+	Should we have a "purged" media state separate from the "defaulted" media state?
 
-reloading over a decl name that was defaulted
+	reloading over a decl name that was defaulted
 
-reloading over a decl name that was valid
+	reloading over a decl name that was valid
 
-missing reload over a previously explicit definition
+	missing reload over a previously explicit definition
 
 */
 
@@ -346,9 +346,7 @@ ClearHuffmanFrequencies
 */
 void ClearHuffmanFrequencies()
 {
-	int i;
-	
-	for( i = 0; i < MAX_HUFFMAN_SYMBOLS; i++ )
+	for( int i = 0; i < MAX_HUFFMAN_SYMBOLS; i++ )
 	{
 		huffmanFrequencies[i] = 1;
 	}
@@ -572,12 +570,10 @@ ListHuffmanFrequencies_f
 */
 void ListHuffmanFrequencies_f( const idCmdArgs& args )
 {
-	int		i;
-	float compression;
-	compression = !totalUncompressedLength ? 100 : 100 * totalCompressedLength / totalUncompressedLength;
+	float compression = !totalUncompressedLength ? 100 : 100 * totalCompressedLength / totalUncompressedLength;
 	common->Printf( "// compression ratio = %d%%\n", ( int )compression );
 	common->Printf( "static int huffmanFrequencies[] = {\n" );
-	for( i = 0; i < MAX_HUFFMAN_SYMBOLS; i += 8 )
+	for( int i = 0; i < MAX_HUFFMAN_SYMBOLS; i += 8 )
 	{
 		common->Printf( "\t0x%08x, 0x%08x, 0x%08x, 0x%08x, 0x%08x, 0x%08x, 0x%08x, 0x%08x,\n",
 						huffmanFrequencies[i + 0], huffmanFrequencies[i + 1],
@@ -677,7 +673,6 @@ int idDeclFile::LoadAndParse()
 	int			length, size;
 	int			sourceLine;
 	idStr		name;
-	idDeclLocal* newDecl;
 	bool		reparse;
 	
 	// load the text
@@ -689,6 +684,7 @@ int idDeclFile::LoadAndParse()
 		return 0;
 	}
 	
+	src.SetFlags( DECL_LEXER_FLAGS );
 	if( !src.LoadMemory( buffer, length, fileName ) )
 	{
 		common->Error( "Couldn't parse %s", fileName.c_str() );
@@ -701,17 +697,14 @@ int idDeclFile::LoadAndParse()
 	{
 		decl->redefinedInReload = false;
 	}
-	
-	src.SetFlags( DECL_LEXER_FLAGS );
-	
-	checksum = MD5_BlockChecksum( buffer, length );
+
+	checksum = idHashing::MD5_BlockChecksum( buffer, length );
 	
 	fileSize = length;
 	
 	// scan through, identifying each individual declaration
 	while( 1 )
-	{
-	
+	{	
 		startMarker = src.GetFileOffset();
 		sourceLine = src.GetLineNum();
 		
@@ -736,20 +729,17 @@ int idDeclFile::LoadAndParse()
 		}
 		
 		if( i >= numTypes )
-		{
-		
+		{		
 			if( token.Icmp( "{" ) == 0 )
 			{
 			
 				// if we ever see an open brace, we somehow missed the [type] <name> prefix
 				src.Warning( "Missing decl name" );
 				src.SkipBracedSection( false );
-				continue;
-				
+				continue;				
 			}
 			else
-			{
-			
+			{			
 				if( defaultType == DECL_MAX_TYPES )
 				{
 					src.Warning( "No type" );
@@ -804,7 +794,7 @@ int idDeclFile::LoadAndParse()
 		
 		// look it up, possibly getting a newly created default decl
 		reparse = false;
-		newDecl = declManagerLocal.FindTypeWithoutParsing( identifiedType, name, false );
+		auto newDecl = declManagerLocal.FindTypeWithoutParsing( identifiedType, name, false );
 		if( newDecl )
 		{
 			// update the existing copy
@@ -885,7 +875,6 @@ idDeclManagerLocal::Init
 */
 void idDeclManagerLocal::Init()
 {
-
 	common->Printf( "----- Initializing Decls -----\n" );
 	
 	checksum = 0;
@@ -976,15 +965,12 @@ idDeclManagerLocal::Shutdown
 */
 void idDeclManagerLocal::Shutdown()
 {
-	int			i, j;
-	idDeclLocal* decl;
-	
 	// free decls
-	for( i = 0; i < DECL_MAX_TYPES; i++ )
+	for( int i = 0; i < DECL_MAX_TYPES; i++ )
 	{
-		for( j = 0; j < linearLists[i].Num(); j++ )
+		for( int j = 0; j < linearLists[i].Num(); j++ )
 		{
-			decl = linearLists[i][j];
+			auto decl = linearLists[i][j];
 			if( decl->self != NULL )
 			{
 				decl->self->FreeData();
@@ -1068,15 +1054,13 @@ idDeclManagerLocal::RegisterDeclType
 */
 void idDeclManagerLocal::RegisterDeclType( const char* typeName, declType_t type, idDecl * ( *allocator )() )
 {
-	idDeclType* declType;
-	
 	if( type < declTypes.Num() && declTypes[( int )type] )
 	{
 		common->Warning( "idDeclManager::RegisterDeclType: type '%s' already exists", typeName );
 		return;
 	}
 	
-	declType = new( TAG_DECL ) idDeclType;
+	auto declType = new( TAG_DECL ) idDeclType;
 	declType->typeName = typeName;
 	declType->type = type;
 	declType->allocator = allocator;
@@ -1200,7 +1184,7 @@ int idDeclManagerLocal::GetChecksum() const
 	}
 	
 	LittleRevBytes( checksumData, sizeof( int ), total * 2 );
-	return MD5_BlockChecksum( checksumData, total * 2 * sizeof( int ) );
+	return idHashing::MD5_BlockChecksum( checksumData, total * 2 * sizeof( int ) );
 }
 
 /*
@@ -1236,9 +1220,7 @@ idDeclManagerLocal::GetDeclTypeFromName
 */
 declType_t idDeclManagerLocal::GetDeclTypeFromName( const char* typeName ) const
 {
-	int i;
-	
-	for( i = 0; i < declTypes.Num(); i++ )
+	for( int i = 0; i < declTypes.Num(); i++ )
 	{
 		if( declTypes[i] && declTypes[i]->typeName.Icmp( typeName ) == 0 )
 		{
@@ -1305,8 +1287,7 @@ idDeclManagerLocal::FindDeclWithoutParsing
 */
 const idDecl* idDeclManagerLocal::FindDeclWithoutParsing( declType_t type, const char* name, bool makeDefault )
 {
-	idDeclLocal* decl;
-	decl = FindTypeWithoutParsing( type, name, makeDefault );
+	idDeclLocal* decl = FindTypeWithoutParsing( type, name, makeDefault );
 	if( decl )
 	{
 		return decl->self;
@@ -1802,9 +1783,7 @@ idDeclManagerLocal::MakeNameCanonical
 */
 void idDeclManagerLocal::MakeNameCanonical( const char* name, char* result, int maxLength )
 {
-	int i, lastDot;
-	
-	lastDot = -1;
+	int i, lastDot = -1;
 	for( i = 0; i < maxLength && name[i] != '\0'; i++ )
 	{
 		int c = name[i];
@@ -1846,17 +1825,15 @@ void idDeclManagerLocal::ListDecls_f( const idCmdArgs& args )
 	
 	for( i = 0; i < declManagerLocal.declTypes.Num(); i++ )
 	{
-		int size, num;
-		
 		if( declManagerLocal.declTypes[i] == NULL )
 		{
 			continue;
 		}
 		
-		num = declManagerLocal.linearLists[i].Num();
+		int num = declManagerLocal.linearLists[i].Num();
 		totalDecls += num;
 		
-		size = 0;
+		size_t size = 0;
 		for( j = 0; j < num; j++ )
 		{
 			size += declManagerLocal.linearLists[i][j]->Size();
@@ -2073,7 +2050,6 @@ idDeclManagerLocal::ConvertPDAsToStrings
 */
 void idDeclManagerLocal::ConvertPDAsToStrings( const idCmdArgs& args )
 {
-
 	idStr pdaStringsFileName = "temppdas/pdas.lang";
 	idFileLocal file( fileSystem->OpenFileWrite( pdaStringsFileName ) );
 	
@@ -2442,7 +2418,7 @@ void idDeclLocal::SetTextLocal( const char* text, const int length )
 
 	Mem_Free( textSource );
 	
-	checksum = MD5_BlockChecksum( text, length );
+	checksum = idHashing::MD5_BlockChecksum( text, length );
 	
 #ifdef GET_HUFFMAN_FREQUENCIES
 	for( int i = 0; i < length; i++ )
@@ -2510,7 +2486,7 @@ bool idDeclLocal::ReplaceSourceFileText()
 		file->Read( buffer.Ptr(), oldFileLength );
 		fileSystem->CloseFile( file );
 		
-		if( MD5_BlockChecksum( buffer.Ptr(), oldFileLength ) != ( unsigned int )sourceFile->checksum )
+		if( idHashing::MD5_BlockChecksum( buffer.Ptr(), oldFileLength ) != ( unsigned int )sourceFile->checksum )
 		{
 			common->Warning( "The file %s has been modified outside of the engine.", GetFileName() );
 			return false;
@@ -2535,7 +2511,7 @@ bool idDeclLocal::ReplaceSourceFileText()
 	
 	// set new file size, checksum and timestamp
 	sourceFile->fileSize = newFileLength;
-	sourceFile->checksum = MD5_BlockChecksum( buffer.Ptr(), newFileLength );
+	sourceFile->checksum = idHashing::MD5_BlockChecksum( buffer.Ptr(), newFileLength );
 	fileSystem->ReadFile( GetFileName(), NULL, &sourceFile->timestamp );
 	
 	// move all decls in the same file
@@ -2641,10 +2617,7 @@ idDeclLocal::Parse
 */
 bool idDeclLocal::Parse( const char* text, const int textLength, bool allowBinaryVersion )
 {
-	idLexer src;
-	
-	src.LoadMemory( text, textLength, GetFileName(), GetLineNum() );
-	src.SetFlags( DECL_LEXER_FLAGS );
+	idLexer src( text, textLength, GetFileName(), DECL_LEXER_FLAGS, GetLineNum() );
 	src.SkipUntilString( "{" );
 	src.SkipBracedSection( false );
 	return true;

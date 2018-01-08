@@ -26,7 +26,7 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
-#include "precompiled.h"
+#include "../precompiled.h"
 #pragma hdrstop
 
 /*
@@ -126,9 +126,8 @@ will point into this temporary buffer.
 */
 void idCmdArgs::TokenizeString( const char* text, bool keepAsStrings )
 {
-	idLexer		lex;
-	idToken		token, number;
-	int			len, totalLen;
+	idToken	token, number;
+	int	len, totalLen;
 	
 	// clear previous args
 	argc = 0;
@@ -138,13 +137,9 @@ void idCmdArgs::TokenizeString( const char* text, bool keepAsStrings )
 		return;
 	}
 	
-	lex.LoadMemory( text, strlen( text ), "idCmdSystemLocal::TokenizeString" );
-	lex.SetFlags( LEXFL_NOERRORS
-				  | LEXFL_NOWARNINGS
-				  | LEXFL_NOSTRINGCONCAT
-				  | LEXFL_ALLOWPATHNAMES
-				  | LEXFL_NOSTRINGESCAPECHARS
-				  | LEXFL_ALLOWIPADDRESSES | ( keepAsStrings ? LEXFL_ONLYSTRINGS : 0 ) );
+	idLexer lex( LEXFL_NOERRORS | LEXFL_NOWARNINGS | LEXFL_NOSTRINGCONCAT | LEXFL_ALLOWPATHNAMES | 
+		LEXFL_NOSTRINGESCAPECHARS | LEXFL_ALLOWIPADDRESSES | ( keepAsStrings ? LEXFL_ONLYSTRINGS : 0 ) );
+	lex.LoadMemory( text, idStr::Length( text ), "idCmdSystemLocal::TokenizeString" );
 				  
 	totalLen = 0;
 	
@@ -222,7 +217,7 @@ void idCmdArgs::AppendArg( const char* text )
 	}
 	else
 	{
-		argv[ argc ] = argv[ argc - 1 ] + strlen( argv[ argc - 1 ] ) + 1;
+		argv[ argc ] = argv[ argc - 1 ] + idStr::Length( argv[ argc - 1 ] ) + 1;
 		idStr::Copynz( argv[ argc ], text, sizeof( tokenized ) - ( argv[ argc ] - tokenized ) );
 		argc++;
 	}
