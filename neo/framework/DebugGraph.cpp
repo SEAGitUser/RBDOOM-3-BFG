@@ -167,7 +167,7 @@ void idDebugGraph::Render( idRenderSystem* gui )
 			int maxLen = 0;
 			for( int i = 0; i < labels.Num(); i++ )
 			{
-				maxLen = Max( maxLen, labels[i].Length() );
+				maxLen = idMath::Max( maxLen, labels[i].Length() );
 			}
 			idVec4 rect( position );
 			rect.x -= SMALLCHAR_WIDTH * maxLen;

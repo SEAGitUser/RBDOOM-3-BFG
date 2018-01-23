@@ -2271,7 +2271,7 @@ void idPhysics_Player::SetPushedWithAbnormalVelocityHack( int deltaTime )
 	//
 	const float ABNORMAL_VELOCITY = 600.0f;		// anything with a magnitude of this or higher will be ignored
 	const float len = velocity.LengthSqr();
-	if( len >= Square( ABNORMAL_VELOCITY ) )
+	if( len >= idMath::Square( ABNORMAL_VELOCITY ) )
 	{
 		velocity.Zero();	// just ignore the large velocity change completely
 	}

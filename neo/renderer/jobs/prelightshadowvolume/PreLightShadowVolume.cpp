@@ -47,8 +47,8 @@ void PreLightShadowVolumeJob( const preLightShadowVolumeParms_t* parms )
 	{
 		// NOTE: pre-light shadow volumes typically cover the whole light volume so
 		// there is no real point in trying to calculate tighter depth bounds here
-		shadowZMin = Max( shadowZMin, parms->lightZMin );
-		shadowZMax = Min( shadowZMax, parms->lightZMax );
+		shadowZMin = idMath::Max( shadowZMin, parms->lightZMin );
+		shadowZMax = idMath::Min( shadowZMax, parms->lightZMax );
 	}
 	
 	bool renderZFail = false;

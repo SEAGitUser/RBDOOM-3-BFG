@@ -328,7 +328,7 @@ public:
 	
 	const usercmd_t& NewestUserCmdForPlayer( int playerIndex )
 	{
-		int index = Max( writeFrame[ playerIndex ] - 1, 0 );
+		int index = idMath::Max( writeFrame[ playerIndex ] - 1, 0 );
 		return cmdBuffer[ index % USERCMD_BUFFER_SIZE ][ playerIndex ];
 	}
 	
@@ -403,7 +403,7 @@ public:
 		// Similar to MakeReadPtrCurrentForPlayer, except:
 		// -After calling this, HasUserCmdForPlayer() will return TRUE iff there was >= 1 fresh cmd in the buffer
 		// Also, If there are no fresh frames, we wont roll the readFrame back
-		readFrame[ playerIndex ] = Max( readFrame[ playerIndex ], writeFrame[ playerIndex ] - 2 );
+		readFrame[ playerIndex ] = idMath::Max( readFrame[ playerIndex ], writeFrame[ playerIndex ] - 2 );
 	}
 	
 	int GetNumUnreadFrames( int playerIndex )
@@ -414,7 +414,7 @@ public:
 	int GetPlayerCmds( int user, usercmd_t** buffer, const int bufferSize )
 	{
 		// Fallback to getting cmds from the userCmdMgr
-		int start = Max( writeFrame[user] - Min( bufferSize, USERCMD_BUFFER_SIZE ), 0 );
+		int start = idMath::Max( writeFrame[user] - idMath::Min( bufferSize, USERCMD_BUFFER_SIZE ), 0 );
 		int numCmds = writeFrame[user] - start;
 		
 		for( int i = 0; i < numCmds; i++ )

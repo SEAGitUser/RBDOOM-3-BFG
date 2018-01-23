@@ -180,9 +180,7 @@ idQueue<type,nodePtr>::RemoveFirst
 template< typename type, idQueueNode<type> type::*nodePtr >
 type* idQueue<type, nodePtr>::RemoveFirst()
 {
-	type* element;
-	
-	element = first;
+	type* element = first;
 	if( element )
 	{
 		first = ( first->*nodePtr ).GetNext();

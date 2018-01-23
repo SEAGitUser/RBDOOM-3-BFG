@@ -286,7 +286,7 @@ void idSoundChannel::UpdateVolume( int currentTime )
 		else if( ( distance > mindist ) && ( maxdist > mindist ) )
 		{
 			float f = ( distance - mindist ) / ( maxdist - mindist );
-			newVolumeDB += LinearToDB( Square( 1.0f - f ) );
+			newVolumeDB += LinearToDB( idMath::Square( 1.0f - f ) );
 		}
 	}
 	
@@ -342,11 +342,11 @@ void idSoundChannel::UpdateHardware( float volumeAdd, int currentTime )
 	}
 	
 	// convert volumes from decibels to linear
-	float volume = Max( 0.0f, DBtoLinear( volumeDB + volumeAdd ) );
+	float volume = idMath::Max( 0.0f, DBtoLinear( volumeDB + volumeAdd ) );
 	
 	if( ( parms.soundShaderFlags & SSF_UNCLAMPED ) == 0 )
 	{
-		volume = Min( 1.0f, volume );
+		volume = idMath::Min( 1.0f, volume );
 	}
 	
 	bool global = ( parms.soundShaderFlags & SSF_GLOBAL ) != 0;
@@ -1159,11 +1159,11 @@ float idSoundEmitterLocal::CurrentAmplitude()
 		int leadinLength = chan->leadinSample->LengthInMsec();
 		if( relativeTime < leadinLength )
 		{
-			amplitude = Max( amplitude, chan->leadinSample->GetAmplitude( relativeTime ) );
+			amplitude = idMath::Max( amplitude, chan->leadinSample->GetAmplitude( relativeTime ) );
 		}
 		else if( chan->loopingSample != NULL )
 		{
-			amplitude = Max( amplitude, chan->loopingSample->GetAmplitude( ( relativeTime - leadinLength ) % chan->loopingSample->LengthInMsec() ) );
+			amplitude = idMath::Max( amplitude, chan->loopingSample->GetAmplitude( ( relativeTime - leadinLength ) % chan->loopingSample->LengthInMsec() ) );
 		}
 	}
 	return amplitude;

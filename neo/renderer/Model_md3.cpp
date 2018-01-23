@@ -329,7 +329,7 @@ idRenderModel* idRenderModelMD3::InstantiateDynamicModel( const struct renderEnt
 		auto* tri = idTriangles::AllocStatic();
 		tri->AllocStaticVerts( surface->numVerts );
 		tri->AllocStaticIndexes( surface->numTriangles * 3 );
-		tri->bounds.Clear();
+		tri->ClearBounds();
 		
 		modelSurface_t	surf;
 		
@@ -359,8 +359,8 @@ idRenderModel* idRenderModelMD3::InstantiateDynamicModel( const struct renderEnt
 		tri->DeriveBounds();
 		
 		staticModel->AddSurface( surf );
-		staticModel->bounds.AddPoint( surf.geometry->bounds[0] );
-		staticModel->bounds.AddPoint( surf.geometry->bounds[1] );
+		staticModel->bounds.AddPoint( surf.geometry->GetBounds()[0] );
+		staticModel->bounds.AddPoint( surf.geometry->GetBounds()[1] );
 		
 		// find the next surface
 		surface = ( md3Surface_t* )( ( byte* )surface + surface->ofsEnd );

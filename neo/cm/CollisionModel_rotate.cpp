@@ -1384,13 +1384,13 @@ void idCollisionModelManagerLocal::BoundsForRotation( const idVec3& origin, cons
 		{
 			if( ( 0.5f * ( start[i] + end[i] ) - origin[i] ) > 0.0f )
 			{
-				bounds[0][i] = Min( start[i], end[i] );
+				bounds[0][i] = idMath::Min( start[i], end[i] );
 				bounds[1][i] = origin[i] + idMath::Sqrt( radiusSqr * ( 1.0f - axis[i] * axis[i] ) );
 			}
 			else
 			{
 				bounds[0][i] = origin[i] - idMath::Sqrt( radiusSqr * ( 1.0f - axis[i] * axis[i] ) );
-				bounds[1][i] = Max( start[i], end[i] );
+				bounds[1][i] = idMath::Max( start[i], end[i] );
 			}
 		}
 		else if( start[i] > end[i] )

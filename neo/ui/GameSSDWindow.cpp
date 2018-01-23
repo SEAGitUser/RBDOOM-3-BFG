@@ -464,7 +464,7 @@ void SSDAsteroid::Init( idGameSSDWindow* _game, const idVec3& startPosition, con
 	
 	SetMaterial( ASTEROID_MATERIAL );
 	SetSize( _size );
-	SetRadius( Max( size.x, size.y ), 0.3f );
+	SetRadius( idMath::Max( size.x, size.y ), 0.3f );
 	SetRotation( game->random.RandomInt( 360 ) );
 	
 	
@@ -579,7 +579,7 @@ void SSDAstronaut::Init( idGameSSDWindow* _game, const idVec3& startPosition, fl
 	
 	SetMaterial( ASTRONAUT_MATERIAL );
 	SetSize( idVec2( 256, 256 ) );
-	SetRadius( Max( size.x, size.y ), 0.3f );
+	SetRadius( idMath::Max( size.x, size.y ), 0.3f );
 	SetRotation( game->random.RandomInt( 360 ) );
 	
 	position = startPosition;
@@ -1265,7 +1265,7 @@ void SSDPowerup::Init( idGameSSDWindow* _game, float _speed, float _rotation )
 	
 	SetGame( _game );
 	SetSize( idVec2( 200, 200 ) );
-	SetRadius( Max( size.x, size.y ), 0.3f );
+	SetRadius( idMath::Max( size.x, size.y ), 0.3f );
 	
 	type = SSD_ENTITY_POWERUP;
 	
@@ -1922,7 +1922,7 @@ void idGameSSDWindow::LevelComplete()
 	{
 		accuracy = ( int )( ( ( float )gameStats.levelStats.hitCount / ( float )gameStats.levelStats.shotCount ) * 100.0f );
 	}
-	int accuracyPoints = Max( 0, accuracy - 50 ) * 20;
+	int accuracyPoints = idMath::Max( 0, accuracy - 50 ) * 20;
 	
 	gui->SetStateString( "player_accuracy_score", va( "%i", accuracyPoints ) );
 	
@@ -1938,7 +1938,7 @@ void idGameSSDWindow::LevelComplete()
 	{
 		saveAccuracy = ( int )( ( ( float )gameStats.levelStats.savedAstronauts / ( float )totalAst ) * 100.0f );
 	}
-	accuracyPoints = Max( 0, saveAccuracy - 50 ) * 20;
+	accuracyPoints = idMath::Max( 0, saveAccuracy - 50 ) * 20;
 	
 	gui->SetStateString( "save_accuracy_score", va( "%i", accuracyPoints ) );
 	
@@ -2306,7 +2306,7 @@ void idGameSSDWindow::AddDamage( int damage )
 void idGameSSDWindow::AddHealth( int health )
 {
 	gameStats.health += health;
-	gameStats.health = Min( 100, gameStats.health );
+	gameStats.health = idMath::Min( 100, gameStats.health );
 }
 
 

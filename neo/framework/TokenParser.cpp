@@ -101,7 +101,7 @@ bool idTokenParser::StartParsing( const char* filename )
 		}
 	}
 	currentToken = 0;
-	return ( currentTokenList != -1 );
+	return( currentTokenList != -1 );
 }
 
 bool idTokenParser::ReadToken( idToken* tok )
@@ -118,30 +118,30 @@ bool idTokenParser::ReadToken( idToken* tok )
 	}
 	return false;
 }
-int	idTokenParser::ExpectTokenString( const char* string )
+bool idTokenParser::ExpectTokenString( const char* string )
 {
 	idToken token;
 	if( !ReadToken( &token ) )
 	{
 		Error( "couldn't find expected '%s'", string );
-		return 0;
+		return false;
 	}
 	if( token != string )
 	{
 		Error( "expected '%s' but found '%s'", string, token.c_str() );
-		return 0;
+		return false;
 	}
-	return 1;
+	return true;
 }
 // expect a certain token type
-int	idTokenParser::ExpectTokenType( int type, int subtype, idToken* token )
+bool idTokenParser::ExpectTokenType( int type, int subtype, idToken* token )
 {
 	idStr str;
 	
 	if( !ReadToken( token ) )
 	{
 		Error( "couldn't read expected token" );
-		return 0;
+		return false;
 	}
 	
 	if( token->type != type )
@@ -168,7 +168,7 @@ int	idTokenParser::ExpectTokenType( int type, int subtype, idToken* token )
 				break;
 		}
 		Error( "expected a %s but found '%s'", str.c_str(), token->c_str() );
-		return 0;
+		return false;
 	}
 	if( token->type == TT_NUMBER )
 	{
@@ -185,7 +185,7 @@ int	idTokenParser::ExpectTokenType( int type, int subtype, idToken* token )
 			if( subtype & TT_INTEGER ) str += "integer ";
 			str.StripTrailing( ' ' );
 			Error( "expected %s but found '%s'", str.c_str(), token->c_str() );
-			return 0;
+			return false;
 		}
 	}
 	else if( token->type == TT_PUNCTUATION )
@@ -193,25 +193,25 @@ int	idTokenParser::ExpectTokenType( int type, int subtype, idToken* token )
 		if( subtype < 0 )
 		{
 			Error( "BUG: wrong punctuation subtype" );
-			return 0;
+			return false;
 		}
 		if( token->subtype != subtype )
 		{
 			//Error( "expected '%s' but found '%s'", idLexer::GetPunctuationFromId( subtype ), token->c_str() );
-			return 0;
+			return false;
 		}
 	}
-	return 1;
+	return true;
 }
 // expect a token
-int idTokenParser::ExpectAnyToken( idToken* token )
+bool idTokenParser::ExpectAnyToken( idToken* token )
 {
 	if( !ReadToken( token ) )
 	{
 		Error( "couldn't read expected token" );
-		return 0;
+		return false;
 	}
-	return 1;
+	return true;
 }
 
 void idTokenParser::UnreadToken( const idToken* token )
@@ -272,7 +272,7 @@ bool idTokenParser::ParseBool()
 		Error( "couldn't read expected boolean" );
 		return false;
 	}
-	return ( token.GetIntValue() != 0 );
+	return( token.GetIntValue() != 0 );
 }
 // read a floating point number.  If errorFlag is NULL, a non-numeric token will
 // issue an Error().  If it isn't NULL, it will issue a Warning() and set *errorFlag = true

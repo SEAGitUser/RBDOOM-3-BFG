@@ -275,7 +275,7 @@ template< class type, int size >
 ID_INLINE void idStaticList<type, size>::SetNum( int newNum, const type& initValue )
 {
 	assert( newNum >= 0 );
-	newNum = Min( newNum, size );
+	newNum = idMath::Min( newNum, size );
 	assert( newNum <= size );
 	for( int i = num; i < newNum; i++ )
 	{

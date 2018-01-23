@@ -2699,7 +2699,7 @@ void idAI::BlockedFailSafe()
 		return;
 	}
 	if( !physicsObj.OnGround() || enemy.GetEntity() == NULL ||
-			( physicsObj.GetOrigin() - move.lastMoveOrigin ).LengthSqr() > Square( blockedRadius ) )
+			( physicsObj.GetOrigin() - move.lastMoveOrigin ).LengthSqr() > idMath::Square( blockedRadius ) )
 	{
 		move.lastMoveOrigin = physicsObj.GetOrigin();
 		move.lastMoveTime = gameLocal.time;
@@ -2816,14 +2816,12 @@ idAI::FacingIdeal
 */
 bool idAI::FacingIdeal()
 {
-	float diff;
-	
 	if( !turnRate )
 	{
 		return true;
 	}
 	
-	diff = idMath::AngleNormalize180( current_yaw - ideal_yaw );
+	float diff = idMath::AngleNormalize180( current_yaw - ideal_yaw );
 	if( idMath::Fabs( diff ) < 0.01f )
 	{
 		// force it to be exact
@@ -2861,7 +2859,7 @@ bool idAI::TurnToward( const idVec3& pos )
 	physicsObj.GetGravityAxis().ProjectVector( dir, local_dir );
 	local_dir.z = 0.0f;
 	lengthSqr = local_dir.LengthSqr();
-	if( lengthSqr > Square( 2.0f ) || ( lengthSqr > Square( 0.1f ) && enemy.GetEntity() == NULL ) )
+	if( lengthSqr > idMath::Square( 2.0f ) || ( lengthSqr > idMath::Square( 0.1f ) && enemy.GetEntity() == NULL ) )
 	{
 		ideal_yaw = idMath::AngleNormalize180( local_dir.ToYaw() );
 	}
@@ -4495,7 +4493,7 @@ void idAI::UpdateEnemyPosition()
 		if( enemyEnt == gameLocal.GetAlertEntity() )
 		{
 			float dist = ( enemyEnt->GetPhysics()->GetOrigin() - org ).LengthSqr();
-			if( dist < Square( AI_HEARING_RANGE ) )
+			if( dist < idMath::Square( AI_HEARING_RANGE ) )
 			{
 				SetEnemyPosition();
 			}

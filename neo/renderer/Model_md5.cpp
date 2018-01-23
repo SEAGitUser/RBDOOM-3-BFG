@@ -333,7 +333,7 @@ void idMD5Mesh::ParseMesh( idLexer& parser, int numJoints, const idJointMat* joi
 			maxWeightsPerVert = numWeights;
 		}
 		
-		const int usedWeights = Min( MAX_VERTEX_WEIGHTS, numWeights );
+		const int usedWeights = idMath::Min( MAX_VERTEX_WEIGHTS, numWeights );
 		
 		float totalWeight = 0;
 		for( int j = 0; j < numWeights; ++j )
@@ -381,7 +381,7 @@ void idMD5Mesh::ParseMesh( idLexer& parser, int numJoints, const idJointMat* joi
 		}
 		
 		// Give any left over to the biggest weight
-		finalWeights[0] += Max( 255 - finalWeights[0] - finalWeights[1] - finalWeights[2] - finalWeights[3], 0 );
+		finalWeights[0] += idMath::Max( 255 - finalWeights[0] - finalWeights[1] - finalWeights[2] - finalWeights[3], 0 );
 		
 		dv.color[0] = finalJointIndecies[0];
 		dv.color[1] = finalJointIndecies[1];
@@ -832,7 +832,6 @@ idRenderModelMD5::WriteBinaryModel
 */
 void idRenderModelMD5::WriteBinaryModel( idFile* file, ID_TIME_T* _timeStamp ) const
 {
-
 	idRenderModelStatic::WriteBinaryModel( file );
 	
 	if( file == NULL )
@@ -1399,7 +1398,7 @@ idRenderModel* idRenderModelMD5::InstantiateDynamicModel( const struct renderEnt
 		// the deformation of the tangents can be deferred until each surface is added to the view
 		surf->geometry->staticModelWithJoints = staticModel;
 		
-		staticModel->bounds.AddBounds( surf->geometry->bounds );
+		staticModel->bounds.AddBounds( surf->geometry->GetBounds() );
 	}
 	
 	return staticModel;

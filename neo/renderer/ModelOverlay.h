@@ -57,7 +57,7 @@ compile_time_assert( CONST_ISPOWEROFTWO( MAX_OVERLAYS ) );
 
 struct overlayProjectionParms_t
 {
-	idPlane				localTextureAxis[2];
+	idRenderPlane		localTextureAxis[2];
 	const idMaterial* 	material;
 	int					startTime;
 };

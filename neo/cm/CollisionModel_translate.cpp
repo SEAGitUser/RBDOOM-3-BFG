@@ -958,7 +958,7 @@ void idCollisionModelManagerLocal::Translation( trace_t* results, const idVec3& 
 	}
 	
 	// the trace fraction is too inaccurate to describe translations over huge distances
-	if( tw.dir.LengthSqr() > Square( CM_MAX_TRACE_DIST ) )
+	if( tw.dir.LengthSqr() > idMath::Square( CM_MAX_TRACE_DIST ) )
 	{
 		results->fraction = 0.0f;
 		results->endpos = start;

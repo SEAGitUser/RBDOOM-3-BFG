@@ -2574,10 +2574,8 @@ void idGameLocal::RunFrame( idUserCmdMgr& cmdMgr, gameReturn_t& ret )
 			player->Think();
 		}
 	}
-	else
-	{
-		do
-		{
+	else {
+		do {
 			// update the game time
 			framenum++;
 			fast.previousTime = FRAME_TO_MSEC( framenum - 1 );
@@ -2591,17 +2589,17 @@ void idGameLocal::RunFrame( idUserCmdMgr& cmdMgr, gameReturn_t& ret )
 			slow.time += idMath::Ftoi( ( fast.time - fast.previousTime ) * slowmoScale );
 			slow.realClientTime = slow.time;
 			
-			SelectTimeGroup( false );
+			SelectTimeGroup( 0 );
 			
 			DemoWriteGameInfo();
 			
-#ifdef GAME_DLL
+		#ifdef GAME_DLL
 			// allow changing SIMD usage on the fly
 			if( com_forceGenericSIMD.IsModified() )
 			{
 				idSIMD::InitProcessor( "game", com_forceGenericSIMD.GetBool() );
 			}
-#endif
+		#endif
 			
 			// make sure the random number counter is used each frame so random events
 			// are influenced by the player's actions
@@ -2733,9 +2731,9 @@ void idGameLocal::RunFrame( idUserCmdMgr& cmdMgr, gameReturn_t& ret )
 			idEvent::ServiceEvents();
 			
 			// service pending fast events
-			SelectTimeGroup( true );
+			SelectTimeGroup( 1 );
 			idEvent::ServiceFastEvents();
-			SelectTimeGroup( false );
+			SelectTimeGroup( 0 );
 			
 			timer_events.Stop();
 			
@@ -5440,14 +5438,7 @@ idGameLocal::GetTimeGroupTime
 */
 int idGameLocal::GetTimeGroupTime( int timeGroup )
 {
-	if( timeGroup )
-	{
-		return fast.time;
-	}
-	else
-	{
-		return slow.time;
-	}
+	return ( timeGroup )? fast.time : slow.time;
 }
 
 /*
@@ -5457,7 +5448,6 @@ idGameLocal::ComputeSlowScale
 */
 void idGameLocal::ComputeSlowScale()
 {
-
 	// check if we need to do a quick reset
 	if( quickSlowmoReset )
 	{

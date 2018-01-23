@@ -2329,7 +2329,7 @@ void idMultiplayerGame::DrawChat( idPlayer* player )
 			i = chatHistoryIndex - chatHistorySize;
 			while( i < chatHistoryIndex )
 			{
-				player->AddChatMessage( j, Min( 4, ( int )chatHistory[ i % NUM_CHAT_NOTIFY ].fade ), chatHistory[ i % NUM_CHAT_NOTIFY ].line );
+				player->AddChatMessage( j, idMath::Min( 4, ( int )chatHistory[ i % NUM_CHAT_NOTIFY ].fade ), chatHistory[ i % NUM_CHAT_NOTIFY ].line );
 				j++;
 				i++;
 			}

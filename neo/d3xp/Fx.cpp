@@ -550,7 +550,7 @@ void idEntityFx::Run( int time )
 					for( j = 0; j < gameLocal.numClients; j++ )
 					{
 						idPlayer* player = gameLocal.GetClientByNum( j );
-						if( player && ( player->GetPhysics()->GetOrigin() - GetPhysics()->GetOrigin() ).LengthSqr() < Square( fxaction.shakeDistance ) )
+						if( player && ( player->GetPhysics()->GetOrigin() - GetPhysics()->GetOrigin() ).LengthSqr() < idMath::Square( fxaction.shakeDistance ) )
 						{
 							if( !common->IsMultiplayer() || !fxaction.shakeIgnoreMaster || GetBindMaster() != player )
 							{

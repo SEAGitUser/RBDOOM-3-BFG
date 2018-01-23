@@ -232,9 +232,9 @@ void idImage::GenerateImage( const byte* pic, int width, int height, int depth, 
 	layout = IMG_LAYOUT_2D;
 	
 	opts.textureType = TT_2D;
-	opts.width = Max( width, 1 );
-	opts.height = Max( height, 1 );
-	opts.depth = Max( depth, 1 );
+	opts.width = idMath::Max( width, 1 );
+	opts.height = idMath::Max( height, 1 );
+	opts.depth = idMath::Max( depth, 1 );
 	opts.numLevels = 0;
 	opts.numSamples = msaaSamples;
 	DeriveOpts();
@@ -299,8 +299,8 @@ void idImage::GenerateCubeImage( const byte* pic[6], int size, int depth, textur
 	layout = IMG_LAYOUT_CUBE_NATIVE;
 	
 	opts.textureType = TT_CUBIC;
-	opts.width = opts.height = Max( size, 1 );
-	opts.depth = Max( depth, 1 );
+	opts.width = opts.height = idMath::Max( size, 1 );
+	opts.depth = idMath::Max( depth, 1 );
 	opts.numLevels = 0;
 	opts.numSamples = 1;
 	DeriveOpts();
@@ -362,9 +362,9 @@ void idImage::Generate3DImage( const byte* pic, int width, int height, int depth
 	layout = IMG_LAYOUT_2D;
 
 	opts.textureType = TT_3D;
-	opts.width = Max( width, 1 );
-	opts.height = Max( height, 1 );
-	opts.depth = Max( depth, 1 );
+	opts.width = idMath::Max( width, 1 );
+	opts.height = idMath::Max( height, 1 );
+	opts.depth = idMath::Max( depth, 1 );
 	opts.numLevels = 0;
 	opts.numSamples = 1;
 	DeriveOpts();
@@ -692,9 +692,7 @@ MakePowerOfTwo
 int MakePowerOfTwo( int num )
 {
 	int	pot;
-	for( pot = 1; pot < num; pot <<= 1 )
-	{
-	}
+	for( pot = 1; pot < num; pot <<= 1 ) {}
 	return pot;
 }
 

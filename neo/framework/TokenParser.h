@@ -149,12 +149,12 @@ public:
 	
 	bool IsLoaded()
 	{
-		return tokens.Num() > 0;
+		return( tokens.Num() > 0 );
 	}
 	bool ReadToken( idToken* tok );
-	int	ExpectTokenString( const char* string );
-	int	ExpectTokenType( int type, int subtype, idToken* token );
-	int ExpectAnyToken( idToken* token );
+	bool ExpectTokenString( const char* string );
+	bool ExpectTokenType( int type, int subtype, idToken* token );
+	bool ExpectAnyToken( idToken* token );
 	void SetMarker() {}
 	void UnreadToken( const idToken* token );
 	void Error( VERIFY_FORMAT_STRING const char* str, ... ) ID_INSTANCE_ATTRIBUTE_PRINTF( 1, 2 );

@@ -570,7 +570,7 @@ void idUsercmdGenLocal::CircleToSquare( float& axis_x, float& axis_y ) const
 	float axis_y_us = axis_y / axis_x;
 	
 	// use a power curve to shift the correction to happen closer to the unit circle
-	float correctionRatio = Square( len );
+	float correctionRatio = idMath::Square( len );
 	axis_x += correctionRatio * ( len - axis_x );
 	axis_y += correctionRatio * ( axis_y_us - axis_y );
 	
@@ -676,7 +676,7 @@ void idUsercmdGenLocal::HandleJoystickAxis( int keyNum, float unclampedValue, fl
 		{
 			if( joy_dampenLook.GetBool() )
 			{
-				lookValue = Min( lookValue, ( pollTime - lastPollTime ) * joy_deltaPerMSLook.GetFloat() + lastLookValuePitch );
+				lookValue = idMath::Min( lookValue, ( pollTime - lastPollTime ) * joy_deltaPerMSLook.GetFloat() + lastLookValuePitch );
 				lastLookValuePitch = lookValue;
 			}
 			
@@ -688,7 +688,7 @@ void idUsercmdGenLocal::HandleJoystickAxis( int keyNum, float unclampedValue, fl
 		{
 			if( joy_dampenLook.GetBool() )
 			{
-				lookValue = Min( lookValue, ( pollTime - lastPollTime ) * joy_deltaPerMSLook.GetFloat() + lastLookValuePitch );
+				lookValue = idMath::Min( lookValue, ( pollTime - lastPollTime ) * joy_deltaPerMSLook.GetFloat() + lastLookValuePitch );
 				lastLookValuePitch = lookValue;
 			}
 			
@@ -700,7 +700,7 @@ void idUsercmdGenLocal::HandleJoystickAxis( int keyNum, float unclampedValue, fl
 		{
 			if( joy_dampenLook.GetBool() )
 			{
-				lookValue = Min( lookValue, ( pollTime - lastPollTime ) * joy_deltaPerMSLook.GetFloat() + lastLookValueYaw );
+				lookValue = idMath::Min( lookValue, ( pollTime - lastPollTime ) * joy_deltaPerMSLook.GetFloat() + lastLookValueYaw );
 				lastLookValueYaw = lookValue;
 			}
 			viewangles[YAW] += MS2SEC( pollTime - lastPollTime ) * lookValue * joy_yawSpeed.GetFloat();
@@ -710,7 +710,7 @@ void idUsercmdGenLocal::HandleJoystickAxis( int keyNum, float unclampedValue, fl
 		{
 			if( joy_dampenLook.GetBool() )
 			{
-				lookValue = Min( lookValue, ( pollTime - lastPollTime ) * joy_deltaPerMSLook.GetFloat() + lastLookValueYaw );
+				lookValue = idMath::Min( lookValue, ( pollTime - lastPollTime ) * joy_deltaPerMSLook.GetFloat() + lastLookValueYaw );
 				lastLookValueYaw = lookValue;
 			}
 			viewangles[YAW] -= MS2SEC( pollTime - lastPollTime ) * lookValue * joy_yawSpeed.GetFloat();
@@ -788,11 +788,11 @@ idVec2 JoypadFunction(
 			float t;
 			if( v > 0.0f )
 			{
-				t = Max( 0.0f, v - threshold );
+				t = idMath::Max( 0.0f, v - threshold );
 			}
 			else
 			{
-				t = Min( 0.0f, v + threshold );
+				t = idMath::Min( 0.0f, v + threshold );
 			}
 			threshed[i] = t;
 		}
@@ -803,7 +803,7 @@ idVec2 JoypadFunction(
 		// but you tend to slide off axis based on which side your thumb is
 		// on the pad
 		const float	rawLength = raw.Length();
-		const float	afterThreshold = Max( 0.0f, rawLength - threshold );
+		const float	afterThreshold = idMath::Max( 0.0f, rawLength - threshold );
 		
 		idVec2 rawDir = raw;
 		rawDir.Normalize();
@@ -874,7 +874,7 @@ void	DrawJoypadTexture(
 	idVec2	clamped;
 	for( int i = 0 ; i < 2 ; i++ )
 	{
-		clamped[i] = Max( -1.0f, Min( raw[i], 1.0f ) );
+		clamped[i] = idMath::Max( -1.0f, idMath::Min( raw[i], 1.0f ) );
 	}
 	
 	const int halfSize = size / 2;
@@ -889,8 +889,7 @@ void	DrawJoypadTexture(
 	{
 		const float	v = ( float )i / ( size - 1 );
 		
-		const idVec2 mapped = JoypadFunction(
-								  idVec2( v, 0.0f ), 1.0f, threshold, range, shape, mergedThreshold );
+		const idVec2 mapped = JoypadFunction( idVec2( v, 0.0f ), 1.0f, threshold, range, shape, mergedThreshold );
 		if( mapped.x > ringValue[ ringNum ] )
 		{
 			ringSizes[ ringNum ] = v * halfSize;
@@ -906,8 +905,8 @@ void	DrawJoypadTexture(
 #define PLOT(x,y) ((int *)image)[(int)(y)*size+(int)(x)]=0xffffffff
 #define CPLOT(x,y) ((int *)image)[(int)(halfSize+y)*size+(int)(halfSize+x)]=0xffffffff
 	
-	int	clampedX = halfSize + Min( halfSize - 1, ( int )( halfSize * clamped.x ) );
-	int	clampedY = halfSize + Min( halfSize - 1, ( int )( halfSize * clamped.y ) );
+	int	clampedX = halfSize + idMath::Min( halfSize - 1, ( int )( halfSize * clamped.x ) );
+	int	clampedY = halfSize + idMath::Min( halfSize - 1, ( int )( halfSize * clamped.y ) );
 	
 	// draw the box edge outline and center lines
 	for( int i = 0 ; i < size ; i++ )

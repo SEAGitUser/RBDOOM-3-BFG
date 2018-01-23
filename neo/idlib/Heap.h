@@ -1180,7 +1180,7 @@ idDynamicBlock<type>* idDynamicBlockAlloc<type, baseBlockSize, minBlockSize, _ta
 	}
 	else if( allowAllocs )
 	{
-		int allocSize = Max( baseBlockSize, alignedBytes + ( int )sizeof( idDynamicBlock<type> ) );
+		int allocSize = idMath::Max( baseBlockSize, alignedBytes + ( int )sizeof( idDynamicBlock<type> ) );
 		block = ( idDynamicBlock<type>* ) Mem_Alloc16( allocSize, _tag_ );
 		if( lockMemory )
 		{
@@ -1258,7 +1258,7 @@ idDynamicBlock<type>* idDynamicBlockAlloc<type, baseBlockSize, minBlockSize, _ta
 	}
 	
 	// if the unused space at the end of this block is large enough to hold a block with at least one element
-	if( block->GetSize() - alignedBytes - ( int )sizeof( idDynamicBlock<type> ) < Max( minBlockSize, ( int )sizeof( type ) ) )
+	if( block->GetSize() - alignedBytes - ( int )sizeof( idDynamicBlock<type> ) < idMath::Max( minBlockSize, ( int )sizeof( type ) ) )
 	{
 		return block;
 	}

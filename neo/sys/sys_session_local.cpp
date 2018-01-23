@@ -2463,7 +2463,7 @@ void idSessionLocal::UpdateSignInManager()
 	// Get the number of desired signed in local users depending on what mode we're in.
 	//=================================================================================
 	int minDesiredUsers = 0;
-	int maxDesiredUsers = Max( 1, signInManager->GetNumLocalUsers() );
+	int maxDesiredUsers = idMath::Max( 1, signInManager->GetNumLocalUsers() );
 	
 	if( si_splitscreen.GetInteger() != 0 )
 	{
@@ -3744,7 +3744,7 @@ void idSessionLocal::SendVoiceAudio()
 		byte buffer[MAX_VDP_DATA_SIZE];
 		
 		const int titleStorageDataSize = session->GetTitleStorageInt( "MAX_VDP_DATA_SIZE", 1000 );
-		const int dataSizeAvailable = Min< int >( titleStorageDataSize, sizeof( buffer ) );
+		const int dataSizeAvailable = idMath::Min< int >( titleStorageDataSize, sizeof( buffer ) );
 		
 		// in-out parameter
 		int dataSize = dataSizeAvailable;

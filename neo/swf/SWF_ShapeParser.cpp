@@ -78,7 +78,7 @@ void idSWFShapeParser::Parse( idSWFBitStream& bitstream, idSWFShape& shape, int 
 				assert( spld.edges[e].end.cp != 0xFFFF );
 				float length1 = ( verts[ spld.edges[e].start.v0 ] - verts[ spld.edges[e].start.v1 ] ).Length();
 				float length2 = ( verts[ spld.edges[e].end.v0 ] - verts[ spld.edges[e].end.v1 ] ).Length();
-				int numPoints = 1 + idMath::Ftoi( Max( length1, length2 ) / 10.0f );
+				int numPoints = 1 + idMath::Ftoi( idMath::Max( length1, length2 ) / 10.0f );
 				for( int ti = 0; ti < numPoints; ti++ )
 				{
 					float t0 = ( ti + 1 ) / ( ( float ) numPoints + 1.0f );
@@ -444,7 +444,7 @@ void idSWFShapeParser::MakeLoops()
 					assert( fill.edges[e1].end.cp != 0xFFFF );
 					float length1 = ( verts[ fill.edges[e1].start.v0 ] - verts[ fill.edges[e1].start.v1 ] ).Length();
 					float length2 = ( verts[ fill.edges[e1].end.v0 ] - verts[ fill.edges[e1].end.v1 ] ).Length();
-					int numPoints = 1 + idMath::Ftoi( Max( length1, length2 ) / 10.0f );
+					int numPoints = 1 + idMath::Ftoi( idMath::Max( length1, length2 ) / 10.0f );
 					for( int ti = 0; ti < numPoints; ti++ )
 					{
 						float t0 = ( ti + 1 ) / ( ( float ) numPoints + 1.0f );

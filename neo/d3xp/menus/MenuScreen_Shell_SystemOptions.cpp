@@ -558,7 +558,7 @@ void idMenuScreen_Shell_SystemOptions::idMenuDataSource_SystemSettings::AdjustFi
 		}
 		case SYSTEM_FIELD_VOLUME:
 		{
-			const float percent = 100.0f * Square( 1.0f - ( s_volume_dB.GetFloat() / DB_SILENCE ) );
+			const float percent = 100.0f * idMath::Square( 1.0f - ( s_volume_dB.GetFloat() / DB_SILENCE ) );
 			const float adjusted = percent + ( float )adjustAmount;
 			const float clamped = idMath::ClampFloat( 0.0f, 100.0f, adjusted );
 			s_volume_dB.SetFloat( DB_SILENCE - ( idMath::Sqrt( clamped / 100.0f ) * DB_SILENCE ) );
@@ -657,7 +657,7 @@ idSWFScriptVar idMenuScreen_Shell_SystemOptions::idMenuDataSource_SystemSettings
 			return LinearAdjust( r_exposure.GetFloat(), 0.0f, 1.0f, 0.0f, 100.0f );
 		case SYSTEM_FIELD_VOLUME:
 		{
-			return 100.0f * Square( 1.0f - ( s_volume_dB.GetFloat() / DB_SILENCE ) );
+			return 100.0f * idMath::Square( 1.0f - ( s_volume_dB.GetFloat() / DB_SILENCE ) );
 		}
 	}
 	return false;

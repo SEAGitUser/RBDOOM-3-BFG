@@ -591,13 +591,13 @@ void idColorSpace::ConvertStereographicHeightMapToNormalMap( byte* normalMap, co
 {
 	for( int i = 0; i < height; i++ )
 	{
-		int previ = Max( i, 0 );
-		int nexti = Min( i + 1, height - 1 );
+		int previ = idMath::Max( i, 0 );
+		int nexti = idMath::Min( i + 1, height - 1 );
 		
 		for( int j = 0; j < width; j++ )
 		{
-			int prevj = Max( j, 0 );
-			int nextj = Min( j + 1, width - 1 );
+			int prevj = idMath::Max( j, 0 );
+			int nextj = idMath::Min( j + 1, width - 1 );
 			
 			idVec3 normal;
 			float pX = scale * ( heightMap[i * width + prevj] - heightMap[i * width + nextj] ) / 255.0f;

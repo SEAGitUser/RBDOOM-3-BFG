@@ -2463,7 +2463,7 @@ bool idDeclLocal::ReplaceSourceFileText()
 	// get length and allocate buffer to hold the file
 	oldFileLength = sourceFile->fileSize;
 	newFileLength = oldFileLength - sourceTextLength + textLength;
-	idTempArray<char> buffer( Max( newFileLength, oldFileLength ) );
+	idTempArray<char> buffer( idMath::Max( newFileLength, oldFileLength ) );
 	memset( buffer.Ptr(), 0, buffer.Size() );
 	
 	// read original file

@@ -40,14 +40,11 @@ idBounds::GetRadius
 */
 float idBounds::GetRadius() const
 {
-	int		i;
-	float	total, b0, b1;
-	
-	total = 0.0f;
-	for( i = 0; i < 3; i++ )
+	float total = 0.0f;
+	for( int i = 0; i < 3; i++ )
 	{
-		b0 = ( float )idMath::Fabs( b[0][i] );
-		b1 = ( float )idMath::Fabs( b[1][i] );
+		float b0 = idMath::Fabs( b[0][i] );
+		float b1 = idMath::Fabs( b[1][i] );
 		if( b0 > b1 )
 		{
 			total += b0 * b0;
@@ -67,14 +64,11 @@ idBounds::GetRadius
 */
 float idBounds::GetRadius( const idVec3& center ) const
 {
-	int		i;
-	float	total, b0, b1;
-	
-	total = 0.0f;
-	for( i = 0; i < 3; i++ )
+	float total = 0.0f;
+	for( int i = 0; i < 3; i++ )
 	{
-		b0 = ( float )idMath::Fabs( center[i] - b[0][i] );
-		b1 = ( float )idMath::Fabs( b[1][i] - center[i] );
+		float b0 = idMath::Fabs( center[i] - b[0][i] );
+		float b1 = idMath::Fabs( b[1][i] - center[i] );
 		if( b0 > b1 )
 		{
 			total += b0 * b0;
@@ -94,10 +88,9 @@ idBounds::PlaneDistance
 */
 float idBounds::PlaneDistance( const idPlane& plane ) const
 {
-	idVec3 center;
 	float d1, d2;
 	
-	center = ( b[0] + b[1] ) * 0.5f;
+	idVec3 center = ( b[0] + b[1] ) * 0.5f;
 	
 	d1 = plane.Distance( center );
 	d2 = idMath::Fabs( ( b[1][0] - center[0] ) * plane.Normal()[0] ) +
@@ -361,33 +354,29 @@ BoundsForPointRotation
 */
 idBounds BoundsForPointRotation( const idVec3& start, const idRotation& rotation )
 {
-	int i;
-	float radiusSqr;
-	idVec3 v1, v2;
-	idVec3 origin, axis, end;
 	idBounds bounds;
 	
-	end = start * rotation;
-	axis = rotation.GetVec();
-	origin = rotation.GetOrigin() + axis * ( axis * ( start - rotation.GetOrigin() ) );
-	radiusSqr = ( start - origin ).LengthSqr();
-	v1 = ( start - origin ).Cross( axis );
-	v2 = ( end - origin ).Cross( axis );
+	idVec3 end = start * rotation;
+	idVec3 axis = rotation.GetVec();
+	idVec3 origin = rotation.GetOrigin() + axis * ( axis * ( start - rotation.GetOrigin() ) );
+	float radiusSqr = ( start - origin ).LengthSqr();
+	idVec3 v1 = ( start - origin ).Cross( axis );
+	idVec3 v2 = ( end - origin ).Cross( axis );
 	
-	for( i = 0; i < 3; i++ )
+	for( int i = 0; i < 3; i++ )
 	{
 		// if the derivative changes sign along this axis during the rotation from start to end
 		if( ( v1[i] > 0.0f && v2[i] < 0.0f ) || ( v1[i] < 0.0f && v2[i] > 0.0f ) )
 		{
 			if( ( 0.5f * ( start[i] + end[i] ) - origin[i] ) > 0.0f )
 			{
-				bounds[0][i] = Min( start[i], end[i] );
+				bounds[0][i] = idMath::Min( start[i], end[i] );
 				bounds[1][i] = origin[i] + idMath::Sqrt( radiusSqr * ( 1.0f - axis[i] * axis[i] ) );
 			}
 			else
 			{
 				bounds[0][i] = origin[i] - idMath::Sqrt( radiusSqr * ( 1.0f - axis[i] * axis[i] ) );
-				bounds[1][i] = Max( start[i], end[i] );
+				bounds[1][i] = idMath::Max( start[i], end[i] );
 			}
 		}
 		else if( start[i] > end[i] )
@@ -420,9 +409,7 @@ void idBounds::FromPointRotation( const idVec3& point, const idRotation& rotatio
 	{
 		( *this ) = BoundsForPointRotation( point, rotation );
 	}
-	else
-	{
-	
+	else {	
 		radius = ( point - rotation.GetOrigin() ).Length();
 		
 		// FIXME: these bounds are usually way larger
@@ -446,8 +433,7 @@ void idBounds::FromBoundsRotation( const idBounds& bounds, const idVec3& origin,
 	idBounds rBounds;
 	
 	if( idMath::Fabs( rotation.GetAngle() ) < 180.0f )
-	{
-	
+	{	
 		( *this ) = BoundsForPointRotation( bounds[0] * axis + origin, rotation );
 		for( i = 1; i < 8; i++ )
 		{
@@ -458,8 +444,7 @@ void idBounds::FromBoundsRotation( const idBounds& bounds, const idVec3& origin,
 		}
 	}
 	else
-	{
-	
+	{	
 		point = ( bounds[1] - bounds[0] ) * 0.5f;
 		radius = ( bounds[1] - point ).Length() + ( point - rotation.GetOrigin() ).Length();
 		

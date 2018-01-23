@@ -204,8 +204,8 @@ void idSWF::WriteSwfImageAtlas( const char* filename )
 	float frac = RectPackingFraction( inputSizes, totalSize );
 	idLib::Printf( "%5.2f packing fraction in %ix%i image\n", frac, totalSize.x * 4, totalSize.y * 4 );
 	
-	int atlasWidth =  Max( 4, totalSize.x * 4 ) ;
-	int atlasHeight =  Max( 4, totalSize.y * 4 ) ;
+	int atlasWidth = idMath::Max( 4, totalSize.x * 4 ) ;
+	int atlasHeight = idMath::Max( 4, totalSize.y * 4 ) ;
 	
 	// we require multiple-of-128 widths to use the image data directly
 	// without re-packing on the 360 and PS3.  The growth checks in RectAllocator()

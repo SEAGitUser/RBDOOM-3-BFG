@@ -2229,7 +2229,7 @@ void ColladaParser::ReadPrimitives( Mesh* pMesh, idList<InputChannel>& pPerIndex
 	{
 		const InputChannel& channel = pPerIndexChannels[i];
 		
-		numOffsets = Max( numOffsets, channel.mOffset + 1 );
+		numOffsets = idMath::Max( numOffsets, channel.mOffset + 1 );
 		if( channel.mType == IT_Vertex )
 			perVertexOffset = channel.mOffset;
 	}
@@ -2274,7 +2274,7 @@ void ColladaParser::ReadPrimitives( Mesh* pMesh, idList<InputChannel>& pPerIndex
 			int value = lexer.ParseInt();
 			
 			// Hack: (thom) Some exporters put negative indices sometimes. We just try to carry on anyways.
-			value = Max( 0, value );
+			value = idMath::Max( 0, value );
 			
 			indices[a] = value;
 		}

@@ -2159,13 +2159,13 @@ bool idCompressor_LZSS::FindMatch( int startWord, int startValue, int& wordOffse
 	wordOffset = startWord;
 	numWords = minMatchWords - 1;
 	
-	bottom = Max( 0, startWord - ( ( 1 << offsetBits ) - 1 ) );
+	bottom = idMath::Max( 0, startWord - ( ( 1 << offsetBits ) - 1 ) );
 	maxBits = ( blockSize << 3 ) - startWord * wordLength;
 	
 	hash = startValue & LZSS_HASH_MASK;
 	for( i = hashTable[hash]; i >= bottom; i = hashNext[i] )
 	{
-		n = Compare( block, i * wordLength, block, startWord * wordLength, Min( maxBits, ( startWord - i ) * wordLength ) );
+		n = Compare( block, i * wordLength, block, startWord * wordLength, idMath::Min( maxBits, ( startWord - i ) * wordLength ) );
 		if( n > numWords * wordLength )
 		{
 			numWords = n / wordLength;
@@ -2311,7 +2311,7 @@ void idCompressor_LZSS::DecompressBlock()
 		}
 	}
 	
-	blockSize = Min( writeByte, LZSS_BLOCK_SIZE );
+	blockSize = idMath::Min( writeByte, LZSS_BLOCK_SIZE );
 }
 
 /*
@@ -2522,7 +2522,7 @@ void idCompressor_LZSS_WordAligned::DecompressBlock()
 		}
 	}
 	
-	blockSize = Min( writeByte, LZSS_BLOCK_SIZE );
+	blockSize = idMath::Min( writeByte, LZSS_BLOCK_SIZE );
 }
 
 /*
@@ -2878,7 +2878,7 @@ void idCompressor_LZW::DecompressBlock()
 		}
 	}
 	
-	blockSize = Min( writeByte, LZW_BLOCK_SIZE );
+	blockSize = idMath::Min( writeByte, LZW_BLOCK_SIZE );
 }
 
 /*

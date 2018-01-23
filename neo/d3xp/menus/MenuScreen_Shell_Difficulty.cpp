@@ -198,16 +198,16 @@ void idMenuScreen_Shell_Difficulty::ShowScreen( const mainMenuTransition_t trans
 		nightmareUnlocked = g_leNightmare.GetBool();
 	}
 	
-	int skill = Max( 0, g_skill.GetInteger() );
+	int skill = idMath::Max( 0, g_skill.GetInteger() );
 	if( !nightmareUnlocked )
 	{
 		options->GetChildByIndex( 3 ).SetState( WIDGET_STATE_DISABLED );
-		skill = Min( skill, 2 );
+		skill = idMath::Min( skill, 2 );
 	}
 	else
 	{
 		options->GetChildByIndex( 3 ).SetState( WIDGET_STATE_NORMAL );
-		skill = Min( skill, 3 );
+		skill = idMath::Min( skill, 3 );
 	}
 	options->SetFocusIndex( skill );
 	options->SetViewIndex( options->GetViewOffset() + skill );

@@ -176,7 +176,7 @@ idRenderModel* 	idRenderModelSprite::InstantiateDynamicModel( const struct rende
 	
 	tri->DeriveBounds();
 	
-	staticModel->bounds = tri->bounds;
+	staticModel->bounds = tri->GetBounds();
 	
 	return staticModel;
 }
@@ -197,7 +197,7 @@ idBounds idRenderModelSprite::Bounds( const struct renderEntity_s* renderEntity 
 	}
 	else
 	{
-		b.ExpandSelf( Max( renderEntity->shaderParms[ SHADERPARM_SPRITE_WIDTH ], renderEntity->shaderParms[ SHADERPARM_SPRITE_HEIGHT ] ) * 0.5f );
+		b.ExpandSelf( idMath::Max( renderEntity->shaderParms[ SHADERPARM_SPRITE_WIDTH ], renderEntity->shaderParms[ SHADERPARM_SPRITE_HEIGHT ] ) * 0.5f );
 	}
 	return b;
 }

@@ -247,14 +247,14 @@ bool idAASLocal::WalkPathValid( int areaNum, const idVec3& origin, int goalAreaN
 			// direction parallel to gravity
 			dir = ( file->GetSettings().gravityDir * endPos * file->GetSettings().gravityDir ) -
 				  ( file->GetSettings().gravityDir * p * file->GetSettings().gravityDir );
-			if( dir.LengthSqr() > Square( file->GetSettings().maxStepHeight ) )
+			if( dir.LengthSqr() > idMath::Square( file->GetSettings().maxStepHeight ) )
 			{
 				continue;
 			}
 			
 			// direction orthogonal to gravity
 			dir = endPos - p - dir;
-			if( dir.LengthSqr() > Square( 0.2f ) )
+			if( dir.LengthSqr() > idMath::Square( 0.2f ) )
 			{
 				continue;
 			}
@@ -295,7 +295,7 @@ idVec3 idAASLocal::SubSampleWalkPath( int areaNum, const idVec3& origin, const i
 	for( i = 1; i < numSamples; i++ )
 	{
 		nextPoint = start + dir * ( ( float ) i / numSamples );
-		if( ( point - nextPoint ).LengthSqr() > Square( maxWalkPathDistance ) )
+		if( ( point - nextPoint ).LengthSqr() > idMath::Square( maxWalkPathDistance ) )
 		{
 			return point;
 		}
@@ -356,7 +356,7 @@ bool idAASLocal::WalkPathToGoal( aasPath_t& path, int areaNum, const idVec3& ori
 		if( areaNum != curAreaNum )
 		{
 			// only optimize a limited distance ahead
-			if( ( reach->start - origin ).LengthSqr() > Square( maxWalkPathDistance ) )
+			if( ( reach->start - origin ).LengthSqr() > idMath::Square( maxWalkPathDistance ) )
 			{
 #if SUBSAMPLE_WALK_PATH
 				path.moveGoal = SubSampleWalkPath( areaNum, origin, path.moveGoal, reach->start, travelFlags, path.moveAreaNum );
@@ -493,7 +493,7 @@ idVec3 idAASLocal::SubSampleFlyPath( int areaNum, const idVec3& origin, const id
 	for( i = 1; i < numSamples; i++ )
 	{
 		nextPoint = start + dir * ( ( float ) i / numSamples );
-		if( ( point - nextPoint ).LengthSqr() > Square( maxFlyPathDistance ) )
+		if( ( point - nextPoint ).LengthSqr() > idMath::Square( maxFlyPathDistance ) )
 		{
 			return point;
 		}
@@ -553,7 +553,7 @@ bool idAASLocal::FlyPathToGoal( aasPath_t& path, int areaNum, const idVec3& orig
 		// no need to check through the first area
 		if( areaNum != curAreaNum )
 		{
-			if( ( reach->start - origin ).LengthSqr() > Square( maxFlyPathDistance ) )
+			if( ( reach->start - origin ).LengthSqr() > idMath::Square( maxFlyPathDistance ) )
 			{
 #if SUBSAMPLE_FLY_PATH
 				path.moveGoal = SubSampleFlyPath( areaNum, origin, path.moveGoal, reach->start, travelFlags, path.moveAreaNum );

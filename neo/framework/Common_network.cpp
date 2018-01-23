@@ -444,11 +444,11 @@ int idCommonLocal::CalcSnapTimeBuffered( int& totalBufferedTime, int& totalRecvT
 		lastBuffTime = buffTime;
 	}
 	
-	totalRecvTime = Max( 1, totalRecvTime );
+	totalRecvTime = idMath::Max( 1, totalRecvTime );
 	totalRecvTime = static_cast<float>( initialBaseTicksPerSec ) * static_cast<float>( totalRecvTime / 1000.0f ); // convert realMS to gameMS
 	
 	// remove time we've already interpolated over
-	int timeLeft = totalBufferedTime - Min< int >( snapRate, snapCurrentTime );
+	int timeLeft = totalBufferedTime - idMath::Min< int >( snapRate, snapCurrentTime );
 	
 	//idLib::Printf( "CalcSnapTimeBuffered. timeLeft: %d totalRecvTime: %d, totalTimeBuffered: %d\n", timeLeft, totalRecvTime, totalBufferedTime );
 	return timeLeft;
@@ -524,7 +524,7 @@ void idCommonLocal::RunNetworkSnapshotFrame()
 			// JAF Game()->GetRenderWorld()->UpdateDeferredPositions();
 			
 			// Clamp the current time so that it doesn't fall outside of our extrapolation bounds
-			snapCurrentTime = idMath::ClampInt( 0, snapRate + Min( ( int )snapRate, ( int )net_maxExtrapolationInMS.GetInteger() ), snapCurrentTime );
+			snapCurrentTime = idMath::ClampInt( 0, snapRate + idMath::Min( ( int )snapRate, ( int )net_maxExtrapolationInMS.GetInteger() ), snapCurrentTime );
 			
 			if( snapRate <= 0 )
 			{
@@ -584,7 +584,7 @@ void idCommonLocal::RunNetworkSnapshotFrame()
 						{
 							frac = 0.0f;
 						}
-						snapRateScale = Square( frac ) * snapRateScale;
+						snapRateScale = idMath::Square( frac ) * snapRateScale;
 						if( !IsValid( snapRateScale ) )
 						{
 							snapRateScale = 0.0f;

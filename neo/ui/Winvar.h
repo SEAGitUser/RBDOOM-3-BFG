@@ -32,7 +32,7 @@ If you have questions concerning this license or the applicable additional terms
 #include "Rectangle.h"
 
 static const char* VAR_GUIPREFIX = "gui::";
-static const int VAR_GUIPREFIX_LEN = strlen( VAR_GUIPREFIX );
+static const int VAR_GUIPREFIX_LEN = idStr::Length( VAR_GUIPREFIX );
 
 class idWindow;
 class idWinVar
@@ -56,11 +56,11 @@ public:
 	}
 	void SetName( const char* _name )
 	{
-		delete []name;
+		delete[] name;
 		name = NULL;
 		if( _name )
 		{
-			name = new( TAG_OLD_UI ) char[strlen( _name ) + 1];
+			name = new( TAG_OLD_UI ) char[ idStr::Length( _name ) + 1 ];
 			strcpy( name, _name );
 		}
 	}
@@ -87,7 +87,7 @@ public:
 	virtual const char* c_str() const = 0;
 	virtual size_t Size()
 	{
-		size_t sz = ( name ) ? strlen( name ) : 0;
+		size_t sz = ( name )? idStr::Length( name ) : 0;
 		return sz + sizeof( *this );
 	}
 	

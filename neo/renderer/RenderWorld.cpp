@@ -1416,7 +1416,7 @@ bool idRenderWorldLocal::Trace( modelTrace_t& trace, const idVec3& start, const 
 					}
 				}
 			#endif
-				bounds.FromTransformedBounds( surf->geometry->bounds, def->parms.origin, def->parms.axis );
+				bounds.FromTransformedBounds( surf->geometry->GetBounds(), def->GetOrigin(), def->GetAxis() );
 				
 				// if triangle bounds do not overlap with the trace bounds
 				if( !traceBounds.IntersectsBounds( bounds ) || !bounds.LineIntersection( start, trace.point ) )
@@ -1430,7 +1430,7 @@ bool idRenderWorldLocal::Trace( modelTrace_t& trace, const idVec3& start, const 
 				idVec3 localStart, localEnd;
 
 				idRenderMatrix modelMatrix;
-				idRenderMatrix::CreateFromOriginAxis( def->parms.origin, def->parms.axis, modelMatrix );
+				idRenderMatrix::CreateFromOriginAxis( def->GetOrigin(), def->GetAxis(), modelMatrix );
 
 				modelMatrix.InverseTransformPoint( start, localStart );
 				modelMatrix.InverseTransformPoint( end, localEnd );
@@ -1440,7 +1440,7 @@ bool idRenderWorldLocal::Trace( modelTrace_t& trace, const idVec3& start, const 
 				{
 					trace.fraction = localTrace.fraction;
 					modelMatrix.TransformPoint( localTrace.point, trace.point );
-					trace.normal = localTrace.normal * def->parms.axis;
+					trace.normal = localTrace.normal * def->GetAxis();
 					trace.material = material;
 					trace.entity = &def->parms;
 					trace.jointNumber = model->NearestJoint( j, localTrace.indexes[0], localTrace.indexes[1], localTrace.indexes[2] );

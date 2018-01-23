@@ -94,8 +94,7 @@ idRenderModel* idRenderModelBeam::InstantiateDynamicModel( const struct renderEn
 		surf = *staticModel->Surface( 0 );
 		tri = surf.geometry;
 	}
-	else
-	{	
+	else {	
 		staticModel = new( TAG_MODEL ) idRenderModelStatic;
 		staticModel->InitEmpty( beam_SnapshotName );
 		
@@ -121,7 +120,10 @@ idRenderModel* idRenderModelBeam::InstantiateDynamicModel( const struct renderEn
 		tri->indexes[3] = 2;
 		tri->indexes[4] = 3;
 		tri->indexes[5] = 1;
-		
+		//for( int i = 0; i < 6; i++ ) { ?
+		//	tri->indexes[i] = idTriangles::quadIndexes[i];
+		//}
+
 		tri->numVerts = 4;
 		tri->numIndexes = 6;
 		
@@ -137,11 +139,6 @@ idRenderModel* idRenderModelBeam::InstantiateDynamicModel( const struct renderEn
 	// as the view changes
 	idVec3 localView, localTarget;
 	{
-		///float	modelMatrix[ 16 ];
-		///R_AxisToModelMatrix( renderEntity->axis, renderEntity->origin, modelMatrix );
-		///R_GlobalPointToLocal( modelMatrix, viewDef->GetOrigin(), localView );
-		///R_GlobalPointToLocal( modelMatrix, target, localTarget );
-
 		idRenderMatrix modelMatrix;
 		idRenderMatrix::CreateFromOriginAxis( renderEntity->origin, renderEntity->axis, modelMatrix );
 		modelMatrix.InverseTransformPoint( viewDef->GetOrigin(), localView );
@@ -190,7 +187,7 @@ idRenderModel* idRenderModelBeam::InstantiateDynamicModel( const struct renderEn
 	
 	tri->DeriveBounds();
 	
-	staticModel->bounds = tri->bounds;
+	staticModel->bounds = tri->GetBounds();
 	
 	return staticModel;
 }
@@ -202,21 +199,16 @@ idRenderModelBeam::Bounds
 */
 idBounds idRenderModelBeam::Bounds( const struct renderEntity_s* renderEntity ) const
 {
-	idBounds	b;
+	idBounds b;
 	
 	b.Zero();
 	if( !renderEntity )
 	{
 		b.ExpandSelf( 8.0f );
 	}
-	else
-	{
+	else {
 		idVec3 target = *reinterpret_cast<const idVec3*>( &renderEntity->shaderParms[SHADERPARM_BEAM_END_X] );
 		idVec3 localTarget;
-
-		///float	modelMatrix[16];
-		///R_AxisToModelMatrix( renderEntity->axis, renderEntity->origin, modelMatrix );
-		///R_GlobalPointToLocal( modelMatrix, target, localTarget );
 
 		idRenderMatrix modelMatrix;
 		idRenderMatrix::CreateFromOriginAxis( renderEntity->origin, renderEntity->axis, modelMatrix );

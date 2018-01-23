@@ -211,7 +211,7 @@ idRenderModel* idRenderModelPrt::InstantiateDynamicModel( const struct renderEnt
 			int	inCycleTime = particleAge - particleCycle * stage->cycleMsec;
 			
 			if( renderEntity->shaderParms[SHADERPARM_PARTICLE_STOPTIME] &&
-					g.renderView->time[renderEntity->timeGroup] - inCycleTime >= SEC2MS( renderEntity->shaderParms[SHADERPARM_PARTICLE_STOPTIME] ) )
+				g.renderView->time[renderEntity->timeGroup] - inCycleTime >= SEC2MS( renderEntity->shaderParms[SHADERPARM_PARTICLE_STOPTIME] ) )
 			{
 				// don't fire any more particles
 				continue;
@@ -244,17 +244,7 @@ idRenderModel* idRenderModelPrt::InstantiateDynamicModel( const struct renderEnt
 		
 		// build the indexes
 		int	numIndexes = 0;
-		triIndex_t* indexes = surf->geometry->indexes;
-		for( int i = 0; i < numVerts; i += 4 )
-		{
-			indexes[numIndexes + 0] = i + 0;
-			indexes[numIndexes + 1] = i + 2;
-			indexes[numIndexes + 2] = i + 3;
-			indexes[numIndexes + 3] = i + 0;
-			indexes[numIndexes + 4] = i + 3;
-			indexes[numIndexes + 5] = i + 1;
-			numIndexes += 6;
-		}
+		idTriangles::CreateIndexesForQuads( numVerts, surf->geometry->indexes, numIndexes );
 		
 		surf->geometry->tangentsCalculated = false;
 		surf->geometry->numVerts = numVerts;

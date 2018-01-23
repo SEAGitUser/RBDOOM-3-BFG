@@ -175,7 +175,7 @@ public:
 	static void				InverseByTranspose( const idRenderMatrix& src, idRenderMatrix& out );
 	static bool				InverseByDoubles( const idRenderMatrix& src, idRenderMatrix& out );
 	
-	// Copy or create a matrix that is stored directly into four float4 vectors which is useful for directly setting vertex program uniforms.
+	// Copy or create a matrix that is stored directly into four float4 vectors which is useful for directly setting program uniforms.
 	static void				CopyMatrix( const idRenderMatrix& matrix, idVec4& row0, idVec4& row1, idVec4& row2, idVec4& row3 );
 	static void				SetMVP( const idRenderMatrix& mvp, idVec4& row0, idVec4& row1, idVec4& row2, idVec4& row3, bool& negativeDeterminant );
 	static void				SetMVPForBounds( const idRenderMatrix& mvp, const idBounds& bounds, idVec4& row0, idVec4& row1, idVec4& row2, idVec4& row3, bool& negativeDeterminant );

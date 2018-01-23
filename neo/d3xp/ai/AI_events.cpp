@@ -541,13 +541,13 @@ idAI::Event_HeardSound
 void idAI::Event_HeardSound( int ignore_team )
 {
 	// check if we heard any sounds in the last frame
-	idActor*	actor = gameLocal.GetAlertEntity();
+	idActor* actor = gameLocal.GetAlertEntity();
 	if( actor != NULL && ( !ignore_team || ( ReactionTo( actor ) & ATTACK_ON_SIGHT ) ) && gameLocal.InPlayerPVS( this ) )
 	{
 		idVec3 pos = actor->GetPhysics()->GetOrigin();
 		idVec3 org = physicsObj.GetOrigin();
 		float dist = ( pos - org ).LengthSqr();
-		if( dist < Square( AI_HEARING_RANGE ) )
+		if( dist < idMath::Square( AI_HEARING_RANGE ) )
 		{
 			idThread::ReturnEntity( actor );
 			return;

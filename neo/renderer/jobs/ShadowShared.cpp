@@ -398,7 +398,6 @@ Rendering with Z-fail can be significantly slower even on today's hardware.
 bool R_ViewInsideShadowVolume( byte* cullBits, const idShadowVert* verts, int numVerts, const triIndex_t* indexes, int numIndexes,
 							   const idVec3& localLightOrigin, const idVec3& localViewOrigin, const float zNear )
 {
-
 	ALIGNTYPE16 idPlane planes[4];
 	// create two planes orthogonal to each other that intersect along the trace
 	idVec3 startDir = localLightOrigin - localViewOrigin;

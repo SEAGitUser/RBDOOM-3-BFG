@@ -945,11 +945,10 @@ DLL Loading
 Sys_DLL_Load
 =====================
 */
-// RB: 64 bit fixes, changed int to intptr_t
 intptr_t Sys_DLL_Load( const char *dllName )
 {
 	HINSTANCE libHandle = LoadLibrary( dllName );
-	return ( int )libHandle;
+	return ( intptr_t )libHandle;
 }
 
 /*

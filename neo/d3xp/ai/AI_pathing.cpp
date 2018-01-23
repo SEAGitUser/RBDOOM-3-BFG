@@ -400,10 +400,10 @@ int GetObstacles( const idPhysics* physics, const idAAS* aas, const idEntity* ig
 			}
 			// if the actor is moving
 			idVec3 v1 = obPhys->GetLinearVelocity();
-			if( v1.LengthSqr() > Square( 10.0f ) )
+			if( v1.LengthSqr() > idMath::Square( 10.0f ) )
 			{
 				idVec3 v2 = physics->GetLinearVelocity();
-				if( v2.LengthSqr() > Square( 10.0f ) )
+				if( v2.LengthSqr() > idMath::Square( 10.0f ) )
 				{
 					// if moving in about the same direction
 					if( v1 * v2 > 0.0f )
@@ -1136,9 +1136,9 @@ bool idAI::FindPathAroundObstacles( const idPhysics* physics, const idAAS* aas, 
 	}
 	
 	// if start and destination are pushed to the same point, we don't have a path around the obstacle
-	if( ( path.seekPosOutsideObstacles.ToVec2() - path.startPosOutsideObstacles.ToVec2() ).LengthSqr() < Square( 1.0f ) )
+	if( ( path.seekPosOutsideObstacles.ToVec2() - path.startPosOutsideObstacles.ToVec2() ).LengthSqr() < idMath::Square( 1.0f ) )
 	{
-		if( ( seekPos.ToVec2() - startPos.ToVec2() ).LengthSqr() > Square( 2.0f ) )
+		if( ( seekPos.ToVec2() - startPos.ToVec2() ).LengthSqr() > idMath::Square( 2.0f ) )
 		{
 			return false;
 		}

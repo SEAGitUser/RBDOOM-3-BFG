@@ -3147,7 +3147,7 @@ void idAFConstraint_Spring::Evaluate( float invTimeStep )
 	{
 		if( kstretch > 0.0f )
 		{
-			idVec3 springForce = force * ( Square( length - restLength ) * kstretch - dampingForce );
+			idVec3 springForce = force * ( idMath::Square( length - restLength ) * kstretch - dampingForce );
 			body1->AddForce( a1, springForce );
 			if( master )
 			{
@@ -3159,7 +3159,7 @@ void idAFConstraint_Spring::Evaluate( float invTimeStep )
 	{
 		if( kcompress > 0.0f )
 		{
-			idVec3 springForce = force * -( Square( restLength - length ) * kcompress - dampingForce );
+			idVec3 springForce = force * -( idMath::Square( restLength - length ) * kcompress - dampingForce );
 			body1->AddForce( a1, springForce );
 			if( master )
 			{
@@ -6031,7 +6031,7 @@ void idPhysics_AF::Evolve( float timeStep )
 		{
 			// cap the linear velocity
 			vSqr = body->next->spatialVelocity.SubVec3( 0 ).LengthSqr();
-			if( vSqr > Square( maxLinearVelocity ) )
+			if( vSqr > idMath::Square( maxLinearVelocity ) )
 			{
 				body->next->spatialVelocity.SubVec3( 0 ) *= idMath::InvSqrt( vSqr ) * maxLinearVelocity;
 			}
@@ -6041,7 +6041,7 @@ void idPhysics_AF::Evolve( float timeStep )
 		{
 			// cap the angular velocity
 			vSqr = body->next->spatialVelocity.SubVec3( 1 ).LengthSqr();
-			if( vSqr > Square( maxAngularVelocity ) )
+			if( vSqr > idMath::Square( maxAngularVelocity ) )
 			{
 				body->next->spatialVelocity.SubVec3( 1 ) *= idMath::InvSqrt( vSqr ) * maxAngularVelocity;
 			}
@@ -6381,7 +6381,7 @@ bool idPhysics_AF::EvaluateContacts()
 							( contactBodies[k] == i && contacts[k].id == contactInfo[j].id ) )
 					{
 					
-						if( ( contacts[k].point - contactInfo[j].point ).LengthSqr() < Square( 2.0f ) )
+						if( ( contacts[k].point - contactInfo[j].point ).LengthSqr() < idMath::Square( 2.0f ) )
 						{
 							break;
 						}
@@ -6728,7 +6728,7 @@ bool idPhysics_AF::TestIfAtRest( float timeStep )
 			}
 		}
 		
-		if( maxTranslationSqr < Square( noMoveTranslation ) && maxRotation < noMoveRotation )
+		if( maxTranslationSqr < idMath::Square( noMoveTranslation ) && maxRotation < noMoveRotation )
 		{
 			// hardly moved over a period of time so the articulated figure may come to rest
 			return true;
@@ -6744,19 +6744,19 @@ bool idPhysics_AF::TestIfAtRest( float timeStep )
 	{
 		body = bodies[i];
 		
-		if( body->current->spatialVelocity.SubVec3( 0 ).LengthSqr() > Square( suspendVelocity[0] ) )
+		if( body->current->spatialVelocity.SubVec3( 0 ).LengthSqr() > idMath::Square( suspendVelocity[0] ) )
 		{
 			return false;
 		}
-		if( body->current->spatialVelocity.SubVec3( 1 ).LengthSqr() > Square( suspendVelocity[1] ) )
+		if( body->current->spatialVelocity.SubVec3( 1 ).LengthSqr() > idMath::Square( suspendVelocity[1] ) )
 		{
 			return false;
 		}
-		if( body->acceleration.SubVec3( 0 ).LengthSqr() > Square( suspendAcceleration[0] ) )
+		if( body->acceleration.SubVec3( 0 ).LengthSqr() > idMath::Square( suspendAcceleration[0] ) )
 		{
 			return false;
 		}
-		if( body->acceleration.SubVec3( 1 ).LengthSqr() > Square( suspendAcceleration[1] ) )
+		if( body->acceleration.SubVec3( 1 ).LengthSqr() > idMath::Square( suspendAcceleration[1] ) )
 		{
 			return false;
 		}
@@ -8397,7 +8397,7 @@ void idPhysics_AF::ApplyImpulse( const int id, const idVec3& point, const idVec3
 	{
 		return;
 	}
-	if( noImpact || impulse.LengthSqr() < Square( impulseThreshold ) )
+	if( noImpact || impulse.LengthSqr() < idMath::Square( impulseThreshold ) )
 	{
 		return;
 	}

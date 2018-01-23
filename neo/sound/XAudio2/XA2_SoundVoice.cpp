@@ -516,7 +516,7 @@ void idSoundVoice_XAudio2::SetSampleRate( uint32 newSampleRate, uint32 operation
 	XAUDIO2_FILTER_PARAMETERS filter;
 	filter.Type = LowPassFilter;
 	filter.OneOverQ = 1.0f;			// [0.0f, XAUDIO2_MAX_FILTER_ONEOVERQ]
-	float cutoffFrequency = 1000.0f / Max( 0.01f, occlusion );
+	float cutoffFrequency = 1000.0f / idMath::Max( 0.01f, occlusion );
 	if( cutoffFrequency * 6.0f >= ( float )sampleRate )
 	{
 		filter.Frequency = XAUDIO2_MAX_FILTER_FREQUENCY;

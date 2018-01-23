@@ -62,8 +62,8 @@ void idMatX::ChangeSize( int rows, int columns, bool makeZero )
 		alloced = alloc;
 		if( oldMat )
 		{
-			int minRow = Min( numRows, rows );
-			int minColumn = Min( numColumns, columns );
+			int minRow = idMath::Min( numRows, rows );
+			int minColumn = idMath::Min( numColumns, columns );
 			for( int i = 0; i < minRow; i++ )
 			{
 				for( int j = 0; j < minColumn; j++ )
@@ -78,7 +78,7 @@ void idMatX::ChangeSize( int rows, int columns, bool makeZero )
 	{
 		if( columns < numColumns )
 		{
-			int minRow = Min( numRows, rows );
+			int minRow = idMath::Min( numRows, rows );
 			for( int i = 0; i < minRow; i++ )
 			{
 				for( int j = 0; j < columns; j++ )
@@ -89,7 +89,7 @@ void idMatX::ChangeSize( int rows, int columns, bool makeZero )
 		}
 		else if( columns > numColumns )
 		{
-			for( int i = Min( numRows, rows ) - 1; i >= 0; i-- )
+			for( int i = idMath::Min( numRows, rows ) - 1; i >= 0; i-- )
 			{
 				if( makeZero )
 				{
@@ -1174,7 +1174,7 @@ bool idMatX::Inverse_UpdateRowColumn( const idVecX& v, const idVecX& w, int r )
 	assert( r >= 0 && r < numRows && r < numColumns );
 	assert( w[r] == 0.0f );
 	
-	s.SetData( Max( numRows, numColumns ), VECX_ALLOCA( Max( numRows, numColumns ) ) );
+	s.SetData( idMath::Max( numRows, numColumns ), VECX_ALLOCA( idMath::Max( numRows, numColumns ) ) );
 	s.Zero();
 	s[r] = 1.0f;
 	
@@ -1296,7 +1296,7 @@ bool idMatX::LU_Factor( int* index, float* det )
 	}
 	
 	w = 1.0f;
-	min = Min( numRows, numColumns );
+	min = idMath::Min( numRows, numColumns );
 	for( i = 0; i < min; i++ )
 	{
 	
@@ -1411,7 +1411,7 @@ bool idMatX::LU_UpdateRankOne( const idVecX& v, const idVecX& w, float alpha, in
 	
 	memcpy( z, w.ToFloatPtr(), w.GetSize() * sizeof( float ) );
 	
-	max = Min( numRows, numColumns );
+	max = idMath::Min( numRows, numColumns );
 	for( i = 0; i < max; i++ )
 	{
 		diag = ( *this )[i][i];
@@ -1539,7 +1539,7 @@ bool idMatX::LU_UpdateRowColumn( const idVecX& v, const idVecX& w, int r, int* i
 	memcpy( z1, w.ToFloatPtr(), w.GetSize() * sizeof( float ) );
 	
 	// update the beginning of the to be updated row and column
-	min = Min( r, rp );
+	min = idMath::Min( r, rp );
 	for( i = 0; i < min; i++ )
 	{
 		p0 = y0[i];
@@ -1558,7 +1558,7 @@ bool idMatX::LU_UpdateRowColumn( const idVecX& v, const idVecX& w, int r, int* i
 	}
 	
 	// update the lower right corner starting at r,r
-	max = Min( numRows, numColumns );
+	max = idMath::Min( numRows, numColumns );
 	for( i = min; i < max; i++ )
 	{
 		diag = ( *this )[i][i];
@@ -2153,7 +2153,7 @@ bool idMatX::QR_UpdateRowColumn( idMatX& R, const idVecX& v, const idVecX& w, in
 	assert( r >= 0 && r < numRows && r < numColumns );
 	assert( w[r] == 0.0f );
 	
-	s.SetData( Max( numRows, numColumns ), VECX_ALLOCA( Max( numRows, numColumns ) ) );
+	s.SetData( idMath::Max( numRows, numColumns ), VECX_ALLOCA( idMath::Max( numRows, numColumns ) ) );
 	s.Zero();
 	s[r] = 1.0f;
 	
@@ -4569,7 +4569,7 @@ bool idMatX::HessenbergToRealSchur( idMatX& H, idVecX& realEigenValues, idVecX& 
 			realEigenValues[i] = H[i][i];
 			imaginaryEigenValues[i] = 0.0f;
 		}
-		for( j = Max( i - 1, 0 ); j < numRows; j++ )
+		for( j = idMath::Max( i - 1, 0 ); j < numRows; j++ )
 		{
 			norm = norm + idMath::Fabs( H[i][j] );
 		}
@@ -4816,7 +4816,7 @@ bool idMatX::HessenbergToRealSchur( idMatX& H, idVecX& realEigenValues, idVecX& 
 					}
 					
 					// modify column
-					for( i = 0; i <= Min( n, k + 3 ); i++ )
+					for( i = 0; i <= idMath::Min( n, k + 3 ); i++ )
 					{
 						p = x * H[i][k] + y * H[i][k + 1];
 						if( notlast )
@@ -4981,7 +4981,7 @@ bool idMatX::HessenbergToRealSchur( idMatX& H, idVecX& realEigenValues, idVecX& 
 					}
 					
 					// overflow control
-					t = Max( idMath::Fabs( H[i][n - 1] ), idMath::Fabs( H[i][n] ) );
+					t = idMath::Max( idMath::Fabs( H[i][n - 1] ), idMath::Fabs( H[i][n] ) );
 					if( ( eps * t ) * t > 1 )
 					{
 						for( j = i; j <= n; j++ )
@@ -5013,7 +5013,7 @@ bool idMatX::HessenbergToRealSchur( idMatX& H, idVecX& realEigenValues, idVecX& 
 		for( i = low; i <= high; i++ )
 		{
 			z = 0.0f;
-			for( k = low; k <= Min( j, high ); k++ )
+			for( k = low; k <= idMath::Min( j, high ); k++ )
 			{
 				z = z + ( *this )[i][k] * H[k][j];
 			}

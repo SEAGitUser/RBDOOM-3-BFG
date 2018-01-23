@@ -219,7 +219,7 @@ void idSoundVoice_Base::CalculateSurround( int srcChannels, float pLevelMatrix[ 
 			
 			if( dstCenter != -1 )
 			{
-				centerFraction *= Max( 0.0f, p2.x );
+				centerFraction *= idMath::Max( 0.0f, p2.x );
 				spatialize *= ( 1.0f - centerFraction );
 				omni *= ( 1.0f - centerFraction );
 			}

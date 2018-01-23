@@ -977,7 +977,7 @@ void idLobby::State_Connect_Hello_Wait()
 		// See if we need to send another hello request
 		// (keep getting more frequent to increase chance due to possible packet loss, but clamp to MIN_CONNECT_FREQUENCY seconds)
 		// TODO: We could eventually make timing out a function of actual number of attempts rather than just plain time.
-		int resendTime = Max( MIN_CONNECT_FREQUENCY_IN_SECONDS, CONNECT_REQUEST_FREQUENCY_IN_SECONDS / connectionAttempts ) * 1000;
+		int resendTime = idMath::Max( MIN_CONNECT_FREQUENCY_IN_SECONDS, CONNECT_REQUEST_FREQUENCY_IN_SECONDS / connectionAttempts ) * 1000;
 		
 		if( time - lastConnectRequest > resendTime )
 		{
@@ -3873,7 +3873,7 @@ void idLobby::ServerUpdateBandwidthTest()
 		
 		msg.WriteLong( peer.bandwidthSequenceNum++ );
 		
-		unsigned int randomSize = Min( ( unsigned int )( sizeof( buffer ) - 12 ), ( unsigned int )session->GetTitleStorageInt( "net_bw_test_packetSizeBytes", net_bw_test_packetSizeBytes.GetInteger() ) );
+		unsigned int randomSize = idMath::Min( ( unsigned int )( sizeof( buffer ) - 12 ), ( unsigned int )session->GetTitleStorageInt( "net_bw_test_packetSizeBytes", net_bw_test_packetSizeBytes.GetInteger() ) );
 		msg.WriteLong( randomSize );
 		
 		for( unsigned int j = 0; j < randomSize; j++ )
@@ -4440,10 +4440,10 @@ void idLobby::ResendReliables( int p )
 	if( sessionCB->GetState() == idSession::INGAME )
 	{
 		// setup some minimum waits and account for ping
-		resendWait = Max( DEFAULT_MIN_RESEND_INGAME, peer.lastPingRtt / 2 );
+		resendWait = idMath::Max( DEFAULT_MIN_RESEND_INGAME, peer.lastPingRtt / 2 );
 		if( lobbyType == TYPE_PARTY )
 		{
-			resendWait = Max( 500, resendWait ); // party session does not need fast frequency at all once in game
+			resendWait = idMath::Max( 500, resendWait ); // party session does not need fast frequency at all once in game
 		}
 	}
 	else

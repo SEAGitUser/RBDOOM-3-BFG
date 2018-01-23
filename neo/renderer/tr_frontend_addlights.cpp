@@ -159,16 +159,14 @@ static void R_AddSingleLight( viewLight_t* vLight )
 	// copy data used by backend
 	//--------------------------------------------
 	vLight->globalLightOrigin = light->globalLightOrigin;
-	vLight->lightProject[ 0 ] = light->lightProject[ 0 ];
-	vLight->lightProject[ 1 ] = light->lightProject[ 1 ];
-	vLight->lightProject[ 2 ] = light->lightProject[ 2 ];
-	vLight->lightProject[ 3 ] = light->lightProject[ 3 ];
+
+	memcpy( vLight->lightProject, light->lightProject, sizeof( light->lightProject ) );
 	
 	// copy the matrix for deforming the 'zeroOneCubeModel' to exactly cover the light volume in world space
 	vLight->inverseBaseLightProject.Copy( light->inverseBaseLightProject );
 	
 	// RB begin
-	vLight->baseLightProject = light->baseLightProject;
+	vLight->baseLightProject.Copy( light->baseLightProject );
 	vLight->pointLight = light->GetParms().pointLight;
 	vLight->parallel = light->GetParms().parallel;
 	vLight->lightCenter = light->GetParms().lightCenter;
@@ -207,7 +205,7 @@ static void R_AddSingleLight( viewLight_t* vLight )
 			return;
 		}
 		
-		float screenWidth  = ( float )viewDef->GetViewport().x2 - ( float )viewDef->GetViewport().x1;
+		float screenWidth = ( float )viewDef->GetViewport().x2 - ( float )viewDef->GetViewport().x1;
 		float screenHeight = ( float )viewDef->GetViewport().y2 - ( float )viewDef->GetViewport().y1;
 		
 		idScreenRect lightScissorRect;
@@ -448,12 +446,13 @@ static void R_AddSingleLight( viewLight_t* vLight )
 			
 			// we do need it for shadows
 			vLight->entityInteractionState[ edef->GetIndex() ] = viewLight_t::INTERACTION_YES;
-			
+
 			// we will need to create a viewModel_t for it in the serial code section
 			auto shadEnt = allocManager.FrameAlloc<shadowOnlyEntity_t, FRAME_ALLOC_SHADOW_ONLY_ENTITY>();
 			shadEnt->next = vLight->shadowOnlyViewEntities;
-			shadEnt->edef = edef;
 			vLight->shadowOnlyViewEntities = shadEnt;
+
+			shadEnt->edef = edef;
 		}
 	}
 	
@@ -466,7 +465,7 @@ static void R_AddSingleLight( viewLight_t* vLight )
 		
 		// these shadows will have valid bounds, and can be culled normally,
 		// but they will typically cover most of the light's bounds
-		if( idRenderMatrix::CullBoundsToMVP( viewDef->GetMVPMatrix(), tri->bounds ) )
+		if( idRenderMatrix::CullBoundsToMVP( viewDef->GetMVPMatrix(), tri->GetBounds() ) )
 		{
 			return;
 		}
@@ -498,7 +497,7 @@ static void R_AddSingleLight( viewLight_t* vLight )
 			shadowParms->numVerts = tri->numVerts * 2;
 			shadowParms->indexes = tri->indexes;
 			shadowParms->numIndexes = tri->numIndexes;
-			shadowParms->triangleBounds = tri->bounds;
+			shadowParms->triangleBounds = tri->GetBounds();
 			shadowParms->triangleMVP = viewDef->GetMVPMatrix();
 			shadowParms->localLightOrigin = vLight->globalLightOrigin;
 			shadowParms->localViewOrigin = viewDef->GetOrigin();

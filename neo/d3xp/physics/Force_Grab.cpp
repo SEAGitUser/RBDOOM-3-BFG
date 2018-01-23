@@ -183,7 +183,7 @@ void idForce_Grab::Evaluate( int time )
 	if( distanceToGoal < 16.f )
 	{
 		v = physics->GetAngularVelocity( id );
-		if( v.LengthSqr() > Square( 8 ) )
+		if( v.LengthSqr() > idMath::Square( 8 ) )
 		{
 			physics->SetAngularVelocity( v * 0.99999f, id );
 		}

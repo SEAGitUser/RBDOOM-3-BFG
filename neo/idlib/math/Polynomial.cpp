@@ -73,7 +73,7 @@ int idPolynomial::Laguer( const idComplex* coef, const int degree, idComplex& x 
 		{
 			gps = gms;
 		}
-		if( Max( abp, abm ) > 0.0f )
+		if( idMath::Max( abp, abm ) > 0.0f )
 		{
 			dx = degree / gps;
 		}

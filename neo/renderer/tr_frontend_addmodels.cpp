@@ -44,7 +44,9 @@ idCVar r_forceShadowCaps( "r_forceShadowCaps", "0", CVAR_RENDERER | CVAR_BOOL, "
 // RB begin
 idCVar r_forceShadowMapsOnAlphaTestedSurfaces( "r_forceShadowMapsOnAlphaTestedSurfaces", "1", CVAR_RENDERER | CVAR_BOOL, "0 = same shadowing as with stencil shadows, 1 = ignore noshadows for alpha tested materials" );
 // RB end
-// foresthale 2014-11-24: cvar to control the material lod flags - this is the distance at which a mesh switches from lod1 to lod2, where lod3 will appear at this distance *2, lod4 at *4, and persistentLOD keyword will disable the max distance check (thus extending this LOD to all further distances, rather than disappearing)
+// foresthale 2014-11-24: cvar to control the material lod flags - this is the distance at which a mesh switches from lod1 to lod2, 
+// where lod3 will appear at this distance *2, lod4 at *4, and persistentLOD keyword will disable the max distance check (thus extending 
+// this LOD to all further distances, rather than disappearing)
 idCVar r_lodMaterialDistance( "r_lodMaterialDistance", "500", CVAR_RENDERER | CVAR_FLOAT, "surfaces further than this distance will use lower quality versions (if their material uses the lod1-4 keywords, persistentLOD disables the max distance checks)" );
 
 /*
@@ -52,20 +54,19 @@ idCVar r_lodMaterialDistance( "r_lodMaterialDistance", "500", CVAR_RENDERER | CV
  R_SetupDrawSurfShader
 ===================
 */
-void R_SetupDrawSurfShader( drawSurf_t* drawSurf, const idMaterial* shader, const renderEntity_t* renderEntity )
+void R_SetupDrawSurfShader( drawSurf_t * drawSurf, const idMaterial * material, const renderEntity_t * renderEntity, const idRenderView * viewDef )
 {
-	drawSurf->material = shader;
-	drawSurf->sort = shader->GetSort();
+	drawSurf->material = material;
+	drawSurf->sort = material->GetSort();
 	
 	// process the shader expressions for conditionals / color / texcoords
-	const float* constRegs = shader->ConstantRegisters();
+	const float* constRegs = material->ConstantRegisters();
 	if( likely( constRegs != NULL ) )
 	{
 		// shader only uses constant values
 		drawSurf->shaderRegisters = constRegs;
 	}
-	else
-	{
+	else {
 		// by default evaluate with the entityDef's shader parms
 		const float* shaderParms = renderEntity->shaderParms;
 		
@@ -78,25 +79,25 @@ void R_SetupDrawSurfShader( drawSurf_t* drawSurf, const idMaterial* shader, cons
 		{
 			// evaluate the reference shader to find our shader parms
 			float refRegs[MAX_EXPRESSION_REGISTERS];
-			renderEntity->referenceShader->EvaluateRegisters( refRegs, renderEntity->shaderParms, tr.viewDef->GetMaterialParms(), 
-				tr.viewDef->GetGameTimeSec( renderEntity->timeGroup ), renderEntity->referenceSound );
+			renderEntity->referenceShader->EvaluateRegisters( refRegs, renderEntity->shaderParms, viewDef->GetMaterialParms(), 
+				viewDef->GetGameTimeSec( renderEntity->timeGroup ), renderEntity->referenceSound );
 					
 			auto pStage = renderEntity->referenceShader->GetStage( 0 );
 			
 			memcpy( generatedShaderParms, renderEntity->shaderParms, sizeof( generatedShaderParms ) );
-			generatedShaderParms[ SHADERPARM_RED ]   = refRegs[ pStage->color.registers[ 0 ] ];
-			generatedShaderParms[ SHADERPARM_GREEN ] = refRegs[ pStage->color.registers[ 1 ] ];
-			generatedShaderParms[ SHADERPARM_BLUE ]  = refRegs[ pStage->color.registers[ 2 ] ];
+			generatedShaderParms[ SHADERPARM_RED ]   = refRegs[ pStage->color.registers[ SHADERPARM_RED ] ];
+			generatedShaderParms[ SHADERPARM_GREEN ] = refRegs[ pStage->color.registers[ SHADERPARM_GREEN ] ];
+			generatedShaderParms[ SHADERPARM_BLUE ]  = refRegs[ pStage->color.registers[ SHADERPARM_BLUE ] ];
 			
 			shaderParms = generatedShaderParms;
 		}
 		
 		// allocate frame memory for the shader register values
-		auto regs = allocManager.FrameAlloc<float, FRAME_ALLOC_SHADER_REGISTER>( shader->GetNumRegisters() );
+		auto regs = allocManager.FrameAlloc<float, FRAME_ALLOC_SHADER_REGISTER>( material->GetNumRegisters() );
 		drawSurf->shaderRegisters = regs;
 		
 		// process the shader expressions for conditionals / color / texcoords
-		shader->EvaluateRegisters( regs, shaderParms, tr.viewDef->GetMaterialParms(), tr.viewDef->GetGameTimeSec( renderEntity->timeGroup ), renderEntity->referenceSound );
+		material->EvaluateRegisters( regs, shaderParms, viewDef->GetMaterialParms(), viewDef->GetGameTimeSec( renderEntity->timeGroup ), renderEntity->referenceSound );
 	}
 }
 
@@ -296,6 +297,7 @@ void R_AddSingleModel( viewModel_t* vEntity )
 				if( decalDrawSurf != NULL )
 				{
 					decalDrawSurf->linkChain = NULL;
+					
 					decalDrawSurf->nextOnLight = vEntity->drawSurfs;
 					vEntity->drawSurfs = decalDrawSurf;
 				}
@@ -313,6 +315,7 @@ void R_AddSingleModel( viewModel_t* vEntity )
 				if( overlayDrawSurf != NULL )
 				{
 					overlayDrawSurf->linkChain = NULL;
+					
 					overlayDrawSurf->nextOnLight = vEntity->drawSurfs;
 					vEntity->drawSurfs = overlayDrawSurf;
 				}
@@ -387,12 +390,12 @@ void R_AddSingleModel( viewModel_t* vEntity )
 			}
 			const float* bounds = localBounds.ToFloatPtr();
 			idVec3 nearestPointOnBounds = localViewOrigin;
-			nearestPointOnBounds.x = Max( nearestPointOnBounds.x, bounds[0] );
-			nearestPointOnBounds.x = Min( nearestPointOnBounds.x, bounds[3] );
-			nearestPointOnBounds.y = Max( nearestPointOnBounds.y, bounds[1] );
-			nearestPointOnBounds.y = Min( nearestPointOnBounds.y, bounds[4] );
-			nearestPointOnBounds.z = Max( nearestPointOnBounds.z, bounds[2] );
-			nearestPointOnBounds.z = Min( nearestPointOnBounds.z, bounds[5] );
+			nearestPointOnBounds.x = idMath::Max( nearestPointOnBounds.x, bounds[0] );
+			nearestPointOnBounds.x = idMath::Min( nearestPointOnBounds.x, bounds[3] );
+			nearestPointOnBounds.y = idMath::Max( nearestPointOnBounds.y, bounds[1] );
+			nearestPointOnBounds.y = idMath::Min( nearestPointOnBounds.y, bounds[4] );
+			nearestPointOnBounds.z = idMath::Max( nearestPointOnBounds.z, bounds[2] );
+			nearestPointOnBounds.z = idMath::Min( nearestPointOnBounds.z, bounds[5] );
 			idVec3 delta = nearestPointOnBounds - localViewOrigin;
 			float distance = delta.LengthFast();
 			
@@ -513,14 +516,14 @@ void R_AddSingleModel( viewModel_t* vEntity )
 				
 				// add the surface for drawing
 				// we can re-use some of the values for light interaction surfaces
-				baseDrawSurf = allocManager.FrameAlloc<drawSurf_t, FRAME_ALLOC_DRAW_SURFACE>();
+				baseDrawSurf = allocManager.FrameAlloc< drawSurf_t, FRAME_ALLOC_DRAW_SURFACE >();
 				baseDrawSurf->frontEndGeo = tri;
 				baseDrawSurf->space = vEntity;
 				baseDrawSurf->scissorRect = vEntity->scissorRect;
 				baseDrawSurf->extraGLState = 0;
 				baseDrawSurf->renderZFail = 0;
 				
-				R_SetupDrawSurfShader( baseDrawSurf, shader, &entityDef->GetParms() );
+				R_SetupDrawSurfShader( baseDrawSurf, shader, &entityDef->GetParms(), viewDef );
 				
 				shaderRegisters = baseDrawSurf->shaderRegisters;
 				
@@ -537,6 +540,7 @@ void R_AddSingleModel( viewModel_t* vEntity )
 							next = surf->nextOnLight;
 							
 							surf->linkChain = NULL;
+
 							surf->nextOnLight = vEntity->drawSurfs;
 							vEntity->drawSurfs = surf;
 						}
@@ -564,7 +568,8 @@ void R_AddSingleModel( viewModel_t* vEntity )
 					baseDrawSurf->indexCache = tri->indexCache;
 					baseDrawSurf->shadowCache = 0;
 					
-					baseDrawSurf->linkChain = NULL;		// link to the view
+					baseDrawSurf->linkChain = NULL;	// link to the view
+
 					baseDrawSurf->nextOnLight = vEntity->drawSurfs;
 					vEntity->drawSurfs = baseDrawSurf;
 				}
@@ -582,7 +587,7 @@ void R_AddSingleModel( viewModel_t* vEntity )
 			
 			// check for a static interaction
 			surfaceInteraction_t* surfInter = NULL;
-			if( interaction > INTERACTION_EMPTY && interaction->staticInteraction )
+			if( interaction > INTERACTION_EMPTY && interaction->isStaticInteraction )
 			{
 				// we have a static interaction that was calculated accurately
 				assert( model->NumSurfaces() == interaction->numSurfaces );
@@ -591,7 +596,7 @@ void R_AddSingleModel( viewModel_t* vEntity )
 			else
 			{
 				// try to do a more precise cull of this model surface to the light
-				if( lightDef->CullModelBoundsToLight( tri->bounds, vEntity->modelMatrix ) )
+				if( lightDef->CullModelBoundsToLight( tri->GetBounds(), vEntity->modelMatrix ) )
 				{
 					continue;
 				}
@@ -624,7 +629,7 @@ void R_AddSingleModel( viewModel_t* vEntity )
 					if( shaderRegisters == NULL )
 					{
 						drawSurf_t scratchSurf;
-						R_SetupDrawSurfShader( &scratchSurf, shader, &entityDef->GetParms() );
+						R_SetupDrawSurfShader( &scratchSurf, shader, &entityDef->GetParms(), viewDef );
 						shaderRegisters = scratchSurf.shaderRegisters;
 					}
 					
@@ -665,7 +670,7 @@ void R_AddSingleModel( viewModel_t* vEntity )
 									dynamicShadowParms->numSilEdges = tri->numSilEdges;
 									dynamicShadowParms->joints = gpuSkinned ? tri->staticModelWithJoints->jointsInverted : NULL;
 									dynamicShadowParms->numJoints = gpuSkinned ? tri->staticModelWithJoints->numInvertedJoints : 0;
-									dynamicShadowParms->triangleBounds = tri->bounds;
+									dynamicShadowParms->triangleBounds = tri->GetBounds();
 									dynamicShadowParms->triangleMVP = vEntity->mvp;
 									dynamicShadowParms->localLightOrigin = localLightOrigin;
 									dynamicShadowParms->localViewOrigin = localViewOrigin;
@@ -727,6 +732,7 @@ void R_AddSingleModel( viewModel_t* vEntity )
 						else {
 							lightDrawSurf->linkChain = &vLight->globalInteractions;
 						}
+
 						lightDrawSurf->nextOnLight = vEntity->drawSurfs;
 						vEntity->drawSurfs = lightDrawSurf;
 					}
@@ -869,18 +875,17 @@ void R_AddSingleModel( viewModel_t* vEntity )
 						
 						if( shader->Coverage() == MC_PERFORATED )
 						{
-							R_SetupDrawSurfShader( shadowDrawSurf, shader, &entityDef->GetParms() );
+							R_SetupDrawSurfShader( shadowDrawSurf, shader, &entityDef->GetParms(), viewDef );
 						}
 						
 						R_SetupDrawSurfJoints( shadowDrawSurf, tri, shader );
 						
 						// determine which linked list to add the shadow surface to
 						
-						//shadowDrawSurf->linkChain = shader->TestMaterialFlag( MF_NOSELFSHADOW ) ? &vLight->localShadows : &vLight->globalShadows;
-						
+						//shadowDrawSurf->linkChain = shader->TestMaterialFlag( MF_NOSELFSHADOW ) ? &vLight->localShadows : &vLight->globalShadows;					
 						shadowDrawSurf->linkChain = &vLight->globalShadows;
-						shadowDrawSurf->nextOnLight = vEntity->drawSurfs;
 						
+						shadowDrawSurf->nextOnLight = vEntity->drawSurfs;						
 						vEntity->drawSurfs = shadowDrawSurf;
 						
 					}
@@ -890,7 +895,7 @@ void R_AddSingleModel( viewModel_t* vEntity )
 			// RB end
 			
 			if( lightDef->HasPreLightModel() && lightDef->lightHasMoved == false &&
-					entityDef->GetModel()->IsStaticWorldModel() && !r_skipPrelightShadows.GetBool() )
+				entityDef->GetModel()->IsStaticWorldModel() && !r_skipPrelightShadows.GetBool() )
 			{
 				// static light / world model shadow interacitons
 				// are always captured in the prelight shadow volume
@@ -922,7 +927,7 @@ void R_AddSingleModel( viewModel_t* vEntity )
 					staticShadowParms->numIndexes = surfInter->numShadowIndexes;
 					staticShadowParms->numShadowIndicesWithCaps = surfInter->numShadowIndexes;
 					staticShadowParms->numShadowIndicesNoCaps = surfInter->numShadowIndexesNoCaps;
-					staticShadowParms->triangleBounds = tri->bounds;
+					staticShadowParms->triangleBounds = tri->GetBounds();
 					staticShadowParms->triangleMVP = vEntity->mvp;
 					staticShadowParms->localLightOrigin = localLightOrigin;
 					staticShadowParms->localViewOrigin = localViewOrigin;
@@ -988,7 +993,7 @@ void R_AddSingleModel( viewModel_t* vEntity )
 					dynamicShadowParms->numSilEdges = tri->numSilEdges;
 					dynamicShadowParms->joints = gpuSkinned ? tri->staticModelWithJoints->jointsInverted : NULL;
 					dynamicShadowParms->numJoints = gpuSkinned ? tri->staticModelWithJoints->numInvertedJoints : 0;
-					dynamicShadowParms->triangleBounds = tri->bounds;
+					dynamicShadowParms->triangleBounds = tri->GetBounds();
 					dynamicShadowParms->triangleMVP = vEntity->mvp;
 					dynamicShadowParms->localLightOrigin = localLightOrigin;
 					dynamicShadowParms->localViewOrigin = localViewOrigin;
@@ -1043,6 +1048,7 @@ void R_AddSingleModel( viewModel_t* vEntity )
 			
 			// determine which linked list to add the shadow surface to
 			shadowDrawSurf->linkChain = shader->TestMaterialFlag( MF_NOSELFSHADOW ) ? &vLight->localShadows : &vLight->globalShadows;
+			
 			shadowDrawSurf->nextOnLight = vEntity->drawSurfs;
 			vEntity->drawSurfs = shadowDrawSurf;
 		}

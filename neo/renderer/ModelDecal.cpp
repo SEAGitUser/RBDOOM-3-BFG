@@ -78,7 +78,6 @@ idRenderModelDecal::CreateProjectionParms
 */
 bool idRenderModelDecal::CreateProjectionParms( decalProjectionParms_t& parms, const idFixedWinding& winding, const idVec3& projectionOrigin, const bool parallel, const float fadeDepth, const idMaterial* material, const int startTime )
 {
-
 	if( winding.GetNumPoints() != NUM_DECAL_BOUNDING_PLANES - 2 )
 	{
 		common->Printf( "idRenderModelDecal::CreateProjectionInfo: winding must have %d points\n", NUM_DECAL_BOUNDING_PLANES - 2 );
@@ -181,19 +180,6 @@ idRenderModelDecal::GlobalProjectionParmsToLocal
 */
 void idRenderModelDecal::GlobalProjectionParmsToLocal( decalProjectionParms_t& localParms, const decalProjectionParms_t& globalParms, const idVec3& origin, const idMat3& axis )
 {
-#if 0
-	float modelMatrix[16];	
-	R_AxisToModelMatrix( axis, origin, modelMatrix );	
-	for( int j = 0; j < NUM_DECAL_BOUNDING_PLANES; j++ )
-	{
-		R_GlobalPlaneToLocal( modelMatrix, globalParms.boundingPlanes[j], localParms.boundingPlanes[j] );
-	}
-	R_GlobalPlaneToLocal( modelMatrix, globalParms.fadePlanes[0], localParms.fadePlanes[0] );
-	R_GlobalPlaneToLocal( modelMatrix, globalParms.fadePlanes[1], localParms.fadePlanes[1] );
-	R_GlobalPlaneToLocal( modelMatrix, globalParms.textureAxis[0], localParms.textureAxis[0] );
-	R_GlobalPlaneToLocal( modelMatrix, globalParms.textureAxis[1], localParms.textureAxis[1] );
-	R_GlobalPointToLocal( modelMatrix, globalParms.projectionOrigin, localParms.projectionOrigin );
-#else
 	idRenderMatrix modelMatrix;
 	idRenderMatrix::CreateFromOriginAxis( origin, axis, modelMatrix );
 	for( int j = 0; j < NUM_DECAL_BOUNDING_PLANES; j++ )
@@ -205,7 +191,7 @@ void idRenderModelDecal::GlobalProjectionParmsToLocal( decalProjectionParms_t& l
 	modelMatrix.InverseTransformPlane( globalParms.textureAxis[ 0 ], localParms.textureAxis[ 0 ] );
 	modelMatrix.InverseTransformPlane( globalParms.textureAxis[ 1 ], localParms.textureAxis[ 1 ] );
 	modelMatrix.InverseTransformPoint( globalParms.projectionOrigin, localParms.projectionOrigin );
-#endif
+
 	localParms.projectionBounds = globalParms.projectionBounds;
 	localParms.projectionBounds.TranslateSelf( -origin );
 	localParms.projectionBounds.RotateSelf( axis.Transpose() );
@@ -324,6 +310,12 @@ static void R_DecalPointCullStatic( byte* cullBits, const idPlane* planes, const
 {
 	assert_16_byte_aligned( cullBits );
 	assert_16_byte_aligned( verts );
+	assert_16_byte_aligned( planes[ 0 ].ToFloatPtr() );
+	assert_16_byte_aligned( planes[ 1 ].ToFloatPtr() );
+	assert_16_byte_aligned( planes[ 2 ].ToFloatPtr() );
+	assert_16_byte_aligned( planes[ 3 ].ToFloatPtr() );
+	assert_16_byte_aligned( planes[ 4 ].ToFloatPtr() );
+	assert_16_byte_aligned( planes[ 5 ].ToFloatPtr() );
 	
 #if defined(USE_INTRINSICS)
 	idODSStreamedArray< idDrawVert, 16, SBT_DOUBLE, 4 > vertsODS( verts, numVerts );
@@ -336,12 +328,12 @@ static void R_DecalPointCullStatic( byte* cullBits, const idPlane* planes, const
 	const __m128i vector_int_mask4	= _mm_set1_epi32( 1 << 4 );
 	const __m128i vector_int_mask5	= _mm_set1_epi32( 1 << 5 );
 	
-	const __m128 p0 = _mm_loadu_ps( planes[0].ToFloatPtr() );
-	const __m128 p1 = _mm_loadu_ps( planes[1].ToFloatPtr() );
-	const __m128 p2 = _mm_loadu_ps( planes[2].ToFloatPtr() );
-	const __m128 p3 = _mm_loadu_ps( planes[3].ToFloatPtr() );
-	const __m128 p4 = _mm_loadu_ps( planes[4].ToFloatPtr() );
-	const __m128 p5 = _mm_loadu_ps( planes[5].ToFloatPtr() );
+	const __m128 p0 = _mm_load_ps( planes[0].ToFloatPtr() );
+	const __m128 p1 = _mm_load_ps( planes[1].ToFloatPtr() );
+	const __m128 p2 = _mm_load_ps( planes[2].ToFloatPtr() );
+	const __m128 p3 = _mm_load_ps( planes[3].ToFloatPtr() );
+	const __m128 p4 = _mm_load_ps( planes[4].ToFloatPtr() );
+	const __m128 p5 = _mm_load_ps( planes[5].ToFloatPtr() );
 	
 	const __m128 p0X = _mm_splat_ps( p0, 0 );
 	const __m128 p0Y = _mm_splat_ps( p0, 1 );
@@ -375,7 +367,6 @@ static void R_DecalPointCullStatic( byte* cullBits, const idPlane* planes, const
 	
 	for( int i = 0; i < numVerts; )
 	{
-	
 		const int nextNumVerts = vertsODS.FetchNextBatch() - 4;
 		
 		for( ; i <= nextNumVerts; i += 4 )
@@ -434,8 +425,7 @@ static void R_DecalPointCullStatic( byte* cullBits, const idPlane* planes, const
 	idODSStreamedArray< idDrawVert, 16, SBT_DOUBLE, 1 > vertsODS( verts, numVerts );
 	
 	for( int i = 0; i < numVerts; )
-	{
-	
+	{	
 		const int nextNumVerts = vertsODS.FetchNextBatch() - 1;
 	
 		for( ; i <= nextNumVerts; i++ )
@@ -477,7 +467,7 @@ void idRenderModelDecal::CreateDecal( const idRenderModel* model, const decalPro
 		const modelSurface_t* surf = model->Surface( surfNum );
 		if( surf->geometry != NULL && surf->shader != NULL )
 		{
-			maxVerts = Max( maxVerts, surf->geometry->numVerts );
+			maxVerts = idMath::Max( maxVerts, surf->geometry->numVerts );
 		}
 	}
 	
@@ -486,7 +476,7 @@ void idRenderModelDecal::CreateDecal( const idRenderModel* model, const decalPro
 	// check all model surfaces
 	for( int surfNum = 0; surfNum < model->NumSurfaces(); surfNum++ )
 	{
-		const modelSurface_t* surf = model->Surface( surfNum );
+		auto const surf = model->Surface( surfNum );
 		
 		// if no geometry or no shader
 		if( surf->geometry == NULL || surf->shader == NULL )
@@ -519,8 +509,7 @@ void idRenderModelDecal::CreateDecal( const idRenderModel* model, const decalPro
 		
 		// find triangles inside the projection volume
 		for( int i = 0; i < tri->numIndexes; )
-		{
-		
+		{		
 			const int nextNumIndexes = indexesODS.FetchNextBatch() - 3;
 			
 			for( ; i <= nextNumIndexes; i += 3 )
@@ -683,8 +672,7 @@ void idRenderModelDecal::RemoveFadedDecals( int time )
 R_CopyDecalSurface
 =====================
 */
-static void R_CopyDecalSurface( idDrawVert* verts, int numVerts, triIndex_t* indexes, int numIndexes,
-								const decal_t* decal, const float fadeColor[4] )
+static void R_CopyDecalSurface( idDrawVert* verts, int numVerts, triIndex_t* indexes, int numIndexes, const decal_t* decal, const float fadeColor[4] )
 {
 	assert_16_byte_aligned( &verts[numVerts] );
 	assert_16_byte_aligned( &indexes[numIndexes] );
@@ -884,18 +872,21 @@ drawSurf_t* idRenderModelDecal::CreateDecalDrawSurf( const viewModel_t* space, u
 	
 	// create the drawsurf
 	auto drawSurf = allocManager.FrameAlloc<drawSurf_t, FRAME_ALLOC_DRAW_SURFACE>();
+
 	drawSurf->frontEndGeo = newTri;
+
 	drawSurf->numIndexes = newTri->numIndexes;
 	drawSurf->vertexCache = newTri->vertexCache;
 	drawSurf->indexCache = newTri->indexCache;
 	drawSurf->shadowCache = 0;
 	drawSurf->jointCache = 0;
+
 	drawSurf->space = space;
 	drawSurf->scissorRect = space->scissorRect;
 	drawSurf->extraGLState = 0;
 	drawSurf->renderZFail = 0;
 	
-	R_SetupDrawSurfShader( drawSurf, material, &space->entityDef->GetParms() );
+	R_SetupDrawSurfShader( drawSurf, material, &space->entityDef->GetParms(), tr.viewDef );
 	
 	return drawSurf;
 }

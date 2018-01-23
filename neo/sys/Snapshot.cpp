@@ -65,9 +65,8 @@ Helper function for net_ssTemplateDebug debugging
 */
 void idSnapShot::objectState_t::Print( const char* name )
 {
-
 	unsigned int start = ( unsigned int )net_ssTemplateDebug_start.GetInteger();
-	unsigned int end = Min( ( unsigned int )buffer.Size(), start + net_ssTemplateDebug_len.GetInteger() );
+	unsigned int end = idMath::Min( ( unsigned int )buffer.Size(), start + net_ssTemplateDebug_len.GetInteger() );
 	
 	PrintAlign( va( "%s: [sz %d]", name, buffer.Size() ) );
 	
@@ -393,7 +392,7 @@ bool idSnapShot::ReadDeltaForJob( const char* deltaMem, int deltaSize, int visIn
 			// the buffer shrank or stayed the same
 			objectBuffer_t newbuffer( newsize );
 			rleCompressor.Start( NULL, &lzwCompressor, newsize );
-			objectSize_t compareSize = Min( state.buffer.Size(), newsize );
+			objectSize_t compareSize = idMath::Min( state.buffer.Size(), newsize );
 			for( objectSize_t i = 0; i < compareSize; i++ )
 			{
 				byte b = rleCompressor.ReadByte();
@@ -776,7 +775,7 @@ bool idSnapShot::ReadDelta( idFile* file, int visIndex )
 		else
 		{
 			objectBuffer_t newbuffer( newsize );
-			objectSize_t compareSize = Min( newsize, state.buffer.Size() );
+			objectSize_t compareSize = idMath::Min( newsize, state.buffer.Size() );
 			
 			for( objectSize_t i = 0; i < compareSize; i++ )
 			{
@@ -916,7 +915,7 @@ void idSnapShot::WriteObject( idFile* file, int visIndex, objectState_t* newStat
 		if( !visChange || visSendState )
 		{
 		
-			objectSize_t compareSize = Min( newState->buffer.Size(), oldState->buffer.Size() );		// Get the number of bytes that overlap
+			objectSize_t compareSize = idMath::Min( newState->buffer.Size(), oldState->buffer.Size() );		// Get the number of bytes that overlap
 			
 			file->WriteBig( newState->buffer.Size() );										// Write new size
 			
@@ -1166,7 +1165,7 @@ int idSnapShot::CompareObject( const idSnapShot* oldss, int objectNum, int start
 	{
 	
 		// else only compare up to end or the max buffer and dont include leftover
-		end = Min( commonSize, end );
+		end = idMath::Min( commonSize, end );
 	}
 	
 	for( int b = start; b < end; b++ )
@@ -1407,7 +1406,7 @@ void idSnapShot::ApplyToExistingState( int objId, idBitMsg& msg )
 	}
 	
 	// Actually apply it
-	for( objectSize_t i = 0; i < Min( objectState->buffer.Size(), msg.GetSize() ); i++ )
+	for( objectSize_t i = 0; i < idMath::Min( objectState->buffer.Size(), msg.GetSize() ); i++ )
 	{
 		objectState->buffer[i] += msg.GetReadData()[i];
 	}

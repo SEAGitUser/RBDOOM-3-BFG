@@ -91,15 +91,19 @@ public:
 	void			operator=( const char* text );
 	//idToken&		operator=( const idToken& rhs );
 
-	double			GetDoubleValue();				// double value of TT_NUMBER
-	float			GetFloatValue();				// float value of TT_NUMBER
-	unsigned int	GetUnsignedIntValue();		// unsigned int value of TT_NUMBER
-	int				GetIntValue();				// int value of TT_NUMBER
-	int				WhiteSpaceBeforeToken() const;// returns length of whitespace before token
-	void			ClearTokenWhiteSpace();		// forget whitespace before token
-	unsigned short	GetBinaryIndex() const;			// token index in a binary stream
+	ID_INLINE bool	Is( const char *text, const bool caseSensitive = false ) const {
+		return caseSensitive ? !Cmp( text ) : !Icmp( text );
+	}
 
-	void			NumberValue();				// calculate values for a TT_NUMBER
+	double			GetDoubleValue();					// double value of TT_NUMBER
+	float			GetFloatValue();					// float value of TT_NUMBER
+	unsigned int	GetUnsignedIntValue();				// unsigned int value of TT_NUMBER
+	int				GetIntValue();						// int value of TT_NUMBER
+	int				WhiteSpaceBeforeToken() const;		// returns length of whitespace before token
+	void			ClearTokenWhiteSpace();				// forget whitespace before token
+	unsigned short	GetBinaryIndex() const;				// token index in a binary stream
+
+	void			NumberValue();						// calculate values for a TT_NUMBER
 
 private:
 	unsigned int	intvalue;							// integer value

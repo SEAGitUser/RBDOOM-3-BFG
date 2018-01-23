@@ -91,7 +91,7 @@ COMMON MISTAKES:
    and wait for DMAs.
 
    void cellSpursJobMain2( CellSpursJobContext2 * stInfo, CellSpursJob256 * job ) {
-      globalDmaTag = stInfo->dmaTag;	// for ODS objects
+	  globalDmaTag = stInfo->dmaTag;	// for ODS objects
    }
 
 2. ODS objects can consume quite a bit of stack space. You may have to increase the SPU job
@@ -382,7 +382,7 @@ public:
 		if( cachedArrayEnd < inArrayNum )
 		{
 			cachedArrayEnd = streamArrayEnd;
-			cachedArrayStart = Max( cachedArrayEnd - _bufferSize_ * ( _sbt_ - 1 ), 0 );
+			cachedArrayStart = idMath::Max( cachedArrayEnd - _bufferSize_ * ( _sbt_ - 1 ), 0 );
 			
 			// Flush the last batch of elements that is no longer accessible.
 			FlushArray( inArray, ( cachedArrayStart - _bufferSize_ ) * sizeof( _type_ ), cachedArrayStart * sizeof( _type_ ) );
@@ -390,7 +390,7 @@ public:
 			// Prefetch the next batch of elements.
 			if( streamArrayEnd < inArrayNum )
 			{
-				streamArrayEnd = Min( streamArrayEnd + _bufferSize_, inArrayNum );
+				streamArrayEnd = idMath::Min( streamArrayEnd + _bufferSize_, inArrayNum );
 				for( unsigned int offset = cachedArrayEnd * sizeof( _type_ ); offset < streamArrayEnd * sizeof( _type_ ); offset += CACHE_LINE_SIZE )
 				{
 					Prefetch( inArray, offset );
@@ -515,9 +515,9 @@ public:
 			if( streamIndexEnd > 0 )
 			{
 				cachedArrayEnd = streamArrayEnd;
-				cachedArrayStart = Max( cachedArrayEnd - _bufferSize_ * ( _sbt_ - 1 ), 0 );
+				cachedArrayStart = idMath::Max( cachedArrayEnd - _bufferSize_ * ( _sbt_ - 1 ), 0 );
 				cachedIndexEnd = streamIndexEnd;
-				cachedIndexStart = Max( cachedIndexEnd - _bufferSize_ * ( _sbt_ - 1 ), 0 );
+				cachedIndexStart = idMath::Max( cachedIndexEnd - _bufferSize_ * ( _sbt_ - 1 ), 0 );
 				
 				// Flush the last batch of indices that are no longer accessible.
 				FlushArray( inIndex, ( cachedIndexStart - _bufferSize_ ) * sizeof( _indexType_ ), cachedIndexStart * sizeof( _indexType_ ) );
@@ -541,7 +541,7 @@ public:
 			// Prefetch the next batch of indices.
 			if( streamIndexEnd < inIndexNum )
 			{
-				streamIndexEnd = Min( streamIndexEnd + _bufferSize_, inIndexNum );
+				streamIndexEnd = idMath::Min( streamIndexEnd + _bufferSize_, inIndexNum );
 				for( unsigned int offset = cachedIndexEnd * sizeof( _indexType_ ); offset < streamIndexEnd * sizeof( _indexType_ ); offset += CACHE_LINE_SIZE )
 				{
 					Prefetch( inIndex, offset );

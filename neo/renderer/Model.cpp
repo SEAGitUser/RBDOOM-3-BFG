@@ -144,7 +144,7 @@ int idRenderModelStatic::Memory() const
 		totalBytes += surf->geometry->CPUMemoryUsed();
 	}
 	
-	return totalBytes;
+	return (int)totalBytes;
 }
 
 /*
@@ -626,7 +626,7 @@ void idRenderModelStatic::AddSurface( modelSurface_t surface )
 	surfaces.Append( surface );
 	if( surface.geometry )
 	{
-		bounds += surface.geometry->bounds;
+		bounds += surface.geometry->GetBounds();
 	}
 }
 
@@ -886,7 +886,7 @@ void idRenderModelStatic::FinishSurfaces()
 			const modelSurface_t* surf = &surfaces[i];
 			
 			surf->geometry->DeriveBounds();
-			bounds.AddBounds( surf->geometry->bounds );
+			bounds.AddBounds( surf->geometry->GetBounds() );
 		}
 		
 		return;
@@ -961,9 +961,9 @@ void idRenderModelStatic::FinishSurfaces()
 		for( int j = 0; j < tri->numIndexes; j += 3 )
 		{
 			float area = idWinding::TriangleArea( 
-				tri->verts[ tri->indexes[ j + 0 ] ].GetPosition(),
-				tri->verts[ tri->indexes[ j + 1 ] ].GetPosition(),
-				tri->verts[ tri->indexes[ j + 2 ] ].GetPosition()
+				tri->GetIVertex( j + 0 ).GetPosition(),
+				tri->GetIVertex( j + 1 ).GetPosition(),
+				tri->GetIVertex( j + 2 ).GetPosition()
 			);
 			const_cast<idMaterial*>( surf->shader )->AddToSurfaceArea( area );
 		}
@@ -1013,8 +1013,8 @@ void idRenderModelStatic::FinishSurfaces()
 			if( surf->shader->Deform() != DFRM_NONE )
 			{
 				idTriangles* tri = surf->geometry;
-				idVec3 mid = ( tri->bounds[1] + tri->bounds[0] ) * 0.5f;
-				float radius = ( tri->bounds[0] - mid ).Length();
+				idVec3 mid = tri->GetBounds().GetCenter();
+				float radius = tri->GetBounds().GetRadius();
 				radius += 20.0f;
 				
 				tri->bounds[0][0] = mid[0] - radius;
@@ -1027,8 +1027,7 @@ void idRenderModelStatic::FinishSurfaces()
 			}
 			
 			// add to the model bounds
-			bounds.AddBounds( surf->geometry->bounds );
-			
+			bounds.AddBounds( surf->geometry->GetBounds() );			
 		}
 	}
 }

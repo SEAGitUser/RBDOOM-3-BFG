@@ -113,10 +113,10 @@ struct shortBounds_t
 		for( int i = 0 ; i < 3 ; i++ )
 		{
 			// RB: replaced std::min, max
-			int minv = floor( set[0][i] );
-			b[0][i] = Max( -32768, minv );
-			int maxv = -ceil( set[1][i] );
-			b[1][i] = Min( 32767, maxv );
+			int minv = idMath::Floor( set[0][i] );
+			b[0][i] = idMath::Max( -32768, minv );
+			int maxv = -idMath::Ceil( set[1][i] );
+			b[1][i] = idMath::Min( 32767, maxv );
 			// RB end
 		}
 		b[0][3] = b[1][3] = 0;
@@ -221,7 +221,7 @@ void	idBoundsTrack::SetIndex( const int index, const idBounds& bounds )
 {
 	assert( ( unsigned )index < MAX_BOUNDS_TRACK_INDEXES );
 	// RB: replaced std::max
-	maxIndex = Max( maxIndex, index + 1 );
+	maxIndex = idMath::Max( maxIndex, index + 1 );
 	// RB end
 	boundsList[index].SetFromReferenceBounds( bounds );
 }

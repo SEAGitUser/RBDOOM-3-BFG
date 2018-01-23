@@ -288,7 +288,7 @@ bool idRenderWorldLocal::CullLightByPortals( const idRenderLightLocal* light, co
 	}
 	else if( r_useLightPortalCulling.GetInteger() >= 2 )
 	{	
-		idPlane frustumPlanes[6];
+		idRenderPlane frustumPlanes[6];
 		idRenderMatrix::GetFrustumPlanes( frustumPlanes, light->baseLightProject, true, true );
 		
 		// exact clip of light faces against all planes

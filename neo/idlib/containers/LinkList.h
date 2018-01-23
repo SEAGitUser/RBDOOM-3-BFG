@@ -141,15 +141,11 @@ Returns the number of nodes in the list.
 template< class type >
 int idLinkList<type>::Num() const
 {
-	idLinkList<type>*	node;
-	int					num;
-	
-	num = 0;
-	for( node = head->next; node != head; node = node->next )
+	int num = 0;
+	for( auto node = head->next; node != head; node = node->next )
 	{
 		num++;
 	}
-	
 	return num;
 }
 

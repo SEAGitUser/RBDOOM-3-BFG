@@ -1367,10 +1367,10 @@ SWF_TEXT_FUNCTION_DEFINE( onKey )
 						pThis->selectionEnd = pThis->selectionStart + 1;
 					}
 				}
-				int start = Min( pThis->selectionStart, pThis->selectionEnd );
-				int end = Max( pThis->selectionStart, pThis->selectionEnd );
-				idStr left = pThis->text.Left( Max( start, 0 ) );
-				idStr right = pThis->text.Right( Max( pThis->text.Length() - end, 0 ) );
+				int start = idMath::Min( pThis->selectionStart, pThis->selectionEnd );
+				int end = idMath::Max( pThis->selectionStart, pThis->selectionEnd );
+				idStr left = pThis->text.Left( idMath::Max( start, 0 ) );
+				idStr right = pThis->text.Right( idMath::Max( pThis->text.Length() - end, 0 ) );
 				pThis->text = left + right;
 				pThis->selectionStart = start;
 				pThis->selectionEnd = start;
@@ -1449,10 +1449,10 @@ SWF_TEXT_FUNCTION_DEFINE( onChar )
 	}
 	if( pThis->selectionStart != pThis->selectionEnd )
 	{
-		int start = Min( pThis->selectionStart, pThis->selectionEnd );
-		int end = Max( pThis->selectionStart, pThis->selectionEnd );
-		idStr left = pThis->text.Left( Max( start, 0 ) );
-		idStr right = pThis->text.Right( Max( pThis->text.Length() - end, 0 ) );
+		int start = idMath::Min( pThis->selectionStart, pThis->selectionEnd );
+		int end = idMath::Max( pThis->selectionStart, pThis->selectionEnd );
+		idStr left = pThis->text.Left( idMath::Max( start, 0 ) );
+		idStr right = pThis->text.Right( idMath::Max( pThis->text.Length() - end, 0 ) );
 		pThis->text = left + right;
 		pThis->selectionStart = start;
 		

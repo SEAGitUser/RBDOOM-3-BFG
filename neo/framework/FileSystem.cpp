@@ -1661,7 +1661,7 @@ void idFileSystemLocal::CopyFile( idFile* src, const char* toOSPath )
 	while( copied < len )
 	{
 		byte buffer[4096];
-		int read = src->Read( buffer, Min( 4096, len - copied ) );
+		int read = src->Read( buffer, idMath::Min( 4096, len - copied ) );
 		if( read <= 0 )
 		{
 			idLib::Warning( "Copy failed during read" );

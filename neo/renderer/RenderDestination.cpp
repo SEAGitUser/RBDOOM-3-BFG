@@ -32,9 +32,6 @@ If you have questions concerning this license or the applicable additional terms
 #include "tr_local.h"
 //#include "Framebuffer.h"
 
-
-
-
 /*
 =================================================
  idRenderDestinationManager()
@@ -53,6 +50,8 @@ idRenderDestinationManager::idRenderDestinationManager()
 void idRenderDestinationManager::Init()
 {
 	cmdSystem->AddCommand( "listRenderDest", ListRenderDestinations_f, CMD_FL_RENDERER, "lists render destinations" );
+
+	// glTexImage2D( GL_TEXTURE_2D, 0, GL_R11F_G11F_B10F, 1680, 1050, 0, GL_RGB, GL_HALF_FLOAT, 0000000000000000 );
 
 	// SHADOWMAPS
 	{
@@ -317,23 +316,17 @@ void idRenderDestinationManager::DestroyRenderDestination( idRenderDestination *
 */
 void idRenderDestinationManager::ListRenderDestinations_f( const idCmdArgs& args )
 {
-	if( !glConfig.framebufferObjectAvailable )
-	{
-		common->Printf( "GL_EXT_framebuffer_object is not available.\n" );
-		return;
-	}
-
 	for( int i = 0; i < renderDestManager.renderDestList.Num(); i++ )
 	{
 		auto dest = renderDestManager.renderDestList[ i ];
 		if( dest != nullptr )
 		{
-			common->Printf( "RD%i: %s w:%i, h:%i\n", i, dest->GetName(), dest->GetTargetWidth(), dest->GetTargetHeight() );
+			common->Printf( S_COLOR_BLUE "RD%i:" S_COLOR_DEFAULT " %s w:%i, h:%i\n", i, dest->GetName(), dest->GetTargetWidth(), dest->GetTargetHeight() );
 			dest->Print();
 		}
 		else
 		{
-			common->Printf( "RD%i: NULL\n", i );
+			common->Printf( S_COLOR_BLUE "RD%i:" S_COLOR_DEFAULT " NULL\n", i );
 		}
 	}
 }

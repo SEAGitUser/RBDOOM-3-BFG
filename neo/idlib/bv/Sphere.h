@@ -306,8 +306,7 @@ ID_INLINE void idSphere::FromSphereRotation( const idSphere& sphere, const idVec
 
 ID_INLINE void idSphere::AxisProjection( const idVec3& dir, float& min, float& max ) const
 {
-	float d;
-	d = dir * origin;
+	float d = dir * origin;
 	min = d - radius;
 	max = d + radius;
 }

@@ -913,6 +913,15 @@ bool idDict::ReadFromIniFile( idFile* f )
 	buffer[length - 1] = '\0';	// Since the .ini files are not null terminated, make sure we mark where the end of the .ini file is in our read buffer
 	
 	idLexer parser( LEXFL_NOFATALERRORS | LEXFL_ALLOWPATHNAMES /*| LEXFL_ONLYSTRINGS */ );
+	const punctuation_t ini_punctuations[] =
+	{
+		{ "[", P_SQBRACKETOPEN },
+		{ "]", P_SQBRACKETCLOSE },
+		{ "=", P_ASSIGN },
+		{ NULL, 0 }
+	};
+	parser.SetPunctuations( ini_punctuations );
+
 	idStr name = f->GetName();
 	name.Append( " dictionary INI reader" );
 	if( !parser.LoadMemory( ( const char* )buffer.Ptr(), length, name.c_str() ) )
@@ -927,16 +936,7 @@ bool idDict::ReadFromIniFile( idFile* f )
 	bool success = true;
 	
 	Clear();
-	
-	const punctuation_t ini_punctuations[] =
-	{
-		{ "[", P_SQBRACKETOPEN },
-		{ "]", P_SQBRACKETCLOSE },
-		{ "=", P_ASSIGN },
-		{ NULL, 0 }
-	};
-	parser.SetPunctuations( ini_punctuations );
-	
+		
 	while( success && !parser.EndOfFile() )
 	{
 		if( parser.PeekTokenType( TT_PUNCTUATION, P_SQBRACKETOPEN, &token ) )

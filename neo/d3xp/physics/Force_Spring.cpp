@@ -139,7 +139,7 @@ void idForce_Spring::Evaluate( int time )
 	{
 		if( Kstretch > 0.0f )
 		{
-			force = ( Square( length - restLength ) * Kstretch ) * force - dampingForce;
+			force = ( idMath::Square( length - restLength ) * Kstretch ) * force - dampingForce;
 			if( physics1 )
 			{
 				physics1->AddForce( id1, pos1, force );
@@ -154,7 +154,7 @@ void idForce_Spring::Evaluate( int time )
 	{
 		if( Kcompress > 0.0f )
 		{
-			force = ( Square( length - restLength ) * Kcompress ) * force - dampingForce;
+			force = ( idMath::Square( length - restLength ) * Kcompress ) * force - dampingForce;
 			if( physics1 )
 			{
 				physics1->AddForce( id1, pos1, -force );

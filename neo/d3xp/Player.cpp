@@ -1160,7 +1160,7 @@ int idInventory::HasAmmo( const char* weapon_classname, bool includeClip, idPlay
 	int ammoCount = HasAmmo( ammo_i, ammoRequired );
 	if( includeClip && owner )
 	{
-		ammoCount += Max( 0, clip[owner->SlotForWeapon( weapon_classname )].Get() );
+		ammoCount += idMath::Max( 0, clip[owner->SlotForWeapon( weapon_classname )].Get() );
 	}
 	return ammoCount;
 	
@@ -5926,7 +5926,7 @@ void idPlayer::UpdateFlashlight()
 		{
 			if( flashlightBattery < flashlight_batteryDrainTimeMS.GetInteger() )
 			{
-				flashlightBattery += ( gameLocal.time - gameLocal.previousTime ) * Max( 1, ( flashlight_batteryDrainTimeMS.GetInteger() / flashlight_batteryChargeTimeMS.GetInteger() ) );
+				flashlightBattery += ( gameLocal.time - gameLocal.previousTime ) * idMath::Max( 1, ( flashlight_batteryDrainTimeMS.GetInteger() / flashlight_batteryChargeTimeMS.GetInteger() ) );
 				if( flashlightBattery > flashlight_batteryDrainTimeMS.GetInteger() )
 				{
 					flashlightBattery = flashlight_batteryDrainTimeMS.GetInteger();
@@ -6272,10 +6272,9 @@ void idPlayer::PlayVideoDisk( const idDeclVideo* decl )
 	pdaVideoMat = decl->GetRoq();
 	if( pdaVideoMat )
 	{
-		int c = pdaVideoMat->GetNumStages();
-		for( int i = 0; i < c; i++ )
+		for( int i = 0; i < pdaVideoMat->GetNumStages(); i++ )
 		{
-			const shaderStage_t* stage = pdaVideoMat->GetStage( i );
+			auto const stage = pdaVideoMat->GetStage( i );
 			if( stage != NULL && stage->texture.cinematic )
 			{
 				stage->texture.cinematic->ResetTime( Sys_Milliseconds() );
@@ -9721,8 +9720,8 @@ void idPlayer::ControllerShakeFromDamage( int damage )
 		
 		// determine rumble
 		// >= 100 damage - will be 300 Mag
-		float highMag = ( Max( damage, 100 ) / 100.0f ) * maxMagScale;
-		int highDuration = idMath::Ftoi( ( Max( damage, 100 ) / 100.0f ) * maxDurScale );
+		float highMag = ( idMath::Max( damage, 100 ) / 100.0f ) * maxMagScale;
+		int highDuration = idMath::Ftoi( ( idMath::Max( damage, 100 ) / 100.0f ) * maxDurScale );
 		float lowMag = highMag * 0.75f;
 		int lowDuration = idMath::Ftoi( highDuration );
 		
@@ -11591,7 +11590,7 @@ bool idPlayer::GetPhysicsToVisualTransform( idVec3& origin, idMat3& axis )
 		if( !smoothedOriginUpdated )
 		{
 			idVec2 originDiff = renderOrigin.ToVec2() - smoothedOrigin.ToVec2();
-			if( originDiff.LengthSqr() < Square( 100.0f ) )
+			if( originDiff.LengthSqr() < idMath::Square( 100.0f ) )
 			{
 				// smoothen by pushing back to the previous position
 				if( selfSmooth )

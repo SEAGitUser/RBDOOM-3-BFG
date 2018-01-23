@@ -59,6 +59,15 @@ If you have questions concerning this license or the applicable additional terms
 
 #define C_FLOAT_TO_INT( x )		(int)(x)
 
+//SEA: temp!temp!
+template<typename T> static ID_INLINE T	Sign( T f ) { return ( f > 0 ) ? 1 : ( ( f < 0 ) ? -1 : 0 ); }
+template<typename T> static ID_INLINE T	Square( T x ) { return x * x; }
+template<typename T> static ID_INLINE T	Cube( T x ) { return x * x * x; }
+template<typename T> static ID_INLINE T	Max( T x, T y ) { return ( x > y ) ? x : y; }
+template<typename T> static ID_INLINE T	Min( T x, T y ) { return ( x < y ) ? x : y; }
+// simple min/max clamp
+template<typename T> static ID_INLINE T Clamp( T min, T max, T value ) { return Max( min, ( T )Min( max, value ) ); }
+
 /*
 ================================================================================================
 
@@ -341,18 +350,6 @@ template<class T> ID_INLINE int	Min3Index( T x, T y, T z )
 
 ================================================================================================
 */
-template<class T> ID_INLINE T	Sign( T f )
-{
-	return ( f > 0 ) ? 1 : ( ( f < 0 ) ? -1 : 0 );
-}
-template<class T> ID_INLINE T	Square( T x )
-{
-	return x * x;
-}
-template<class T> ID_INLINE T	Cube( T x )
-{
-	return x * x * x;
-}
 
 class idMath
 {
@@ -431,6 +428,11 @@ public:
 	static signed short			ClampShort( int i );
 	static int					ClampInt( int min, int max, int value );
 	static float				ClampFloat( float min, float max, float value );
+
+	template<typename T> static ID_INLINE T	Max( T x, T y ) { return ( x > y ) ? x : y; }
+	template<typename T> static ID_INLINE T	Min( T x, T y ) { return ( x < y ) ? x : y; }
+	// simple min/max clamp
+	template<typename T> static ID_INLINE T Clamp( T min, T max, T value ) { return Max( min, ( T )Min( max, value ) ); }
 	
 	static float				AngleNormalize360( float angle );
 	static float				AngleNormalize180( float angle );
@@ -442,6 +444,10 @@ public:
 	static int					FloatHash( const float* array, const int numFloats );
 	
 	static float				LerpToWithScale( const float cur, const float dest, const float scale );
+
+	template<typename T> static ID_INLINE T	Sign( T f ) { return ( f > 0 ) ? 1 : ( ( f < 0 ) ? -1 : 0 ); }
+	template<typename T> static ID_INLINE T	Square( T x ) { return x * x; }
+	template<typename T> static ID_INLINE T	Cube( T x ) { return x * x * x; }
 	
 	static const float			PI;							// pi
 	static const float			TWO_PI;						// pi * 2
@@ -1498,7 +1504,7 @@ idMath::ClampFloat
 */
 ID_INLINE float idMath::ClampFloat( float min, float max, float value )
 {
-	return Max( min, Min( max, value ) );
+	return Max( min, ( float )Min( max, value ) );
 }
 
 /*
@@ -1548,9 +1554,7 @@ idMath::FloatHash
 ID_INLINE int idMath::FloatHash( const float* array, const int numFloats )
 {
 	int i, hash = 0;
-	const int* ptr;
-	
-	ptr = reinterpret_cast<const int*>( array );
+	auto ptr = reinterpret_cast<const int*>( array );
 	for( i = 0; i < numFloats; i++ )
 	{
 		hash ^= ptr[i];

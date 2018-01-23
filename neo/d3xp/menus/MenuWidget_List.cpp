@@ -70,7 +70,7 @@ void idMenuWidget_List::Update()
 		if( optionIndex < GetChildren().Num() )
 		{
 			idMenuWidget& child = GetChildByIndex( optionIndex );
-			const int controlIndex = GetNumVisibleOptions() - Min( GetNumVisibleOptions(), GetTotalNumberOfOptions() ) + optionIndex;
+			const int controlIndex = GetNumVisibleOptions() - idMath::Min( GetNumVisibleOptions(), GetTotalNumberOfOptions() ) + optionIndex;
 			child.SetSpritePath( GetSpritePath(), va( "item%d", controlIndex ) );
 			if( child.BindSprite( root ) )
 			{
@@ -246,19 +246,19 @@ void idMenuWidget_List::CalculatePositionFromOffsetDelta( int& outIndex, int& ou
 	// FIXME: make this simpler code - just pass a boolean to control it?
 	assert( offsetDelta != 0 );
 	
-	const int newOffset = Max( currentIndex + offsetDelta, 0 );
+	const int newOffset = idMath::Max( currentIndex + offsetDelta, 0 );
 	
 	if( newOffset >= maxSize )
 	{
 		// scrolling past the end - just scroll all the way to the end
 		outIndex = maxSize - 1;
-		outOffset = Max( maxSize - windowSize, 0 );
+		outOffset = idMath::Max( maxSize - windowSize, 0 );
 	}
 	else if( newOffset >= maxSize - windowSize )
 	{
 		// scrolled to the last window
 		outIndex = newOffset;
-		outOffset = Max( maxSize - windowSize, 0 );
+		outOffset = idMath::Max( maxSize - windowSize, 0 );
 	}
 	else
 	{

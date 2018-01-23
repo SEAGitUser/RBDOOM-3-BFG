@@ -46,8 +46,11 @@ public:
 		return value;
 	}
 
-	valueType_t GetInvalidValue() const
-	{
+	valueType_t GetValue() const {
+		return value;
+	}
+
+	valueType_t GetInvalidValue() const {
 		return INVALID_VALUE;
 	}
 

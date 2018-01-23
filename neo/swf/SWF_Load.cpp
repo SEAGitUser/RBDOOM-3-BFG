@@ -240,7 +240,7 @@ void idSWF::WriteSWF( const char* swfFilename, const byte* atlasImageRGBA, int a
 				
 				// RB: add some extra space for zlib
 				idTempArray<byte> compressedData( width * height * 4 * 1.02 + 12 );
-				int compressedDataSize = compressedData.Size();
+				int compressedDataSize = (int)compressedData.Size();
 				
 				if( !Deflate( colorData.Ptr(), colorDataSize, ( byte* )compressedData.Ptr(), compressedDataSize ) )
 				{

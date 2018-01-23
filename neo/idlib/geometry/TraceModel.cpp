@@ -1516,19 +1516,19 @@ void idTraceModel::PolygonIntegrals( int polyNum, int a, int b, int c, struct po
 	
 	integrals.Faa = k1 * pi.Paa;
 	integrals.Fbb = k1 * pi.Pbb;
-	integrals.Fcc = k3 * ( Square( n[a] ) * pi.Paa + 2 * n[a] * n[b] * pi.Pab + Square( n[b] ) * pi.Pbb
+	integrals.Fcc = k3 * ( idMath::Square( n[a] ) * pi.Paa + 2 * n[a] * n[b] * pi.Pab + idMath::Square( n[b] ) * pi.Pbb
 						   + w * ( 2 * ( n[a] * pi.Pa + n[b] * pi.Pb ) + w * pi.P1 ) );
 						   
 	integrals.Faaa = k1 * pi.Paaa;
 	integrals.Fbbb = k1 * pi.Pbbb;
-	integrals.Fccc = -k4 * ( Cube( n[a] ) * pi.Paaa + 3 * Square( n[a] ) * n[b] * pi.Paab
-							 + 3 * n[a] * Square( n[b] ) * pi.Pabb + Cube( n[b] ) * pi.Pbbb
-							 + 3 * w * ( Square( n[a] ) * pi.Paa + 2 * n[a] * n[b] * pi.Pab + Square( n[b] ) * pi.Pbb )
+	integrals.Fccc = -k4 * ( idMath::Cube( n[a] ) * pi.Paaa + 3 * idMath::Square( n[a] ) * n[b] * pi.Paab
+							 + 3 * n[a] * idMath::Square( n[b] ) * pi.Pabb + idMath::Cube( n[b] ) * pi.Pbbb
+							 + 3 * w * ( idMath::Square( n[a] ) * pi.Paa + 2 * n[a] * n[b] * pi.Pab + idMath::Square( n[b] ) * pi.Pbb )
 							 + w * w * ( 3 * ( n[a] * pi.Pa + n[b] * pi.Pb ) + w * pi.P1 ) );
 							 
 	integrals.Faab = k1 * pi.Paab;
 	integrals.Fbbc = -k2 * ( n[a] * pi.Pabb + n[b] * pi.Pbbb + w * pi.Pbb );
-	integrals.Fcca = k3 * ( Square( n[a] ) * pi.Paaa + 2 * n[a] * n[b] * pi.Paab + Square( n[b] ) * pi.Pabb
+	integrals.Fcca = k3 * ( idMath::Square( n[a] ) * pi.Paaa + 2 * n[a] * n[b] * pi.Paab + idMath::Square( n[b] ) * pi.Pabb
 							+ w * ( 2 * ( n[a] * pi.Paa + n[b] * pi.Pab ) + w * pi.Pa ) );
 }
 

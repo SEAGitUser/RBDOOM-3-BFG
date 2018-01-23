@@ -1001,7 +1001,7 @@ bool idLBCache::Scroll( int amount )
 	}
 	
 	// Clamp row offset
-	rowOffset = idMath::ClampInt( 0, Max( numRowsInLeaderboard - MAX_STAT_LISTINGS, 0 ), rowOffset );
+	rowOffset = idMath::ClampInt( 0, idMath::Max( numRowsInLeaderboard - MAX_STAT_LISTINGS, 0 ), rowOffset );
 	
 	// Let caller know if anything actually changed
 	return ( oldEntryIndex != entryIndex || oldRowOffset != rowOffset );
@@ -1026,7 +1026,7 @@ bool idLBCache::ScrollOffset( int amount )
 	rowOffset += amount;
 	
 	// Clamp row offset
-	rowOffset = idMath::ClampInt( 0, Max( numRowsInLeaderboard - MAX_STAT_LISTINGS, 0 ), rowOffset );
+	rowOffset = idMath::ClampInt( 0, idMath::Max( numRowsInLeaderboard - MAX_STAT_LISTINGS, 0 ), rowOffset );
 	
 	if( rowOffset != oldRowOffset )
 	{

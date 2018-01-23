@@ -758,8 +758,8 @@ static float R_ComputeSpotLightProjectionMatrix( const renderLight_t& parms, idR
 	// Set the falloff vector.
 	// This is similar to the Z calculation for depth buffering, which means that the
 	// mapped texture is going to be perspective distorted heavily towards the zero end.
-	const float zNear = Max( parms.start * normalizedTarget, SPOT_LIGHT_MIN_Z_NEAR );
-	const float zFar = Max( parms.end * normalizedTarget, SPOT_LIGHT_MIN_Z_FAR );
+	const float zNear = idMath::Max( parms.start * normalizedTarget, SPOT_LIGHT_MIN_Z_NEAR );
+	const float zFar = idMath::Max( parms.end * normalizedTarget, SPOT_LIGHT_MIN_Z_FAR );
 	const float zScale = ( zNear + zFar ) / zFar;
 
 	localProject[ 2 ][ 0 ] = normalizedTarget[ 0 ] * zScale;
@@ -822,7 +822,7 @@ void idRenderLightLocal::DeriveData()
 {
 	idRenderLightLocal* light = this;
 
-	/*{ //SEA: FuglyHack 
+	/*{ //SEA: FuglyHack to make big point_lights parallel
 		if( light->parms.pointLight && GetAxialSize() > 1000.0 )
 		{
 			light->parms.parallel = true;
@@ -862,10 +862,8 @@ void idRenderLightLocal::DeriveData()
 			declManager->Touch( static_cast< const idDecl*>( defaultShader ) );
 
 			light->falloffImage = defaultShader->LightFalloffImage();
-
 		}
-		else
-		{
+		else {
 			// projected lights by default don't diminish with distance
 			defaultShader = tr.defaultProjectedLight;
 

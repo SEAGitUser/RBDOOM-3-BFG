@@ -1814,7 +1814,6 @@ to true, the clip space will extend from 0.0 to 1.0 on each axis for a light pro
 */
 bool idRenderMatrix::CullPointToMVPbits( const idRenderMatrix& mvp, const idVec3& p, byte* outBits, bool zeroToOne )
 {
-
 	idVec4 c;
 	for( int i = 0; i < 4; i++ )
 	{

@@ -4819,7 +4819,7 @@ void idAnimator::SetAFPoseJointMod( const jointHandle_t jointNum, const AFJointM
 	AFPoseJointMods[jointNum].axis = axis;
 	AFPoseJointMods[jointNum].origin = origin;
 	
-	int index = idBinSearch_GreaterEqual<int>( AFPoseJoints.Ptr(), AFPoseJoints.Num(), jointNum );
+	int index = idBinSearch::GreaterEqual<int>( AFPoseJoints.Ptr(), AFPoseJoints.Num(), jointNum );
 	if( index >= AFPoseJoints.Num() || jointNum != AFPoseJoints[index] )
 	{
 		AFPoseJoints.Insert( jointNum, index );

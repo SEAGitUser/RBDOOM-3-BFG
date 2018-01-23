@@ -188,7 +188,7 @@ void SnapshotObjectJob( objParms_t* parms )
 		
 		if( !visChange || visSendState )
 		{
-			int compareSize = Min( newState.size, oldState.size );
+			int compareSize = idMath::Min( newState.size, oldState.size );
 			rleCompressor.Start( dataStart, NULL, OBJ_DEST_SIZE_ALIGN16( newState.size ) );
 			for( int b = 0; b < compareSize; b++ )
 			{

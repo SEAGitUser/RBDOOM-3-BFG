@@ -1495,7 +1495,7 @@ float idLobby::GetAverageSessionLevel()
 		level /= ( float )numActiveMembers;
 	}
 	
-	float ret = Max( level, 1.0f );
+	float ret = idMath::Max( level, 1.0f );
 	NET_VERBOSE_PRINT( "NET: GetAverageSessionLevel %g\n", ret );
 	return ret;
 }
@@ -1535,7 +1535,7 @@ float idLobby::GetAverageLocalUserLevel( bool onlineOnly )
 		level /= ( float )numActiveMembers;
 	}
 	
-	return Max( level, 1.0f );
+	return idMath::Max( level, 1.0f );
 }
 
 /*

@@ -560,7 +560,7 @@ idRenderModel* idRenderModelLiquid::InstantiateDynamicModel( const struct render
 	
 	auto staticModel = new( TAG_MODEL ) idRenderModelStatic;
 	staticModel->AddSurface( surf );
-	staticModel->bounds = surf.geometry->bounds;
+	staticModel->bounds = surf.geometry->GetBounds();
 	
 	return staticModel;
 }

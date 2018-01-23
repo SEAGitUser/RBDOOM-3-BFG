@@ -93,7 +93,7 @@ ID_INLINE void* idListArrayResize( void* voldptr, int oldNum, int newNum, bool z
 	if( newNum > 0 )
 	{
 		newptr = ( _type_* )idListArrayNew<_type_, _tag_>( newNum, zeroBuffer );
-		int overlap = Min( oldNum, newNum );
+		int overlap = idMath::Min( oldNum, newNum );
 		for( int i = 0; i < overlap; i++ )
 		{
 			newptr[i] = oldptr[i];

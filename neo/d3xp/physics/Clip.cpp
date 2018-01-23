@@ -1210,7 +1210,7 @@ idClip::TestHugeTranslation
 */
 ID_INLINE bool TestHugeTranslation( trace_t& results, const idClipModel* mdl, const idVec3& start, const idVec3& end, const idMat3& trmAxis )
 {
-	if( mdl != NULL && ( end - start ).LengthSqr() > Square( CM_MAX_TRACE_DIST ) )
+	if( mdl != NULL && ( end - start ).LengthSqr() > idMath::Square( CM_MAX_TRACE_DIST ) )
 	{
 #ifndef CTF
 		// May be important: This occurs in CTF when a player connects and spawns
@@ -1675,7 +1675,7 @@ bool idClip::Motion( trace_t& results, const idVec3& start, const idVec3& end, c
 		results.endAxis = rotationalTrace.endAxis;
 	}
 	
-	results.fraction = Max( translationalTrace.fraction, rotationalTrace.fraction );
+	results.fraction = idMath::Max( translationalTrace.fraction, rotationalTrace.fraction );
 	
 	return ( translationalTrace.fraction < 1.0f || rotationalTrace.fraction < 1.0f );
 }

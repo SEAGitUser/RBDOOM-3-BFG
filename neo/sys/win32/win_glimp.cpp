@@ -1337,7 +1337,7 @@ bool GLimp_Init( glimpParms_t parms )
 	// get the screen size, which may not be reliable...
 	// If we use the windowDC, I get my 30" monitor, even though the window is
 	// on a 27" monitor, so get a dedicated DC for the full screen device name.
-	const idStr deviceName = GetDeviceName( Max( 0, parms.fullScreen - 1 ) );
+	const idStr deviceName = GetDeviceName( idMath::Max( 0, parms.fullScreen - 1 ) );
 	
 	HDC deviceDC = CreateDC( deviceName.c_str(), deviceName.c_str(), NULL, NULL );
 	const int mmWide = GetDeviceCaps( win32.hDC, HORZSIZE );

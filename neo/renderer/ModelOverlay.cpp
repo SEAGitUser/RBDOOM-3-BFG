@@ -96,11 +96,11 @@ void idRenderModelOverlay::FreeOverlay( overlay_t& overlay )
 {
 	if( overlay.verts != NULL )
 	{
-		Mem_Free( overlay.verts );
+		allocManager.StaticFree( overlay.verts );
 	}
 	if( overlay.indexes != NULL )
 	{
-		Mem_Free( overlay.indexes );
+		allocManager.StaticFree( overlay.indexes );
 	}
 	memset( &overlay, 0, sizeof( overlay ) );
 }
@@ -116,6 +116,8 @@ static void R_OverlayPointCullStatic( byte* cullBits, halfFloat_t* texCoordS, ha
 	assert_16_byte_aligned( texCoordS );
 	assert_16_byte_aligned( texCoordT );
 	assert_16_byte_aligned( verts );
+	assert_16_byte_aligned( planes[0].ToFloatPtr() );
+	assert_16_byte_aligned( planes[1].ToFloatPtr() );
 	
 #if defined(USE_INTRINSICS)
 	idODSStreamedArray< idDrawVert, 16, SBT_DOUBLE, 4 > vertsODS( verts, numVerts );
@@ -127,8 +129,8 @@ static void R_OverlayPointCullStatic( byte* cullBits, halfFloat_t* texCoordS, ha
 	const __m128i vector_int_mask2	= _mm_set1_epi32( 1 << 2 );
 	const __m128i vector_int_mask3	= _mm_set1_epi32( 1 << 3 );
 	
-	const __m128 p0 = _mm_loadu_ps( planes[0].ToFloatPtr() );
-	const __m128 p1 = _mm_loadu_ps( planes[1].ToFloatPtr() );
+	const __m128 p0 = _mm_load_ps( planes[0].ToFloatPtr() );
+	const __m128 p1 = _mm_load_ps( planes[1].ToFloatPtr() );
 	
 	const __m128 p0X = _mm_splat_ps( p0, 0 );
 	const __m128 p0Y = _mm_splat_ps( p0, 1 );
@@ -241,6 +243,8 @@ static void R_OverlayPointCullSkinned( byte* cullBits, halfFloat_t* texCoordS, h
 	assert_16_byte_aligned( texCoordS );
 	assert_16_byte_aligned( texCoordT );
 	assert_16_byte_aligned( verts );
+	assert_16_byte_aligned( planes[0].ToFloatPtr() );
+	assert_16_byte_aligned( planes[1].ToFloatPtr() );
 	
 #if defined(USE_INTRINSICS)
 	idODSStreamedArray< idDrawVert, 16, SBT_DOUBLE, 4 > vertsODS( verts, numVerts );
@@ -252,8 +256,8 @@ static void R_OverlayPointCullSkinned( byte* cullBits, halfFloat_t* texCoordS, h
 	const __m128i vector_int_mask2	= _mm_set1_epi32( 1 << 2 );
 	const __m128i vector_int_mask3	= _mm_set1_epi32( 1 << 3 );
 	
-	const __m128 p0 = _mm_loadu_ps( planes[0].ToFloatPtr() );
-	const __m128 p1 = _mm_loadu_ps( planes[1].ToFloatPtr() );
+	const __m128 p0 = _mm_load_ps( planes[0].ToFloatPtr() );
+	const __m128 p1 = _mm_load_ps( planes[1].ToFloatPtr() );
 	
 	const __m128 p0X = _mm_splat_ps( p0, 0 );
 	const __m128 p0Y = _mm_splat_ps( p0, 1 );
@@ -266,8 +270,7 @@ static void R_OverlayPointCullSkinned( byte* cullBits, halfFloat_t* texCoordS, h
 	const __m128 p1W = _mm_splat_ps( p1, 3 );
 	
 	for( int i = 0; i < numVerts; )
-	{
-	
+	{	
 		const int nextNumVerts = vertsODS.FetchNextBatch() - 4;
 		
 		for( ; i <= nextNumVerts; i += 4 )
@@ -323,8 +326,7 @@ static void R_OverlayPointCullSkinned( byte* cullBits, halfFloat_t* texCoordS, h
 	idODSStreamedArray< idDrawVert, 16, SBT_DOUBLE, 1 > vertsODS( verts, numVerts );
 	
 	for( int i = 0; i < numVerts; )
-	{
-	
+	{	
 		const int nextNumVerts = vertsODS.FetchNextBatch() - 1;
 	
 		for( ; i <= nextNumVerts; i++ )
@@ -394,7 +396,7 @@ void idRenderModelOverlay::CreateOverlay( const idRenderModel* model, const idPl
 	// pull out the triangles we need from the base surfaces
 	for( int surfNum = 0; surfNum < model->NumBaseSurfaces(); surfNum++ )
 	{
-		const modelSurface_t* surf = model->Surface( surfNum );
+		auto const surf = model->Surface( surfNum );
 		
 		if( surf->geometry == NULL || surf->shader == NULL )
 		{
@@ -410,14 +412,14 @@ void idRenderModelOverlay::CreateOverlay( const idRenderModel* model, const idPl
 		const idTriangles* tri = surf->geometry;
 		
 		// try to cull the whole surface along the first texture axis
-		const float d0 = tri->bounds.PlaneDistance( localTextureAxis[0] );
+		const float d0 = tri->GetBounds().PlaneDistance( localTextureAxis[0] );
 		if( d0 < 0.0f || d0 > 1.0f )
 		{
 			continue;
 		}
 		
 		// try to cull the whole surface along the second texture axis
-		const float d1 = tri->bounds.PlaneDistance( localTextureAxis[1] );
+		const float d1 = tri->GetBounds().PlaneDistance( localTextureAxis[1] );
 		if( d1 < 0.0f || d1 > 1.0f )
 		{
 			continue;
@@ -428,8 +430,7 @@ void idRenderModelOverlay::CreateOverlay( const idRenderModel* model, const idPl
 		{
 			R_OverlayPointCullSkinned( cullBits.Ptr(), texCoordS.Ptr(), texCoordT.Ptr(), localTextureAxis, tri->verts, tri->numVerts, tri->staticModelWithJoints->jointsInverted );
 		}
-		else
-		{
+		else {
 			R_OverlayPointCullStatic( cullBits.Ptr(), texCoordS.Ptr(), texCoordT.Ptr(), localTextureAxis, tri->verts, tri->numVerts );
 		}
 		// RB end
@@ -444,8 +445,7 @@ void idRenderModelOverlay::CreateOverlay( const idRenderModel* model, const idPl
 		
 		// find triangles that need the overlay
 		for( int i = 0; i < tri->numIndexes; )
-		{
-		
+		{		
 			const int nextNumIndexes = indexesODS.FetchNextBatch() - 3;
 			
 			for( ; i <= nextNumIndexes; i += 3 )
@@ -475,7 +475,7 @@ void idRenderModelOverlay::CreateOverlay( const idRenderModel* model, const idPl
 						overlayVerts[numVerts].st[1] = texCoordT[index];
 						numVerts++;
 						
-						maxReferencedVertex = Max( maxReferencedVertex, index );
+						maxReferencedVertex = idMath::Max( maxReferencedVertex, index );
 					}
 					overlayIndexes[numIndexes] = vertexRemap[index];
 					numIndexes++;
@@ -499,17 +499,21 @@ void idRenderModelOverlay::CreateOverlay( const idRenderModel* model, const idPl
 		demoSerialCurrent++;
 		
 		// allocate a new overlay
-		overlay_t& overlay = overlays[nextOverlay++ & ( MAX_OVERLAYS - 1 )];
+		overlay_t& overlay = overlays[ nextOverlay++ & ( MAX_OVERLAYS - 1 ) ];
 		FreeOverlay( overlay );
+		
 		overlay.material = material;
 		overlay.surfaceNum = surfNum;
 		overlay.surfaceId = surf->id;
+		
 		overlay.numIndexes = numIndexes;
-		overlay.indexes = ( triIndex_t* )Mem_Alloc( numIndexes * sizeof( overlay.indexes[0] ), TAG_MODEL );
+		overlay.indexes = allocManager.StaticAlloc<triIndex_t, TAG_MODEL>( numIndexes * sizeof( overlay.indexes[0] ) );
 		memcpy( overlay.indexes, overlayIndexes.Ptr(), numIndexes * sizeof( overlay.indexes[0] ) );
+		
 		overlay.numVerts = numVerts;
-		overlay.verts = ( overlayVertex_t* )Mem_Alloc( numVerts * sizeof( overlay.verts[0] ), TAG_MODEL );
+		overlay.verts = allocManager.StaticAlloc< overlayVertex_t, TAG_MODEL >( numVerts * sizeof( overlay.verts[0] ) );
 		memcpy( overlay.verts, overlayVerts.Ptr(), numVerts * sizeof( overlay.verts[0] ) );
+		
 		overlay.maxReferencedVertex = maxReferencedVertex;
 		overlay.writtenToDemo = false;
 		
@@ -745,8 +749,7 @@ drawSurf_t* idRenderModelOverlay::CreateOverlayDrawSurf( const viewModel_t* spac
 			{
 				baseSurf = staticModel->Surface( overlay.surfaceNum );
 			}
-			else
-			{
+			else {
 				// the surface with this id no longer exists
 				FreeOverlay( overlay );
 				if( i == firstOverlay )
@@ -783,17 +786,20 @@ drawSurf_t* idRenderModelOverlay::CreateOverlayDrawSurf( const viewModel_t* spac
 	
 	// create the drawsurf
 	auto drawSurf = allocManager.FrameAlloc<drawSurf_t, FRAME_ALLOC_DRAW_SURFACE>();
+	
 	drawSurf->frontEndGeo = newTri;
+	
 	drawSurf->numIndexes = newTri->numIndexes;
 	drawSurf->vertexCache = newTri->vertexCache;
 	drawSurf->indexCache = newTri->indexCache;
 	drawSurf->shadowCache = 0;
+	
 	drawSurf->space = space;
 	drawSurf->scissorRect = space->scissorRect;
 	drawSurf->extraGLState = 0;
 	drawSurf->renderZFail = 0;
 	
-	R_SetupDrawSurfShader( drawSurf, material, &space->entityDef->GetParms() );
+	R_SetupDrawSurfShader( drawSurf, material, &space->entityDef->GetParms(), tr.viewDef );
 	R_SetupDrawSurfJoints( drawSurf, newTri, NULL );
 	
 	return drawSurf;
@@ -834,9 +840,9 @@ void idRenderModelOverlay::ReadFromDemoFile( idDemoFile* f )
 		{
 			if( overlay.numVerts != numVerts )
 			{
-				Mem_Free( overlay.verts );
+				allocManager.StaticFree( overlay.verts );
 				overlay.numVerts = numVerts;
-				overlay.verts = ( overlayVertex_t* )Mem_Alloc( overlay.numVerts * sizeof( overlayVertex_t ), TAG_MODEL );
+				overlay.verts = allocManager.StaticAlloc<overlayVertex_t, TAG_MODEL>( overlay.numVerts * sizeof( overlayVertex_t ) );
 			}
 			
 			f->Read( overlay.verts, sizeof( overlayVertex_t ) * overlay.numVerts );
@@ -848,9 +854,9 @@ void idRenderModelOverlay::ReadFromDemoFile( idDemoFile* f )
 		{
 			if( overlay.numIndexes != numIndices )
 			{
-				Mem_Free( overlay.indexes );
+				allocManager.StaticFree( overlay.indexes );
 				overlay.numIndexes = numIndices;
-				overlay.indexes = ( triIndex_t* )Mem_Alloc( overlay.numIndexes * sizeof( triIndex_t ), TAG_MODEL );
+				overlay.indexes = allocManager.StaticAlloc<triIndex_t, TAG_MODEL>( overlay.numIndexes * sizeof( triIndex_t ) );
 			}
 			
 			f->Read( overlay.indexes, sizeof( triIndex_t ) * overlay.numIndexes );
@@ -868,7 +874,7 @@ void idRenderModelOverlay::WriteToDemoFile( idDemoFile* f ) const
 	f->WriteUnsignedInt( firstOverlay );
 	f->WriteUnsignedInt( nextOverlay );
 	
-	for( unsigned int i = firstOverlay; i < nextOverlay; i++ )
+	for( unsigned int i = firstOverlay; i < nextOverlay; ++i )
 	{
 		const overlay_t& overlay = overlays[ i & ( MAX_OVERLAYS - 1 ) ];
 		
@@ -885,13 +891,13 @@ void idRenderModelOverlay::WriteToDemoFile( idDemoFile* f ) const
 		f->WriteHashString( overlay.material ? overlay.material->GetName() : "" );
 		
 		f->WriteInt( overlay.numVerts );
-		for( int j = 0; j < overlay.numVerts; j++ )
+		for( int j = 0; j < overlay.numVerts; ++j )
 		{
 			f->Write( &overlay.verts[ j ], sizeof( overlayVertex_t ) );
 		}
 		
 		f->WriteInt( overlay.numIndexes );
-		for( int j = 0; j < overlay.numIndexes; j++ )
+		for( int j = 0; j < overlay.numIndexes; ++j )
 		{
 			f->Write( &overlay.indexes[ j ], sizeof( triIndex_t ) );
 		}

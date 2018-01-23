@@ -254,10 +254,10 @@ idRenderModel* idRenderWorldLocal::ParseModel( idLexer& src, const char* mapName
 			{
 				if( vertIslands[k] == j )
 				{
-					minS = Min( minS, verts[k * 8 + 3] );
-					maxS = Max( maxS, verts[k * 8 + 3] );
-					minT = Min( minT, verts[k * 8 + 4] );
-					maxT = Max( maxT, verts[k * 8 + 4] );
+					minS = idMath::Min( minS, verts[k * 8 + 3] );
+					maxS = idMath::Max( maxS, verts[k * 8 + 3] );
+					minT = idMath::Min( minT, verts[k * 8 + 4] );
+					maxT = idMath::Max( maxT, verts[k * 8 + 4] );
 				}
 			}
 			const float averageS = idMath::Ftoi( ( minS + maxS ) * 0.5f );
@@ -356,11 +356,10 @@ idRenderModel* idRenderWorldLocal::ParseShadowModel( idLexer& src, idFile* fileO
 	assert( ( tri->numVerts & 1 ) == 0 );
 	
 	tri->AllocStaticPreLightShadowVerts( ALIGN( tri->numVerts, 2 ) );
-	tri->bounds.Clear();
-	for( int j = 0; j < tri->numVerts; j++ )
+	tri->ClearBounds();
+	for( int j = 0; j < tri->numVerts; ++j )
 	{
-		float vec[8];
-		
+		float vec[8];		
 		src.Parse1DMatrix( 3, vec );
 		tri->preLightShadowVertexes[j].xyzw[0] = vec[0];
 		tri->preLightShadowVertexes[j].xyzw[1] = vec[1];
@@ -379,7 +378,7 @@ idRenderModel* idRenderWorldLocal::ParseShadowModel( idLexer& src, idFile* fileO
 	tri->numVerts = ALIGN( tri->numVerts, 2 ) / 2;
 	
 	tri->AllocStaticIndexes( tri->numIndexes );
-	for( int j = 0; j < tri->numIndexes; j++ )
+	for( int j = 0; j < tri->numIndexes; ++j )
 	{
 		tri->indexes[j] = src.ParseInt();
 	}

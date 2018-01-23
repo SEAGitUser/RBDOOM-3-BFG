@@ -125,7 +125,7 @@ void idAimAssist::UpdateNewAimAssist()
 		UpdateFriction( entity, targetPos );
 		
 		// by default we don't allow adhesion when we are standing still
-		const float playerMovementSpeedThreshold = Square( aa_targetAdhesionPlayerSpeedThreshold.GetFloat() );
+		const float playerMovementSpeedThreshold = idMath::Square( aa_targetAdhesionPlayerSpeedThreshold.GetFloat() );
 		float playerSpeed = player->GetPhysics()->GetLinearVelocity().LengthSqr();
 		
 		// only allow adhesion on actors (ai) or players.  Disallow adhesion on any static world entities such as explosive barrels
@@ -162,7 +162,7 @@ idEntity* idAimAssist::FindAimAssistTarget( idVec3& targetPos )
 	idMat3 cameraAxis;
 	player->GetViewPos( cameraPos, cameraAxis );
 	
-	float maxDistanceSquared = Square( aa_targetMaxDistance.GetFloat() );
+	float maxDistanceSquared = idMath::Square( aa_targetMaxDistance.GetFloat() );
 	
 	idVec3 dirToTarget;
 	float  distanceToTargetSquared;
@@ -355,7 +355,7 @@ void idAimAssist::UpdateAdhesion( idEntity* pTarget, const idVec3& targetPos )
 	float ViewDirDotTargetDir = idMath::ClampFloat( 0.0f, 1.0f, forward * dirToTarget ); // compute the dot and clamp to account for floating point error
 	float aimLength = ViewDirDotTargetDir * distanceToTarget;
 	idVec3 aimPoint = cameraPos + ( forward * aimLength );
-	float delta = idMath::Sqrt( Square( distanceToTarget ) - Square( aimLength ) );
+	float delta = idMath::Sqrt( idMath::Square( distanceToTarget ) - idMath::Square( aimLength ) );
 	
 	float contribution = idMath::ClampFloat( 0.0f, contributionPctMax, 1.0f - ( delta / aa_targetAdhesionRadius.GetFloat() ) );
 	angleCorrection.yaw = aimAngles.yaw * contribution;
@@ -418,7 +418,7 @@ void idAimAssist::UpdateFriction( idEntity* pTarget, const idVec3& targetPos )
 	float ViewDirDotTargetDir = idMath::ClampFloat( 0.0f, 1.0f, forward * dirToTarget ); // compute the dot and clamp to account for floating point error
 	float aimLength = ViewDirDotTargetDir * distanceToTarget;
 	idVec3 aimPoint = cameraPos + ( forward * aimLength );
-	float delta = idMath::Sqrt( Square( distanceToTarget ) - Square( aimLength ) );
+	float delta = idMath::Sqrt( idMath::Square( distanceToTarget ) - idMath::Square( aimLength ) );
 	
 	const float radius = ComputeFrictionRadius( distanceToTarget );
 	if( delta < radius )

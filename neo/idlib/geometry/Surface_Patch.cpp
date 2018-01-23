@@ -130,7 +130,7 @@ void idSurface_Patch::RemoveLinearColumnsRows()
 				maxLength = len;
 			}
 		}
-		if( maxLength < Square( 0.2f ) )
+		if( maxLength < idMath::Square( 0.2f ) )
 		{
 			width--;
 			for( i = 0; i < height; i++ )
@@ -157,7 +157,7 @@ void idSurface_Patch::RemoveLinearColumnsRows()
 				maxLength = len;
 			}
 		}
-		if( maxLength < Square( 0.2f ) )
+		if( maxLength < idMath::Square( 0.2f ) )
 		{
 			height--;
 			for( i = 0; i < width; i++ )
@@ -347,7 +347,7 @@ void idSurface_Patch::GenerateNormals()
 	for( i = 0; i < height; i++ )
 	{
 		delta = verts[i * width].GetPosition() - verts[i * width + width - 1].GetPosition();
-		if( delta.LengthSqr() > Square( 1.0f ) )
+		if( delta.LengthSqr() > idMath::Square( 1.0f ) )
 		{
 			break;
 		}
@@ -361,7 +361,7 @@ void idSurface_Patch::GenerateNormals()
 	for( i = 0; i < width; i++ )
 	{
 		delta = verts[i].GetPosition() - verts[( height - 1 ) * width + i].GetPosition();
-		if( delta.LengthSqr() > Square( 1.0f ) )
+		if( delta.LengthSqr() > idMath::Square( 1.0f ) )
 		{
 			break;
 		}
@@ -670,9 +670,9 @@ void idSurface_Patch::Subdivide( float maxHorizontalError, float maxVerticalErro
 		GenerateNormals();
 	}
 	
-	maxHorizontalErrorSqr = Square( maxHorizontalError );
-	maxVerticalErrorSqr = Square( maxVerticalError );
-	maxLengthSqr = Square( maxLength );
+	maxHorizontalErrorSqr = idMath::Square( maxHorizontalError );
+	maxVerticalErrorSqr = idMath::Square( maxVerticalError );
+	maxLengthSqr = idMath::Square( maxLength );
 	
 	Expand();
 	

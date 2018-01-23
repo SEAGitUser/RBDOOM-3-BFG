@@ -65,9 +65,9 @@ compile_time_assert( ( ( MAX_DECAL_INDEXES* sizeof( triIndex_t ) ) & 15 ) == 0 )
 
 struct decalProjectionParms_t
 {
-	idPlane					boundingPlanes[NUM_DECAL_BOUNDING_PLANES];
-	idPlane					fadePlanes[2];
-	idPlane					textureAxis[2];
+	ALIGNTYPE16 idPlane		boundingPlanes[NUM_DECAL_BOUNDING_PLANES];
+	ALIGNTYPE16 idPlane		fadePlanes[2];
+	ALIGNTYPE16 idPlane		textureAxis[2];
 	idVec3					projectionOrigin;
 	idBounds				projectionBounds;
 	const idMaterial* 		material;

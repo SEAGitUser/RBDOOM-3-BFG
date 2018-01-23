@@ -330,9 +330,9 @@ idVertexCache::BeginBackEnd
 */
 void idVertexCache::BeginBackEnd()
 {
-	mostUsedVertex = Max( mostUsedVertex, frameData[listNum].vertexMemUsed.GetValue() );
-	mostUsedIndex = Max( mostUsedIndex, frameData[listNum].indexMemUsed.GetValue() );
-	mostUsedJoint = Max( mostUsedJoint, frameData[listNum].jointMemUsed.GetValue() );
+	mostUsedVertex = idMath::Max( mostUsedVertex, frameData[listNum].vertexMemUsed.GetValue() );
+	mostUsedIndex = idMath::Max( mostUsedIndex, frameData[listNum].indexMemUsed.GetValue() );
+	mostUsedJoint = idMath::Max( mostUsedJoint, frameData[listNum].jointMemUsed.GetValue() );
 	
 	if( r_showVertexCache.GetBool() )
 	{

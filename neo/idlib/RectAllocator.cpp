@@ -128,7 +128,7 @@ void RectAllocator( const idList<idVec2i>& inputSizes, idList<idVec2i>& outputPo
 				idVec2i	newMax;
 				for( int n = 0 ; n < 2 ; n++ )
 				{
-					newMax[n] = Max( totalSize[n], test[n] + size[n] );
+					newMax[n] = idMath::Max( totalSize[n], test[n] + size[n] );
 				}
 				// widths must be multiples of 128 pixels / 32 DXT blocks to
 				// allow it to be used directly as a GPU texture without re-packing

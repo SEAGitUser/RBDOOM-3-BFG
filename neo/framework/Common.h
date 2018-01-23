@@ -114,7 +114,7 @@ ID_INLINE bool EndTraceRecording()
 	return false;
 }
 
-typedef enum
+enum toolFlag_t
 {
 	EDITOR_NONE					= 0,
 	EDITOR_GUI					= BIT( 1 ),
@@ -128,7 +128,7 @@ typedef enum
 	EDITOR_PDA					= BIT( 9 ),
 	EDITOR_AAS					= BIT( 10 ),
 	EDITOR_MATERIAL				= BIT( 11 )
-} toolFlag_t;
+};
 
 #define STRTABLE_ID				"#str_"
 #define STRTABLE_ID_LENGTH		5

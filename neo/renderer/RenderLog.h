@@ -57,6 +57,62 @@ enum renderLogMainBlock_t
 	MRB_BINK_NEXT_FRAME,
 	MRB_TOTAL,
 	MRB_MAX
+
+/*
+	 MRB_NONE,
+	 MRB_SETUP_RENDERING_DATA,
+	 MRB_COMMIT_RENDERING_DATA,
+	 MRB_PROCESS_FEEDBACK,
+	 MRB_SETUP_VIEW,
+	 MRB_SETUP_DYNAMIC_ENVIRONMENT,
+	 MRB_SETUP_COLOR_GRADING,
+	 MRB_SETUP_POST_COMMIT_DATA,
+	 MRB_CULL_BOUNDS,
+	 MRB_WALK_BSP,
+	 MRB_GATHER_MODELS_AND_LIGHTS,
+	 MRB_PPU_GPU_SYNC,
+	 MRB_SORT_DEPTH,
+	 MRB_SORT_SURFACES,
+	 MRB_CAPTURE_VIEW_DEPTH, 
+	 MRB_CAPTURE_VIEW_NORMAL,
+	 MRB_CAPTURE_VIEW_FEEDBACK,
+	 MRB_CAPTURE_VIEW_COLOR,
+	 MRB_CAPTURE_VIEW_COLOR_MIPS,
+	 MRB_CAPTURE_GLARE,
+	 MRB_CAPTURE_GUI,
+	 MRB_CLEAR_DEPTH,
+	 MRB_RENDER_DYNAMIC_ENV,
+	 MRB_RENDER_DYNAMIC_COLOR_CORRECTION,
+	 MRB_RENDER_SELF_SHADOWS,
+	 MRB_RENDER_DEPTH,
+	 MRB_RENDER_OCCLUSION_BOXES,
+	 MRB_RENDER_SSS,
+	 MRB_RENDER_DIM_SHADOWS,
+	 MRB_RENDER_LIGHTS,
+	 MRB_RENDER_FOG,
+	 MRB_RENDER_BACKGROUND_SURFACES, 
+	 MRB_RENDER_BACKGROUND_EMIT_SURFACES,
+	 MRB_RENDER_EMISSIVE_SURFACES, 
+	 MRB_RENDER_EMMISIVE_ONLY_SURFACES,
+	 MRB_RENDER_BLENDED_SURFACES,
+	 MRB_RENDER_SORTED_SURFACES,
+	 MRB_RENDER_DISTORTION_SURFACES,
+	 MRB_RENDER_AUGMENT_MODELS,
+	 MRB_RENDER_GOD_RAYS,
+	 MRB_RENDER_GLARE,
+	 MRB_RENDER_POST_PROCESS,
+	 MRB_RENDER_HAZE_FLARE,
+	 MRB_RENDER_SCREEN_SPACE_REFLECTIONS,
+	 MRB_RENDER_VIEW_GUIS,
+	 MRB_RENDER_FULL_SCREEN_GUIS,
+	 MRB_UPSAMPLE,
+	 MRB_PREPARE_SWAP,
+	 MRB_BINK_FRAME,
+	 MRB_BINK_NEXT_FRAME,
+	 MRB_RENDER_PREZ,
+	 MRB_TOTAL,
+	 MRB_MAX	
+*/
 };
 
 // these are used to make sure each Indent() is properly paired with an Outdent()
@@ -89,7 +145,10 @@ public:
 	// The label must be a constant string literal and may not point to a temporary.
 	void		OpenMainBlock( renderLogMainBlock_t block );
 	void		CloseMainBlock();
-	
+	// GetMainBlockLabel()
+	// GetMainBlockGPUTime()
+	// GetMainBlockCPUTime()
+
 	void		OpenBlock( const char* label );
 	void		CloseBlock();
 	
@@ -122,6 +181,15 @@ public:
 	
 	void					LogOpenBlock( renderLogIndentLabel_t label, const char * fmt, va_list args );
 	void					LogCloseBlock( renderLogIndentLabel_t label );
+};
+
+class idScopedRenderLogIndent {
+	~idScopedRenderLogIndent();
+	renderLogIndentLabel_t label;
+};
+
+class idScopedRenderLogRecorderEvent {
+
 };
 
 /*

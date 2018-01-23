@@ -447,7 +447,7 @@ void idLobby::CheckPeerThrottle( int p )
 			{
 				float decayRate = session->GetTitleStorageFloat( "net_peer_throttle_bps_decay", net_peer_throttle_bps_decay.GetFloat() );
 				
-				peer.receivedThrottle = Max<float>( 0.0f, peer.receivedThrottle - ( ( ( float )deltaT ) * decayRate ) );
+				peer.receivedThrottle = idMath::Max<float>( 0.0f, peer.receivedThrottle - ( ( ( float )deltaT ) * decayRate ) );
 				//NET_VERBOSE_PRINT("NET: !throttled... %.2f ....receivedBps %.2f outgoingBps %.2f\n", peer.receivedThrottle, peer.receivedBps, sentBps );
 			}
 			

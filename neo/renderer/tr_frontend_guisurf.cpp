@@ -60,10 +60,10 @@ void R_SurfaceToTextureAxis( const idTriangles* tri, idVec3& origin, idMat3& axi
 	for( int i = 0 ; i < tri->numVerts ; i++ )
 	{
 		const idVec2 uv = tri->verts[i].GetTexCoord();
-		boundsMin.x = Min( uv.x, boundsMin.x );
-		boundsMax.x = Max( uv.x, boundsMax.x );
-		boundsMin.y = Min( uv.y, boundsMin.y );
-		boundsMax.y = Max( uv.y, boundsMax.y );
+		boundsMin.x = idMath::Min( uv.x, boundsMin.x );
+		boundsMax.x = idMath::Max( uv.x, boundsMax.x );
+		boundsMin.y = idMath::Min( uv.y, boundsMin.y );
+		boundsMax.y = idMath::Max( uv.y, boundsMax.y );
 	}
 	
 	// use the floor of the midpoint as the origin of the

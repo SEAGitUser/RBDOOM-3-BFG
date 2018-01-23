@@ -2569,14 +2569,14 @@ void Cmd_NextGUI_f( const idCmdArgs& args )
 		return;
 	}
 	
-	const idVec3& v0 = geom->verts[geom->indexes[0]].GetPosition();
-	const idVec3& v1 = geom->verts[geom->indexes[1]].GetPosition();
-	const idVec3& v2 = geom->verts[geom->indexes[2]].GetPosition();
+	const idVec3& v0 = geom->GetIVertex( 0 ).GetPosition();
+	const idVec3& v1 = geom->GetIVertex( 1 ).GetPosition();
+	const idVec3& v2 = geom->GetIVertex( 2 ).GetPosition();
 	
 	const idPlane plane( v0, v1, v2 );
-	
+
 	normal = plane.Normal() * renderEnt->axis;
-	center = geom->bounds.GetCenter() * renderEnt->axis + renderEnt->origin;
+	center = geom->GetBounds().GetCenter() * renderEnt->axis + renderEnt->origin;
 	
 	origin = center + ( normal * 32.0f );
 	origin.z -= player->EyeHeight();
@@ -2590,7 +2590,6 @@ void Cmd_NextGUI_f( const idCmdArgs& args )
 
 void Cmd_SetActorState_f( const idCmdArgs& args )
 {
-
 	if( args.Argc() != 3 )
 	{
 		common->Printf( "usage: setActorState <entity name> <state>\n" );

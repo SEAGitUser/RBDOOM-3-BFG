@@ -480,8 +480,8 @@ bool idSWF::HandleEvent( const sysEvent_t* event )
 			mouseX += event->evValue;
 			mouseY += event->evValue2;
 			
-			mouseX = Max( Min( mouseX, idMath::Ftoi( frameWidth + renderBorder ) ), idMath::Ftoi( 0.0f - renderBorder ) );
-			mouseY = Max( Min( mouseY, idMath::Ftoi( frameHeight ) ), 0 );
+			mouseX = idMath::Max( idMath::Min( mouseX, idMath::Ftoi( frameWidth + renderBorder ) ), idMath::Ftoi( 0.0f - renderBorder ) );
+			mouseY = idMath::Max( idMath::Min( mouseY, idMath::Ftoi( frameHeight ) ), 0 );
 		}
 		
 		bool retVal = false;

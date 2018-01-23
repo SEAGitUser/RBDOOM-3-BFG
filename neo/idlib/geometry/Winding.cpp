@@ -864,7 +864,7 @@ void idWinding::RemoveEqualPoints( const float epsilon )
 	
 	for( i = 0; i < numPoints; i++ )
 	{
-		if( ( p[i].ToVec3() - p[( i + numPoints - 1 ) % numPoints].ToVec3() ).LengthSqr() >= Square( epsilon ) )
+		if( ( p[i].ToVec3() - p[( i + numPoints - 1 ) % numPoints].ToVec3() ).LengthSqr() >= idMath::Square( epsilon ) )
 		{
 			continue;
 		}
@@ -1758,12 +1758,9 @@ idWinding::TriangleArea
 */
 float idWinding::TriangleArea( const idVec3& a, const idVec3& b, const idVec3& c )
 {
-	idVec3	v1, v2;
-	idVec3	cross;
-	
-	v1 = b - a;
-	v2 = c - a;
-	cross = v1.Cross( v2 );
+	idVec3 v1 = b - a;
+	idVec3 v2 = c - a;
+	idVec3 cross = v1.Cross( v2 );
 	return 0.5f * cross.Length();
 }
 

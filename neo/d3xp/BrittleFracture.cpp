@@ -513,8 +513,6 @@ bool idBrittleFracture::UpdateRenderEntity( renderEntity_s* renderEntity, const 
 	tris->tangentsCalculated = true;
 	decalTris->tangentsCalculated = true;
 	
-	SIMDProcessor->MinMax( tris->bounds[0], tris->bounds[1], tris->verts, tris->numVerts );
-	SIMDProcessor->MinMax( decalTris->bounds[0], decalTris->bounds[1], decalTris->verts, decalTris->numVerts );
 	tris->DeriveBounds();
 	decalTris->DeriveBounds();
 	
@@ -522,12 +520,14 @@ bool idBrittleFracture::UpdateRenderEntity( renderEntity_s* renderEntity, const 
 	surface.shader = material;
 	surface.id = 0;
 	surface.geometry = tris;
+
 	renderEntity->hModel->AddSurface( surface );
 	
 	memset( &surface, 0, sizeof( surface ) );
 	surface.shader = decalMaterial;
 	surface.id = 1;
 	surface.geometry = decalTris;
+
 	renderEntity->hModel->AddSurface( surface );
 	
 	return true;
@@ -973,7 +973,7 @@ void idBrittleFracture::Shatter( const idVec3& point, const idVec3& impulse, con
 			continue;
 		}
 		
-		if( ( shard->clipModel->GetOrigin() - point ).LengthSqr() > Square( maxShatterRadius ) )
+		if( ( shard->clipModel->GetOrigin() - point ).LengthSqr() > idMath::Square( maxShatterRadius ) )
 		{
 			continue;
 		}
