@@ -43,6 +43,8 @@ class idImage;
 class idCinematic;
 class idUserInterface;
 enum textureRepeat_t;
+class idDeclRenderParm;
+class idDeclRenderProg;
 
 struct decalInfo_t
 {
@@ -196,7 +198,57 @@ struct newShaderStage_t
 	idImage* 			fragmentProgramImages[MAX_FRAGMENT_IMAGES];
 };
 
-struct shaderStage_t
+/*
+=====================================================================
+=====================================================================
+*/
+
+struct stageVector_t {
+	int							registers[ 4 ];
+	const idDeclRenderParm *	parmDecl;
+};
+const int MAX_STAGE_VECTORS = 32;
+
+struct stageTexture_t {
+	idImage*					image;
+	const idDeclRenderParm *	parmDecl;
+};
+const int MAX_STAGE_TEXTURES = 16;
+
+struct stageTextureMatrix_t {
+	int							matrix[ 2 ][ 3 ];
+	const idDeclRenderParm *	parmDecl_s;
+	const idDeclRenderParm *	parmDecl_t;
+};
+const int MAX_STAGE_TEXTUREMATRICES = 3;
+
+struct stageParseData_t {
+	stageParseData_t() :
+		numVectors( 0 ),
+		numTextures( 0 ),
+		numTextureMatrices( 0 )
+	{
+		memset( vectors, 0, sizeof( vectors ) );
+		memset( textures, 0, sizeof( textures ) );
+		memset( textureMatrices, 0, sizeof( textureMatrices ) );
+	}
+
+	int						numVectors;
+	stageVector_t			vectors[ MAX_STAGE_VECTORS ];
+
+	int						numTextures;
+	stageTexture_t			textures[ MAX_STAGE_TEXTURES ];
+
+	int						numTextureMatrices;
+	stageTextureMatrix_t	textureMatrices[ MAX_STAGE_TEXTUREMATRICES ];
+};
+
+/*
+=====================================================================
+	idMaterialStage
+=====================================================================
+*/
+typedef struct materialStage_t
 {
 	int					conditionRegister;	// if registers[conditionRegister] == 0, skip stage
 	stageLighting_t		lighting;			// determines which passes interact with lights
@@ -211,7 +263,40 @@ struct shaderStage_t
 	float				privatePolygonOffset;	// a per-stage polygon offset
 	
 	newShaderStage_t*	newStage;			// vertex / fragment program based stage
-};
+
+	// ------------------------------------
+	// SEA new stuff
+#if 0
+	const idDeclRenderProg	*	renderProgram;
+
+	int							numVectors;
+	stageVector_t*				vectors;
+
+	int							numTextures;
+	stageTexture_t*				textures;
+
+	int							numTextureMatrices;
+	stageTextureMatrix_t*		textureMatrices;
+#endif
+
+	bool SkipStage( const float * registers ) const
+	{
+		return( !registers[ conditionRegister ] );
+	}
+
+	void GetColorParm( const float * registers, idVec4 & out ) const
+	{
+		out[ 0 ] = registers[ color.registers[ 0/*SHADERPARM_RED*/ ] ];
+		out[ 1 ] = registers[ color.registers[ 1/*SHADERPARM_GREEN*/ ] ];
+		out[ 2 ] = registers[ color.registers[ 2/*SHADERPARM_BLUE*/ ] ];
+		out[ 3 ] = registers[ color.registers[ 3/*SHADERPARM_ALPHA*/ ] ];
+	}
+	float GetColorParmAlpha( const float * registers ) const
+	{
+		return registers[ color.registers[ 3/*SHADERPARM_ALPHA*/ ] ];
+	}
+
+} idMaterialStage;
 
 enum materialCoverage_t
 {
@@ -351,6 +436,13 @@ typedef enum
 
 class idSoundEmitter;
 
+/*
+================================================================================================
+
+	idDeclRenderMaterial
+
+================================================================================================
+*/
 class idMaterial : public idDecl
 {
 public:
@@ -397,15 +489,30 @@ public:
 	};
 	
 	// get a specific stage
-	const shaderStage_t* GetStage( const int index ) const
+	const materialStage_t* GetStage( const int index ) const
 	{
 		assert( index >= 0 && index < numStages );
 		return &stages[index];
 	}
+	// Check if all stages of a material have been conditioned off
+	ID_INLINE bool ConditionedOff( const float* registers ) const
+	{
+		int stage = 0;
+		for(/**/; stage < GetNumStages(); stage++ )
+		{
+			auto pStage = GetStage( stage );
+			// check the stage enable condition
+			if( registers[ pStage->conditionRegister ] != 0 )
+			{
+				break;
+			}
+		}
+		return( stage == GetNumStages() );
+	}
 	
 	// get the first bump map stage, or NULL if not present.
 	// used for bumpy-specular
-	const shaderStage_t* GetBumpStage() const;
+	const materialStage_t* GetBumpStage() const;
 	
 	// returns true if the material will draw anything at all.  Triggers, portals,
 	// etc, will not have anything to draw.  A not drawn surface can still castShadow,
@@ -413,19 +520,19 @@ public:
 	// as noShadow
 	bool				IsDrawn() const
 	{
-		return ( numStages > 0 || entityGui != 0 || gui != NULL );
+		return( numStages > 0 || entityGui != 0 || gui != NULL );
 	}
 	
 	// returns true if the material will draw any non light interaction stages
 	bool				HasAmbient() const
 	{
-		return ( numAmbientStages > 0 );
+		return( numAmbientStages > 0 );
 	}
 	
 	// returns true if material has a gui
 	bool				HasGui() const
 	{
-		return ( entityGui != 0 || gui != NULL );
+		return( entityGui != 0 || gui != NULL );
 	}
 	
 	// returns true if the material will generate another view, either as
@@ -807,7 +914,7 @@ private:
 	bool				MatchToken( idLexer& src, const char* match );
 	void				ParseSort( idLexer& src );
 	void				ParseStereoEye( idLexer& src );
-	void				ParseBlend( idLexer& src, shaderStage_t* stage );
+	void				ParseBlend( idLexer& src, materialStage_t* stage );
 	void				ParseVertexParm( idLexer& src, newShaderStage_t* newStage );
 	void				ParseVertexParm2( idLexer& src, newShaderStage_t* newStage );
 	void				ParseFragmentMap( idLexer& src, newShaderStage_t* newStage );
@@ -823,7 +930,7 @@ private:
 	int					ParseTerm( idLexer& src );
 	int					ParseExpressionPriority( idLexer& src, int priority );
 	int					ParseExpression( idLexer& src );
-	void				ClearStage( shaderStage_t* ss );
+	void				ClearStage( materialStage_t* ss );
 	int					NameToSrcBlendMode( const idStr& name );
 	int					NameToDstBlendMode( const idStr& name );
 	void				MultiplyTextureMatrix( textureStage_t* ts, int registers[2][3] );	// FIXME: for some reason the const is bad for gcc and Mac
@@ -889,7 +996,7 @@ private:
 	int					numStages;
 	int					numAmbientStages;
 	
-	shaderStage_t* 		stages;
+	materialStage_t* 		stages;
 	
 	struct mtrParsingData_s*	pd;			// only used during parsing
 	

@@ -70,6 +70,10 @@ static const uint64 GLS_DEPTHFUNC_GREATER				= 2 << 13;
 static const uint64 GLS_DEPTHFUNC_EQUAL					= 3 << 13;
 static const uint64 GLS_DEPTHFUNC_BITS					= 3 << 13;
 
+//static const uint64 GLS_TWOSIDED
+//static const uint64 GLS_BACKSIDED
+//static const uint64 GLS_ALPHA_COVERAGE
+
 static const uint64 GLS_BLENDOP_ADD						= 0 << 18;
 static const uint64 GLS_BLENDOP_SUB						= 1 << 18;
 static const uint64 GLS_BLENDOP_MIN						= 2 << 18;
@@ -129,12 +133,13 @@ static const uint64 GLS_STENCIL_OP_PASS_BITS			= 7ull << 45;
 static const uint64 GLS_ALPHATEST_FUNC_REF_SHIFT		= 48;
 static const uint64 GLS_ALPHATEST_FUNC_REF_BITS			= 0xFFll << GLS_ALPHATEST_FUNC_REF_SHIFT;
 #define GLS_ALPHATEST_MAKE_REF( x ) ( ( (uint64)(x) << GLS_ALPHATEST_FUNC_REF_SHIFT ) & GLS_ALPHATEST_FUNC_REF_BITS )
-
 static const uint64 GLS_ALPHATEST_FUNC_ALWAYS			= 0ull << 56;
 static const uint64 GLS_ALPHATEST_FUNC_LESS				= 1ull << 56;
 static const uint64 GLS_ALPHATEST_FUNC_GREATER			= 2ull << 56;
 static const uint64 GLS_ALPHATEST_FUNC_EQUAL			= 3ull << 56;
 static const uint64 GLS_ALPHATEST_FUNC_BITS				= 3ull << 56;
+
+//static const uint64 GLS_NEGATIVE_DETERMINANT
 
 static const uint64 GLS_STENCIL_OP_BITS					= GLS_STENCIL_OP_FAIL_BITS | GLS_STENCIL_OP_ZFAIL_BITS | GLS_STENCIL_OP_PASS_BITS;
 

@@ -270,8 +270,8 @@ void idBinaryImage::Load2DFromMemory( int width, int height, const byte* pic_con
 		Mem_Free( pic );
 		pic = shrunk;
 		
-		scaledWidth = Max( 1, scaledWidth >> 1 );
-		scaledHeight = Max( 1, scaledHeight >> 1 );
+		scaledWidth = idMath::Max( 1, scaledWidth >> 1 );
+		scaledHeight = idMath::Max( 1, scaledHeight >> 1 );
 	}
 	
 	Mem_Free( pic );
@@ -392,7 +392,7 @@ void idBinaryImage::LoadCubeFromMemory( int width, const byte* pics[6], int numL
 			}
 			pic = shrunk;
 			
-			scaledWidth = Max( 1, scaledWidth >> 1 );
+			scaledWidth = idMath::Max( 1, scaledWidth >> 1 );
 		}
 		if( pic != orig )
 		{
@@ -630,11 +630,10 @@ idBinaryImage::GetGeneratedFileName
 */
 void idBinaryImage::GetGeneratedFileName( idStr& gfn, const char* name )
 {
-	gfn.Format( "generated/images/%s.bimage", name );
+	gfn.Format<256>( "generated/images/%s.bimage", name );
 	gfn.Replace( "(", "/" );
 	gfn.Replace( ",", "/" );
 	gfn.Replace( ")", "" );
 	gfn.Replace( " ", "" );
 }
-
 

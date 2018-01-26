@@ -112,6 +112,8 @@ void idRenderModelGui::EmitSurfaces( idRenderView * view,
 
 	guiSpace->modelMatrix.Copy( modelMatrix );
 	guiSpace->modelViewMatrix.Copy( modelViewMatrix );
+	idRenderMatrix::Multiply( view->GetProjectionMatrix(), modelViewMatrix, guiSpace->mvp );
+	if( depthHack ) idRenderMatrix::ApplyDepthHack( guiSpace->mvp );
 
 	guiSpace->weaponDepthHack = depthHack;
 	guiSpace->isGuiSurface = true;
@@ -123,15 +125,7 @@ void idRenderModelGui::EmitSurfaces( idRenderView * view,
 		guiSpace->next = view->viewEntitys;
 		view->viewEntitys = guiSpace;
 	}
-	
-	//---------------------------
-	// make a tech5 renderMatrix
-	//---------------------------
-	idRenderMatrix::Multiply( view->GetProjectionMatrix(), modelViewMatrix, guiSpace->mvp );
-	if( depthHack )
-	{
-		idRenderMatrix::ApplyDepthHack( guiSpace->mvp );
-	}
+
 	
 	// to allow 3D-TV effects in the menu system, we define surface flags to set
 	// depth fractions between 0=screen and 1=infinity, which directly modulate the
@@ -143,7 +137,7 @@ void idRenderModelGui::EmitSurfaces( idRenderView * view,
 	// add the surfaces to this view
 	for( int i = 0; i < surfaces.Num(); i++ )
 	{
-		const guiModelSurface_t& guiSurf = surfaces[i];
+		const auto & guiSurf = surfaces[i];
 		if( guiSurf.numIndexes == 0 )
 		{
 			continue;
@@ -173,7 +167,7 @@ void idRenderModelGui::EmitSurfaces( idRenderView * view,
 		else {
 			auto regs = allocManager.FrameAlloc<float, FRAME_ALLOC_SHADER_REGISTER>( guiSurf.material->GetNumRegisters() );
 			drawSurf->shaderRegisters = regs;
-			guiSurf.material->EvaluateRegisters( regs, shaderParms, view->GetMaterialParms(), view->GetGameTimeSec( 1 ), NULL );
+			guiSurf.material->EvaluateRegisters( regs, shaderParms, view->GetGlobalMaterialParms(), view->GetGameTimeSec( 1 ), NULL );
 		}
 
 		R_LinkDrawSurfToView( drawSurf, view );

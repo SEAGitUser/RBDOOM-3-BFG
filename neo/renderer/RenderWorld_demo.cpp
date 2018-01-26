@@ -99,7 +99,7 @@ void idRenderWorldLocal::StopWritingDemo()
 ProcessDemoCommand
 ==============
 */
-bool		idRenderWorldLocal::ProcessDemoCommand( idDemoFile* readDemo, renderView_t* renderView, int* demoTimeOffset )
+bool		idRenderWorldLocal::ProcessDemoCommand( idDemoFile* readDemo, renderViewParms_t* renderView, int* demoTimeOffset )
 {
 	bool	newMap = false;
 	
@@ -539,7 +539,7 @@ void	idRenderWorldLocal::WriteVisibleDefs( const idRenderView* viewDef )
 WriteRenderView
 ================
 */
-void	idRenderWorldLocal::WriteRenderView( const renderView_t* renderView )
+void	idRenderWorldLocal::WriteRenderView( const renderViewParms_t* renderView )
 {
 	int i;
 	

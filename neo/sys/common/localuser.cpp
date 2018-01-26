@@ -47,12 +47,11 @@ void idLocalUserWin::Init( int inputDevice_, const char* gamertag_, int numLocal
 		// This is the master user
 		gamertag = gamertag_;
 	}
-	else
-	{
+	else {
 		// On steam, we need to generate a name based off the master user for split-screen users.
 		// We use the number of users on the system to generate the name rather than the device
 		// number so that it is always consistently "username (2)" for the second player.
-		gamertag.Format( "%s (%i)", gamertag_, numLocalUsers );
+		gamertag.Format<256>( "%s (%i)", gamertag_, numLocalUsers );
 	}
 	
 	inputDevice = inputDevice_;

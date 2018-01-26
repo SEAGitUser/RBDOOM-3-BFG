@@ -200,7 +200,7 @@ public:
 	int						dormantStart;			// time that the entity was first closed off from player
 	bool					cinematic;				// during cinematics, entity will only think if cinematic is set
 	
-	renderView_t* 			renderView;				// for camera views from this entity
+	renderViewParms_t* 			renderView;				// for camera views from this entity
 	idEntity* 				cameraTarget;			// any remoteRenderMap shaders will use this
 	
 	idList< idEntityPtr<idEntity>, TAG_ENTITY >	targets;		// when this entity is activated these entities entity are activated
@@ -260,7 +260,7 @@ public:
 	
 	// clients generate views based on all the player specific options,
 	// cameras have custom code, and everything else just uses the axis orientation
-	virtual renderView_t* 	GetRenderView();
+	virtual renderViewParms_t* 	GetRenderView();
 	
 	// thinking
 	virtual void			Think();
@@ -302,8 +302,8 @@ public:
 	
 	// animation
 	virtual bool			UpdateAnimationControllers();
-	bool					UpdateRenderEntity( renderEntity_s* renderEntity, const renderView_t* renderView );
-	static bool				ModelCallback( renderEntity_s* renderEntity, const renderView_t* renderView );
+	bool					UpdateRenderEntity( renderEntity_s* renderEntity, const renderViewParms_t* renderView );
+	static bool				ModelCallback( renderEntity_s* renderEntity, const renderViewParms_t* renderView );
 	virtual idAnimator* 	GetAnimator();	// returns animator object used by this entity
 	
 	// sound

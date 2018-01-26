@@ -59,15 +59,6 @@ If you have questions concerning this license or the applicable additional terms
 
 #define C_FLOAT_TO_INT( x )		(int)(x)
 
-//SEA: temp!temp!
-template<typename T> static ID_INLINE T	Sign( T f ) { return ( f > 0 ) ? 1 : ( ( f < 0 ) ? -1 : 0 ); }
-template<typename T> static ID_INLINE T	Square( T x ) { return x * x; }
-template<typename T> static ID_INLINE T	Cube( T x ) { return x * x * x; }
-template<typename T> static ID_INLINE T	Max( T x, T y ) { return ( x > y ) ? x : y; }
-template<typename T> static ID_INLINE T	Min( T x, T y ) { return ( x < y ) ? x : y; }
-// simple min/max clamp
-template<typename T> static ID_INLINE T Clamp( T min, T max, T value ) { return Max( min, ( T )Min( max, value ) ); }
-
 /*
 ================================================================================================
 

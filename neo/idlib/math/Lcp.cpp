@@ -2501,7 +2501,7 @@ bool idLCP_Square::Solve( const idMatX& o_m, idVecX& o_x, const idVecX& o_b, con
 		
 		if( n >= maxIterations )
 		{
-			failed.Format( "max iterations %d", maxIterations );
+			failed.Format<64>( "max iterations %d", maxIterations );
 			break;
 		}
 		
@@ -3236,7 +3236,7 @@ bool idLCP_Symmetric::Solve( const idMatX& o_m, idVecX& o_x, const idVecX& o_b, 
 				side[i] = -1;
 				numIgnored++;
 #else
-				failed.Format( "invalid step size %.4f", maxStep );
+				failed.Format<64>( "invalid step size %.4f", maxStep );
 				for( int j = i; j < m.GetNumRows(); j++ )
 				{
 					f[j] = 0.0f;
@@ -3285,7 +3285,7 @@ bool idLCP_Symmetric::Solve( const idMatX& o_m, idVecX& o_x, const idVecX& o_b, 
 		
 		if( n >= maxIterations )
 		{
-			failed.Format( "max iterations %d", maxIterations );
+			failed.Format<64>( "max iterations %d", maxIterations );
 			break;
 		}
 		

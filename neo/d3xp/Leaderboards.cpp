@@ -142,7 +142,7 @@ void LeaderboardLocal_Init()
 						
 				// Set the leaderboard name.
 				const char* mapname = idLocalization::GetString( maps[ mapIdx ].mapName );
-				newLeaderboardDef->boardName.Format( "%s %s", mapname, gamemode.abrevName );
+				newLeaderboardDef->boardName.Format<256>( "%s %s", mapname, gamemode.abrevName );
 				
 				// sanity check.
 				if( Sys_FindLeaderboardDef( boardID ) != newLeaderboardDef )

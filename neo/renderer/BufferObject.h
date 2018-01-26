@@ -302,21 +302,21 @@ private:
 
 /*
 =====================================================================================================
-	idConstantBuffer
+	idUniformBuffer	idUniformBuffer
 =====================================================================================================
 */
-class idConstantBuffer {
+class idUniformBuffer {
 public:
-	idConstantBuffer();
-	~idConstantBuffer();
+	idUniformBuffer();
+	~idUniformBuffer();
 
 	// Allocate or free the buffer.
 	bool				AllocBufferObject( int allocSize, bufferUsageType_t allocUsage, const void* data = nullptr );
 	void				FreeBufferObject();
 
 	// Make this buffer a reference to another buffer.
-	void				Reference( const idConstantBuffer& other );
-	void				Reference( const idConstantBuffer& other, int refOffset, int refSize );
+	void				Reference( const idUniformBuffer& other );
+	void				Reference( const idUniformBuffer& other, int refOffset, int refSize );
 
 	// Copies data to the buffer. 'size' may be less than the originally allocated size.
 	void				Update( int updateSize, const void* data ) const;
@@ -347,12 +347,13 @@ private:
 	ID_INLINE void		SetUnmapped() const { const_cast< int& >( size ) &= ~MAPPED_FLAG; }
 	ID_INLINE bool		OwnsBuffer() const { return ( ( offsetInOtherBuffer & OWNS_BUFFER_FLAG ) != 0 ); }
 
-	DISALLOW_COPY_AND_ASSIGN( idConstantBuffer );
+	DISALLOW_COPY_AND_ASSIGN( idUniformBuffer );
 };
 
 
 // idPixelPackBuffer
 // idPixelUnpackBuffer
+// idShaderStorageBuffer
 
 
 

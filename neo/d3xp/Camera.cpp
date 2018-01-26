@@ -58,9 +58,9 @@ void idCamera::Spawn()
 idCamera::GetRenderView
 =====================
 */
-renderView_t* idCamera::GetRenderView()
+renderViewParms_t* idCamera::GetRenderView()
 {
-	renderView_t* rv = idEntity::GetRenderView();
+	renderViewParms_t* rv = idEntity::GetRenderView();
 	GetViewParms( rv );
 	return rv;
 }
@@ -210,7 +210,7 @@ void idCameraView::Spawn()
 idCameraView::GetViewParms
 =====================
 */
-void idCameraView::GetViewParms( renderView_t* view )
+void idCameraView::GetViewParms( renderViewParms_t* view )
 {
 	assert( view );
 	
@@ -472,7 +472,7 @@ void idCameraAnim::Start()
 	BecomeActive( TH_THINK );
 	
 	// if the player has already created the renderview for this frame, have him update it again so that the camera starts this frame
-	if( gameLocal.GetLocalPlayer()->GetRenderView()->time[TIME_GROUP2] == gameLocal.fast.time )
+	if( gameLocal.GetLocalPlayer()->GetRenderView()->time[TIME_GROUP2] == gameLocal.GetTimeGroupTime( TIME_GROUP2 ) )
 	{
 		gameLocal.GetLocalPlayer()->CalculateRenderView();
 	}
@@ -517,7 +517,7 @@ void idCameraAnim::Think()
 idCameraAnim::GetViewParms
 =====================
 */
-void idCameraAnim::GetViewParms( renderView_t* view )
+void idCameraAnim::GetViewParms( renderViewParms_t* view )
 {
 	int				realFrame;
 	int				frame;

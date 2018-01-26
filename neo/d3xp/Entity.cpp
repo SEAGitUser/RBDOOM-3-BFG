@@ -1692,7 +1692,7 @@ int idEntity::GetModelDefHandle()
 idEntity::UpdateRenderEntity
 ================
 */
-bool idEntity::UpdateRenderEntity( renderEntity_s* renderEntity, const renderView_t* renderView )
+bool idEntity::UpdateRenderEntity( renderEntity_s* renderEntity, const renderViewParms_t* renderView )
 {
 	if( gameLocal.inCinematic && gameLocal.skipCinematic )
 	{
@@ -1721,7 +1721,7 @@ idEntity::ModelCallback
 	NOTE: may not change the game state whatsoever!
 ================
 */
-bool idEntity::ModelCallback( renderEntity_s* renderEntity, const renderView_t* renderView )
+bool idEntity::ModelCallback( renderEntity_s* renderEntity, const renderViewParms_t* renderView )
 {
 	idEntity* ent;
 	
@@ -1754,11 +1754,11 @@ idEntity::GetRenderView
 This is used by remote camera views to look from an entity
 =============
 */
-renderView_t* idEntity::GetRenderView()
+renderViewParms_t* idEntity::GetRenderView()
 {
 	if( !renderView )
 	{
-		renderView = new( TAG_ENTITY ) renderView_t;
+		renderView = new( TAG_ENTITY ) renderViewParms_t;
 	}
 	renderView->Clear();
 	

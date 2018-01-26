@@ -36,7 +36,7 @@ If you have questions concerning this license or the applicable additional terms
 
 #define TOKEN_FL_RECURSIVE_DEFINE	1
 
-define_t* idParser::globaldefines;
+idParser::defineList_t idParser::globalDefines;
 
 /*
 ================
@@ -56,12 +56,11 @@ idParser::AddGlobalDefine
 bool idParser::AddGlobalDefine( const char *string )
 {
 	auto define = DefineFromString( string );
-	if( define == NULL )
-	{
+	if( !define ) {
 		return false;
 	}
-	define->next = globaldefines;
-	globaldefines = define;
+
+	globalDefines.AddToFront( define );
 	return true;
 }
 
@@ -72,26 +71,17 @@ idParser::RemoveGlobalDefine
 */
 bool idParser::RemoveGlobalDefine( const char *name )
 {
-	define_t *d, *prev;
-
-	for( prev = NULL, d = globaldefines; d != NULL; prev = d, d = d->next )
+	define_t *def = nullptr;
+	for( def = globalDefines.GetFirst(); def != NULL; def = globalDefines.GetNext( def ) )
 	{
-		if( !idStr::Cmp( d->name, name ) )
-		{
+		if( !idStr::Cmp( def->name, name ) ) {
 			break;
 		}
 	}
-	if( d != NULL )
+	if( def != nullptr )
 	{
-		if( prev != NULL )
-		{
-			prev->next = d->next;
-		}
-		else
-		{
-			globaldefines = d->next;
-		}
-		FreeDefine( d );
+		globalDefines.Remove( def );
+		FreeDefine( def );
 		return true;
 	}
 
@@ -105,10 +95,10 @@ idParser::RemoveAllGlobalDefines
 */
 void idParser::RemoveAllGlobalDefines( void )
 {
-	for( define_t *define = globaldefines; define != NULL; define = globaldefines )
+	for( auto def = globalDefines.GetFirst(); def != NULL; def = globalDefines.GetNext( def ) )
 	{
-		globaldefines = globaldefines->next;
-		FreeDefine( define );
+		globalDefines.Remove( def );
+		FreeDefine( def );
 	}
 }
 
@@ -159,11 +149,7 @@ PC_NameHash
 */
 ID_INLINE int PC_NameHash( const char* name )
 {
-	int hash = 0;
-	for( int i = 0; name[ i ] != '\0'; i++ )
-	{
-		hash += name[ i ] * ( 119 + i );
-	}
+	int hash = idStr::Hash( name );
 	hash = ( hash ^ ( hash >> 10 ) ^ ( hash >> 20 ) ) & ( DEFINEHASHSIZE - 1 );
 	return hash;
 }
@@ -265,8 +251,7 @@ define_t *idParser::CopyDefine( define_t *define )
 		{
 			lasttoken->next = newtoken;
 		}
-		else
-		{
+		else {
 			newdefine->tokens = newtoken;
 		}
 		lasttoken = newtoken;
@@ -281,8 +266,7 @@ define_t *idParser::CopyDefine( define_t *define )
 		{
 			lasttoken->next = newtoken;
 		}
-		else
-		{
+		else {
 			newdefine->parms = newtoken;
 		}
 		lasttoken = newtoken;
@@ -1002,8 +986,7 @@ bool idParser::ExpandDefine( idToken* deftoken, define_t* define, idToken** firs
 				last = t;
 			}
 		}
-		else
-		{
+		else {
 			// if stringizing operator
 			if( ( *dt ) == "#" )
 			{
@@ -1012,8 +995,7 @@ bool idParser::ExpandDefine( idToken* deftoken, define_t* define, idToken** firs
 				{
 					parmnum = FindDefineParm( define, dt->next->c_str() );
 				}
-				else
-				{
+				else {
 					parmnum = -1;
 				}
 
@@ -1048,8 +1030,7 @@ bool idParser::ExpandDefine( idToken* deftoken, define_t* define, idToken** firs
 			{
 				last->next = t;
 			}
-			else
-			{
+			else {
 				first = t;
 			}
 			last = t;
@@ -1188,15 +1169,51 @@ bool idParser::AddDefine( const char *string )
 
 /*
 ================
+idParser::RemoveDefine
+================
+*/
+bool idParser::RemoveDefine( const char* string )
+{
+	define_t *define, *lastdefine;
+	int hash = PC_NameHash( string );
+	for( lastdefine = NULL, define = definehash[ hash ]; define; define = define->hashnext )
+	{
+		if( !idStr::Cmp( define->name, string ) )
+		{
+			if( define->flags & DEFINE_FIXED )
+			{
+				idParser::Warning( "RemoveDefine( %s ) can't undef", string );
+				return false;
+			}
+			else {
+				if( lastdefine )
+				{
+					lastdefine->hashnext = define->hashnext;
+				}
+				else {
+					definehash[ hash ] = define->hashnext;
+				}
+				FreeDefine( define );
+				return true;
+			}
+			break;
+		}
+		lastdefine = define;
+	}
+	return false;	
+}
+
+/*
+================
 idParser::AddGlobalDefinesToSource
 ================
 */
 void idParser::AddGlobalDefinesToSource()
 {
-	for( define_t *define = globaldefines; define != NULL; define = define->next )
+	for( auto def = globalDefines.GetFirst(); def != NULL; def = globalDefines.GetNext( def ) )
 	{
-		auto newdefine = CopyDefine( define );
-		AddDefineToHash( newdefine, definehash );
+		auto newDef = CopyDefine( def );
+		AddDefineToHash( newDef, definehash );
 	}
 }
 
@@ -1209,12 +1226,7 @@ bool idParser::AddInclude( const char *string )
 {
 	idStr str = va( "#include <%s>", string );
 	idLexer src( str, str.Length(), "AddInclude", LEXFL_ALLOWPATHNAMES );
-
-	idToken token1;
-	idToken token2;
-	idToken token3;
-	idToken token4;
-	idToken token5;
+	idToken token1, token2, token3, token4, token5;
 	src.ReadToken( &token1 );
 	src.ReadToken( &token2 );
 	src.ReadToken( &token3 );
@@ -2617,8 +2629,6 @@ idParser::Directive_undef
 bool idParser::Directive_undef()
 {
 	idToken token;
-	define_t *define, *lastdefine;
-
 	if( !ReadLine( &token, false ) )
 	{
 		Error( "undef without name" );
@@ -2631,6 +2641,7 @@ bool idParser::Directive_undef()
 		return false;
 	}
 
+	define_t *define, *lastdefine;
 	int hash = PC_NameHash( token.c_str() );
 	for( lastdefine = NULL, define = definehash[ hash ]; define; define = define->hashnext )
 	{
@@ -3316,7 +3327,7 @@ bool idParser::ReadDollarDirective()
 		return false;
 	}
 
-	// if if is a name
+	// if it is a name
 	if( token.type == TT_NAME )
 	{
 		if( token == "if" )
@@ -3348,8 +3359,7 @@ bool idParser::ReadDollarDirective()
 			return true;
 		}
 
-		if( skip > 0 )
-		{
+		if( skip > 0 ) {
 			return true;
 		}
 
@@ -3732,11 +3742,11 @@ bool idParser::SkipBracedSection( bool parseFirstBrace )
 =================
 idParser::ParseBracedSectionExact
 
-The next token should be an open brace.
-Parses until a matching close brace is found.
-Maintains the exact formating of the braced section
+	The next token should be an open brace.
+	Parses until a matching close brace is found.
+	Maintains the exact formating of the braced section
 
-  FIXME: what about precompilation ?
+	FIXME: what about precompilation ?
 =================
 */
 bool idParser::ParseBracedSectionExact( idStr& out, int tabs, bool parseFirstBrace )
@@ -3748,9 +3758,9 @@ bool idParser::ParseBracedSectionExact( idStr& out, int tabs, bool parseFirstBra
 ========================
 idParser::ParseBracedSection
 
-The next token should be an open brace.
-Parses until a matching close brace is found.
-Internal brace depths are properly skipped.
+	The next token should be an open brace.
+	Parses until a matching close brace is found.
+	Internal brace depths are properly skipped.
 ========================
 */
 const char* idParser::ParseBracedSection( idStr& out, int tabs, bool parseFirstBrace, char intro, char outro )

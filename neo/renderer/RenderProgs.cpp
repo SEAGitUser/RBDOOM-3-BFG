@@ -137,6 +137,7 @@ void idRenderProgManager::Init()
 		{ BUILTIN_SHADOW_DEBUG_SKINNED, "shadowDebug_skinned.vfp", "", 0, true },
 		
 		{ BUILTIN_BLENDLIGHT, "blendlight.vfp", "", 0, false },
+		{ BUILTIN_BLENDLIGHT_SCREENSPACE, "blendlight2", "", 0, false },
 		{ BUILTIN_FOG, "fog.vfp", "", 0, false },
 		{ BUILTIN_FOG_SKINNED, "fog_skinned.vfp", "", 0, true },
 		{ BUILTIN_SKYBOX, "skybox.vfp", "",  0, false },
@@ -175,28 +176,28 @@ void idRenderProgManager::Init()
 		{ BUILTIN_DEBUG_SHADOWMAP, "debug_shadowmap.vfp", "", 0, false },
 		// RB end
 	};
-	int numBuiltins = sizeof( builtins ) / sizeof( builtins[0] );
-	vertexShaders.SetNum( numBuiltins );
-	geometryShaders.SetNum( numBuiltins );
-	fragmentShaders.SetNum( numBuiltins );
+	const int numBuiltins = _countof( builtins );
+	vertShaders.SetNum( numBuiltins );
+	geomShaders.SetNum( numBuiltins );
+	fragShaders.SetNum( numBuiltins );
 	glslPrograms.SetNum( numBuiltins );
 	
 	for( int i = 0; i < numBuiltins; i++ )
 	{
-		vertexShaders[i].name = builtins[i].name;
-		vertexShaders[i].nameOutSuffix = builtins[i].nameOutSuffix;
-		vertexShaders[i].shaderFeatures = builtins[i].shaderFeatures;
-		vertexShaders[i].builtin = true;
+		vertShaders[ i ].name = builtins[ i ].name;
+		vertShaders[ i ].nameOutSuffix = builtins[ i ].nameOutSuffix;
+		vertShaders[ i ].shaderFeatures = builtins[ i ].shaderFeatures;
+		vertShaders[ i ].builtin = true;
 
-		geometryShaders[ i ].name = builtins[ i ].name;
-		geometryShaders[ i ].nameOutSuffix = builtins[ i ].nameOutSuffix;
-		geometryShaders[ i ].shaderFeatures = builtins[ i ].shaderFeatures;
-		geometryShaders[ i ].builtin = true;
-		
-		fragmentShaders[i].name = builtins[i].name;
-		fragmentShaders[i].nameOutSuffix = builtins[i].nameOutSuffix;
-		fragmentShaders[i].shaderFeatures = builtins[i].shaderFeatures;
-		fragmentShaders[i].builtin = true;
+		geomShaders[ i ].name = builtins[ i ].name;
+		geomShaders[ i ].nameOutSuffix = builtins[ i ].nameOutSuffix;
+		geomShaders[ i ].shaderFeatures = builtins[ i ].shaderFeatures;
+		geomShaders[ i ].builtin = true;
+
+		fragShaders[ i ].name = builtins[ i ].name;
+		fragShaders[ i ].nameOutSuffix = builtins[ i ].nameOutSuffix;
+		fragShaders[ i ].shaderFeatures = builtins[ i ].shaderFeatures;
+		fragShaders[ i ].builtin = true;
 		
 		builtinShaders[builtins[i].index] = i;
 		
@@ -206,9 +207,9 @@ void idRenderProgManager::Init()
 			continue;
 		}
 		
-		LoadVertexShader( i );
-		LoadGeometryShader( i );
-		LoadFragmentShader( i );
+		LoadShader( i, SHT_VERTEX );
+		LoadShader( i, SHT_GEOMETRY );
+		LoadShader( i, SHT_FRAGMENT );
 		LoadGLSLProgram( i, i, i, i );
 	}
 
@@ -219,24 +220,24 @@ void idRenderProgManager::Init()
 	
 	if( glConfig.gpuSkinningAvailable )
 	{
-		vertexShaders[builtinShaders[BUILTIN_TEXTURE_VERTEXCOLOR_SKINNED]].usesJoints = true;
-		vertexShaders[builtinShaders[BUILTIN_INTERACTION_SKINNED]].usesJoints = true;
-		vertexShaders[builtinShaders[BUILTIN_INTERACTION_AMBIENT_SKINNED]].usesJoints = true;
-		vertexShaders[builtinShaders[BUILTIN_ENVIRONMENT_SKINNED]].usesJoints = true;
-		vertexShaders[builtinShaders[BUILTIN_BUMPY_ENVIRONMENT_SKINNED]].usesJoints = true;
-		vertexShaders[builtinShaders[BUILTIN_DEPTH_SKINNED]].usesJoints = true;
-		vertexShaders[builtinShaders[BUILTIN_SHADOW_SKINNED]].usesJoints = true;
-		vertexShaders[builtinShaders[BUILTIN_SHADOW_DEBUG_SKINNED]].usesJoints = true;
-		vertexShaders[builtinShaders[BUILTIN_FOG_SKINNED]].usesJoints = true;
+		vertShaders[ builtinShaders[ BUILTIN_COLOR_SKINNED ] ].usesJoints = true;
+		vertShaders[ builtinShaders[ BUILTIN_TEXTURE_VERTEXCOLOR_SKINNED ] ].usesJoints = true;
+		vertShaders[ builtinShaders[ BUILTIN_INTERACTION_SKINNED ] ].usesJoints = true;
+		vertShaders[ builtinShaders[ BUILTIN_INTERACTION_AMBIENT_SKINNED ] ].usesJoints = true;
+		vertShaders[ builtinShaders[ BUILTIN_ENVIRONMENT_SKINNED ] ].usesJoints = true;
+		vertShaders[ builtinShaders[ BUILTIN_BUMPY_ENVIRONMENT_SKINNED ] ].usesJoints = true;
+		vertShaders[ builtinShaders[ BUILTIN_DEPTH_SKINNED ] ].usesJoints = true;
+		vertShaders[ builtinShaders[ BUILTIN_SHADOW_SKINNED ] ].usesJoints = true;
+		vertShaders[ builtinShaders[ BUILTIN_SHADOW_DEBUG_SKINNED ] ].usesJoints = true;
+		vertShaders[ builtinShaders[ BUILTIN_FOG_SKINNED ] ].usesJoints = true;
 		// RB begin
-		vertexShaders[builtinShaders[BUILTIN_AMBIENT_LIGHTING_SKINNED]].usesJoints = true;
-		vertexShaders[builtinShaders[BUILTIN_SMALL_GEOMETRY_BUFFER_SKINNED]].usesJoints = true;
-		vertexShaders[builtinShaders[BUILTIN_SMALL_GBUFFER_SML_SKINNED]].usesJoints = true;
+		vertShaders[ builtinShaders[ BUILTIN_AMBIENT_LIGHTING_SKINNED ] ].usesJoints = true;
+		vertShaders[ builtinShaders[ BUILTIN_SMALL_GEOMETRY_BUFFER_SKINNED ] ].usesJoints = true;
+		vertShaders[ builtinShaders[ BUILTIN_SMALL_GBUFFER_SML_SKINNED ] ].usesJoints = true;
 
-
-		vertexShaders[builtinShaders[BUILTIN_INTERACTION_SHADOW_MAPPING_SPOT_SKINNED]].usesJoints = true;
-		vertexShaders[builtinShaders[BUILTIN_INTERACTION_SHADOW_MAPPING_POINT_SKINNED]].usesJoints = true;
-		vertexShaders[builtinShaders[BUILTIN_INTERACTION_SHADOW_MAPPING_PARALLEL_SKINNED]].usesJoints = true;
+		vertShaders[ builtinShaders[ BUILTIN_INTERACTION_SHADOW_MAPPING_SPOT_SKINNED ] ].usesJoints = true;
+		vertShaders[ builtinShaders[ BUILTIN_INTERACTION_SHADOW_MAPPING_POINT_SKINNED ] ].usesJoints = true;
+		vertShaders[ builtinShaders[ BUILTIN_INTERACTION_SHADOW_MAPPING_PARALLEL_SKINNED ] ].usesJoints = true;
 		// RB end
 	}
 	
@@ -250,28 +251,26 @@ idRenderProgManager::LoadAllShaders()
 */
 void idRenderProgManager::LoadAllShaders()
 {
-	for( int i = 0; i < vertexShaders.Num(); ++i )
+	for( int i = 0; i < vertShaders.Num(); ++i )
 	{
-		LoadVertexShader( i );
+		LoadShader( i, SHT_VERTEX );
 	}
-	for( int i = 0; i < geometryShaders.Num(); ++i )
+	for( int i = 0; i < geomShaders.Num(); ++i )
 	{
-		LoadGeometryShader( i );
+		LoadShader( i, SHT_GEOMETRY );
 	}
-	for( int i = 0; i < fragmentShaders.Num(); ++i )
+	for( int i = 0; i < fragShaders.Num(); ++i )
 	{
-		LoadFragmentShader( i );
+		LoadShader( i, SHT_FRAGMENT );
 	}
 	
 	for( int i = 0; i < glslPrograms.Num(); ++i )
 	{
-		if( glslPrograms[i].vertexShaderIndex == -1 || glslPrograms[i].fragmentShaderIndex == -1 )
-		{
+		if( glslPrograms[i].vertShaderIndex == -1 || glslPrograms[i].fragShaderIndex == -1 ) {
 			// RB: skip reloading because we didn't load it initially
 			continue;
-		}
-		
-		LoadGLSLProgram( i, glslPrograms[i].vertexShaderIndex, glslPrograms[ i ].geometryShaderIndex, glslPrograms[i].fragmentShaderIndex );
+		}	
+		LoadGLSLProgram( i, glslPrograms[i].vertShaderIndex, glslPrograms[ i ].geomShaderIndex, glslPrograms[i].fragShaderIndex );
 	}
 }
 
@@ -283,36 +282,37 @@ idRenderProgManager::KillAllShaders()
 void idRenderProgManager::KillAllShaders()
 {
 	Unbind();
-	for( int i = 0; i < vertexShaders.Num(); i++ )
-	{
-		if( vertexShaders[i].progId != INVALID_PROGID )
-		{
-			glDeleteShader( vertexShaders[i].progId );
-			vertexShaders[i].progId = INVALID_PROGID;
-		}
-	}
-	for( int i = 0; i < geometryShaders.Num(); i++ )
-	{
-		if( geometryShaders[ i ].progId != INVALID_PROGID )
-		{
-			glDeleteShader( geometryShaders[ i ].progId );
-			geometryShaders[ i ].progId = INVALID_PROGID;
-		}
-	}
-	for( int i = 0; i < fragmentShaders.Num(); i++ )
-	{
-		if( fragmentShaders[i].progId != INVALID_PROGID )
-		{
-			glDeleteShader( fragmentShaders[i].progId );
-			fragmentShaders[i].progId = INVALID_PROGID;
-		}
-	}
 	for( int i = 0; i < glslPrograms.Num(); ++i )
 	{
-		if( glslPrograms[i].progId != INVALID_PROGID )
+		if( glslPrograms[ i ].progId != INVALID_PROGID )
 		{
-			glDeleteProgram( glslPrograms[i].progId );
-			glslPrograms[i].progId = INVALID_PROGID;
+			glDeleteProgram( glslPrograms[ i ].progId );
+			glslPrograms[ i ].progId = INVALID_PROGID;
+		}
+	}
+
+	for( int i = 0; i < vertShaders.Num(); ++i )
+	{
+		if( vertShaders[i].progId != INVALID_PROGID )
+		{
+			glDeleteShader( vertShaders[i].progId );
+			vertShaders[i].progId = INVALID_PROGID;
+		}
+	}
+	for( int i = 0; i < geomShaders.Num(); ++i )
+	{
+		if( geomShaders[ i ].progId != INVALID_PROGID )
+		{
+			glDeleteShader( geomShaders[ i ].progId );
+			geomShaders[ i ].progId = INVALID_PROGID;
+		}
+	}
+	for( int i = 0; i < fragShaders.Num(); ++i )
+	{
+		if( fragShaders[i].progId != INVALID_PROGID )
+		{
+			glDeleteShader( fragShaders[i].progId );
+			fragShaders[i].progId = INVALID_PROGID;
 		}
 	}
 }
@@ -334,28 +334,28 @@ idRenderProgManager::FindVertexShader
 */
 int idRenderProgManager::FindVertexShader( const char* name )
 {
-	for( int i = 0; i < vertexShaders.Num(); i++ )
+	for( int i = 0; i < vertShaders.Num(); ++i )
 	{
-		if( vertexShaders[i].name.Icmp( name ) == 0 )
+		if( vertShaders[i].name.Icmp( name ) == 0 )
 		{
-			LoadVertexShader( i );
+			LoadShader( i, SHT_VERTEX );
 			return i;
 		}
 	}
-	vertexShader_t shader;
+	vertShader_t shader;
 	shader.name = name;
-	int index = vertexShaders.Append( shader );
-	LoadVertexShader( index );
-	currentVertexShader = index;
+	int index = vertShaders.Append( shader );
+	LoadShader( index, SHT_VERTEX );
+	currentVertShader = index;
 	
 	// RB: removed idStr::Icmp( name, "heatHaze.vfp" ) == 0  hack
 	// this requires r_useUniformArrays 1
-	for( int i = 0; i < vertexShaders[index].uniforms.Num(); i++ )
+	for( int i = 0; i < vertShaders[index].uniforms.Num(); i++ )
 	{
-		if( vertexShaders[index].uniforms[i] == RENDERPARM_ENABLE_SKINNING )
+		if( vertShaders[index].uniforms[i] == RENDERPARM_ENABLE_SKINNING )
 		{
-			vertexShaders[index].usesJoints = true;
-			vertexShaders[index].optionalSkinning = true;
+			vertShaders[index].usesJoints = true;
+			vertShaders[index].optionalSkinning = true;
 		}
 	}
 	// RB end
@@ -370,19 +370,19 @@ idRenderProgManager::FindGeometryShader
 */
 int idRenderProgManager::FindGeometryShader( const char* name )
 {
-	for( int i = 0; i < geometryShaders.Num(); i++ )
+	for( int i = 0; i < geomShaders.Num(); ++i )
 	{
-		if( geometryShaders[ i ].name.Icmp( name ) == 0 )
+		if( geomShaders[ i ].name.Icmp( name ) == 0 )
 		{
-			LoadGeometryShader( i );
+			LoadShader( i, SHT_GEOMETRY );
 			return i;
 		}
 	}
-	geometryShader_t shader;
+	geomShader_t shader;
 	shader.name = name;
-	int index = geometryShaders.Append( shader );
-	LoadGeometryShader( index );
-	currentGeometryShader = index;
+	int index = geomShaders.Append( shader );
+	LoadShader( index, SHT_GEOMETRY );
+	currentGeomShader = index;
 	return index;
 }
 
@@ -393,68 +393,73 @@ idRenderProgManager::FindFragmentShader
 */
 int idRenderProgManager::FindFragmentShader( const char* name )
 {
-	for( int i = 0; i < fragmentShaders.Num(); i++ )
+	for( int i = 0; i < fragShaders.Num(); ++i )
 	{
-		if( fragmentShaders[i].name.Icmp( name ) == 0 )
+		if( fragShaders[i].name.Icmp( name ) == 0 )
 		{
-			LoadFragmentShader( i );
+			LoadShader( i, SHT_FRAGMENT );
 			return i;
 		}
 	}
-	fragmentShader_t shader;
+	fragShader_t shader;
 	shader.name = name;
-	int index = fragmentShaders.Append( shader );
-	LoadFragmentShader( index );
-	currentFragmentShader = index;
+	int index = fragShaders.Append( shader );
+	LoadShader( index, SHT_FRAGMENT );
+	currentFragShader = index;
 	return index;
 }
 
 /*
 ================================================================================================
-idRenderProgManager::LoadVertexShader
+idRenderProgManager::LoadShader
 ================================================================================================
 */
-void idRenderProgManager::LoadVertexShader( int index )
+void idRenderProgManager::LoadShader( int index, shaderType_e shaderType )
 {
-	if( vertexShaders[ index ].progId != INVALID_PROGID )
+	/*/*/if( shaderType == shaderType_e::SHT_VERTEX )/////////////////////////////////////////////////////////////
 	{
-		return; // Already loaded
+		if( vertShaders[ index ].progId != INVALID_PROGID ) {
+			return; // Already loaded
+		}
+		vertShader_t& vs = vertShaders[ index ];
+		vertShaders[ index ].progId = ( GLuint )LoadGLSLShader( GL_VERTEX_SHADER, vs.name, vs.nameOutSuffix, vs.shaderFeatures, vs.builtin, vs.uniforms );
+		return;
+	} 
+	else if( shaderType == shaderType_e::SHT_TESS_CTRL )//////////////////////////////////////////////////////////
+	{
+		release_assert( "Loading SHT_TESS_CTRL Not Implemented!" );
+		return;
+	}
+	else if( shaderType == shaderType_e::SHT_TESS_EVAL )
+	{
+		release_assert( "Loading SHT_TESS_EVAL Not Implemented!" );
+		return;
+	}
+	else if( shaderType == shaderType_e::SHT_GEOMETRY )///////////////////////////////////////////////////////////
+	{
+		if( geomShaders[ index ].progId != INVALID_PROGID ) {
+			return; // Already loaded
+		}
+		geomShader_t& gs = geomShaders[ index ];
+		geomShaders[ index ].progId = ( GLuint )LoadGLSLShader( GL_GEOMETRY_SHADER, gs.name, gs.nameOutSuffix, gs.shaderFeatures, gs.builtin, gs.uniforms );
+		return;
+	}
+	else if( shaderType == shaderType_e::SHT_FRAGMENT )///////////////////////////////////////////////////////////
+	{
+		if( fragShaders[ index ].progId != INVALID_PROGID ) {
+			return; // Already loaded
+		}
+		fragShader_t& fs = fragShaders[ index ];
+		fragShaders[ index ].progId = ( GLuint )LoadGLSLShader( GL_FRAGMENT_SHADER, fs.name, fs.nameOutSuffix, fs.shaderFeatures, fs.builtin, fs.uniforms );
+		return;
+	}
+	else if( shaderType == shaderType_e::SHT_COMPUTE )////////////////////////////////////////////////////////////
+	{
+		release_assert( "Loading SHT_COMPUTE Not Implemented!" );
+		return;
 	}
 
-	vertexShader_t& vs = vertexShaders[ index ];
-	vertexShaders[ index ].progId = ( GLuint ) LoadGLSLShader( GL_VERTEX_SHADER, vs.name, vs.nameOutSuffix, vs.shaderFeatures, vs.builtin, vs.uniforms );
-}
-
-/*
-================================================================================================
-idRenderProgManager::LoadGeometryShader
-================================================================================================
-*/
-void idRenderProgManager::LoadGeometryShader( int index )
-{
-	if( geometryShaders[ index ].progId != INVALID_PROGID )
-	{
-		return; // Already loaded
-	}
-
-	geometryShader_t& gs = geometryShaders[ index ];
-	geometryShaders[ index ].progId = ( GLuint ) LoadGLSLShader( GL_GEOMETRY_SHADER, gs.name, gs.nameOutSuffix, gs.shaderFeatures, gs.builtin, gs.uniforms );
-}
-
-/*
-================================================================================================
-idRenderProgManager::LoadFragmentShader
-================================================================================================
-*/
-void idRenderProgManager::LoadFragmentShader( int index )
-{
-	if( fragmentShaders[ index ].progId != INVALID_PROGID )
-	{
-		return; // Already loaded
-	}
-
-	fragmentShader_t& fs = fragmentShaders[ index ];
-	fragmentShaders[ index ].progId = ( GLuint ) LoadGLSLShader( GL_FRAGMENT_SHADER, fs.name, fs.nameOutSuffix, fs.shaderFeatures, fs.builtin, fs.uniforms );
+	release_assert("Unknown ShaderType Loading");
 }
 
 /*
@@ -465,15 +470,15 @@ idRenderProgManager::BindShader
 // RB begin
 void idRenderProgManager::BindShader( int progIndex, int vIndex, int gIndex, int fIndex, bool builtin )
 {
-	if( currentVertexShader == vIndex && currentGeometryShader == gIndex && currentFragmentShader == fIndex ) {
+	if( currentVertShader == vIndex && currentGeomShader == gIndex && currentFragShader == fIndex ) {
 		return;
 	}
 	
 	if( builtin )
 	{
-		currentVertexShader = vIndex;
-		currentGeometryShader = gIndex;
-		currentFragmentShader = fIndex;
+		currentVertShader = vIndex;
+		currentGeomShader = gIndex;
+		currentFragShader = fIndex;
 		
 		// vIndex denotes the GLSL program
 		if( vIndex >= 0 && vIndex < glslPrograms.Num() )
@@ -490,9 +495,9 @@ void idRenderProgManager::BindShader( int progIndex, int vIndex, int gIndex, int
 			// RB: FIXME linear search
 			for( int i = 0; i < glslPrograms.Num(); ++i )
 			{
-				if( ( glslPrograms[i].vertexShaderIndex == vIndex ) && 
-					( glslPrograms[i].geometryShaderIndex == fIndex ) && 
-					( glslPrograms[i].fragmentShaderIndex == fIndex ) )
+				if( ( glslPrograms[i].vertShaderIndex == vIndex ) && 
+					( glslPrograms[i].geomShaderIndex == fIndex ) && 
+					( glslPrograms[i].fragShaderIndex == fIndex ) )
 				{
 					progIndex = i;
 					break;
@@ -500,9 +505,9 @@ void idRenderProgManager::BindShader( int progIndex, int vIndex, int gIndex, int
 			}
 		}
 		
-		currentVertexShader = vIndex;
-		currentGeometryShader = gIndex;
-		currentFragmentShader = fIndex;
+		currentVertShader = vIndex;
+		currentGeomShader = gIndex;
+		currentFragShader = fIndex;
 		
 		if( progIndex >= 0 && progIndex < glslPrograms.Num() )
 		{
@@ -521,8 +526,9 @@ idRenderProgManager::Unbind
 */
 void idRenderProgManager::Unbind()
 {
-	currentVertexShader = -1;
-	currentFragmentShader = -1;
+	currentVertShader = -1;
+	currentGeomShader = -1;
+	currentFragShader = -1;
 	
 	glUseProgram( GL_NONE );
 }
@@ -530,7 +536,7 @@ void idRenderProgManager::Unbind()
 // RB begin
 bool idRenderProgManager::IsShaderBound() const
 {
-	return ( currentVertexShader != -1 );
+	return( currentVertShader != -1 );
 }
 // RB end
 
@@ -555,5 +561,15 @@ idRenderProgManager::SetRenderParm
 void idRenderProgManager::SetRenderParm( renderParm_t rp, const float* value )
 {
 	SetUniformValue( rp, value );
+}
+
+/*
+================================================================================================
+idRenderProgManager::GetRenderParm
+================================================================================================
+*/
+idRenderVector & idRenderProgManager::GetRenderParm( renderParm_t rp )
+{
+	return glslUniforms[ rp ];
 }
 

@@ -8,7 +8,7 @@
 
 idCVar r_skipFogLights( "r_skipFogLights", "0", CVAR_RENDERER | CVAR_BOOL, "skip fog lights" );
 idCVar r_skipBlendLights( "r_skipBlendLights", "0", CVAR_RENDERER | CVAR_BOOL, "skip blend lights" );
-idCVar r_useScreenSpaceBlendLights( "t_useScreenSpaceBlendLights", "0", CVAR_RENDERER | CVAR_BOOL, "use screen space blend lights" );
+idCVar r_useScreenSpaceBlendLights( "r_useScreenSpaceBlendLights", "0", CVAR_RENDERER | CVAR_BOOL, "use screen space blend lights" );
 
 /*
 =============================================================================================
@@ -18,7 +18,7 @@ idCVar r_useScreenSpaceBlendLights( "t_useScreenSpaceBlendLights", "0", CVAR_REN
 =============================================================================================
 */
 
-static void _GlobalPlaneToLocal( const idRenderMatrix & modelMatrix, const idPlane& in, idPlane& out )
+static ID_INLINE void _GlobalPlaneToLocal( const idRenderMatrix & modelMatrix, const idPlane& in, idPlane& out )
 {
 	out[ 0 ] = in[ 0 ] * modelMatrix[ 0 ][ 0 ] + in[ 1 ] * modelMatrix[ 1 ][ 0 ] + in[ 2 ] * modelMatrix[ 2 ][ 0 ];
 	out[ 1 ] = in[ 0 ] * modelMatrix[ 0 ][ 1 ] + in[ 1 ] * modelMatrix[ 1 ][ 1 ] + in[ 2 ] * modelMatrix[ 2 ][ 1 ];
@@ -33,7 +33,7 @@ static void _GlobalPlaneToLocal( const idRenderMatrix & modelMatrix, const idPla
 */
 static void RB_T_BlendLight( const drawSurf_t* drawSurfs, const viewLight_t* vLight )
 {
-	backEnd.currentSpace = NULL;
+	backEnd.ClearCurrentSpace();
 
 	for( const drawSurf_t* drawSurf = drawSurfs; drawSurf != NULL; drawSurf = drawSurf->nextOnLight )
 	{
@@ -51,7 +51,7 @@ static void RB_T_BlendLight( const drawSurf_t* drawSurfs, const viewLight_t* vLi
 			RB_SetMVP( drawSurf->space->mvp );
 
 			// change the light projection matrix
-			ALIGNTYPE16 idPlane	lightProjectInCurrentSpace[ 4 ];
+			idRenderPlane lightProjectInCurrentSpace[ 4 ];
 			for( int i = 0; i < 4; i++ )
 			{
 				_GlobalPlaneToLocal( drawSurf->space->modelMatrix, vLight->lightProject[ i ], lightProjectInCurrentSpace[ i ] );
@@ -61,10 +61,10 @@ static void RB_T_BlendLight( const drawSurf_t* drawSurfs, const viewLight_t* vLi
 			//	drawSurf->space->modelMatrix.InverseTransformPlane( vLight->lightProject[ i ], lightProjectInCurrentSpace[ i ] );
 			//}
 
-			SetVertexParm( RENDERPARM_TEXGEN_0_S, lightProjectInCurrentSpace[ 0 ].ToFloatPtr() );
-			SetVertexParm( RENDERPARM_TEXGEN_0_T, lightProjectInCurrentSpace[ 1 ].ToFloatPtr() );
-			SetVertexParm( RENDERPARM_TEXGEN_0_Q, lightProjectInCurrentSpace[ 2 ].ToFloatPtr() );
-			SetVertexParm( RENDERPARM_TEXGEN_1_S, lightProjectInCurrentSpace[ 3 ].ToFloatPtr() );	// falloff
+			renderProgManager.SetRenderParm( RENDERPARM_TEXGEN_0_S, lightProjectInCurrentSpace[ 0 ].ToFloatPtr() );
+			renderProgManager.SetRenderParm( RENDERPARM_TEXGEN_0_T, lightProjectInCurrentSpace[ 1 ].ToFloatPtr() );
+			renderProgManager.SetRenderParm( RENDERPARM_TEXGEN_0_Q, lightProjectInCurrentSpace[ 2 ].ToFloatPtr() );
+			renderProgManager.SetRenderParm( RENDERPARM_TEXGEN_1_S, lightProjectInCurrentSpace[ 3 ].ToFloatPtr() );	// falloff
 
 			backEnd.currentSpace = drawSurf->space;
 		}
@@ -91,20 +91,22 @@ static void RB_BlendLight( const drawSurf_t* drawSurfs, const drawSurf_t* drawSu
 	const idMaterial * const material = vLight->lightShader;
 	const float* regs = vLight->shaderRegisters;
 
+	renderProgManager.BindShader_BlendLight();
+
 	// texture 1 will get the falloff texture
 	GL_BindTexture( 1, vLight->falloffImage );
 
 	// texture 0 will get the projected texture
 	GL_SelectTexture( 0 );
 
-	renderProgManager.BindShader_BlendLight();
-
 	for( int i = 0; i < material->GetNumStages(); i++ )
 	{
 		auto const stage = material->GetStage( i );
 
-		if( !regs[ stage->conditionRegister ] )
+		if( stage->SkipStage( regs ) )
+		{
 			continue;
+		}
 
 		GL_State( GLS_DEPTHMASK | stage->drawStateBits | GLS_DEPTHFUNC_EQUAL );
 
@@ -117,10 +119,7 @@ static void RB_BlendLight( const drawSurf_t* drawSurfs, const drawSurf_t* drawSu
 
 		// get the modulate values from the light, including alpha, unlike normal lights
 		idRenderVector lightColor;
-		lightColor[ 0 ] = regs[ stage->color.registers[ 0 ] ];
-		lightColor[ 1 ] = regs[ stage->color.registers[ 1 ] ];
-		lightColor[ 2 ] = regs[ stage->color.registers[ 2 ] ];
-		lightColor[ 3 ] = regs[ stage->color.registers[ 3 ] ];
+		stage->GetColorParm( regs, lightColor );
 		GL_Color( lightColor );
 
 		RB_T_BlendLight( drawSurfs, vLight );
@@ -128,8 +127,7 @@ static void RB_BlendLight( const drawSurf_t* drawSurfs, const drawSurf_t* drawSu
 	}
 
 	GL_ResetTexturesState();
-
-	renderProgManager.Unbind();
+	GL_ResetProgramState();
 	RENDERLOG_CLOSE_BLOCK();
 }
 
@@ -144,39 +142,54 @@ static void RB_BlendLight( const drawSurf_t* drawSurfs, const drawSurf_t* drawSu
 */
 static void RB_ScreenSpaceBlendLight( const drawSurf_t* drawSurfs, const drawSurf_t* drawSurfs2, const viewLight_t* vLight )
 {
-	if( drawSurfs == NULL )
-		return;
-
 	RENDERLOG_OPEN_BLOCK( vLight->lightShader->GetName() );
 
 	const idMaterial * const material = vLight->lightShader;
 	const float* regs = vLight->shaderRegisters;
+	backEnd.ClearCurrentSpace();
+
+	renderProgManager.BindShader_ScreenSpaceBlendLight();
+
+	// set the matrix for deforming the 'zeroOneCubeModel' into the frustum to exactly cover the light volume
+	idRenderMatrix invProjectMVPMatrix;
+	idRenderMatrix::Multiply( backEnd.viewDef->GetMVPMatrix(), vLight->inverseBaseLightProject, invProjectMVPMatrix );
+	RB_SetMVP( invProjectMVPMatrix );
+
+	// calculate the global light bounds by inverse projecting the zero to one cube with the 'inverseBaseLightProject'
+	//idBounds globalLightBounds;
+	//idRenderMatrix::ProjectedBounds( globalLightBounds, vLight->inverseBaseLightProject, bounds_zeroOneCube, false );
+	//const bool bCameraInsideLightGeometry = backEnd.viewDef->ViewInsideLightVolume( globalLightBounds );
+
+	renderProgManager.SetRenderParm( RENDERPARM_TEXGEN_0_S, vLight->lightProject[ 0 ].ToFloatPtr() );
+	renderProgManager.SetRenderParm( RENDERPARM_TEXGEN_0_T, vLight->lightProject[ 1 ].ToFloatPtr() );
+	renderProgManager.SetRenderParm( RENDERPARM_TEXGEN_0_Q, vLight->lightProject[ 2 ].ToFloatPtr() );
+	renderProgManager.SetRenderParm( RENDERPARM_TEXGEN_1_S, vLight->lightProject[ 3 ].ToFloatPtr() );	// falloff
+
+	RB_SetScissor( vLight->scissorRect );
+	GL_DepthBoundsTest( vLight->scissorRect.zmin, vLight->scissorRect.zmax );
+
+	// texture 2 will get the currentDepthImage
+	GL_BindTexture( 2, renderImageManager->currentDepthImage );
 
 	// texture 1 will get the falloff texture
 	GL_BindTexture( 1, vLight->falloffImage );
 
-	// texture 0 will get the projected texture
-	GL_SelectTexture( 0 );
-
-	//renderProgManager.BindShader_ScreenSpaceBlendLight();
-
-	GL_BindTexture( 2, renderImageManager->currentDepthImage );
-
 	// Set :
 	// WindowAttributes
-	// InverseViewProjectionMatrixX
-	// InverseViewProjectionMatrixY
-	// InverseViewProjectionMatrixZ
-	// InverseViewProjectionMatrixW
+
+	// texture 0 will get the projected texture
+	GL_SelectTexture( 0 );
 
 	for( int i = 0; i < material->GetNumStages(); i++ )
 	{
 		auto const stage = material->GetStage( i );
 
-		if( !regs[ stage->conditionRegister ] )
+		if( stage->SkipStage( regs ) )
+		{
 			continue;
+		}
 
-		GL_State( GLS_DEPTHMASK | stage->drawStateBits | GLS_DEPTHFUNC_EQUAL );
+		//GL_State( GLS_DEPTHMASK | stage->drawStateBits | GLS_DEPTHFUNC_EQUAL );
 
 		GL_BindTexture( 0, stage->texture.image );
 
@@ -187,15 +200,72 @@ static void RB_ScreenSpaceBlendLight( const drawSurf_t* drawSurfs, const drawSur
 
 		// get the modulate values from the light, including alpha, unlike normal lights
 		idRenderVector lightColor;
-		lightColor[ 0 ] = regs[ stage->color.registers[ 0 ] ];
-		lightColor[ 1 ] = regs[ stage->color.registers[ 1 ] ];
-		lightColor[ 2 ] = regs[ stage->color.registers[ 2 ] ];
-		lightColor[ 3 ] = regs[ stage->color.registers[ 3 ] ];
+		stage->GetColorParm( regs, lightColor );
 		GL_Color( lightColor );
 
-		RB_T_BlendLight( drawSurfs, vLight );
-		RB_T_BlendLight( drawSurfs2, vLight );
+		//RB_T_BlendLight( drawSurfs, vLight );
+		//RB_T_BlendLight( drawSurfs2, vLight );
+			
+		#if 0
+			for( const drawSurf_t* drawSurf = drawSurfs; drawSurf != NULL; drawSurf = drawSurf->nextOnLight )
+			{
+				if( drawSurf->scissorRect.IsEmpty() )
+				{
+					continue;	// !@# FIXME: find out why this is sometimes being hit!
+								// temporarily jump over the scissor and draw so the gl error callback doesn't get hit
+				}
+
+				RB_SetScissor( drawSurf->scissorRect );
+
+				if( drawSurf->space != backEnd.currentSpace )
+				{
+					// change the matrix
+					RB_SetMVP( drawSurf->space->mvp );
+
+					// change the light projection matrix
+					idRenderPlane lightProjectInCurrentSpace[ 4 ];
+					for( int i = 0; i < 4; i++ )
+					{
+						_GlobalPlaneToLocal( drawSurf->space->modelMatrix, vLight->lightProject[ i ], lightProjectInCurrentSpace[ i ] );
+					}
+					//for( int i = 0; i < 4; i++ )
+					//{
+					//	drawSurf->space->modelMatrix.InverseTransformPlane( vLight->lightProject[ i ], lightProjectInCurrentSpace[ i ] );
+					//}
+
+					renderProgManager.SetRenderParm( RENDERPARM_TEXGEN_0_S, lightProjectInCurrentSpace[ 0 ].ToFloatPtr() );
+					renderProgManager.SetRenderParm( RENDERPARM_TEXGEN_0_T, lightProjectInCurrentSpace[ 1 ].ToFloatPtr() );
+					renderProgManager.SetRenderParm( RENDERPARM_TEXGEN_0_Q, lightProjectInCurrentSpace[ 2 ].ToFloatPtr() );
+					renderProgManager.SetRenderParm( RENDERPARM_TEXGEN_1_S, lightProjectInCurrentSpace[ 3 ].ToFloatPtr() );	// falloff
+
+					backEnd.currentSpace = drawSurf->space;
+				}
+
+				GL_DrawIndexed( drawSurf );
+			}
+		#endif
+
+		/*if( bCameraInsideLightGeometry )
+		{
+			// Render backfaces with depth tests disabled since the camera is inside (or close to inside) the light geometry
+			GL_State( GLS_DEPTHMASK | stage->drawStateBits | GLS_DEPTHFUNC_GREATER );
+			GL_Cull( CT_BACK_SIDED );
+		}
+		else {*/
+			// Render frontfaces with depth tests on to get the speedup from HiZ since the camera is outside the light geometry
+			GL_State( GLS_DEPTHMASK | stage->drawStateBits | GLS_DEPTHFUNC_GREATER );
+			GL_Cull( CT_FRONT_SIDED );
+		//}
+
+		GL_DrawIndexed( &backEnd.zeroOneCubeSurface );
 	}
+
+	GL_Cull( CT_FRONT_SIDED );
+
+	GL_ResetTexturesState();
+	GL_ResetProgramState();
+
+	RENDERLOG_CLOSE_BLOCK();
 }
 
 /*
@@ -249,10 +319,10 @@ static void RB_T_BasicFog( const drawSurf_t* drawSurfs, const idPlane fogPlanes[
 				}
 			}
 
-			SetVertexParm( RENDERPARM_TEXGEN_0_S, localFogPlanes[ 0 ].ToFloatPtr() );
-			SetVertexParm( RENDERPARM_TEXGEN_0_T, localFogPlanes[ 1 ].ToFloatPtr() );
-			SetVertexParm( RENDERPARM_TEXGEN_1_T, localFogPlanes[ 2 ].ToFloatPtr() );
-			SetVertexParm( RENDERPARM_TEXGEN_1_S, localFogPlanes[ 3 ].ToFloatPtr() );
+			renderProgManager.SetRenderParm( RENDERPARM_TEXGEN_0_S, localFogPlanes[ 0 ].ToFloatPtr() );
+			renderProgManager.SetRenderParm( RENDERPARM_TEXGEN_0_T, localFogPlanes[ 1 ].ToFloatPtr() );
+			renderProgManager.SetRenderParm( RENDERPARM_TEXGEN_1_T, localFogPlanes[ 2 ].ToFloatPtr() );
+			renderProgManager.SetRenderParm( RENDERPARM_TEXGEN_1_S, localFogPlanes[ 3 ].ToFloatPtr() );
 
 			backEnd.currentSpace = ( inverseBaseLightProject == NULL ) ? drawSurf->space : NULL;
 		}
@@ -277,21 +347,16 @@ static void RB_FogPass( const drawSurf_t* drawSurfs, const drawSurf_t* drawSurfs
 	// assume fog shaders have only a single stage
 	auto stage = vLight->lightShader->GetStage( 0 );
 
-	idVec4 lightColor;
-	lightColor[ 0 ] = vLight->shaderRegisters[ stage->color.registers[ 0 ] ];
-	lightColor[ 1 ] = vLight->shaderRegisters[ stage->color.registers[ 1 ] ];
-	lightColor[ 2 ] = vLight->shaderRegisters[ stage->color.registers[ 2 ] ];
-	lightColor[ 3 ] = vLight->shaderRegisters[ stage->color.registers[ 3 ] ];
-
+	idRenderVector lightColor;
+	stage->GetColorParm( vLight->shaderRegisters, lightColor );
 	GL_Color( lightColor );
 
 	// Calculate the falloff planes.
 	// If they left the default value on, set a fog distance of 500 otherwise, distance = alpha color
-	const float a = ( lightColor[ 3 ] <= 1.0f ) ? ( -0.5f / DEFAULT_FOG_DISTANCE ) : ( -0.5f / lightColor[ 3 ] );
+	const float a = ( lightColor[ 3 ] <= 1.0f )? ( -0.5f / DEFAULT_FOG_DISTANCE ) : ( -0.5f / lightColor[ 3 ] );
 
 	// texture 0 is the falloff image
 	GL_BindTexture( 0, renderImageManager->fogImage );
-
 	// texture 1 is the entering plane fade correction
 	GL_BindTexture( 1, renderImageManager->fogEnterImage );
 
@@ -329,7 +394,7 @@ static void RB_FogPass( const drawSurf_t* drawSurfs, const drawSurf_t* drawSurfs
 	fogPlanes[ 1 ][ 2 ] = 0.0f;//a * backEnd.viewDef->worldSpace.modelViewMatrix[2*4+0];
 	fogPlanes[ 1 ][ 3 ] = 0.5f;//a * backEnd.viewDef->worldSpace.modelViewMatrix[3*4+0] + 0.5f;
 
-							   // T-1 will get a texgen for the fade plane, which is always the "top" plane on unrotated lights
+	// T-1 will get a texgen for the fade plane, which is always the "top" plane on unrotated lights
 	fogPlanes[ 2 ][ 0 ] = FOG_SCALE * fogPlane[ 0 ];
 	fogPlanes[ 2 ][ 1 ] = FOG_SCALE * fogPlane[ 1 ];
 	fogPlanes[ 2 ][ 2 ] = FOG_SCALE * fogPlane[ 2 ];
@@ -358,8 +423,7 @@ static void RB_FogPass( const drawSurf_t* drawSurfs, const drawSurf_t* drawSurfs
 	GL_Cull( CT_FRONT_SIDED );
 
 	GL_ResetTexturesState();
-
-	renderProgManager.Unbind();
+	GL_ResetProgramState();
 
 	RENDERLOG_CLOSE_BLOCK();
 }
@@ -375,7 +439,6 @@ void RB_FogAllLights()
 	{
 		return;
 	}
-
 	if( r_skipFogLights.GetBool() && r_skipBlendLights.GetBool() )
 	{
 		return;
@@ -385,7 +448,7 @@ void RB_FogAllLights()
 	RENDERLOG_OPEN_BLOCK( "RB_FogAllLights" );
 
 	// force fog plane to recalculate
-	backEnd.currentSpace = NULL;
+	backEnd.ClearCurrentSpace();
 
 	for( viewLight_t* vLight = backEnd.viewDef->viewLights; vLight != NULL; vLight = vLight->next )
 	{
@@ -395,15 +458,13 @@ void RB_FogAllLights()
 		}
 		else if( vLight->lightShader->IsBlendLight() && !r_skipBlendLights.GetBool() )
 		{
-			//SEA: later, I need idDeclRenderParm, idDeclRenderProg classes first!
-			//if( r_useScreenSpaceBlendLights.GetBool() )
-			//{
-			//	RB_ScreenSpaceBlendLight( vLight->globalInteractions, vLight->localInteractions, vLight );
-			//}
-			//else
-			//{
+			if( r_useScreenSpaceBlendLights.GetBool() )
+			{
+				RB_ScreenSpaceBlendLight( vLight->globalInteractions, vLight->localInteractions, vLight );
+			}
+			else {
 				RB_BlendLight( vLight->globalInteractions, vLight->localInteractions, vLight );
-			//}
+			}
 		}
 	}
 

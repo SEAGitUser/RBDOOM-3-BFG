@@ -764,7 +764,8 @@ void idCommonLocal::UpdateLevelLoadPacifier()
 		nextLoadTip = time + LOAD_TIP_CHANGE_INTERVAL;
 		const int rnd = time % loadTipList.Num();
 		idStrStatic<20> tipId;
-		tipId.Format( "#str_loadtip_%d", loadTipList[ rnd ] );
+		tipId.Format<20>( "#str_loadtip_%d", loadTipList[ rnd ] );
+
 		loadTipList.RemoveIndex( rnd );
 		
 		idSWFTextInstance* txtVal = loadGUI->GetRootObject().GetNestedText( "txtDesc" );
@@ -774,8 +775,7 @@ void idCommonLocal::UpdateLevelLoadPacifier()
 			{
 				txtVal->SetText( va( "\n%s", idLocalization::GetString( tipId ) ) );
 			}
-			else
-			{
+			else {
 				txtVal->SetText( idLocalization::GetString( tipId ) );
 			}
 			txtVal->SetStrokeInfo( true, 1.75f, 0.75f );
@@ -1066,7 +1066,7 @@ bool idCommonLocal::LoadGame( const char* saveName )
 				optionText.Append( idStrId( "#str_swf_continue" ) );
 				idStrStatic<256> langName = "#str_lang_" + sgdl[i].GetLanguage();
 				idStrStatic<256> msg;
-				msg.Format( idLocalization::GetString( "#str_dlg_wrong_language" ), idLocalization::GetString( langName ) );
+				msg.Format<256>( idLocalization::GetString( "#str_dlg_wrong_language" ), idLocalization::GetString( langName ) );
 				Dialog().AddDynamicDialog( GDM_SAVEGAME_WRONG_LANGUAGE, callbacks, optionText, true, msg, false, true );
 				if( wipeForced )
 				{

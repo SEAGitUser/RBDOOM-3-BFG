@@ -162,7 +162,7 @@ public:
 	virtual bool			Active()								= 0;
 	virtual void			HighQuality()							= 0;
 	virtual void			LowQuality()							{ };
-	virtual void			AccumPass( const renderView_t* view )	{ };
+	virtual void			AccumPass( const renderViewParms_t* view )	{ };
 	virtual bool			HasAccum()
 	{
 		return false;
@@ -217,7 +217,7 @@ public:
 	virtual void			Initialize();
 	virtual bool			Active();
 	virtual void			HighQuality();
-	virtual void			AccumPass( const renderView_t* view );
+	virtual void			AccumPass( const renderViewParms_t* view );
 	virtual bool			HasAccum()
 	{
 		return true;
@@ -244,7 +244,7 @@ public:
 	virtual void			Initialize();
 	virtual bool			Active();
 	virtual void			HighQuality();
-	virtual void			AccumPass( const renderView_t* view );
+	virtual void			AccumPass( const renderViewParms_t* view );
 	virtual bool			HasAccum()
 	{
 		return true;
@@ -369,7 +369,7 @@ public:
 	
 	void					Initialize( idPlayerView* pv );
 	
-	void					Process( const renderView_t* view );
+	void					Process( const renderViewParms_t* view );
 	void					Blendback( float alpha );
 	
 	idPlayerView*			GetPlayerView()
@@ -443,7 +443,7 @@ public:
 	};
 	
 private:
-	void				SingleView( const renderView_t* view, idMenuHandler_HUD* hudManager );
+	void				SingleView( const renderViewParms_t* view, idMenuHandler_HUD* hudManager );
 	void				ScreenFade();
 	
 	screenBlob_t* 		GetScreenBlob();
@@ -475,7 +475,7 @@ public:
 	idAngles			shakeAng;			// from the sound sources
 	
 	idPlayer* 			player;
-	renderView_t		view;
+	renderViewParms_t		view;
 	
 	FullscreenFXManager*	fxManager;
 	

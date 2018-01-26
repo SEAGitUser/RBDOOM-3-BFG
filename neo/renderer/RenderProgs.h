@@ -29,18 +29,53 @@ If you have questions concerning this license or the applicable additional terms
 #ifndef __RENDERPROGS_H__
 #define __RENDERPROGS_H__
 
+static const int PC_ATTRIB_INDEX_POSITION	= 0;
+static const int PC_ATTRIB_INDEX_NORMAL		= 1;
+static const int PC_ATTRIB_INDEX_COLOR		= 2;
+static const int PC_ATTRIB_INDEX_COLOR2		= 3;
+static const int PC_ATTRIB_INDEX_ST			= 4;
+static const int PC_ATTRIB_INDEX_TANGENT	= 5;
 
-static const int PC_ATTRIB_INDEX_VERTEX		= 0;
-static const int PC_ATTRIB_INDEX_NORMAL		= 2;
-static const int PC_ATTRIB_INDEX_COLOR		= 3;
-static const int PC_ATTRIB_INDEX_COLOR2		= 4;
-static const int PC_ATTRIB_INDEX_ST			= 8;
-static const int PC_ATTRIB_INDEX_TANGENT	= 9;
+/*
+================================================
+	vertexMask_t
+
+	NOTE: There is a PS3 dependency between the bit flag specified here and the vertex
+	attribute index and attribute semantic specified in DeclRenderProg.cpp because the
+	stored render prog vertexMask is initialized with cellCgbGetVertexConfiguration().
+	The ATTRIB_INDEX_ defines are used to make sure the vertexMask_t and attrib assignment
+	in DeclRenderProg.cpp are in sync.
+
+	Even though VERTEX_MASK_XYZ_SHORT and VERTEX_MASK_ST_SHORT are not real attributes,
+	they come before the VERTEX_MASK_MORPH to reduce the range of vertex program
+	permutations defined by the vertexMask_t bits on the Xbox 360 (see MAX_VERTEX_DECLARATIONS).
+================================================
+*/
+enum vertexMask_t
+{
+	VERTEX_MASK_POSITION	= BIT( PC_ATTRIB_INDEX_POSITION ),
+	VERTEX_MASK_ST			= BIT( PC_ATTRIB_INDEX_ST ),
+	VERTEX_MASK_NORMAL		= BIT( PC_ATTRIB_INDEX_NORMAL ),
+	VERTEX_MASK_COLOR		= BIT( PC_ATTRIB_INDEX_COLOR ),
+	VERTEX_MASK_TANGENT		= BIT( PC_ATTRIB_INDEX_TANGENT ),
+	VERTEX_MASK_COLOR2		= BIT( PC_ATTRIB_INDEX_COLOR2 ),
+};
+
+enum vertexAttributeIndex_e
+{
+	VS_IN_POSITION	,
+	VS_IN_NORMAL	,
+	VS_IN_COLOR		,
+	VS_IN_COLOR2	,
+	VS_IN_ST		,
+	VS_IN_TANGENT	,
+	VS_IN_MAX
+};
 
 enum shaderType_e {
 	SHT_VERTEX,
-	SHT_TESS1,		// GL_TESS_CONTROL / DX_HULL
-	SHT_TESS2,		// GL_TESS_EVALUATION / DX_DOMAIN
+	SHT_TESS_CTRL,		// GL_TESS_CONTROL / DX_HULL
+	SHT_TESS_EVAL,		// GL_TESS_EVALUATION / DX_DOMAIN
 	SHT_GEOMETRY,
 	SHT_FRAGMENT,
 	SHT_COMPUTE,
@@ -132,6 +167,13 @@ enum renderParm_t
 	RENDERPARM_JITTERTEXSCALE,
 	RENDERPARM_JITTERTEXOFFSET,
 	RENDERPARM_CASCADEDISTANCES,
+
+	RENDERPARM_VERTEXCOLOR_MAD,		//SEA
+
+	RENDERPARM_BASELIGHTPROJECT_S,	//SEA
+	RENDERPARM_BASELIGHTPROJECT_T,	//SEA
+	RENDERPARM_BASELIGHTPROJECT_R,	//SEA
+	RENDERPARM_BASELIGHTPROJECT_Q,	//SEA
 	
 	RENDERPARM_SHADOW_MATRIX_0_X,	// rpShadowMatrices[6 * 4]
 	RENDERPARM_SHADOW_MATRIX_0_Y,
@@ -191,6 +233,7 @@ public:
 	void	Init();
 	void	Shutdown();
 	
+	idRenderVector & GetRenderParm( renderParm_t rp );
 	void	SetRenderParm( renderParm_t rp, const float* value );
 	void	SetRenderParms( renderParm_t rp, const float* values, int numValues );
 	
@@ -233,6 +276,10 @@ public:
 	}
 	void BindShader_FillShadowDepthBufferOnePass() {
 		//BindShader_Builtin( BUILTIN_DEPTH_WORLD );
+	}
+	void BindShader_ScreenSpaceBlendLight()
+	{
+		BindShader_Builtin( BUILTIN_BLENDLIGHT_SCREENSPACE );
 	}
 //SEA <-
 
@@ -422,9 +469,9 @@ public:
 	// RB end
 	
 	// the joints buffer should only be bound for vertex programs that use joints
-	bool		ShaderUsesJoints() const { return vertexShaders[ currentVertexShader ].usesJoints; }
+	bool		ShaderUsesJoints() const { return vertShaders[ currentVertShader ].usesJoints; }
 	// the rpEnableSkinning render parm should only be set for vertex programs that use it
-	bool		ShaderHasOptionalSkinning() const { return vertexShaders[ currentVertexShader ].optionalSkinning; }
+	bool		ShaderHasOptionalSkinning() const { return vertShaders[ currentVertShader ].optionalSkinning; }
 	
 	// unbind the currently bound render program
 	void		Unbind();
@@ -448,9 +495,7 @@ public:
 	
 protected:
 
-	void	LoadVertexShader( int index );
-	void	LoadGeometryShader( int index );
-	void	LoadFragmentShader( int index );
+	void	LoadShader( int index, shaderType_e shaderType );
 	
 	enum
 	{
@@ -500,6 +545,7 @@ protected:
 		BUILTIN_SHADOW_DEBUG_SKINNED,
 		
 		BUILTIN_BLENDLIGHT,
+		BUILTIN_BLENDLIGHT_SCREENSPACE,
 		BUILTIN_FOG,
 		BUILTIN_FOG_SKINNED,
 		BUILTIN_SKYBOX,
@@ -560,15 +606,16 @@ protected:
 	static const char* GLSLMacroNames[MAX_SHADER_MACRO_NAMES];
 	const char*	GetGLSLMacroName( shaderFeature_t sf ) const;
 	
-	bool	CompileGLSL( GLenum target, const char* name );
+	GLuint  CreateGLSLShaderObject( shaderType_e shaderType, const char * sourceGLSL, const char * fileName ) const;
 	GLuint	LoadGLSLShader( GLenum target, const char* name, const char* nameOutSuffix, uint32 shaderFeatures, bool builtin, idList<int>& uniforms );
 	void	LoadGLSLProgram( const int programIndex, const int vertexShaderIndex, const int geometryShaderIndex, const int fragmentShaderIndex );
 	
 	static const GLuint INVALID_PROGID = MAX_UNSIGNED_TYPE( GLuint );
+	typedef idHandle<GLuint, INVALID_PROGID> idGLSLShader;
 		
-	struct vertexShader_t
+	struct vertShader_t
 	{
-		vertexShader_t() : progId( INVALID_PROGID ), usesJoints( false ), optionalSkinning( false ), shaderFeatures( 0 ), builtin( false ) {
+		vertShader_t() : progId( INVALID_PROGID ), usesJoints( false ), optionalSkinning( false ), shaderFeatures( 0 ), builtin( false ) {
 		}
 		idStr		name;
 		idStr		nameOutSuffix;
@@ -579,9 +626,9 @@ protected:
 		bool		builtin;			// RB: part of the core shaders built into the executable
 		idList<int>	uniforms;
 	};
-	struct geometryShader_t 
+	struct geomShader_t 
 	{
-		geometryShader_t() : progId( INVALID_PROGID ), shaderFeatures( 0 ), builtin( false ) {
+		geomShader_t() : progId( INVALID_PROGID ), shaderFeatures( 0 ), builtin( false ) {
 		}
 		idStr		name;
 		idStr		nameOutSuffix;
@@ -590,9 +637,9 @@ protected:
 		bool		builtin;			// RB: part of the core shaders built into the executable
 		idList<int>	uniforms;
 	};
-	struct fragmentShader_t
+	struct fragShader_t
 	{
-		fragmentShader_t() : progId( INVALID_PROGID ), shaderFeatures( 0 ), builtin( false ) {
+		fragShader_t() : progId( INVALID_PROGID ), shaderFeatures( 0 ), builtin( false ) {
 		}
 		idStr		name;
 		idStr		nameOutSuffix;
@@ -605,33 +652,34 @@ protected:
 	struct glslProgram_t
 	{
 		glslProgram_t() : progId( INVALID_PROGID ),
-			vertexShaderIndex( -1 ),
-			geometryShaderIndex( -1 ),
-			fragmentShaderIndex( -1 ),
-				vertexUniformArray( -1 ),
-				geometryUniformArray( -1 ),
-				fragmentUniformArray( -1 ) {
+			vertShaderIndex( -1 ),
+			geomShaderIndex( -1 ),
+			fragShaderIndex( -1 ),
+				vertUniformArray( -1 ),
+				geomUniformArray( -1 ),
+				fragUniformArray( -1 ) {
 		}
 		idStr	name;
 		GLuint	progId;
-		int			vertexShaderIndex;
-		int			geometryShaderIndex;
-		int			fragmentShaderIndex;
-		GLint			vertexUniformArray;
-		GLint			geometryUniformArray;
-		GLint			fragmentUniformArray;
+		int		vertexMask;
+		int			vertShaderIndex;
+		int			geomShaderIndex;
+		int			fragShaderIndex;
+		GLint			vertUniformArray;
+		GLint			geomUniformArray;
+		GLint			fragUniformArray;
 		idList<glslUniformLocation_t> uniformLocations;
 	};
 	int	currentRenderProgram;
 	idList<glslProgram_t, TAG_RENDER> glslPrograms;
-	idStaticList < idVec4, RENDERPARM_USER + MAX_GLSL_USER_PARMS > glslUniforms;
+	idStaticList< idRenderVector, RENDERPARM_USER + MAX_GLSL_USER_PARMS > glslUniforms;
 	
-	int	currentVertexShader = -1;
-	int	currentGeometryShader = -1;
-	int	currentFragmentShader = -1;
-	idList<vertexShader_t, TAG_RENDER> vertexShaders;
-	idList<geometryShader_t, TAG_RENDER> geometryShaders;
-	idList<fragmentShader_t, TAG_RENDER> fragmentShaders;
+	int	currentVertShader = -1;
+	int	currentGeomShader = -1;
+	int	currentFragShader = -1;
+	idList<vertShader_t, TAG_RENDER> vertShaders;
+	idList<geomShader_t, TAG_RENDER> geomShaders;
+	idList<fragShader_t, TAG_RENDER> fragShaders;
 };
 
 class idRenderProgram {

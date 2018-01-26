@@ -500,7 +500,7 @@ private:
 	int					timeDemoStartTime;
 	int					numDemoFrames;		// for timeDemo and demoShot
 	int					demoTimeOffset;
-	renderView_t		currentDemoRenderView;
+	renderViewParms_t		currentDemoRenderView;
 	
 	idStrList			mpGameModes;
 	idStrList			mpDisplayGameModes;

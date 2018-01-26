@@ -155,6 +155,8 @@ struct glconfig_t
 	bool				occlusionQueryAvailable;
 	bool				debugOutputAvailable;
 	bool				swapControlTearAvailable;
+
+	bool				ARB_vertex_attrib_binding;
 	
 	// RB begin
 	bool				gremedyStringMarkerAvailable;
@@ -187,12 +189,9 @@ struct glconfig_t
 	float				physicalScreenWidthInCentimeters;
 	
 	float				pixelAspect;
-	
-	// RB begin
-#if !defined(__ANDROID__)
+
+	GLuint				empty_vao;
 	GLuint				global_vao;
-#endif
-	// RB end
 };
 
 

@@ -207,7 +207,7 @@ void idTriangles::FreeStatic( idTriangles* tri )
 	{
 		if( tri->verts != NULL )
 		{
-			// R_CreateLightTris points tri->verts at the verts of the ambient surface
+			// R_CreateLightTris points tri->verts at the verts of the base surface
 			if( tri->baseTriangles == NULL || tri->verts != tri->baseTriangles->verts )
 			{
 				Mem_Free( tri->verts );
@@ -219,7 +219,7 @@ void idTriangles::FreeStatic( idTriangles* tri )
 	{
 		if( tri->indexes != NULL )
 		{
-			// if a surface is completely inside a light volume R_CreateLightTris points tri->indexes at the indexes of the ambient surface
+			// if a surface is completely inside a light volume R_CreateLightTris points tri->indexes at the indexes of the base surface
 			if( tri->baseTriangles == NULL || tri->indexes != tri->baseTriangles->indexes )
 			{
 				Mem_Free( tri->indexes );
@@ -257,7 +257,7 @@ void idTriangles::FreeStatic( idTriangles* tri )
 	}
 	
 	// clear the tri out so we don't retain stale data
-	memset( tri, 0, sizeof( idTriangles ) );
+	tri->Clear();
 	
 	allocManager.StaticFree( tri );
 }
@@ -513,9 +513,15 @@ void idTriangles::RangeCheckIndexes() const
 R_BoundTriSurf
 =================
 */
-void idTriangles::DeriveBounds()
+void idTriangles::DeriveBounds( const bool indexedScan )
 {
-	SIMDProcessor->MinMax( this->bounds[0], this->bounds[1], this->verts, this->numVerts );
+	if( indexedScan )
+	{
+		SIMDProcessor->MinMax( this->bounds[ 0 ], this->bounds[ 1 ], this->verts, this->indexes, this->numIndexes );
+		return;
+	}
+
+	SIMDProcessor->MinMax( this->bounds[ 0 ], this->bounds[ 1 ], this->verts, this->numVerts );
 }
 
 /*
@@ -1635,6 +1641,7 @@ void idTriangles::RemoveDuplicatedTriangles()
 			a = this->silIndexes[i + r];
 			b = this->silIndexes[i + ( r + 1 ) % 3];
 			c = this->silIndexes[i + ( r + 2 ) % 3];
+
 			for( j = i + 3; j < this->numIndexes; j += 3 )
 			{
 				if( this->silIndexes[j] == a && this->silIndexes[j + 1] == b && this->silIndexes[j + 2] == c )
@@ -2126,6 +2133,7 @@ void idTriangles::InitDrawSurfFromTriangles( drawSurf_t& ds )
 	{
 		this->vertexCache = ::vertexCache.AllocVertex( this->verts, ALIGN( this->numVerts * sizeof( this->verts[0] ), VERTEX_CACHE_ALIGN ) );
 	}
+
 	if( !::vertexCache.CacheIsCurrent( this->indexCache ) )
 	{
 		this->indexCache = ::vertexCache.AllocIndex( this->indexes, ALIGN( this->numIndexes * sizeof( this->indexes[0] ), INDEX_CACHE_ALIGN ) );
@@ -2554,6 +2562,30 @@ idTriangles * idTriangles::CreateTrianglesForPolytope( int numPlanes, const idPl
 	return tri;
 }
 
+
+/*
+=============
+ CreateIndexesForQuads
+=============
+*/
+void idTriangles::CreateIndexesForQuads( int numVerts, triIndex_t* indexes, int& numIndexes )
+{
+	// build the index list
+	numIndexes = 0;
+	for( int i = 0; i < numVerts; i += 4 )
+	{
+		indexes[ numIndexes + 0 ] = i + 0;
+		indexes[ numIndexes + 1 ] = i + 2;
+		indexes[ numIndexes + 2 ] = i + 3;
+
+		indexes[ numIndexes + 3 ] = i + 0;
+		indexes[ numIndexes + 4 ] = i + 3;
+		indexes[ numIndexes + 5 ] = i + 1;
+
+		numIndexes += 6;
+	}
+}
+
 /*
 =============
 R_MakeFullScreenTris
@@ -2568,10 +2600,13 @@ idTriangles * idTriangles::MakeUnitQuad()
 	tri->numVerts = 4;
 
 	const size_t indexSize = tri->numIndexes * sizeof( tri->indexes[ 0 ] );
-	tri->indexes = idMem::Alloc< triIndex_t, TAG_RENDER_TOOLS >( ALIGN( indexSize, 16 ) );
+	///tri->indexes = idMem::Alloc< triIndex_t, TAG_RENDER_TOOLS >( ALIGN( indexSize, 16 ) );
+	tri->AllocStaticIndexes( tri->numIndexes );
 
 	const size_t vertexSize = tri->numVerts * sizeof( tri->verts[ 0 ] );
-	tri->verts = idMem::ClearedAlloc< idDrawVert, TAG_RENDER_TOOLS >( ALIGN( vertexSize, 16 ) );
+	///tri->verts = idMem::ClearedAlloc< idDrawVert, TAG_RENDER_TOOLS >( ALIGN( vertexSize, 16 ) );
+	tri->AllocStaticVerts( tri->numVerts );
+	memset( tri->verts, 0, vertexSize );
 
 	idDrawVert* verts = tri->verts;
 
@@ -2609,11 +2644,14 @@ idTriangles* idTriangles::MakeZeroOneCube()
 	tri->numVerts = 8;
 	tri->numIndexes = 36;
 
-	const size_t indexSize = ALIGN( tri->numIndexes * sizeof( tri->indexes[ 0 ] ), 16 );
-	tri->indexes = idMem::Alloc< triIndex_t, TAG_RENDER_TOOLS >( indexSize );
+	///const size_t indexSize = ALIGN( tri->numIndexes * sizeof( tri->indexes[ 0 ] ), 16 );
+	///tri->indexes = idMem::Alloc< triIndex_t, TAG_RENDER_TOOLS >( indexSize );
+	tri->AllocStaticIndexes( tri->numIndexes );
 
 	const size_t vertexSize = ALIGN( tri->numVerts * sizeof( tri->verts[ 0 ] ), 16 );
-	tri->verts = idMem::ClearedAlloc< idDrawVert, TAG_RENDER_TOOLS >( vertexSize );
+	///tri->verts = idMem::ClearedAlloc< idDrawVert, TAG_RENDER_TOOLS >( vertexSize );
+	tri->AllocStaticVerts( tri->numVerts );
+	memset( tri->verts, 0, vertexSize );
 
 	idDrawVert* verts = tri->verts;
 
@@ -2636,7 +2674,7 @@ idTriangles* idTriangles::MakeZeroOneCube()
 	verts[ 5 ].SetPosition( center + px + my + pz );
 	verts[ 6 ].SetPosition( center + px + py + pz );
 	verts[ 7 ].SetPosition( center + mx + py + pz );
-
+#if 1
 	// bottom
 	tri->indexes[ 0 * 3 + 0 ] = 2;
 	tri->indexes[ 0 * 3 + 1 ] = 3;
@@ -2679,7 +2717,10 @@ idTriangles* idTriangles::MakeZeroOneCube()
 	tri->indexes[ 11 * 3 + 0 ] = 5;
 	tri->indexes[ 11 * 3 + 1 ] = 4;
 	tri->indexes[ 11 * 3 + 2 ] = 6;
+#else
+	// 14 index stripe
 
+#endif
 	for( int i = 0; i < 4; i++ )
 	{
 		verts[ i ].SetColor( 0xffffffff );
@@ -2703,10 +2744,13 @@ idTriangles * idTriangles::MakeZeroOneQuad()
 	tri->numVerts = 4;
 
 	const size_t indexSize = tri->numIndexes * sizeof( tri->indexes[ 0 ] );
-	tri->indexes = idMem::Alloc< triIndex_t, TAG_RENDER_TOOLS >( ALIGN( indexSize, 16 ) );
+	///tri->indexes = idMem::Alloc< triIndex_t, TAG_RENDER_TOOLS >( ALIGN( indexSize, 16 ) );
+	tri->AllocStaticIndexes( tri->numIndexes );
 
 	const size_t vertexSize = tri->numVerts * sizeof( tri->verts[ 0 ] );
-	tri->verts = idMem::ClearedAlloc< idDrawVert, TAG_RENDER_TOOLS >( ALIGN( vertexSize, 16 ) );
+	///tri->verts = idMem::ClearedAlloc< idDrawVert, TAG_RENDER_TOOLS >( ALIGN( vertexSize, 16 ) );
+	tri->AllocStaticVerts( tri->numVerts );
+	memset( tri->verts, 0, vertexSize );
 
 	memcpy( tri->indexes, idTriangles::quadIndexes, indexSize );
 

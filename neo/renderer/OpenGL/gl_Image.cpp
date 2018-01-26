@@ -126,7 +126,7 @@ struct glTextureObject_t
 
 	void DeriveFormatInfo( const idImage *img )
 	{
-		const bool sRGB( glConfig.sRGBFramebufferAvailable && ( r_useSRGB.GetInteger() == 1 || r_useSRGB.GetInteger() == 3 ) );
+		const bool sRGB = glConfig.sRGBFramebufferAvailable && ( r_useSRGB.GetInteger() == 1 || r_useSRGB.GetInteger() == 3 );
 
 		switch( img->GetOpts().format )
 		{
@@ -579,7 +579,7 @@ void idImage::AllocImage()
 	if( GLEW_KHR_debug )
 	{
 		idStrStatic<128> name;
-		name.Format( "idImage(%p.%u)", this, tex.texnum );
+		name.Format<128>( "idImage(%p.%u)", this, tex.texnum );
 		glObjectLabel( GL_TEXTURE, tex.texnum, name.Length(), name.c_str() );
 	}
 
@@ -587,11 +587,11 @@ void idImage::AllocImage()
 	// allocate all the mip levels with NULL data
 	//----------------------------------------------------
 
-	GLsizei w = Max( opts.width, 1 );
-	GLsizei h = Max( opts.height, 1 );
-	GLsizei depth = Max( opts.depth, 1 );
-	const GLint numLevels = Max( opts.numLevels, 1 );
-	const GLint numSamples = Max( opts.numSamples, 1 );
+	GLsizei w = idMath::Max( opts.width, 1 );
+	GLsizei h = idMath::Max( opts.height, 1 );
+	GLsizei depth = idMath::Max( opts.depth, 1 );
+	const GLint numLevels = idMath::Max( opts.numLevels, 1 );
+	const GLint numSamples = idMath::Max( opts.numSamples, 1 );
 
 	if( GLEW_ARB_texture_storage )
 	//if( 0 )
@@ -650,8 +650,8 @@ void idImage::AllocImage()
 					{
 						const GLsizei compressedSize = ( ( ( w + 3 ) / 4 ) * ( ( h + 3 ) / 4 ) * formatBits ) / 8;
 						glCompressedTexImage3D( tex.target, level, tex.internalFormat, w, h, depth, 0, compressedSize, NULL );
-						w = Max( 1, w >> 1 );
-						h = Max( 1, h >> 1 );
+						w = idMath::Max( 1, w >> 1 );
+						h = idMath::Max( 1, h >> 1 );
 					}
 				}
 				else
@@ -662,8 +662,8 @@ void idImage::AllocImage()
 						for( GLenum side = 0; side < numSides; side++ ) {
 							glCompressedTexImage2D( tex.uploadTarget + side, level, tex.internalFormat, w, h, 0, compressedSize, NULL );
 						}
-						w = Max( 1, w >> 1 );
-						h = Max( 1, h >> 1 );
+						w = idMath::Max( 1, w >> 1 );
+						h = idMath::Max( 1, h >> 1 );
 					}
 				}
 			}
@@ -673,8 +673,8 @@ void idImage::AllocImage()
 					for( GLint level = 0; level < numLevels; level++ )
 					{
 						glTexImage3D( tex.target, level, tex.internalFormat, w, h, depth, 0, tex.dataFormat, tex.dataType, NULL );
-						w = Max( 1, w >> 1 );
-						h = Max( 1, h >> 1 );
+						w = idMath::Max( 1, w >> 1 );
+						h = idMath::Max( 1, h >> 1 );
 					}
 				}
 				else
@@ -684,8 +684,8 @@ void idImage::AllocImage()
 						for( GLenum side = 0; side < numSides; side++ ) {
 							glTexImage2D( tex.uploadTarget + side, level, tex.internalFormat, w, h, 0, tex.dataFormat, tex.dataType, NULL );
 						}
-						w = Max( 1, w >> 1 );
-						h = Max( 1, h >> 1 );
+						w = idMath::Max( 1, w >> 1 );
+						h = idMath::Max( 1, h >> 1 );
 					}
 				}
 			}

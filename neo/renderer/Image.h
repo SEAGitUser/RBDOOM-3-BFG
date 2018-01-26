@@ -36,6 +36,13 @@ idImage have a one to one correspondance with GL/DX/GCM textures.
 
 No texture is ever used that does not have a corresponding idImage.
 
+IMAGE_SPECULAR,
+IMAGE_DIFFUSE,
+IMAGE_NORMAL,
+IMAGE_TEST_FBR,
+IMAGE_TEST_VBR,
+imageFlags_t
+
 ====================================================================
 */
 

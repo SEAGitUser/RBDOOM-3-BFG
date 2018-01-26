@@ -71,7 +71,7 @@ idRenderWorldLocal::idRenderWorldLocal()
 		overlays[i].entityHandle = -1;
 		overlays[i].lastStartTime = 0;
 		overlays[i].overlays = new ( TAG_MODEL ) idRenderModelOverlay();
-		overlays[ i ].overlays->index = i;
+		overlays[i].overlays->index = i;
 	}
 }
 
@@ -771,7 +771,7 @@ idRenderWorldLocal::SetRenderView
 Sets the current view so any calls to the render world will use the correct parms.
 ====================
 */
-void idRenderWorldLocal::SetRenderView( const renderView_t* renderView )
+void idRenderWorldLocal::SetRenderView( const renderViewParms_t* renderView )
 {
 	tr.primaryRenderView = *renderView;
 }
@@ -787,7 +787,7 @@ idRenderWorldLocal::RenderScene
 	to handle mirrors,
 ====================
 */
-void idRenderWorldLocal::RenderScene( const renderView_t* renderViewParms )
+void idRenderWorldLocal::RenderScene( const renderViewParms_t* renderViewParms )
 {
 	if( !R_IsInitialized() )
 	{
@@ -883,7 +883,7 @@ void idRenderWorldLocal::RenderScene( const renderView_t* renderViewParms )
 	tr.guiModel->Clear();
 }
 
-/*void CreateRenderView( idRenderWorldLocal *world, const renderView_t & viewParms,
+/*void CreateRenderView( idRenderWorldLocal *world, const renderViewParms_t & viewParms,
 	const idScreenRect & renderViewport, const idScreenRect & renderScissor, bool forceUpdate )
 {
 	idRenderView* view = ( idRenderView* )R_ClearedFrameAlloc( sizeof( *view ), FRAME_ALLOC_VIEW_DEF );
@@ -1552,15 +1552,13 @@ for the world model references that are precalculated.
 */
 void idRenderWorldLocal::AddEntityRefToArea( idRenderEntityLocal* def, portalArea_t* area )
 {
-	areaReference_t*	ref;
-	
 	if( def == NULL )
 	{
 		common->Error( "idRenderWorldLocal::AddEntityRefToArea: NULL def" );
 		return;
 	}
 	
-	for( ref = def->entityRefs; ref != NULL; ref = ref->ownerNext )
+	for( auto ref = def->entityRefs; ref != NULL; ref = ref->ownerNext )
 	{
 		if( ref->area == area )
 		{
@@ -1568,8 +1566,7 @@ void idRenderWorldLocal::AddEntityRefToArea( idRenderEntityLocal* def, portalAre
 		}
 	}
 	
-	ref = areaReferenceAllocator.Alloc();
-	
+	auto ref = areaReferenceAllocator.Alloc();	
 	tr.pc.c_entityReferences++;
 	
 	ref->entity = def;
@@ -1593,9 +1590,13 @@ idRenderWorldLocal::AddLightRefToArea
 */
 void idRenderWorldLocal::AddLightRefToArea( idRenderLightLocal* light, portalArea_t* area )
 {
-	areaReference_t*	lref;
+	if( light == NULL )
+	{
+		common->Error( "idRenderWorldLocal::AddLightRefToArea: NULL light" );
+		return;
+	}
 	
-	for( lref = light->references; lref != NULL; lref = lref->ownerNext )
+	for( auto lref = light->references; lref != NULL; lref = lref->ownerNext )
 	{
 		if( lref->area == area )
 		{
@@ -1604,14 +1605,16 @@ void idRenderWorldLocal::AddLightRefToArea( idRenderLightLocal* light, portalAre
 	}
 	
 	// add a lightref to this area
-	lref = areaReferenceAllocator.Alloc();
+	auto lref = areaReferenceAllocator.Alloc();
+	tr.pc.c_lightReferences++;
+
 	lref->light = light;
-	lref->area = area;
+	
 	lref->ownerNext = light->references;
 	light->references = lref;
-	tr.pc.c_lightReferences++;
 	
 	// doubly linked list so we can free them easily later
+	lref->area = area;
 	area->lightRefs.areaNext->areaPrev = lref;
 	lref->areaNext = area->lightRefs.areaNext;
 	lref->areaPrev = &area->lightRefs;

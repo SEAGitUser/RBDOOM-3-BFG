@@ -66,7 +66,7 @@ typedef struct mtrParsingData_s
 	bool			registerIsTemporary[MAX_EXPRESSION_REGISTERS];
 	float			shaderRegisters[MAX_EXPRESSION_REGISTERS];
 	expOp_t			shaderOps[MAX_EXPRESSION_OPS];
-	shaderStage_t	parseStages[MAX_SHADER_STAGES];
+	materialStage_t	parseStages[MAX_SHADER_STAGES];
 	
 	bool			registersAreConstant;
 	bool			forceOverlays;
@@ -486,7 +486,7 @@ idMaterial::GetExpressionConstant
 */
 int idMaterial::GetExpressionConstant( float f )
 {
-	int		i;
+	int	i;
 	
 	for( i = EXP_REG_NUM_PREDEFINED ; i < numRegisters ; i++ )
 	{
@@ -899,7 +899,7 @@ int idMaterial::ParseExpression( idLexer& src )
 idMaterial::ClearStage
 ===============
 */
-void idMaterial::ClearStage( shaderStage_t* ss )
+void idMaterial::ClearStage( materialStage_t* ss )
 {
 	ss->drawStateBits = 0;
 	
@@ -1013,7 +1013,7 @@ int idMaterial::NameToDstBlendMode( const idStr& name )
 idMaterial::ParseBlend
 ================
 */
-void idMaterial::ParseBlend( idLexer& src, shaderStage_t* stage )
+void idMaterial::ParseBlend( idLexer& src, materialStage_t* stage )
 {
 	idToken token;
 	int		srcBlend, dstBlend;
@@ -1084,7 +1084,7 @@ if there are three values, 4 = 1.0
 */
 void idMaterial::ParseVertexParm( idLexer& src, newShaderStage_t* newStage )
 {
-	idToken				token;
+	idToken	token;
 	
 	src.ReadTokenOnLine( &token );
 	int	parm = token.GetIntValue();
@@ -1343,7 +1343,7 @@ void idMaterial::ParseStage( idLexer& src, const textureRepeat_t trpDefault )
 {
 	idToken				token;
 	const char*			str;
-	shaderStage_t*		ss;
+	materialStage_t*		ss;
 	textureStage_t*		ts;
 	char				imageName[MAX_IMAGE_NAME];
 	int					a, b;
@@ -1868,7 +1868,6 @@ void idMaterial::ParseStage( idLexer& src, const textureRepeat_t trpDefault )
 	if( newStage.fragmentProgram || newStage.vertexProgram )
 	{
 		newStage.glslProgram = renderProgManager.FindGLSLProgram( GetName(), newStage.vertexProgram, newStage.fragmentProgram );
-		///ss->newStage = ( newShaderStage_t* )Mem_Alloc( sizeof( newStage ), TAG_MATERIAL );
 		ss->newStage = allocManager.StaticAlloc<newShaderStage_t>();
 		*( ss->newStage ) = newStage;
 	}
@@ -2157,7 +2156,7 @@ void idMaterial::SortInteractionStages()
 			{
 				if( pd->parseStages[k].lighting > pd->parseStages[k + 1].lighting )
 				{
-					shaderStage_t	temp;
+					materialStage_t	temp;
 					
 					temp = pd->parseStages[k];
 					pd->parseStages[k] = pd->parseStages[k + 1];
@@ -2211,11 +2210,11 @@ void idMaterial::ParseMaterial( idLexer& src )
 		}
 		
 		// end of material definition
-		if( token == "}" )
-		{
+		if( token == "}" ) {
 			break;
 		}
-		else if( !token.Icmp( "qer_editorimage" ) )
+
+		if( !token.Icmp( "qer_editorimage" ) )
 		{
 			src.ReadTokenOnLine( &token );
 			editorImageName = token.c_str();
@@ -2603,7 +2602,7 @@ void idMaterial::SetGui( const char* _gui ) const
 =========================
 idMaterial::Parse
 
-Parses the current material definition and finds all necessary images.
+	Parses the current material definition and finds all necessary images.
 =========================
 */
 bool idMaterial::Parse( const char* text, const int textLength, bool allowBinaryVersion )
@@ -2634,8 +2633,7 @@ bool idMaterial::Parse( const char* text, const int textLength, bool allowBinary
 	//
 	// count non-lit stages
 	numAmbientStages = 0;
-	int i;
-	for( i = 0 ; i < numStages ; i++ )
+	for( int i = 0 ; i < numStages ; i++ )
 	{
 		if( pd->parseStages[i].lighting == SL_AMBIENT )
 		{
@@ -2651,7 +2649,7 @@ bool idMaterial::Parse( const char* text, const int textLength, bool allowBinary
 	else
 	{
 		hasSubview = false;
-		for( i = 0 ; i < numStages ; i++ )
+		for( int i = 0 ; i < numStages ; i++ )
 		{
 			if( pd->parseStages[i].texture.dynamic )
 			{
@@ -2733,9 +2731,9 @@ bool idMaterial::Parse( const char* text, const int textLength, bool allowBinary
 	// anything that references _currentRender will automatically get sort = SS_POST_PROCESS
 	// and coverage = MC_TRANSLUCENT
 	
-	for( i = 0 ; i < numStages ; i++ )
+	for( int i = 0 ; i < numStages ; i++ )
 	{
-		shaderStage_t*	pStage = &pd->parseStages[i];
+		materialStage_t*	pStage = &pd->parseStages[i];
 		if( pStage->texture.image == renderImageManager->originalCurrentRenderImage )
 		{
 			if( sort != SS_PORTAL_SKY )
@@ -2764,9 +2762,9 @@ bool idMaterial::Parse( const char* text, const int textLength, bool allowBinary
 	}
 	
 	// set the drawStateBits depth flags
-	for( i = 0 ; i < numStages ; i++ )
+	for( int i = 0 ; i < numStages ; i++ )
 	{
-		shaderStage_t*	pStage = &pd->parseStages[i];
+		materialStage_t*	pStage = &pd->parseStages[i];
 		if( sort == SS_POST_PROCESS )
 		{
 			// post-process effects fill the depth buffer as they draw, so only the
@@ -2827,7 +2825,7 @@ bool idMaterial::Parse( const char* text, const int textLength, bool allowBinary
 	
 	if( numStages )
 	{
-		stages = allocManager.StaticAlloc<shaderStage_t, TAG_MATERIAL>( numStages );
+		stages = allocManager.StaticAlloc<materialStage_t, TAG_MATERIAL>( numStages );
 		memcpy( stages, pd->parseStages, numStages * sizeof( stages[0] ) );
 	}
 	
@@ -2926,7 +2924,7 @@ void idMaterial::AddReference()
 	
 	for( int i = 0; i < numStages; i++ )
 	{
-		shaderStage_t* s = &stages[i];
+		materialStage_t* s = &stages[i];
 		
 		if( s->texture.image )
 		{
@@ -3210,13 +3208,12 @@ void idMaterial::CheckForConstantRegisters()
 	// evaluate the registers once, and save them
 	constantRegisters = allocManager.StaticAlloc<float, TAG_MATERIAL, true>( GetNumRegisters() );
 	
-	float shaderParms[MAX_ENTITY_SHADER_PARMS];
-	memset( shaderParms, 0, sizeof( shaderParms ) );
+	float shaderParms[ MAX_ENTITY_SHADER_PARMS ] = { 0 };
 	
 	idRenderView viewDef;
 	viewDef.Clear();
 	
-	EvaluateRegisters( constantRegisters, shaderParms, viewDef.GetMaterialParms(), 0.0f, nullptr );
+	EvaluateRegisters( constantRegisters, shaderParms, viewDef.GetGlobalMaterialParms(), 0.0f, nullptr );
 }
 
 /*
@@ -3300,7 +3297,7 @@ const char* idMaterial::DefaultDefinition() const
 idMaterial::GetBumpStage
 ===================
 */
-const shaderStage_t* idMaterial::GetBumpStage() const
+const materialStage_t* idMaterial::GetBumpStage() const
 {
 	for( int i = 0 ; i < numStages ; i++ )
 	{
@@ -3363,7 +3360,7 @@ void idMaterial::SetFastPathImages()
 	
 	for( int surfaceStageNum = 0; surfaceStageNum < GetNumStages(); surfaceStageNum++ )
 	{
-		const shaderStage_t*	surfaceStage = GetStage( surfaceStageNum );
+		const materialStage_t*	surfaceStage = GetStage( surfaceStageNum );
 		
 		if( surfaceStage->texture.hasMatrix )
 		{

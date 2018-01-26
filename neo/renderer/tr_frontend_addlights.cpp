@@ -113,7 +113,7 @@ static void R_AddSingleLight( viewLight_t* vLight )
 	
 	// evaluate the light shader registers
 	auto lightRegs = allocManager.FrameAlloc<float, FRAME_ALLOC_SHADER_REGISTER>( lightShader->GetNumRegisters() );
-	lightShader->EvaluateRegisters( lightRegs, light->GetParms().shaderParms, viewDef->GetMaterialParms(), viewDef->GetGameTimeSec(), light->GetParms().referenceSound );
+	lightShader->EvaluateRegisters( lightRegs, light->GetParms().shaderParms, viewDef->GetGlobalMaterialParms(), viewDef->GetGameTimeSec(), light->GetParms().referenceSound );
 									
 	// if this is a purely additive light and no stage in the light shader evaluates
 	// to a positive light value, we can completely skip the light

@@ -227,7 +227,7 @@ void OutputNode( const node_t* node, idList<OBJGroup>& groups )
 		if( node->occupied )
 		{
 			group = &groups.Alloc();
-			group->name.Format( "area%i_leaf_occupied.%i", node->area, node->nodeNumber );
+			group->name.Format<128>( "area%i_leaf_occupied.%i", node->area, node->nodeNumber );
 		}
 		else if( node->opaque )
 		{
@@ -235,11 +235,11 @@ void OutputNode( const node_t* node, idList<OBJGroup>& groups )
 			
 			if( node->area != -1 )
 			{
-				group->name.Format( "area%i_leaf_opaque.%i", node->area, node->nodeNumber );
+				group->name.Format<128>( "area%i_leaf_opaque.%i", node->area, node->nodeNumber );
 			}
 			else
 			{
-				group->name.Format( "void_leaf_opaque.%i", node->nodeNumber );
+				group->name.Format<128>( "void_leaf_opaque.%i", node->nodeNumber );
 			}
 			
 			reverse = true;
@@ -250,11 +250,11 @@ void OutputNode( const node_t* node, idList<OBJGroup>& groups )
 			
 			if( node->area != -1 )
 			{
-				group->name.Format( "area%i_leaf.%i", node->area, node->nodeNumber );
+				group->name.Format<128>( "area%i_leaf.%i", node->area, node->nodeNumber );
 			}
 			else
 			{
-				group->name.Format( "void_leaf.%i", node->nodeNumber );
+				group->name.Format<128>( "void_leaf.%i", node->nodeNumber );
 			}
 		}
 	}
@@ -327,7 +327,7 @@ void OutputSplitPlane( const node_t* node, idList<OBJGroup>& groups )
 		w.BaseForPlane( dmapGlobals.mapPlanes[node->planenum] );
 		
 		group = &groups.Alloc();
-		group->name.Format( "splitplane.%i", node->nodeNumber ) ;
+		group->name.Format<128>( "splitplane.%i", node->nodeNumber ) ;
 		
 		// cut down to AABB size
 		for( int i = 0 ; i < 3 ; i++ )
@@ -360,7 +360,7 @@ void OutputAreaPortalTriangles( const node_t* node, idList<OBJGroup>& groups )
 	if( node->planenum == PLANENUM_LEAF && node->areaPortalTris )
 	{
 		OBJGroup& group = groups.Alloc();
-		group.name.Format( "areaPortalTris.%i", node->nodeNumber ) ;
+		group.name.Format<128>( "areaPortalTris.%i", node->nodeNumber ) ;
 		
 		for( mapTri_t* tri = node->areaPortalTris; tri; tri = tri->next )
 		{
@@ -427,7 +427,7 @@ void OutputAreaPortals( idList<OBJGroup>& groups )
 		}
 		
 		OBJGroup& group = groups.Alloc();
-		group.name.Format( "interAreaPortal.%i", i );
+		group.name.Format<128>( "interAreaPortal.%i", i );
 		OutputWinding( w, group );
 	}
 }
@@ -448,7 +448,7 @@ void WriteGLView( tree_t* tree, const char* source, int entityNum, bool force )
 	}
 	
 	idStrStatic< MAX_OSPATH > path;
-	path.Format( "%s_BSP_%s_%i.obj", dmapGlobals.mapFileBase, source, entityNum );
+	path.Format<MAX_OSPATH>( "%s_BSP_%s_%i.obj", dmapGlobals.mapFileBase, source, entityNum );
 	idFileLocal objFile( fileSystem->OpenFileWrite( path, "fs_basepath" ) );
 	
 	//path.SetFileExtension( ".mtl" );
@@ -534,7 +534,7 @@ void WriteGLView( bspface_t* list, const char* source )
 	}
 	
 	idStrStatic< MAX_OSPATH > path;
-	path.Format( "%s_BSP_%s_%i.obj", dmapGlobals.mapFileBase, source, dmapGlobals.entityNum );
+	path.Format<MAX_OSPATH>( "%s_BSP_%s_%i.obj", dmapGlobals.mapFileBase, source, dmapGlobals.entityNum );
 	idFileLocal objFile( fileSystem->OpenFileWrite( path, "fs_basepath" ) );
 	
 	//path.SetFileExtension( ".mtl" );

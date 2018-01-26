@@ -1735,9 +1735,9 @@ void idActor::GetAIAimTargets( const idVec3& lastSightPos, idVec3& headPos, idVe
 idActor::GetRenderView
 =====================
 */
-renderView_t* idActor::GetRenderView()
+renderViewParms_t* idActor::GetRenderView()
 {
-	renderView_t* rv = idEntity::GetRenderView();
+	renderViewParms_t* rv = idEntity::GetRenderView();
 	rv->viewaxis = viewAxis;
 	rv->vieworg = GetEyePosition();
 	return rv;

@@ -48,22 +48,6 @@ If you have questions concerning this license or the applicable additional terms
 // to be performed on interaction (static) shadow volumes
 #define KEEP_INTERACTION_CPU_DATA
 
-struct srfCullInfo_t
-{
-	// For each triangle a byte set to 1 if facing the light origin.
-	byte* 					facing;
-	
-	// For each vertex a byte with the bits [0-5] set if the
-	// vertex is at the back side of the corresponding clip plane.
-	// If the 'cullBits' pointer equals LIGHT_CULL_ALL_FRONT all
-	// vertices are at the front of all the clip planes.
-	byte* 					cullBits;
-	
-	// Clip planes in surface space used to calculate the cull bits.
-	idPlane					localClipPlanes[6];
-};
-
-
 // Pre-generated shadow volumes from dmap are not present in surfaceInteraction_t,
 // they are added separately.
 struct surfaceInteraction_t
@@ -81,12 +65,10 @@ struct surfaceInteraction_t
 	vertCacheHandle_t		shadowIndexCache;
 };
 
-
 class idRenderEntityLocal;
 class idRenderLightLocal;
 
-class idInteraction
-{
+class idInteraction {
 public:
 	// this may be 0 if the light and entity do not actually intersect
 	// -1 = an untested interaction
@@ -97,17 +79,16 @@ public:
 	// possibly having a shader to specify the shadow sorting order
 	// (FIXME: actually try making shadow hulls?  we never did.)
 	surfaceInteraction_t* 	surfaces;
-	
-	// get space from here, if NULL, it is a pre-generated shadow volume from dmap
-	idRenderEntityLocal* 	entityDef;
-	idRenderLightLocal* 	lightDef;
-	
-	idInteraction* 			lightNext;				// for lightDef chains
+		
+	idRenderLightLocal* 	lightDef;	// get space from here, if NULL, it is a pre-generated shadow volume from dmap
+	idInteraction* 			lightNext;		
 	idInteraction* 			lightPrev;
-	idInteraction* 			entityNext;				// for entityDef chains
+	
+	idRenderEntityLocal* 	entityDef;	// get space from here, if NULL, it is a pre-generated shadow volume from dmap
+	idInteraction* 			entityNext;		
 	idInteraction* 			entityPrev;
 	
-	bool					staticInteraction;		// true if the interaction was created at map load time in static buffer space
+	bool					isStaticInteraction;		// true if the interaction was created at map load time in static buffer space
 	
 public:
 	idInteraction();
@@ -115,7 +96,7 @@ public:
 	// because these are generated and freed each game tic for active elements all
 	// over the world, we use a custom pool allocater to avoid memory allocation overhead
 	// and fragmentation
-	static idInteraction* 	AllocAndLink( idRenderEntityLocal* edef, idRenderLightLocal* ldef );
+	static idInteraction* 	AllocAndLink( idRenderEntityLocal*, idRenderLightLocal* );
 	
 	// unlinks from the entity and light, frees all surfaceInteractions,
 	// and puts it back on the free list
@@ -129,16 +110,10 @@ public:
 	void					MakeEmpty();
 	
 	// returns true if the interaction is empty
-	bool					IsEmpty() const
-	{
-		return ( numSurfaces == 0 );
-	}
+	bool					IsEmpty() const { return( numSurfaces == 0 ); }
 	
 	// returns true if the interaction is not yet completely created
-	bool					IsDeferred() const
-	{
-		return ( numSurfaces == -1 );
-	}
+	bool					IsDeferred() const { return( numSurfaces == -1 ); }
 	
 	// returns true if the interaction has shadows
 	bool					HasShadows() const;
@@ -151,6 +126,6 @@ private:
 	void					Unlink();
 };
 
-void R_ShowInteractionMemory_f( const idCmdArgs& args );
+void R_ShowInteractionMemory_f( const idCmdArgs& );
 
 #endif /* !__INTERACTION_H__ */

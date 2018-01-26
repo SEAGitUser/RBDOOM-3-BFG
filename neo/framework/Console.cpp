@@ -63,6 +63,7 @@ public:
 	virtual	void		Close();
 	virtual	void		Print( const char* text );
 	virtual	void		Draw( bool forceFullScreen );
+	virtual void		Resize();
 	
 	virtual void		PrintOverlay( idOverlayHandle& handle, justify_t justify, const char* text, ... );
 	
@@ -73,7 +74,7 @@ public:
 	void				Clear();
 	
 private:
-	void				Resize();
+	//void				Resize();
 	
 	void				KeyDownEvent( int key );
 	
@@ -271,41 +272,42 @@ float idConsoleLocal::DrawFPS( float y )
 	const int maxTime = 16;
 	
 	y += SMALLCHAR_HEIGHT + 4;
-	idStr timeStr;
-	timeStr.Format( "%sG+RF: %4d", gameThreadTotalTime > maxTime ? S_COLOR_RED : "", gameThreadTotalTime );
+	idStrStatic<64> timeStr;
+	timeStr.Format<64>( "%sG+RF: %4d", gameThreadTotalTime > maxTime ? S_COLOR_RED : "", gameThreadTotalTime );
 	w = timeStr.LengthWithoutColors() * SMALLCHAR_WIDTH;
 	renderSystem->DrawSmallStringExt( LOCALSAFE_RIGHT - w, idMath::Ftoi( y ) + 2, timeStr.c_str(), colorWhite, false );
-	y += SMALLCHAR_HEIGHT + 4;
+	y += SMALLCHAR_HEIGHT + 4; timeStr.Clear();
 	
-	timeStr.Format( "%sG: %4d", gameThreadGameTime > maxTime ? S_COLOR_RED : "", gameThreadGameTime );
+	timeStr.Format<64>( "%sG: %4d", gameThreadGameTime > maxTime ? S_COLOR_RED : "", gameThreadGameTime );
 	w = timeStr.LengthWithoutColors() * SMALLCHAR_WIDTH;
 	renderSystem->DrawSmallStringExt( LOCALSAFE_RIGHT - w, idMath::Ftoi( y ) + 2, timeStr.c_str(), colorWhite, false );
-	y += SMALLCHAR_HEIGHT + 4;
+	y += SMALLCHAR_HEIGHT + 4; timeStr.Clear();
 	
-	timeStr.Format( "%sRF: %4d", gameThreadRenderTime > maxTime ? S_COLOR_RED : "", gameThreadRenderTime );
+	timeStr.Format<64>( "%sRF: %4d", gameThreadRenderTime > maxTime ? S_COLOR_RED : "", gameThreadRenderTime );
 	w = timeStr.LengthWithoutColors() * SMALLCHAR_WIDTH;
 	renderSystem->DrawSmallStringExt( LOCALSAFE_RIGHT - w, idMath::Ftoi( y ) + 2, timeStr.c_str(), colorWhite, false );
-	y += SMALLCHAR_HEIGHT + 4;
+	y += SMALLCHAR_HEIGHT + 4; timeStr.Clear();
 	
-	timeStr.Format( "%sRB: %4.1f", rendererBackEndTime > maxTime * 1000 ? S_COLOR_RED : "", rendererBackEndTime / 1000.0f );
+	timeStr.Format<64>( "%sRB: %4.1f", rendererBackEndTime > maxTime * 1000 ? S_COLOR_RED : "", rendererBackEndTime / 1000.0f );
 	w = timeStr.LengthWithoutColors() * SMALLCHAR_WIDTH;
 	renderSystem->DrawSmallStringExt( LOCALSAFE_RIGHT - w, idMath::Ftoi( y ) + 2, timeStr.c_str(), colorWhite, false );
-	y += SMALLCHAR_HEIGHT + 4;
+	y += SMALLCHAR_HEIGHT + 4; timeStr.Clear();
 	
-	timeStr.Format( "%sSV: %4.1f", rendererShadowsTime > maxTime * 1000 ? S_COLOR_RED : "", rendererShadowsTime / 1000.0f );
+	timeStr.Format<64>( "%sSV: %4.1f", rendererShadowsTime > maxTime * 1000 ? S_COLOR_RED : "", rendererShadowsTime / 1000.0f );
 	w = timeStr.LengthWithoutColors() * SMALLCHAR_WIDTH;
 	renderSystem->DrawSmallStringExt( LOCALSAFE_RIGHT - w, idMath::Ftoi( y ) + 2, timeStr.c_str(), colorWhite, false );
-	y += SMALLCHAR_HEIGHT + 4;
+	y += SMALLCHAR_HEIGHT + 4; timeStr.Clear();
 	
-	timeStr.Format( "%sIDLE: %4.1f", rendererGPUIdleTime > maxTime * 1000 ? S_COLOR_RED : "", rendererGPUIdleTime / 1000.0f );
+	timeStr.Format<64>( "%sIDLE: %4.1f", rendererGPUIdleTime > maxTime * 1000 ? S_COLOR_RED : "", rendererGPUIdleTime / 1000.0f );
 	w = timeStr.LengthWithoutColors() * SMALLCHAR_WIDTH;
 	renderSystem->DrawSmallStringExt( LOCALSAFE_RIGHT - w, idMath::Ftoi( y ) + 2, timeStr.c_str(), colorWhite, false );
-	y += SMALLCHAR_HEIGHT + 4;
+	y += SMALLCHAR_HEIGHT + 4; timeStr.Clear();
 	
-	timeStr.Format( "%sGPU: %4.1f", rendererGPUTime > maxTime * 1000 ? S_COLOR_RED : "", rendererGPUTime / 1000.0f );
+	timeStr.Format<64>( "%sGPU: %4.1f", rendererGPUTime > maxTime * 1000 ? S_COLOR_RED : "", rendererGPUTime / 1000.0f );
 	w = timeStr.LengthWithoutColors() * SMALLCHAR_WIDTH;
 	renderSystem->DrawSmallStringExt( LOCALSAFE_RIGHT - w, idMath::Ftoi( y ) + 2, timeStr.c_str(), colorWhite, false );
-	
+	timeStr.Clear();
+
 	return y + BIGCHAR_HEIGHT + 4;
 }
 

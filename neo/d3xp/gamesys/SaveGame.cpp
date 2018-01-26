@@ -765,7 +765,7 @@ void idSaveGame::WriteRefSound( const refSound_t& refSound )
 idSaveGame::WriteRenderView
 ================
 */
-void idSaveGame::WriteRenderView( const renderView_t& view )
+void idSaveGame::WriteRenderView( const renderViewParms_t& view )
 {
 	int i;
 	
@@ -1659,7 +1659,7 @@ void idRestoreGame::ReadRefSound( refSound_t& refSound )
 idRestoreGame::ReadRenderView
 ================
 */
-void idRestoreGame::ReadRenderView( renderView_t& view )
+void idRestoreGame::ReadRenderView( renderViewParms_t& view )
 {
 	int i;
 	

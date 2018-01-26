@@ -42,7 +42,7 @@ idPlayerView::idPlayerView
 idPlayerView::idPlayerView()
 {
 	memset( screenBlobs, 0, sizeof( screenBlobs ) );
-	memset( &view, 0, sizeof( view ) );
+	view.Clear();
 	player = NULL;
 	tunnelMaterial = declManager->FindMaterial( "textures/decals/tunnel" );
 	armorMaterial = declManager->FindMaterial( "armorViewEffect" );
@@ -427,9 +427,8 @@ idAngles idPlayerView::AngleOffset() const
 idPlayerView::SingleView
 ==================
 */
-void idPlayerView::SingleView( const renderView_t* view, idMenuHandler_HUD* hudManager )
+void idPlayerView::SingleView( const renderViewParms_t* view, idMenuHandler_HUD* hudManager )
 {
-
 	// normal rendering
 	if( !view )
 	{
@@ -450,12 +449,12 @@ void idPlayerView::SingleView( const renderView_t* view, idMenuHandler_HUD* hudM
 	}
 	
 	// hack the shake in at the very last moment, so it can't cause any consistency problems
-	renderView_t hackedView = *view;
+	renderViewParms_t hackedView = *view;
 	hackedView.viewaxis = hackedView.viewaxis * ShakeAxis();
 	
 	if( gameLocal.portalSkyEnt.GetEntity() && gameLocal.IsPortalSkyAcive() && g_enablePortalSky.GetBool() )
 	{
-		renderView_t portalView = hackedView;
+		renderViewParms_t portalView = hackedView;
 		portalView.vieworg = gameLocal.portalSkyEnt.GetEntity()->GetPhysics()->GetOrigin();
 		gameRenderWorld->RenderScene( &portalView );
 		renderSystem->CaptureRenderToImage( "_currentRender" );
@@ -752,13 +751,13 @@ idPlayerView::EmitStereoEyeView
 */
 void idPlayerView::EmitStereoEyeView( const int eye, idMenuHandler_HUD* hudManager )
 {
-	renderView_t* view = player->GetRenderView();
+	renderViewParms_t* view = player->GetRenderView();
 	if( view == NULL )
 	{
 		return;
 	}
 	
-	renderView_t eyeView = *view;
+	renderViewParms_t eyeView = *view;
 	
 	const stereoDistances_t dists = CaclulateStereoDistances(
 										stereoRender_interOccularCentimeters.GetFloat(),
@@ -802,7 +801,7 @@ idPlayerView::RenderPlayerView
 */
 void idPlayerView::RenderPlayerView( idMenuHandler_HUD* hudManager )
 {
-	const renderView_t* view = player->GetRenderView();
+	const renderViewParms_t* view = player->GetRenderView();
 	if( renderSystem->GetStereo3DMode() != STEREO3D_OFF )
 	{
 		// render both eye views each frame on the PC
@@ -1062,7 +1061,7 @@ bool FullscreenFX_Helltime::Active()
 FullscreenFX_Helltime::AccumPass
 ==================
 */
-void FullscreenFX_Helltime::AccumPass( const renderView_t* view )
+void FullscreenFX_Helltime::AccumPass( const renderViewParms_t* view )
 {
 
 	int level = DetermineLevel();
@@ -1196,7 +1195,7 @@ bool FullscreenFX_Multiplayer::Active()
 FullscreenFX_Multiplayer::AccumPass
 ==================
 */
-void FullscreenFX_Multiplayer::AccumPass( const renderView_t* view )
+void FullscreenFX_Multiplayer::AccumPass( const renderViewParms_t* view )
 {
 	renderSystem->SetColor4( 1.0f, 1.0f, 1.0f, 1.0f );
 	
@@ -1370,11 +1369,8 @@ void FullscreenFX_Warp::HighQuality()
 	for( float i = 0; i < 360; i += STEP )
 	{
 		// compute the values
-		x1 = idMath::Sin( DEG2RAD( i ) );
-		y1 = idMath::Cos( DEG2RAD( i ) );
-		
-		x2 = idMath::Sin( DEG2RAD( i + STEP ) );
-		y2 = idMath::Cos( DEG2RAD( i + STEP ) );
+		idMath::SinCos( DEG2RAD( i ), x1, y1 );
+		idMath::SinCos( DEG2RAD( i + STEP ), x2, y2 );
 		
 		// add warp polygon
 		WarpPolygon_t p;
@@ -1926,7 +1922,7 @@ idCVar player_allowScreenFXInStereo( "player_allowScreenFXInStereo", "1", CVAR_B
 FullscreenFXManager::Process
 ==================
 */
-void FullscreenFXManager::Process( const renderView_t* view )
+void FullscreenFXManager::Process( const renderViewParms_t* view )
 {
 	bool allpass = false;
 	bool atLeastOneFX = false;

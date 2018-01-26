@@ -35,7 +35,7 @@ static void RB_BindVariableStageImage( const textureStage_t* texture, const floa
 		// offset time by shaderParm[7] (FIXME: make the time offset a parameter of the shader?)
 		// We make no attempt to optimize for multiple identical cinematics being in view, or
 		// for cinematics going at a lower framerate than the renderer.
-		cin = texture->cinematic->ImageForTime( backEnd.viewDef->GetGameTimeMS() + SEC2MS( backEnd.viewDef->GetMaterialParms()[ 11 ] ) );
+		cin = texture->cinematic->ImageForTime( backEnd.viewDef->GetGameTimeMS() + SEC2MS( backEnd.viewDef->GetGlobalMaterialParms()[ 11 ] ) );
 		if( cin.imageY != NULL )
 		{
 			GL_BindTexture( 0, cin.imageY );
@@ -83,7 +83,7 @@ static void RB_BindVariableStageImage( const textureStage_t* texture, const floa
  RB_PrepareStageTexturing
 ================
 */
-void RB_PrepareStageTexturing( const shaderStage_t* pStage, const drawSurf_t* surf )
+void RB_PrepareStageTexturing( const materialStage_t* pStage, const drawSurf_t* surf )
 {
 	idRenderVector useTexGenParm( 0.0f, 0.0f, 0.0f, 0.0f );
 
@@ -173,7 +173,7 @@ void RB_PrepareStageTexturing( const shaderStage_t* pStage, const drawSurf_t* su
 		transform[ 2 * 4 + 2 ] = axis[ 2 ][ 2 ];
 		transform[ 2 * 4 + 3 ] = 0.0f;
 
-		SetVertexParms( RENDERPARM_WOBBLESKY_X, transform, 3 );
+		renderProgManager.SetRenderParms( RENDERPARM_WOBBLESKY_X, transform, 3 );
 		renderProgManager.BindShader_WobbleSky();
 
 	}
@@ -191,9 +191,9 @@ void RB_PrepareStageTexturing( const shaderStage_t* pStage, const drawSurf_t* su
 		RENDERLOG_PRINT( "TexGen : %s\n", ( pStage->texture.texgen == TG_SCREEN ) ? "TG_SCREEN" : "TG_SCREEN2" );
 		RENDERLOG_INDENT();
 
-		SetVertexParm( RENDERPARM_TEXGEN_0_S, mat[ 0 ] );
-		SetVertexParm( RENDERPARM_TEXGEN_0_T, mat[ 1 ] );
-		SetVertexParm( RENDERPARM_TEXGEN_0_Q, mat[ 3 ] );
+		renderProgManager.SetRenderParm( RENDERPARM_TEXGEN_0_S, mat[ 0 ] );
+		renderProgManager.SetRenderParm( RENDERPARM_TEXGEN_0_T, mat[ 1 ] );
+		renderProgManager.SetRenderParm( RENDERPARM_TEXGEN_0_Q, mat[ 3 ] );
 
 		RENDERLOG_PRINT( "TEXGEN_S = %4.3f, %4.3f, %4.3f, %4.3f\n", mat[ 0 ][ 0 ], mat[ 0 ][ 1 ], mat[ 0 ][ 2 ], mat[ 0 ][ 3 ] );
 		RENDERLOG_PRINT( "TEXGEN_T = %4.3f, %4.3f, %4.3f, %4.3f\n", mat[ 1 ][ 0 ], mat[ 1 ][ 1 ], mat[ 1 ][ 2 ], mat[ 1 ][ 3 ] );
@@ -213,7 +213,7 @@ void RB_PrepareStageTexturing( const shaderStage_t* pStage, const drawSurf_t* su
 		idLib::Warning( "Using GlassWarp! Please contact Brian!" );
 	}
 
-	SetVertexParm( RENDERPARM_TEXGEN_0_ENABLED, useTexGenParm.ToFloatPtr() );
+	renderProgManager.SetRenderParm( RENDERPARM_TEXGEN_0_ENABLED, useTexGenParm.ToFloatPtr() );
 }
 
 /*
@@ -221,17 +221,12 @@ void RB_PrepareStageTexturing( const shaderStage_t* pStage, const drawSurf_t* su
  RB_FinishStageTexturing
 ================
 */
-void RB_FinishStageTexturing( const shaderStage_t* pStage, const drawSurf_t* surf )
+void RB_FinishStageTexturing( const materialStage_t* pStage, const drawSurf_t* surf )
 {
 
 	if( pStage->texture.cinematic )
 	{
 		// unbind the extra bink textures
-		///GL_SelectTexture( 1 );
-		///renderImageManager->BindNull();
-		///GL_SelectTexture( 2 );
-		///renderImageManager->BindNull();
-		///GL_SelectTexture( 0 );
 		GL_ResetTexturesState();
 	}
 
@@ -274,7 +269,7 @@ int RB_DrawTransMaterialPasses( const drawSurf_t* const* const drawSurfs, const 
 
 	GL_ResetTexturesState();
 
-	backEnd.currentSpace = ( const viewModel_t* )1;	// using NULL makes /analyze think surf->space needs to be checked...
+	backEnd.ClearCurrentSpace();
 	float currentGuiStereoOffset = 0.0f;
 
 	int i = 0;
@@ -283,38 +278,32 @@ int RB_DrawTransMaterialPasses( const drawSurf_t* const* const drawSurfs, const 
 		auto const surf = drawSurfs[ i ];
 		auto const shader = surf->material;
 
-		if( !shader->HasAmbient() )
-		{
+		if( !shader->HasAmbient() ) {
 			continue;
 		}
 
-		if( shader->IsPortalSky() )
-		{
+		if( shader->IsPortalSky() ) {
 			continue;
 		}
 
 		// some deforms may disable themselves by setting numIndexes = 0
-		if( surf->numIndexes == 0 )
-		{
+		if( surf->numIndexes == 0 ) {
 			continue;
 		}
 
-		if( shader->SuppressInSubview() )
-		{
+		if( shader->SuppressInSubview() ) {
 			continue;
 		}
 
 		if( backEnd.viewDef->isXraySubview && surf->space->entityDef )
 		{
-			if( surf->space->entityDef->GetParms().xrayIndex != 2 ) //SEA: calling entityDef here is very bad !!!
-			{
+			if( surf->space->entityDef->GetParms().xrayIndex != 2 ) { //SEA: calling entityDef here is very bad !!!
 				continue;
 			}
 		}
 
 		// we need to draw the post process shaders after we have drawn the fog lights
-		if( shader->GetSort() >= SS_POST_PROCESS && !backEnd.currentRenderCopied )
-		{
+		if( shader->GetSort() >= SS_POST_PROCESS && !backEnd.currentRenderCopied ) {
 			break;
 		}
 
@@ -347,21 +336,20 @@ int RB_DrawTransMaterialPasses( const drawSurf_t* const* const drawSurfs, const 
 			{
 				RB_SetMVPWithStereoOffset( space->mvp, currentGuiStereoOffset );
 			}
-			else
-			{
+			else {
 				RB_SetMVP( space->mvp );
 			}
 
 			// set model Matrix
-			SetVertexParms( RENDERPARM_MODELMATRIX_X, space->modelMatrix.Ptr(), 4 );
+			renderProgManager.SetRenderParms( RENDERPARM_MODELMATRIX_X, space->modelMatrix.Ptr(), 4 );
 
 			// Set ModelView Matrix
-			SetVertexParms( RENDERPARM_MODELVIEWMATRIX_X, space->modelViewMatrix.Ptr(), 4 );
+			renderProgManager.SetRenderParms( RENDERPARM_MODELVIEWMATRIX_X, space->modelViewMatrix.Ptr(), 4 );
 
 			// set eye position in local space
-			idVec4 localViewOrigin( 1.0f );
+			idRenderVector localViewOrigin( 1.0f );
 			space->modelMatrix.InverseTransformPoint( backEnd.viewDef->GetOrigin(), localViewOrigin.ToVec3() );
-			SetVertexParm( RENDERPARM_LOCALVIEWORIGIN, localViewOrigin.ToFloatPtr() );
+			renderProgManager.SetRenderParm( RENDERPARM_LOCALVIEWORIGIN, localViewOrigin.ToFloatPtr() );
 		}
 
 		// change the scissor if needed
@@ -372,7 +360,6 @@ int RB_DrawTransMaterialPasses( const drawSurf_t* const* const drawSurfs, const 
 
 		// set face culling appropriately
 		GL_Cull( surf->space->isGuiSurface ? CT_TWO_SIDED : shader->GetCullType() );
-
 
 		uint64 surfGLState = surf->extraGLState;
 
@@ -388,7 +375,7 @@ int RB_DrawTransMaterialPasses( const drawSurf_t* const* const drawSurfs, const 
 			auto pStage = shader->GetStage( stage );
 
 			// check the enable condition
-			if( regs[ pStage->conditionRegister ] == 0 )
+			if( pStage->SkipStage( regs ) )
 			{
 				continue;
 			}
@@ -410,7 +397,6 @@ int RB_DrawTransMaterialPasses( const drawSurf_t* const* const drawSurfs, const 
 			{
 				continue;
 			}
-
 
 			// see if we are a new-style stage
 			auto newStage = pStage->newStage;
@@ -436,19 +422,26 @@ int RB_DrawTransMaterialPasses( const drawSurf_t* const* const drawSurfs, const 
 
 				for( int j = 0; j < newStage->numVertexParms; j++ )
 				{
-					idRenderVector parm;
+					///idRenderVector parm;
+					///parm[ 0 ] = regs[ newStage->vertexParms[ j ][ 0 ] ];
+					///parm[ 1 ] = regs[ newStage->vertexParms[ j ][ 1 ] ];
+					///parm[ 2 ] = regs[ newStage->vertexParms[ j ][ 2 ] ];
+					///parm[ 3 ] = regs[ newStage->vertexParms[ j ][ 3 ] ];
+					///renderProgManager.SetRenderParm( ( renderParm_t )( RENDERPARM_USER + j ), parm.ToFloatPtr() );
+
+					auto & parm = renderProgManager.GetRenderParm( ( renderParm_t )( RENDERPARM_USER + j ) );
+
 					parm[ 0 ] = regs[ newStage->vertexParms[ j ][ 0 ] ];
 					parm[ 1 ] = regs[ newStage->vertexParms[ j ][ 1 ] ];
 					parm[ 2 ] = regs[ newStage->vertexParms[ j ][ 2 ] ];
 					parm[ 3 ] = regs[ newStage->vertexParms[ j ][ 3 ] ];
-					SetVertexParm( ( renderParm_t )( RENDERPARM_USER + j ), parm.ToFloatPtr() );
 				}
 
 				// set rpEnableSkinning if the shader has optional support for skinning
 				if( surf->jointCache && renderProgManager.ShaderHasOptionalSkinning() )
 				{
 					const idRenderVector skinningParm( 1.0f );
-					SetVertexParm( RENDERPARM_ENABLE_SKINNING, skinningParm.ToFloatPtr() );
+					renderProgManager.SetRenderParm( RENDERPARM_ENABLE_SKINNING, skinningParm.ToFloatPtr() );
 				}
 
 				// bind texture units
@@ -479,12 +472,12 @@ int RB_DrawTransMaterialPasses( const drawSurf_t* const* const drawSurfs, const 
 				// clear rpEnableSkinning if it was set
 				if( surf->jointCache && renderProgManager.ShaderHasOptionalSkinning() )
 				{
-					const idVec4 skinningParm( 0.0f );
-					SetVertexParm( RENDERPARM_ENABLE_SKINNING, skinningParm.ToFloatPtr() );
+					const idRenderVector skinningParm( 0.0f );
+					renderProgManager.SetRenderParm( RENDERPARM_ENABLE_SKINNING, skinningParm.ToFloatPtr() );
 				}
 
 				GL_SelectTexture( 0 );
-				renderProgManager.Unbind();
+				//GL_ResetProgramState();
 
 				RENDERLOG_CLOSE_BLOCK();
 				continue;
@@ -498,10 +491,7 @@ int RB_DrawTransMaterialPasses( const drawSurf_t* const* const drawSurfs, const 
 
 			// set the color
 			idRenderVector color;
-			color[ 0 ] = regs[ pStage->color.registers[ 0 ] ];
-			color[ 1 ] = regs[ pStage->color.registers[ 1 ] ];
-			color[ 2 ] = regs[ pStage->color.registers[ 2 ] ];
-			color[ 3 ] = regs[ pStage->color.registers[ 3 ] ];
+			pStage->GetColorParm( regs, color );
 
 			// skip the entire stage if an add would be black
 			if( ( stageGLState & ( GLS_SRCBLEND_BITS | GLS_DSTBLEND_BITS ) ) == ( GLS_SRCBLEND_ONE | GLS_DSTBLEND_ONE )
@@ -536,21 +526,18 @@ int RB_DrawTransMaterialPasses( const drawSurf_t* const* const drawSurfs, const 
 						// Old style guis do not, and we don't want them to use the new GUI renederProg
 						renderProgManager.BindShader_TextureVertexColor_sRGB();
 					}
-					else
-					{
+					else {
 						renderProgManager.BindShader_TextureVertexColor( false );
 					}
 				}
-				else
-				{
+				else {
 					if( ( stageGLState & GLS_OVERRIDE ) != 0 )
 					{
 						// This is a hack... Only SWF Guis set GLS_OVERRIDE
 						// Old style guis do not, and we don't want them to use the new GUI renderProg
 						renderProgManager.BindShader_GUI();
 					}
-					else
-					{
+					else {
 						if( backEnd.viewDef->is2Dgui )
 						{
 							// RB: 2D fullscreen drawing like warp or damage blend effects
@@ -613,8 +600,8 @@ int RB_DrawTransMaterialPasses( const drawSurf_t* const* const drawSurfs, const 
 	// disable stencil shadow test
 	GL_State( GLS_DEFAULT );
 
-	// unbind texture units
 	GL_ResetTexturesState();
+	GL_ResetProgramState();
 
 	RENDERLOG_CLOSE_BLOCK();
 	return i;

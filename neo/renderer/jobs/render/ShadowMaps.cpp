@@ -44,6 +44,20 @@
 	// now combine with shadow view and projection
 	var ShadowTransform = ShadowView * ShadowProjection * tileMatrix;
 
+	Doom4 tech:	Shadow Map Atlas
+
+	For each light casting a shadow, a unique depth map is generated and saved into one tile
+	of a giant 8k x 8k texture atlas. However not every single depth map is calculated at every frame:	
+	DOOM heavily re-uses the result of the previous frame and regenerates only the depth maps which need to be updated.
+
+	When a light is static and casts shadows only on static objects it makes sense to simply keep its depth map as-is
+	instead of doing unnecessary re-calculation. If some enemy is moving under the light though, the depth map must be generated again.
+	Depth map sizes can vary depending on the light distance from the camera, also re-generated depth maps don’t necessarily 
+	stay inside the same tile within the atlas.
+	DOOM has specific optimizations like caching the static portion of a depth map, computing then only the 
+	dynamic meshes projection and compositing the results.
+
+
 ==============================================================================================
 */
 
@@ -323,7 +337,7 @@ static void GetParallelLightViewProjMatrices( const viewLight_t * const vLight, 
 			idRenderMatrix::ProjectedBounds( cropBounds, transform, bounds_unitCube, false );
 		}
 		// don't let the frustum AABB be bigger than the light AABB
-		cropBounds.IntersectXYSelf( lightBounds );
+		cropBounds.Intersect2DSelf( lightBounds );
 
 		cropBounds[ 0 ].z = lightBounds[ 0 ].z;
 		cropBounds[ 1 ].z = lightBounds[ 1 ].z;
@@ -437,7 +451,7 @@ static void GetSpotLightViewProjMatrix( const viewLight_t * const vLight, idRend
 static void RenderShadowBufferGeneric( const drawSurf_t * const drawSurfs, const idRenderMatrix & smVPMatrix )
 {
 	// process the chain of shadows with the current rendering state
-	backEnd.currentSpace = NULL;
+	backEnd.ClearCurrentSpace();
 
 	//for( int i = 0; i < numDrawSurfs; i++ ) {
 	//	const drawSurf_t* const drawSurf = drawSurfs[ i ];
@@ -505,6 +519,12 @@ static void RenderShadowBufferGeneric( const drawSurf_t * const drawSurfs, const
 
 		// get the expressions for conditionals / color / texcoords
 		const float* regs = drawSurf->shaderRegisters;
+
+		/*if( material->ConditionedOff( regs ) )
+		{
+			continue;
+		} //SEA regs == 0 ??? */
+
 		idRenderVector color( 0, 0, 0, 1 );
 
 		uint64 surfGLState = 0;
@@ -527,7 +547,7 @@ static void RenderShadowBufferGeneric( const drawSurf_t * const drawSurfs, const
 					continue;
 
 				// check the stage enable condition
-				if( regs[ pStage->conditionRegister ] == 0 )
+				if( pStage->SkipStage( regs ) )
 					continue;
 
 				// if we at least tried to draw an alpha tested stage,
@@ -554,7 +574,7 @@ static void RenderShadowBufferGeneric( const drawSurf_t * const drawSurfs, const
 
 				GL_State( stageGLState );
 				idRenderVector alphaTestValue( regs[ pStage->alphaTestRegister ] );
-				SetFragmentParm( RENDERPARM_ALPHA_TEST, alphaTestValue.ToFloatPtr() );
+				renderProgManager.SetRenderParm( RENDERPARM_ALPHA_TEST, alphaTestValue.ToFloatPtr() );
 
 				renderProgManager.BindShader_TextureVertexColor( drawSurf->jointCache );
 
@@ -706,7 +726,25 @@ void RB_ShadowMapPass( const drawSurf_t * const drawSurfs, const viewLight_t * c
 	// disabled here, and that the value will get reset for the interactions without looking
 	// like a no-change-required
 	GL_State( glState | GLS_POLYGON_OFFSET );
-
+#if 0
+	if( GLEW_ARB_polygon_offset_clamp )
+	{
+		// This extension adds a new parameter to the polygon offset function
+		// that clamps the calculated offset to a minimum or maximum value.
+		// The clamping functionality is useful when polygons are nearly
+		// parallel to the view direction because their high slopes can result
+		// in arbitrarily large polygon offsets.In the particular case of
+		// shadow mapping, the lack of clamping can produce the appearance of
+		// unwanted holes when the shadow casting polygons are offset beyond
+		// the shadow receiving polygons, and this problem can be alleviated by
+		// enforcing a maximum offset value.
+		glPolygonOffsetClamp( float factor, float units, float clamp );
+	}
+	else
+	{
+		GL_PolygonOffset
+	}
+#endif
 	switch( r_shadowMapOccluderFacing.GetInteger() )
 	{
 		case 0:
@@ -765,8 +803,7 @@ void RB_ShadowMapPass( const drawSurf_t * const drawSurfs, const viewLight_t * c
 		for(/**/; side < sideStop; side++ )
 		{
 			///const int32 shadowLOD = backEnd.viewDef->isSubview ? ( Max( vLight->shadowLOD + 1, MAX_SHADOWMAP_RESOLUTIONS-1 ) ) : vLight->shadowLOD ;
-			const int32 shadowLOD = backEnd.viewDef->isSubview ? ( MAX_SHADOWMAP_RESOLUTIONS - 1 ) :
-				( ( vLight->parallel && side >= 0 ) ? vLight->shadowLOD : Max( vLight->shadowLOD, 1 ) );
+			const int32 shadowLOD = backEnd.viewDef->isSubview ? ( MAX_SHADOWMAP_RESOLUTIONS - 1 ) : (( vLight->parallel && side >= 0 )? vLight->shadowLOD : idMath::Max( vLight->shadowLOD, 1 ));
 
 			RENDERLOG_PRINT( "----- side = %i, shadowLOD %i----------\n", side, shadowLOD );
 
@@ -789,12 +826,12 @@ void RB_ShadowMapPass( const drawSurf_t * const drawSurfs, const viewLight_t * c
 
 	RB_ResetRenderDest( r_useHDR.GetBool() );
 
-	renderProgManager.Unbind();
+	GL_ResetProgramState();
 
 	GL_State( GLS_DEFAULT );
 	GL_Cull( CT_FRONT_SIDED );
 
-	SetFragmentParm( RENDERPARM_ALPHA_TEST, vec4_zero.ToFloatPtr() );
+	renderProgManager.SetRenderParm( RENDERPARM_ALPHA_TEST, vec4_zero.ToFloatPtr() );
 
 	RENDERLOG_CLOSE_BLOCK();
 }

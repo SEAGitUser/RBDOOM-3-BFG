@@ -387,7 +387,7 @@ static const char* skyDirection[ 6 ] = { "_forward", "_back", "_left", "_right",
 	If ref isn't specified, the full session UpdateScreen will be done.
 ====================
 */
-static void R_ReadTiledPixels( int width, int height, byte* buffer, renderView_t* ref = NULL )
+static void R_ReadTiledPixels( int width, int height, byte* buffer, renderViewParms_t* ref = NULL )
 {
 	// include extra space for OpenGL padding to word boundaries
 	int sysWidth = renderSystem->GetWidth();
@@ -514,13 +514,13 @@ static void R_ReadTiledPixels( int width, int height, byte* buffer, renderView_t
 ==================
 */
 // RB: changed .tga to .png
-void idRenderSystemLocal::TakeScreenshot( int width, int height, const char* fileName, int blends, renderView_t* ref, int exten )
+void idRenderSystemLocal::TakeScreenshot( int width, int height, const char* fileName, int blends, renderViewParms_t* ref, int exten )
 {
 	byte* buffer = nullptr;
 	int	i, j, c, temp;
 
 	idStr finalFileName;
-	finalFileName.Format( "%s.%s", fileName, fileExten[ exten ] );
+	finalFileName.Format<256>( "%s.%s", fileName, fileExten[ exten ] );
 
 	takingScreenshot = true;
 
@@ -814,7 +814,7 @@ static void R_EnvShot_f( const idCmdArgs& args )
 	const char*	baseName;
 	int			i;
 	idMat3		axis[ 6 ], oldAxis;
-	renderView_t	ref;
+	renderViewParms_t	ref;
 	idRenderView	primary;
 	int			blends;
 	const char*  extension;
@@ -909,7 +909,7 @@ static void R_EnvShot_f( const idCmdArgs& args )
 
 		ref.fov_x = ref.fov_y = 90;
 		ref.viewaxis = axis[ i ];
-		fullname.Format( "env/%s%s", baseName, extension );
+		fullname.Format<256>( "env/%s%s", baseName, extension );
 
 		tr.TakeScreenshot( size, size, fullname, blends, &ref, TGA );
 	}
@@ -1137,7 +1137,7 @@ static void R_MakeAmbientMap_f( const idCmdArgs& args )
 	idStr fullname;
 	const char*	baseName;
 	int			i;
-	renderView_t	ref;
+	renderViewParms_t	ref;
 	idRenderView	primary;
 	int			downSample;
 	int			outSize;
@@ -1189,7 +1189,7 @@ static void R_MakeAmbientMap_f( const idCmdArgs& args )
 	// read all of the images
 	for( i = 0; i < 6; i++ )
 	{
-		fullname.Format( "env/%s%s.%s", baseName, envDirection[ i ], fileExten[ TGA ] );
+		fullname.Format<256>( "env/%s%s.%s", baseName, envDirection[ i ], fileExten[ TGA ] );
 		common->Printf( "loading %s\n", fullname.c_str() );
 		const bool captureToImage = false;
 		common->UpdateScreen( captureToImage );
@@ -1256,11 +1256,11 @@ static void R_MakeAmbientMap_f( const idCmdArgs& args )
 
 			if( map == 0 )
 			{
-				fullname.Format( "env/%s_amb%s.%s", baseName, envDirection[ i ], fileExten[ PNG ] );
+				fullname.Format<256>( "env/%s_amb%s.%s", baseName, envDirection[ i ], fileExten[ PNG ] );
 			}
 			else
 			{
-				fullname.Format( "env/%s_spec%s.%s", baseName, envDirection[ i ], fileExten[ PNG ] );
+				fullname.Format<256>( "env/%s_spec%s.%s", baseName, envDirection[ i ], fileExten[ PNG ] );
 			}
 			//common->Printf( "writing %s\n", fullname.c_str() );
 
@@ -1305,7 +1305,7 @@ static void R_TransformCubemap( const char* orgDirection[ 6 ], const char* orgDi
 	for( i = 0; i < 6; i++ )
 	{
 		// read every image images
-		fullname.Format( "%s/%s%s.%s", orgDir, baseName, orgDirection[ i ], fileExten[ TGA ] );
+		fullname.Format<256>( "%s/%s%s.%s", orgDir, baseName, orgDirection[ i ], fileExten[ TGA ] );
 		common->Printf( "loading %s\n", fullname.c_str() );
 		const bool captureToImage = false;
 		common->UpdateScreen( captureToImage );
@@ -1342,7 +1342,7 @@ static void R_TransformCubemap( const char* orgDirection[ 6 ], const char* orgDi
 		R_ApplyCubeMapTransforms( i, buffers[ i ], width );
 
 		//save the images with the appropiate skybox naming convention
-		fullname.Format( "%s/%s/%s%s.%s", destDir, baseName, baseName, destDirection[ i ], fileExten[ TGA ] );
+		fullname.Format<256>( "%s/%s/%s%s.%s", destDir, baseName, baseName, destDirection[ i ], fileExten[ TGA ] );
 		common->Printf( "writing %s\n", fullname.c_str() );
 		common->UpdateScreen( false );
 		R_WriteTGA( fullname, buffers[ i ], width, width, false, "fs_basepath" );

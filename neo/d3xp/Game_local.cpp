@@ -2533,7 +2533,7 @@ void idGameLocal::RunFrame( idUserCmdMgr& cmdMgr, gameReturn_t& ret )
 	idTimer		timer_think, timer_events, timer_singlethink;
 	
 	idPlayer*	player;
-	const renderView_t* view;
+	const renderViewParms_t* view;
 	
 	if( g_recordTrace.GetBool() )
 	{

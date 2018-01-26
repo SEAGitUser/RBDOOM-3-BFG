@@ -303,7 +303,7 @@ void RB_StereoRenderExecuteBackEndCommands( const emptyCommand_t* const allCmds 
 					}
 					
 					foundEye[ targetEye ] = true;
-					RB_DrawView( dsc, stereoEye );
+					RB_CMD_DrawView( dsc, stereoEye );
 					if( cmds->commandId == RC_DRAW_VIEW_GUI )
 					{
 					}
@@ -315,7 +315,7 @@ void RB_StereoRenderExecuteBackEndCommands( const emptyCommand_t* const allCmds 
 					break;
 
 				case RC_COPY_RENDER:
-					RB_CopyRender( cmds );
+					RB_CMD_CopyRender( cmds );
 					break;
 
 				case RC_POST_PROCESS: {
@@ -324,7 +324,7 @@ void RB_StereoRenderExecuteBackEndCommands( const emptyCommand_t* const allCmds 
 					{
 						break;
 					}
-					RB_PostProcess( cmds );
+					RB_CMD_PostProcess( cmds );
 				}
 				break;
 
@@ -563,7 +563,7 @@ void RB_ExecuteBackEndCommands( const emptyCommand_t* cmds )
 
 			case RC_DRAW_VIEW_3D:
 			case RC_DRAW_VIEW_GUI:
-				RB_DrawView( cmds, 0 );
+				RB_CMD_DrawView( cmds, 0 );
 				if( ( ( const drawSurfsCommand_t* )cmds )->viewDef->viewEntitys ) {
 					c_draw3d++;
 				} else {
@@ -577,12 +577,12 @@ void RB_ExecuteBackEndCommands( const emptyCommand_t* cmds )
 				break;
 
 			case RC_COPY_RENDER:
-				RB_CopyRender( cmds );
+				RB_CMD_CopyRender( cmds );
 				c_copyRenders++;
 				break;
 
 			case RC_POST_PROCESS:
-				RB_PostProcess( cmds );
+				RB_CMD_PostProcess( cmds );
 				break;
 
 			default:

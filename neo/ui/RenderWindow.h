@@ -52,7 +52,7 @@ private:
 	void Render( int time );
 	void PreRender();
 	void BuildAnimation( int time );
-	renderView_t refdef;
+	renderViewParms_t refdef;
 	idRenderWorld* world;
 	renderEntity_t worldEntity;
 	renderLight_t rLight;

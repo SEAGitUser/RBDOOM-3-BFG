@@ -123,7 +123,7 @@ public:
 	// Get the job list ID
 	jobListId_t				GetId() const;
 	// Get the color for profiling.
-	const idColor* 			GetColor() const
+	const idColor * 		GetColor() const
 	{
 		return this->color;
 	}

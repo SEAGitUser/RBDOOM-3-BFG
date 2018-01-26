@@ -38,12 +38,17 @@ const int MAX_PORTAL_PLANES	= 20;
 
 struct portalStack_t
 {
-	const portal_t* 		p;
-	const portalStack_t* 	next;
+	const portal_t * 		p;
+	const portalStack_t * 	next;
 	// positive side is outside the visible frustum
-	ALIGNTYPE16 idPlane		portalPlanes[MAX_PORTAL_PLANES + 1];
+	idRenderPlane			portalPlanes[MAX_PORTAL_PLANES + 1];
 	int						numPortalPlanes;
 	idScreenRect			rect;
+
+	void Clear()
+	{
+		memset( this, 0, sizeof( *this ) );
+	}
 };
 
 /*
@@ -129,12 +134,12 @@ CullEntityByPortals
 Return true if the entity reference bounds do not intersect the current portal chain.
 ================
 */
-bool idRenderWorldLocal::CullEntityByPortals( const idRenderEntityLocal* entity, const portalStack_t* ps )
+bool idRenderWorldLocal::CullEntityByPortals( const idRenderEntityLocal* entity, const portalStack_t* ps ) const
 {
 	if( r_useEntityPortalCulling.GetInteger() == 1 )
 	{
 	
-		ALIGNTYPE16 frustumCorners_t corners;
+		frustumCorners_t corners;
 		idRenderMatrix::GetFrustumCorners( corners, entity->inverseBaseModelProject, bounds_unitCube );
 		for( int i = 0; i < ps->numPortalPlanes; i++ )
 		{
@@ -151,7 +156,7 @@ bool idRenderWorldLocal::CullEntityByPortals( const idRenderEntityLocal* entity,
 		idRenderMatrix baseModelProject;
 		idRenderMatrix::Inverse( entity->inverseBaseModelProject, baseModelProject );
 		
-		idPlane frustumPlanes[6];
+		idRenderPlane frustumPlanes[6];
 		idRenderMatrix::GetFrustumPlanes( frustumPlanes, baseModelProject, false, true );
 		
 		// exact clip of light faces against all planes
@@ -220,7 +225,7 @@ AddAreaViewEntities
 Any models that are visible through the current portalStack will have their scissor rect updated.
 ===================
 */
-void idRenderWorldLocal::AddAreaViewEntities( int areaNum, const portalStack_t* ps )
+void idRenderWorldLocal::AddAreaViewEntities( int areaNum, const portalStack_t* ps ) const
 {
 	auto area = &portalAreas[ areaNum ];
 	
@@ -272,7 +277,7 @@ CullLightByPortals
 Return true if the light frustum does not intersect the current portal chain.
 ================
 */
-bool idRenderWorldLocal::CullLightByPortals( const idRenderLightLocal* light, const portalStack_t* ps )
+bool idRenderWorldLocal::CullLightByPortals( const idRenderLightLocal* light, const portalStack_t* ps ) const
 {
 	if( r_useLightPortalCulling.GetInteger() == 1 )
 	{	
@@ -356,7 +361,7 @@ This is the only point where lights get added to the viewLights list.
 Any lights that are visible through the current portalStack will have their scissor rect updated.
 ===================
 */
-void idRenderWorldLocal::AddAreaViewLights( int areaNum, const portalStack_t* ps )
+void idRenderWorldLocal::AddAreaViewLights( int areaNum, const portalStack_t* ps ) const
 {
 	portalArea_t* area = &portalAreas[ areaNum ];
 	
@@ -401,7 +406,7 @@ This may be entered multiple times with different planes
 if more than one portal sees into the area
 ===================
 */
-void idRenderWorldLocal::AddAreaToView( int areaNum, const portalStack_t* ps )
+void idRenderWorldLocal::AddAreaToView( int areaNum, const portalStack_t* ps ) const
 {
 	// mark the viewCount, so r_showPortals can display the considered portals
 	portalAreas[ areaNum ].viewCount = tr.GetViewCount();
@@ -416,7 +421,7 @@ void idRenderWorldLocal::AddAreaToView( int areaNum, const portalStack_t* ps )
 idRenderWorldLocal::PortalIsFoggedOut
 ===================
 */
-bool idRenderWorldLocal::PortalIsFoggedOut( const portal_t* p )
+bool idRenderWorldLocal::PortalIsFoggedOut( const portal_t* p ) const
 {
 	idRenderLightLocal* ldef = p->doublePortal->fogLight;
 	if( ldef == NULL )
@@ -428,9 +433,9 @@ bool idRenderWorldLocal::PortalIsFoggedOut( const portal_t* p )
 
 	float* regs = ( float* )_alloca( ldef->lightShader->GetNumRegisters() * sizeof( float ) );
 
-	ldef->lightShader->EvaluateRegisters( regs, ldef->parms.shaderParms, tr.viewDef->GetMaterialParms(), tr.viewDef->GetGameTimeSec(), ldef->parms.referenceSound );
+	ldef->lightShader->EvaluateRegisters( regs, ldef->parms.shaderParms, tr.viewDef->GetGlobalMaterialParms(), tr.viewDef->GetGameTimeSec(), ldef->parms.referenceSound );
 
-	const float alpha = regs[ ldef->lightShader->GetStage( 0 )->color.registers[ SHADERPARM_ALPHA ] ];
+	const float alpha = ldef->lightShader->GetStage( 0 )->GetColorParmAlpha( regs );
 
 	// if they left the default value on, set a fog distance of 500 otherwise, distance = alpha color
 	const float a = ( alpha <= 1.0f )? ( -0.5f / DEFAULT_FOG_DISTANCE ) : ( -0.5f / alpha );
@@ -458,7 +463,7 @@ bool idRenderWorldLocal::PortalIsFoggedOut( const portal_t* p )
 idRenderWorldLocal::FloodViewThroughArea_r
 ===================
 */
-void idRenderWorldLocal::FloodViewThroughArea_r( const idVec3& origin, int areaNum, const portalStack_t* ps )
+void idRenderWorldLocal::FloodViewThroughArea_r( const idVec3& origin, int areaNum, const portalStack_t* ps ) const
 {
 	const auto area = &portalAreas[ areaNum ];
 	
@@ -602,7 +607,7 @@ portals that the origin point can see into. The planes array defines a volume wi
 the planes pointing outside the volume. Zero planes assumes an unbounded volume.
 =======================
 */
-void idRenderWorldLocal::FlowViewThroughPortals( const idVec3& origin, int numPlanes, const idPlane* planes )
+void idRenderWorldLocal::FlowViewThroughPortals( const idVec3& origin, int numPlanes, const idPlane* planes ) const
 {
 	portalStack_t ps;
 	ps.next = NULL;
@@ -638,7 +643,7 @@ void idRenderWorldLocal::FlowViewThroughPortals( const idVec3& origin, int numPl
 idRenderWorldLocal::BuildConnectedAreas_r
 ===================
 */
-void idRenderWorldLocal::BuildConnectedAreas_r( int areaNum )
+void idRenderWorldLocal::BuildConnectedAreas_r( int areaNum ) const
 {
 	if( tr.viewDef->connectedAreas[areaNum] )
 	{
@@ -665,7 +670,7 @@ idRenderWorldLocal::BuildConnectedAreas
 This is only valid for a given view, not all views in a frame
 ===================
 */
-void idRenderWorldLocal::BuildConnectedAreas()
+void idRenderWorldLocal::BuildConnectedAreas() const
 {
 	tr.viewDef->connectedAreas = allocManager.FrameAlloc<bool>( numPortalAreas );
 	
@@ -698,7 +703,7 @@ Entities and lights can have cached viewEntities / viewLights that
 will be used if the viewCount variable matches.
 =============
 */
-void idRenderWorldLocal::FindViewLightsAndEntities()
+void idRenderWorldLocal::FindViewLightsAndEntities() const
 {
 	SCOPED_PROFILE_EVENT( "FindViewLightsAndEntities" );
 	
@@ -713,7 +718,7 @@ void idRenderWorldLocal::FindViewLightsAndEntities()
 	
 	// all areas are initially not visible, but each portal
 	// chain that leads to them will expand the visible rectangle
-	for( int i = 0; i < numPortalAreas; i++ )
+	for( int i = 0; i < numPortalAreas; ++i )
 	{
 		areaScreenRect[i].Clear();
 	}
@@ -921,11 +926,11 @@ void idRenderWorldLocal::FlowLightThroughPortals( idRenderLightLocal* light )
 		return;
 	}
 	
-	idPlane frustumPlanes[6];
+	idRenderPlane frustumPlanes[6];
 	idRenderMatrix::GetFrustumPlanes( frustumPlanes, light->baseLightProject, true, true );
 	
 	portalStack_t ps;
-	memset( &ps, 0, sizeof( ps ) );
+	ps.Clear();
 	ps.numPortalPlanes = 6;
 	for( int i = 0; i < 6; i++ )
 	{
@@ -1116,24 +1121,18 @@ Debugging tool, won't work correctly with SMP or when mirrors are present
 */
 void idRenderWorldLocal::ShowPortals()
 {
-	int			i, j;
-	portalArea_t*	area;
-	portal_t*	p;
-	idWinding*	w;
-	
 	// flood out through portals, setting area viewCount
-	for( i = 0; i < numPortalAreas; i++ )
+	for( int i = 0; i < numPortalAreas; ++i )
 	{
-		area = &portalAreas[i];
-		if( area->viewCount != tr.GetViewCount() )
-		{
+		auto area = &portalAreas[i];
+		if( area->viewCount != tr.GetViewCount() ) {
 			continue;
 		}
-		for( p = area->portals; p; p = p->next )
+
+		for( auto p = area->portals; p; p = p->next )
 		{
-			w = p->w;
-			if( !w )
-			{
+			auto w = p->w;
+			if( !w ) {
 				continue;
 			}
 			
@@ -1142,8 +1141,7 @@ void idRenderWorldLocal::ShowPortals()
 				// red = can't see
 				GL_Color( 1, 0, 0 );
 			}
-			else
-			{
+			else {
 				// green = see through
 				GL_Color( 0, 1, 0 );
 			}
@@ -1153,7 +1151,7 @@ void idRenderWorldLocal::ShowPortals()
 			// RB end
 			
 			glBegin( GL_LINE_LOOP );
-			for( j = 0; j < w->GetNumPoints(); j++ )
+			for( int j = 0; j < w->GetNumPoints(); j++ )
 			{
 				glVertex3fv( ( *w )[j].ToFloatPtr() );
 			}

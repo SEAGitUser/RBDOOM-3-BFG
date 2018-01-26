@@ -62,6 +62,9 @@ struct define_t {
 	idToken *		tokens;						// macro tokens (possibly containing parm tokens)
 	define_t *		next;						// next defined macro in a list
 	define_t *		hashnext;					// next define in the hash chain
+
+	idListNode<define_t> listNode; 
+	//idListNode<define_t> hashNode;
 };
 
 // indents used for conditional compilation directives:
@@ -153,6 +156,7 @@ public:
 	void				GetStringFromMarker( idStr& out, bool clean = false );
 	// add a define to the source
 	bool				AddDefine( const char* string );
+	bool				RemoveDefine( const char* string );
 	// add includes to the source
 	int					AddIncludes( const idStrList& includes );
 	// add an include to the source
@@ -206,6 +210,8 @@ public:
 
 protected:
 
+	typedef idLinkedList<define_t, &define_t::listNode> defineList_t;
+
 	bool				loaded;						// set when a source file is loaded from file or memory
 	bool				OSPath;						// true if the file was loaded from an OS path
 	idStr				filename;					// file name of the script
@@ -223,7 +229,8 @@ protected:
 	int					startLine;					// line offset
 	const char *		marker_p;
 
-	static define_t *	globaldefines;				// list with global defines added to every source loaded
+	// list with global defines added to every source loaded
+	static defineList_t	globalDefines;
 
 	idStrList			dependencies;				// list of filenames that have been included
 	idStack< int >		dependencyStateStack;		// stack of the number of dependencies

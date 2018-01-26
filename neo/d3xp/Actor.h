@@ -198,7 +198,7 @@ public:
 	
 	virtual void			Teleport( const idVec3& origin, const idAngles& angles, idEntity* destination );
 	
-	virtual	renderView_t* 	GetRenderView();
+	virtual	renderViewParms_t* 	GetRenderView();
 	
 	// animation state control
 	int						GetAnim( int channel, const char* name );

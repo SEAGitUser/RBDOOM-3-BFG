@@ -28,7 +28,56 @@ If you have questions concerning this license or the applicable additional terms
 
 #ifndef __SCREENRECT_H__
 #define __SCREENRECT_H__
+#if 0
+class idRect {
+public:
+	short	x1 = 32000;
+	short	y1 = 32000;
+	short	x2 = -32000;
+	short	y2 = -32000;
 
+	bool IsEmpty() const { return( x1 > x2 || y1 > y2 ); }
+	short GetWidth() const { return x2 - x1 + 1; }
+	short GetHeight() const { return y2 - y1 + 1; }
+	int	GetArea() const { return ( x2 - x1 + 1 ) * ( y2 - y1 + 1 ); }
+	
+	// expand by one pixel each way to fix roundoffs
+	void Expand() { x1--; y1--; x2++; y2++; }
+	
+	// adds a point
+	void AddPoint( float x, float y )
+	{
+		short ix = idMath::Ftoi16( x );
+		short iy = idMath::Ftoi16( y );
+
+		if( ix < x1 ) x1 = ix;
+		if( ix > x2 ) x2 = ix;
+		if( iy < y1 ) y1 = iy;
+		if( iy > y2 ) y2 = iy;
+	}
+	
+	void Intersect( const idRect& rect )
+	{
+		if( rect.x1 > x1 ) x1 = rect.x1;
+		if( rect.x2 < x2 ) x2 = rect.x2;
+		if( rect.y1 > y1 ) y1 = rect.y1;
+		if( rect.y2 < y2 ) y2 = rect.y2;
+	}
+
+	void Union( const idRect& rect )
+	{
+		if( rect.x1 < x1 ) x1 = rect.x1;
+		if( rect.x2 > x2 ) x2 = rect.x2;
+		if( rect.y1 < y1 ) y1 = rect.y1;
+		if( rect.y2 > y2 ) y2 = rect.y2;
+	}
+
+	bool Equals( const idRect& rect ) const
+	{
+		return( x1 == rect.x1 && x2 == rect.x2 && y1 == rect.y1 && y2 == rect.y2 );
+	}
+};
+#endif
 /*
 ================================================================================================
 

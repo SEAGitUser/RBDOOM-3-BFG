@@ -836,7 +836,116 @@ static void R_CreateSMAASearchImage( idImage* image )
 #endif
 };
 // RB end
+#if 0
+#include <d3dx9.h>
 
+static void R_Create3DJitterImage( idImage* image )
+{
+	static const int TEXDEPTH_HEIGHT = 1024;
+	static const int TEXDEPTH_WIDTH = 1024;
+	static const int JITTER_SIZE = 32;
+	static const int JITTER_SAMPLES = 8;
+
+	// Build the jitter texture
+	D3DLOCKED_BOX lb;
+	unsigned char *data = ( unsigned char * )lb.pBits;
+
+	for( int i = 0; i < JITTER_SIZE; i++ ) {
+		for( int j = 0; j < JITTER_SIZE; j++ )
+		{
+			float rot_offset = ( ( float )rand() / RAND_MAX - 1 ) * 2 * 3.1415926f;
+
+			for( int k = 0; k < JITTER_SAMPLES * JITTER_SAMPLES / 2; k++ )
+			{
+				float v[ 4 ];
+
+				int x = k % ( JITTER_SAMPLES / 2 );
+				int y = ( JITTER_SAMPLES - 1 ) - k / ( JITTER_SAMPLES / 2 );
+
+				v[ 0 ] = ( float )( x * 2 + 0.5f ) / JITTER_SAMPLES;
+				v[ 1 ] = ( float )( y + 0.5f ) / JITTER_SAMPLES;
+				v[ 2 ] = ( float )( x * 2 + 1 + 0.5f ) / JITTER_SAMPLES;
+				v[ 3 ] = v[ 1 ];
+
+				// jitter
+				v[ 0 ] += ( ( float )rand() * 2 / RAND_MAX - 1 ) / JITTER_SAMPLES;
+				v[ 1 ] += ( ( float )rand() * 2 / RAND_MAX - 1 ) / JITTER_SAMPLES;
+				v[ 2 ] += ( ( float )rand() * 2 / RAND_MAX - 1 ) / JITTER_SAMPLES;
+				v[ 3 ] += ( ( float )rand() * 2 / RAND_MAX - 1 ) / JITTER_SAMPLES;
+
+				// warp to disk
+				float d[ 4 ];
+				d[ 0 ] = idMath::Sqrt( v[ 1 ] ) * idMath::Cos( 2 * 3.1415926f * v[ 0 ] + rot_offset );
+				d[ 1 ] = idMath::Sqrt( v[ 1 ] ) * idMath::Sin( 2 * 3.1415926f * v[ 0 ] + rot_offset );
+				d[ 2 ] = idMath::Sqrt( v[ 3 ] ) * idMath::Cos( 2 * 3.1415926f * v[ 2 ] + rot_offset );
+				d[ 3 ] = idMath::Sqrt( v[ 3 ] ) * idMath::Sin( 2 * 3.1415926f * v[ 2 ] + rot_offset );
+
+				d[ 0 ] = ( d[ 0 ] + 1.0 ) / 2.0;
+				d[ 1 ] = ( d[ 1 ] + 1.0 ) / 2.0;
+				d[ 2 ] = ( d[ 2 ] + 1.0 ) / 2.0;
+				d[ 3 ] = ( d[ 3 ] + 1.0 ) / 2.0;
+
+				data[ k * lb.SlicePitch + j * lb.RowPitch + i * 4 + 0 ] = ( unsigned char )( d[ 0 ] * 255 );
+				data[ k * lb.SlicePitch + j * lb.RowPitch + i * 4 + 1 ] = ( unsigned char )( d[ 1 ] * 255 );
+				data[ k * lb.SlicePitch + j * lb.RowPitch + i * 4 + 2 ] = ( unsigned char )( d[ 2 ] * 255 );
+				data[ k * lb.SlicePitch + j * lb.RowPitch + i * 4 + 3 ] = ( unsigned char )( d[ 3 ] * 255 );
+			}
+		}
+	}
+	//////////////////////////////////////////////////////////////
+
+	int size = 0;
+	int samples_u = 0; 
+	int samples_v = 0;
+
+	signed char * data = new signed char[ size * size * samples_u * samples_v * 4 / 2 ];
+
+	for( int i = 0; i < size; i++ ) {
+		for( int j = 0; j < size; j++ )
+		{
+			for( int k = 0; k < samples_u * samples_v / 2; k++ )
+			{
+				float v[ 4 ];
+
+				int x = k % ( samples_u / 2 );
+				int y = ( samples_v - 1 ) - k / ( samples_u / 2 );
+
+				// generate points on a regular samples_u x samples_v rectangular grid
+				v[ 0 ] = ( float )( x * 2 + 0.5f ) / samples_u;
+				v[ 1 ] = ( float )( y + 0.5f ) / samples_v;
+				v[ 2 ] = ( float )( x * 2 + 1 + 0.5f ) / samples_u;
+				v[ 3 ] = v[ 1 ];
+
+				// jitter position
+				v[ 0 ] += ( ( float )rand() * 2 / RAND_MAX - 1 ) * ( 0.5f / samples_u );
+				v[ 1 ] += ( ( float )rand() * 2 / RAND_MAX - 1 ) * ( 0.5f / samples_v );
+				v[ 2 ] += ( ( float )rand() * 2 / RAND_MAX - 1 ) * ( 0.5f / samples_u );
+				v[ 3 ] += ( ( float )rand() * 2 / RAND_MAX - 1 ) * ( 0.5f / samples_v );
+
+				// warp to disk
+				float d[ 4 ];
+				d[ 0 ] = idMath::Sqrt( v[ 1 ] ) * idMath::Cos( 2 * 3.1415926f * v[ 0 ] );
+				d[ 1 ] = idMath::Sqrt( v[ 1 ] ) * idMath::Sin( 2 * 3.1415926f * v[ 0 ] );
+				d[ 2 ] = idMath::Sqrt( v[ 3 ] ) * idMath::Cos( 2 * 3.1415926f * v[ 2 ] );
+				d[ 3 ] = idMath::Sqrt( v[ 3 ] ) * idMath::Sin( 2 * 3.1415926f * v[ 2 ] );
+
+				data[ ( k * size * size + j * size + i ) * 4 + 0 ] = ( signed char )( d[ 0 ] * 127 );
+				data[ ( k * size * size + j * size + i ) * 4 + 1 ] = ( signed char )( d[ 1 ] * 127 );
+				data[ ( k * size * size + j * size + i ) * 4 + 2 ] = ( signed char )( d[ 2 ] * 127 );
+				data[ ( k * size * size + j * size + i ) * 4 + 3 ] = ( signed char )( d[ 3 ] * 127 );
+			}
+		}
+	}
+
+	glTexImage3D( GL_TEXTURE_3D, 0, GL_SIGNED_RGBA_NV, size, size, samples_u * samples_v / 2, 0, GL_RGBA, GL_BYTE, data );
+
+	delete[] data;
+
+	// Create per-pixel jitter lookup textures
+	//create_jitter_lookup( jitter_lookup_64, JITTER_SIZE, 8, 8 );	// 8 'estimation' samples, 64 total samples
+	//create_jitter_lookup( jitter_lookup_32, JITTER_SIZE, 4, 8 );	// 4 'estimation' samples, 32 total samples
+}
+#endif
 /*
 ================
 idImageManager::CreateIntrinsicImages

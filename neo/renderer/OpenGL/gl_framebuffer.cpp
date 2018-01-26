@@ -198,7 +198,7 @@ void idRenderDestination::CreateFromImages( const targetList_t *_targetList, idI
 	if( GLEW_KHR_debug )
 	{
 		idStrStatic<128> name;
-		name.Format( "idRenderDestination(\"%s\")(%u)", GetName(), fbo );
+		name.Format<128>( "idRenderDestination(\"%s\")(%u)", GetName(), fbo );
 		glObjectLabel( GL_FRAMEBUFFER, fbo, name.Length(), name.c_str() );
 	}
 
@@ -225,8 +225,8 @@ void idRenderDestination::CreateFromImages( const targetList_t *_targetList, idI
 		glFramebufferTexture( GL_FRAMEBUFFER, targetBuffers[ buffersCount ], texnum, targ.mipLevel );			
 		buffersCount++;
 
-		targetWidth = Max( targetWidth, targ.image->GetUploadWidth() ) / ( 1 << targ.mipLevel );
-		targetHeight = Max( targetHeight, targ.image->GetUploadHeight() ) / ( 1 << targ.mipLevel );
+		targetWidth = idMath::Max( targetWidth, targ.image->GetUploadWidth() ) / ( 1 << targ.mipLevel );
+		targetHeight = idMath::Max( targetHeight, targ.image->GetUploadHeight() ) / ( 1 << targ.mipLevel );
 	}
 
 	if( depth == stencil )
@@ -346,15 +346,15 @@ void idRenderDestination::Print() const
 
 		if( trg.image != nullptr )
 		{
-			common->Printf( " - target(%i) mip(%i) leyer(%i) %s\n", i, trg.mipLevel, trg.layer, trg.image->GetName() );
+			common->Printf( S_COLOR_GRAY " - target%i mip(%i) leyer(%i) %s" S_COLOR_DEFAULT "\n", i, trg.mipLevel, trg.layer, trg.image->GetName() );
 		}
 	}
 	if( depthImage != nullptr )
 	{
-		common->Printf( " - depthImage: %s\n", depthImage->GetName() );
+		common->Printf( S_COLOR_GRAY " - depthImage: %s" S_COLOR_DEFAULT "\n", depthImage->GetName() );
 	}
 	if( stencilImage != nullptr )
 	{
-		common->Printf( " - stencilImage: %s\n", stencilImage->GetName() );
+		common->Printf( S_COLOR_GRAY " - stencilImage: %s" S_COLOR_DEFAULT "\n", stencilImage->GetName() );
 	}
 }

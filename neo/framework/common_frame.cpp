@@ -534,7 +534,7 @@ void idCommonLocal::Frame()
 		if( aviCaptureMode )
 		{
 			idStr name;
-			name.Format( "demos/%s/%s_%05i", aviDemoShortName.c_str(), aviDemoShortName.c_str(), aviDemoFrameCount++ );
+			name.Format<256>( "demos/%s/%s_%05i", aviDemoShortName.c_str(), aviDemoShortName.c_str(), aviDemoFrameCount++ );
 			renderSystem->TakeScreenshot( com_aviDemoWidth.GetInteger(), com_aviDemoHeight.GetInteger(), name, com_aviDemoSamples.GetInteger(), NULL, TGA );
 			
 			// remove any printed lines at the top before taking the screenshot
@@ -605,7 +605,7 @@ void idCommonLocal::Frame()
 			
 			// if there was a large gap in time since the last frame, or the frame
 			// rate is very very low, limit the number of frames we will run
-			const int clampedDeltaMilliseconds = Min( deltaMilliseconds, com_deltaTimeClamp.GetInteger() );
+			const int clampedDeltaMilliseconds = idMath::Min( deltaMilliseconds, com_deltaTimeClamp.GetInteger() );
 			
 			gameTimeResidual += clampedDeltaMilliseconds * timescale.GetFloat();
 			

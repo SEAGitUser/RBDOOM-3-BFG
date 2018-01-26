@@ -152,9 +152,9 @@ const idStr& GetSaveFolder( idSaveGameManager::packageType_t type )
 		
 		idStr ps3Header = "";
 		
-		saveFolder[idSaveGameManager::PACKAGE_GAME].Format( "%s%s", ps3Header.c_str(), SAVEGAME_GAME_DIRECTORY_PREFIX );
-		saveFolder[idSaveGameManager::PACKAGE_PROFILE].Format( "%s%s", ps3Header.c_str(), SAVEGAME_PROFILE_DIRECTORY_PREFIX );
-		saveFolder[idSaveGameManager::PACKAGE_RAW].Format( "%s%s", ps3Header.c_str(), SAVEGAME_RAW_DIRECTORY_PREFIX );
+		saveFolder[idSaveGameManager::PACKAGE_GAME].Format<MAX_FOLDER_NAME_LENGTH>( "%s%s", ps3Header.c_str(), SAVEGAME_GAME_DIRECTORY_PREFIX );
+		saveFolder[idSaveGameManager::PACKAGE_PROFILE].Format<MAX_FOLDER_NAME_LENGTH>( "%s%s", ps3Header.c_str(), SAVEGAME_PROFILE_DIRECTORY_PREFIX );
+		saveFolder[idSaveGameManager::PACKAGE_RAW].Format<MAX_FOLDER_NAME_LENGTH>( "%s%s", ps3Header.c_str(), SAVEGAME_RAW_DIRECTORY_PREFIX );
 	}
 	
 	return saveFolder[type];

@@ -786,7 +786,7 @@ void Cmd_GetViewpos_f( const idCmdArgs& args )
 		return;
 	}
 	
-	const renderView_t* view = player->GetRenderView();
+	const renderViewParms_t* view = player->GetRenderView();
 	if( view )
 	{
 		gameLocal.Printf( "(%s) %.1f\n", view->vieworg.ToString(), view->viewaxis[0].ToYaw() );
@@ -1036,7 +1036,7 @@ void Cmd_TestLight_f( const idCmdArgs& args )
 		return;
 	}
 	
-	renderView_t*	rv = player->GetRenderView();
+	renderViewParms_t*	rv = player->GetRenderView();
 	
 	float fov = tan( idMath::M_DEG2RAD * rv->fov_x / 2 );
 	

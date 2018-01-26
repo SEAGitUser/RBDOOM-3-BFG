@@ -23,6 +23,38 @@ In addition, the Doom 3 BFG Edition Source Code is also subject to certain addit
 
 If you have questions concerning this license or the applicable additional terms, you may contact in writing id Software LLC, c/o ZeniMax Media Inc., Suite 120, Rockville, Maryland 20850 USA.
 
+struct vaoInfo_t 
+{
+	void *	vao;
+	void *	vb;
+	void *	ib;
+	void *	mb;
+	void *	stb;
+			vertexMask;
+};
+
+class idVaoContainer
+{
+	idVaoContainer()
+
+	AddVaoInfo()
+	RemoveVaoInfo()
+	FindVaoInfo()
+	RemoveVertexBuffer()
+	RemoveIndexBuffer()
+	GenerateKey()
+
+	VAO_DEFAULT_HASH_SIZE;
+	VAO_DEFAULT_INDEX_SIZE;
+	VAO_DEFAULT_INFO_SIZE;	vaoInfo_t	vaoInfo;
+	idList<vaoInfo_t,5>	freeList;
+	vaoHash;
+	vbVaoHash;
+	ibVaoHash;
+	mbVaoHash;
+	stbVaoHash;
+};
+
 ===========================================================================
 */
 #ifndef __VERTEXCACHE2_H__

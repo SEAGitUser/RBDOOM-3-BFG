@@ -50,7 +50,7 @@ public:
 	
 	virtual void			Think();
 	
-	virtual renderView_t* 	GetRenderView();
+	virtual renderViewParms_t* 	GetRenderView();
 	virtual void			Killed( idEntity* inflictor, idEntity* attacker, int damage, const idVec3& dir, int location );
 	virtual bool			Pain( idEntity* inflictor, idEntity* attacker, int damage, const idVec3& dir, int location );
 	virtual void			Present();

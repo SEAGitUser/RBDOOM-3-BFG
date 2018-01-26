@@ -44,7 +44,7 @@ static idStr FindUnusedFileName( const char* format )
 	
 	for( int i = 0 ; i < 999 ; i++ )
 	{
-		filename.Format( format, i );
+		filename.Format<256>( format, i );
 		int len = fileSystem->ReadFile( filename, NULL, NULL );
 		if( len <= 0 )
 		{

@@ -1833,7 +1833,7 @@ void idSWF::FindTooltipIcons( idStr* text )
 			
 				if( !bind.mouse.IsEmpty() )
 				{
-					replacement.Format( "<%s>", bind.mouse.c_str() );
+					replacement.Format<128>( "<%s>", bind.mouse.c_str() );
 				}
 				else if( !bind.keyboard.IsEmpty() )
 				{

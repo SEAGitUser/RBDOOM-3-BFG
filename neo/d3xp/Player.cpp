@@ -10577,7 +10577,7 @@ idPlayer::GetRenderView
 Returns the renderView that was calculated for this tic
 ==================
 */
-renderView_t* idPlayer::GetRenderView()
+renderViewParms_t* idPlayer::GetRenderView()
 {
 	return renderView;
 }
@@ -10596,7 +10596,7 @@ void idPlayer::CalculateRenderView()
 	
 	if( !renderView )
 	{
-		renderView = new( TAG_ENTITY ) renderView_t;
+		renderView = new( TAG_ENTITY ) renderViewParms_t;
 	}
 	renderView->Clear();
 	
@@ -11642,7 +11642,7 @@ bool idPlayer::GetPhysicsToSoundTransform( idVec3& origin, idMat3& axis )
 	
 	if( camera )
 	{
-		renderView_t view;
+		renderViewParms_t view;
 		
 		memset( &view, 0, sizeof( view ) );
 		camera->GetViewParms( &view );

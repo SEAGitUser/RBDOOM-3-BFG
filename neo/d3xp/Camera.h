@@ -44,8 +44,8 @@ public:
 	ABSTRACT_PROTOTYPE( idCamera );
 	
 	void					Spawn();
-	virtual void			GetViewParms( renderView_t* view ) = 0;
-	virtual renderView_t* 	GetRenderView();
+	virtual void			GetViewParms( renderViewParms_t* view ) = 0;
+	virtual renderViewParms_t* 	GetRenderView();
 	virtual void			Stop() {} ;
 };
 
@@ -68,7 +68,7 @@ public:
 	void					Restore( idRestoreGame* savefile );				// unarchives object from save game file
 	
 	void					Spawn( );
-	virtual void			GetViewParms( renderView_t* view );
+	virtual void			GetViewParms( renderViewParms_t* view );
 	virtual void			Stop();
 	
 protected:
@@ -110,7 +110,7 @@ public:
 	void					Restore( idRestoreGame* savefile );				// unarchives object from save game file
 	
 	void					Spawn();
-	virtual void			GetViewParms( renderView_t* view );
+	virtual void			GetViewParms( renderViewParms_t* view );
 	
 private:
 	int						threadNum;

@@ -897,7 +897,7 @@ void idCommonLocal::RenderBink( const char* path )
 	const float chop = 0.5f * ( renderSystem->GetVirtualWidth() - imageWidth );
 	
 	idStr materialText;
-	materialText.Format( "{ translucent { videoMap %s } }", path );
+	materialText.Format<256>( "{ translucent { videoMap %s } }", path );
 	
 	idMaterial* material = const_cast<idMaterial*>( declManager->FindMaterial( "splashbink" ) );
 	material->Parse( materialText.c_str(), materialText.Length(), false );

@@ -41,7 +41,8 @@ idSmokeParticles::idSmokeParticles
 idSmokeParticles::idSmokeParticles()
 {
 	initialized = false;
-	memset( &renderEntity, 0, sizeof( renderEntity ) );
+	renderEntity.Clear();
+
 	renderEntityHandle = -1;
 	memset( smokes, 0, sizeof( smokes ) );
 	freeSmokes = NULL;
@@ -71,21 +72,20 @@ void idSmokeParticles::Init()
 	numActiveSmokes = 0;
 	
 	activeStages.Clear();
-	
-	memset( &renderEntity, 0, sizeof( renderEntity ) );
-	
+
+	renderEntity.Clear();
 	renderEntity.bounds.Clear();
 	renderEntity.axis = mat3_identity;
-	renderEntity.shaderParms[ SHADERPARM_RED ]		= 1;
-	renderEntity.shaderParms[ SHADERPARM_GREEN ]	= 1;
-	renderEntity.shaderParms[ SHADERPARM_BLUE ]		= 1;
-	renderEntity.shaderParms[3] = 1;
+	renderEntity.shaderParms[ SHADERPARM_RED ]	= 1.0f;
+	renderEntity.shaderParms[ SHADERPARM_GREEN ]= 1.0f;
+	renderEntity.shaderParms[ SHADERPARM_BLUE ]	= 1.0f;
+	renderEntity.shaderParms[ SHADERPARM_ALPHA ]= 1.0f;
 	
 	renderEntity.hModel = renderModelManager->AllocModel();
 	renderEntity.hModel->InitEmpty( smokeParticle_SnapshotName );
 	
 	// we certainly don't want particle shadows
-	renderEntity.noShadow = 1;
+	renderEntity.noShadow = true;
 	
 	// huge bounds, so it will be present in every world area
 	renderEntity.bounds.AddPoint( idVec3( -100000, -100000, -100000 ) );
@@ -139,16 +139,7 @@ void idSmokeParticles::FreeSmokes()
 		{
 			next = smoke->next;
 			
-			float frac;
-			
-			if( smoke->timeGroup )
-			{
-				frac = ( float )( gameLocal.fast.time - smoke->privateStartTime ) / ( stage->particleLife * 1000 );
-			}
-			else
-			{
-				frac = ( float )( gameLocal.slow.time - smoke->privateStartTime ) / ( stage->particleLife * 1000 );
-			}
+			float frac = ( float )( gameLocal.GetTimeGroupTime( smoke->timeGroup ) - smoke->privateStartTime ) / ( stage->particleLife * 1000 );
 			if( frac >= 1.0f )
 			{
 				// remove the particle from the stage list
@@ -156,8 +147,7 @@ void idSmokeParticles::FreeSmokes()
 				{
 					last->next = smoke->next;
 				}
-				else
-				{
+				else {
 					active->smokes = smoke->next;
 				}
 				// put the particle on the free list
@@ -236,11 +226,11 @@ bool idSmokeParticles::EmitSmoke( const idDeclParticle* smoke, const int systemS
 		}
 		
 		// see how many particles we should emit this tic
-		// FIXME: 			smoke.privateStartTime += stage->timeOffset;
-		int		finalParticleTime = stage->cycleMsec * stage->spawnBunching;
-		int		deltaMsec = gameLocal.time - systemStartTime;
+		// FIXME: smoke.privateStartTime += stage->timeOffset;
+		int	finalParticleTime = stage->cycleMsec * stage->spawnBunching;
+		int	deltaMsec = gameLocal.time - systemStartTime;
 		
-		int		nowCount = 0, prevCount = 0;
+		int	nowCount = 0, prevCount = 0;
 		if( finalParticleTime == 0 )
 		{
 			// if spawnBunching is 0, they will all come out at once
@@ -256,12 +246,12 @@ bool idSmokeParticles::EmitSmoke( const idDeclParticle* smoke, const int systemS
 		}
 		else
 		{
-			nowCount = floor( ( ( float )deltaMsec / finalParticleTime ) * stage->totalParticles );
+			nowCount = idMath::Floor( ( ( float )deltaMsec / finalParticleTime ) * stage->totalParticles );
 			if( nowCount >= stage->totalParticles )
 			{
 				nowCount = stage->totalParticles - 1;
 			}
-			prevCount = floor( ( ( float )( deltaMsec - ( gameLocal.time - gameLocal.previousTime ) ) / finalParticleTime ) * stage->totalParticles );
+			prevCount = idMath::Floor( ( ( float )( deltaMsec - ( gameLocal.time - gameLocal.previousTime ) ) / finalParticleTime ) * stage->totalParticles );
 			if( prevCount < -1 )
 			{
 				prevCount = -1;
@@ -335,9 +325,8 @@ bool idSmokeParticles::EmitSmoke( const idDeclParticle* smoke, const int systemS
 idSmokeParticles::UpdateRenderEntity
 ================
 */
-bool idSmokeParticles::UpdateRenderEntity( renderEntity_s* renderEntity, const renderView_t* renderView )
+bool idSmokeParticles::UpdateRenderEntity( renderEntity_s* renderEntity, const renderViewParms_t* renderView )
 {
-
 	// this may be triggered by a model trace or other non-view related source,
 	// to which we should look like an empty model
 	if( !renderView )
@@ -387,26 +376,15 @@ bool idSmokeParticles::UpdateRenderEntity( renderEntity_s* renderEntity, const r
 		tri->numVerts = quads * 4;
 		
 		// just always draw the particles
-		tri->bounds[0][0] =
-			tri->bounds[0][1] =
-				tri->bounds[0][2] = -99999;
-		tri->bounds[1][0] =
-			tri->bounds[1][1] =
-				tri->bounds[1][2] = 99999;
+		tri->ClearBounds();
 				
 		tri->numVerts = 0;
 		for( last = NULL, smoke = active->smokes; smoke; smoke = next )
 		{
 			next = smoke->next;
 			
-			if( smoke->timeGroup )
-			{
-				g.frac = ( float )( gameLocal.fast.time - smoke->privateStartTime ) / ( stage->particleLife * 1000 );
-			}
-			else
-			{
-				g.frac = ( float )( gameLocal.time - smoke->privateStartTime ) / ( stage->particleLife * 1000 );
-			}
+			g.frac = ( float )( gameLocal.GetTimeGroupTime( smoke->timeGroup ) - smoke->privateStartTime ) / ( stage->particleLife * 1000 );
+
 			if( g.frac >= 1.0f )
 			{
 				// remove the particle from the stage list
@@ -414,8 +392,7 @@ bool idSmokeParticles::UpdateRenderEntity( renderEntity_s* renderEntity, const r
 				{
 					last->next = smoke->next;
 				}
-				else
-				{
+				else {
 					active->smokes = smoke->next;
 				}
 				// put the particle on the free list
@@ -444,8 +421,7 @@ bool idSmokeParticles::UpdateRenderEntity( renderEntity_s* renderEntity, const r
 		}
 		
 		if( tri->numVerts == 0 )
-		{
-		
+		{		
 			// they were all removed
 			renderEntity->hModel->FreeSurfaceTriangles( tri );
 			
@@ -456,21 +432,9 @@ bool idSmokeParticles::UpdateRenderEntity( renderEntity_s* renderEntity, const r
 				activeStageNum--;
 			}
 		}
-		else
-		{
+		else {
 			// build the index list
-			int	indexes = 0;
-			for( int i = 0 ; i < tri->numVerts ; i += 4 )
-			{
-				tri->indexes[indexes + 0] = i;
-				tri->indexes[indexes + 1] = i + 2;
-				tri->indexes[indexes + 2] = i + 3;
-				tri->indexes[indexes + 3] = i;
-				tri->indexes[indexes + 4] = i + 3;
-				tri->indexes[indexes + 5] = i + 1;
-				indexes += 6;
-			}
-			tri->numIndexes = indexes;
+			idTriangles::CreateIndexesForQuads( tri->numVerts, tri->indexes, tri->numIndexes );
 			
 			modelSurface_t	surf;
 			surf.geometry = tri;
@@ -488,7 +452,7 @@ bool idSmokeParticles::UpdateRenderEntity( renderEntity_s* renderEntity, const r
 idSmokeParticles::ModelCallback
 ================
 */
-bool idSmokeParticles::ModelCallback( renderEntity_s* renderEntity, const renderView_t* renderView )
+bool idSmokeParticles::ModelCallback( renderEntity_s* renderEntity, const renderViewParms_t* renderView )
 {
 	// update the particles
 	if( gameLocal.smokeParticles )

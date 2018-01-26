@@ -254,7 +254,7 @@ typedef struct renderView_s
 	{
 		memset( this, 0, sizeof( *this ) );
 	}
-} renderView_t;
+} renderViewParms_t;
 
 
 // exitPortal_t is returned by idRenderWorld::GetPortal()
@@ -359,12 +359,12 @@ public:
 	
 	// some calls to material functions use the current renderview time when servicing cinematics.  this function
 	// ensures that any parms accessed (such as time) are properly set.
-	virtual void			SetRenderView( const renderView_t* renderView ) = 0;
+	virtual void			SetRenderView( const renderViewParms_t* renderView ) = 0;
 	
 	// rendering a scene may actually render multiple subviews for mirrors and portals, and
 	// may render composite textures for gui console screens and light projections
 	// It would also be acceptable to render a scene multiple times, for "rear view mirrors", etc
-	virtual void			RenderScene( const renderView_t* renderView ) = 0;
+	virtual void			RenderScene( const renderViewParms_t* renderView ) = 0;
 	
 	//-------------- Portal Area Information -----------------
 	
@@ -434,7 +434,7 @@ public:
 	// is less than 30hz
 	// demoTimeOffset will be set if a new map load command was processed before
 	// the next renderScene
-	virtual bool			ProcessDemoCommand( idDemoFile* readDemo, renderView_t* demoRenderView, int* demoTimeOffset ) = 0;
+	virtual bool			ProcessDemoCommand( idDemoFile* readDemo, renderViewParms_t* demoRenderView, int* demoTimeOffset ) = 0;
 	
 	// this is used to regenerate all interactions ( which is currently only done during influences ), there may be a less
 	// expensive way to do it

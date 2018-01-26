@@ -285,7 +285,8 @@ public:
 	idStr					Left( int len ) const;							// return the leftmost 'len' characters
 	idStr					Right( int len ) const;							// return the rightmost 'len' characters
 	idStr					Mid( int start, int len ) const;				// return 'len' characters starting at 'start'
-	void					Format( VERIFY_FORMAT_STRING const char* fmt, ... );					// perform a threadsafe sprintf to the string
+	// perform a threadsafe sprintf to the string
+	template< size_t _size_ = MAX_PRINT_MSG > void Format( VERIFY_FORMAT_STRING const char* fmt, ... );
 	static idStr			FormatInt( const int num, bool isCash = false );			// formats an integer as a value with commas
 	static idStr			FormatCash( const int num ) { return FormatInt( num, true ); }
 	
@@ -492,6 +493,32 @@ public:
 		return a.IcmpPath( b );
 	}
 };
+
+
+/*
+========================
+idStr::Format
+
+perform a threadsafe sprintf to the string
+========================
+*/
+template< size_t _size_ >
+void idStr::Format( const char* fmt, ... )
+{
+	va_list argptr;
+	char text[ _size_ ]; // default MAX_PRINT_MSG
+
+	va_start( argptr, fmt );
+	int len = idStr::vsnPrintf( text, sizeof( text ) - 1, fmt, argptr );
+	va_end( argptr );
+	text[ sizeof( text ) - 1 ] = '\0';
+
+	if( ( size_t )len >= sizeof( text ) - 1 )
+	{
+		idLib::FatalError( "Tried to set a large buffer using %s", fmt );
+	}
+	*this = text;
+}
 
 /*
 ========================

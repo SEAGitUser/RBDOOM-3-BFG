@@ -282,9 +282,7 @@ list to NULL.
 template< typename _type_, memTag_t _tag_ >
 ID_INLINE void idList<_type_, _tag_>::DeleteContents( bool clear )
 {
-	int i;
-	
-	for( i = 0; i < num; i++ )
+	for( int i = 0; i < num; i++ )
 	{
 		delete list[ i ];
 		list[ i ] = NULL;

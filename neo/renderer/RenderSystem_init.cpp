@@ -554,6 +554,17 @@ static void R_CheckPortableExtensions()
 									  0, NULL, true );
 		}
 	}
+
+	//////////////////////////////////////////////////////////////
+
+	// GL_ARB_vertex_attrib_binding
+	glConfig.ARB_vertex_attrib_binding = GLEW_ARB_vertex_attrib_binding != 0;
+	if( glConfig.ARB_vertex_attrib_binding )
+	{
+		common->Printf( "...using GL_ARB_vertex_attrib_binding\n");
+	}
+
+	//////////////////////////////////////////////////////////////
 	
 	// GL_ARB_multitexture
 	if( !glConfig.multitextureAvailable )
@@ -605,6 +616,15 @@ static void R_CheckPortableExtensions()
 	{
 		idLib::Error( "GL_ATI_separate_stencil not available" );
 	}
+
+	//glClipControl( GL_LOWER_LEFT, GL_ZERO_TO_ONE )
+	//glClipControl( GL_LOWER_LEFT, GL_NEGATIVE_ONE_TO_ONE )
+	//glClipControl( GL_LOWER_LEFT, GL_ZERO_TO_ONE )
+	//glFrontFace( GL_CW ) GL_CCW
+
+	glGenVertexArrays( 1, &glConfig.empty_vao );
+	glBindVertexArray( glConfig.empty_vao );
+	glBindVertexArray( GL_NONE );
 	
 	// generate one global Vertex Array Object (VAO)
 	glGenVertexArrays( 1, &glConfig.global_vao );
@@ -810,6 +830,7 @@ void R_InitOpenGL()
 	
 	R_SetNewMode( true );
 	
+	console->Resize();
 	
 	// input and sound systems need to be tied to the new window
 	Sys_InitInput();
@@ -1398,6 +1419,8 @@ void idRenderSystemLocal::Shutdown()
 	
 	renderImageManager->Shutdown();
 	renderDestManager.Shutdown();
+
+	renderProgManager.Shutdown();
 
 	// free frame memory
 	allocManager.ShutdownFrameData();

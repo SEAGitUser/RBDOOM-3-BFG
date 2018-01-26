@@ -83,7 +83,7 @@ public:
 	void					WriteRenderEntity( const renderEntity_t& renderEntity );
 	void					WriteRenderLight( const renderLight_t& renderLight );
 	void					WriteRefSound( const refSound_t& refSound );
-	void					WriteRenderView( const renderView_t& view );
+	void					WriteRenderView( const renderViewParms_t& view );
 	void					WriteUsercmd( const usercmd_t& usercmd );
 	void					WriteContactInfo( const contactInfo_t& contactInfo );
 	void					WriteTrace( const trace_t& trace );
@@ -170,7 +170,7 @@ public:
 	void					ReadRenderEntity( renderEntity_t& renderEntity );
 	void					ReadRenderLight( renderLight_t& renderLight );
 	void					ReadRefSound( refSound_t& refSound );
-	void					ReadRenderView( renderView_t& view );
+	void					ReadRenderView( renderViewParms_t& view );
 	void					ReadUsercmd( usercmd_t& usercmd );
 	void					ReadContactInfo( contactInfo_t& contactInfo );
 	void					ReadTrace( trace_t& trace );

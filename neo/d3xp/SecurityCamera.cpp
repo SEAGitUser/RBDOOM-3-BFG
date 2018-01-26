@@ -281,9 +281,9 @@ void idSecurityCamera::DrawFov()
 idSecurityCamera::GetRenderView
 ================
 */
-renderView_t* idSecurityCamera::GetRenderView()
+renderViewParms_t* idSecurityCamera::GetRenderView()
 {
-	renderView_t* rv = idEntity::GetRenderView();
+	renderViewParms_t* rv = idEntity::GetRenderView();
 	rv->fov_x = scanFov;
 	rv->fov_y = scanFov;
 	rv->viewaxis = GetAxis().ToAngles().ToMat3();

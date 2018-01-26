@@ -107,7 +107,7 @@ void idMenuWidget_Shell_SaveInfo::Update()
 		}
 		
 		idStr summary;
-		summary.Format( idLocalization::GetString( "#str_swf_save_info_format" ), difficultyStr, Sys_SecToStr( details.GetPlaytime() ), expansionStr );
+		summary.Format<1024>( idLocalization::GetString( "#str_swf_save_info_format" ), difficultyStr, Sys_SecToStr( details.GetPlaytime() ), expansionStr );
 		
 		info.Append( summary );
 		

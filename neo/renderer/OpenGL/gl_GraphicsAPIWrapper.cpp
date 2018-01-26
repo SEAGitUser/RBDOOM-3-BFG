@@ -32,6 +32,14 @@ If you have questions concerning this license or the applicable additional terms
 
 #include "../tr_local.h"
 
+idCVar r_useVertexAttribFormat( "r_useVertexAttribFormat", "0", CVAR_RENDERER | CVAR_BOOL, "use GL_ARB_vertex_attrib_binding extension" );
+
+static ID_INLINE GLuint GetGLObject( void * apiObject )
+{
+#pragma warning( suppress: 4311 4302 )
+	return reinterpret_cast<GLuint>( apiObject );
+}
+
 /*
 ====================
  GL_SelectTexture
@@ -106,7 +114,7 @@ void GL_BindTexture( int unit, idImage *img )
 	}
 
 	const GLenum texUnit = backEnd.glState.currenttmu;
-	const GLuint texnum = reinterpret_cast< GLuint >( img->GetAPIObject() );
+	const GLuint texnum = GetGLObject( img->GetAPIObject() );
 
 	auto glBindTexObject = []( uint32 currentType, GLenum _unit, GLenum _target, GLuint _name )
 	{
@@ -202,7 +210,7 @@ void GL_BindTexture( int unit, idImage *img )
 }
 /*
 ====================
-GL_BindTexture
+ GL_BindTexture
 ====================
 */
 void GL_BindTexture( int unit, idImage *img, idTextureSampler *sampler )
@@ -214,10 +222,20 @@ void GL_BindTexture( int unit, idImage *img, idTextureSampler *sampler )
 
 /*
 ====================
-GL_Cull
+ GL_ResetProgramState
+====================
+*/
+void GL_ResetProgramState()
+{
+	renderProgManager.Unbind();
+}
 
-This handles the flipping needed when the view being
-rendered is a mirored view.
+/*
+====================
+ GL_Cull
+
+	This handles the flipping needed when the view being
+	rendered is a mirored view.
 ====================
 */
 void GL_Cull( int cullType )
@@ -261,7 +279,7 @@ void GL_Cull( int cullType )
 GL_Scissor
 ====================
 */
-void GL_Scissor( int x /* left*/, int y /* bottom */, int w, int h )
+void GL_Scissor( int x /* left*/, int y /* bottom */, int w, int h, int scissorIndex )
 {
 	glScissor( x, y, w, h );
 
@@ -273,7 +291,7 @@ void GL_Scissor( int x /* left*/, int y /* bottom */, int w, int h )
 GL_Viewport
 ====================
 */
-void GL_Viewport( int x /* left */, int y /* bottom */, int w, int h )
+void GL_Viewport( int x /* left */, int y /* bottom */, int w, int h, int viewportIndex )
 {
 	glViewport( x, y, w, h );
 
@@ -435,7 +453,6 @@ void GL_Clear( bool color, bool depth, bool stencil, byte stencilValue, float r,
 	// RB begin
 	if( r_useHDR.GetBool() && clearHDR && renderDestManager.renderDestBaseHDR != NULL )
 	{
-		///globalFramebuffers.hdrFBO->Bind();
 		GL_SetRenderDestination( renderDestManager.renderDestBaseHDR );
 		
 		glClear( clearFlags );
@@ -443,9 +460,6 @@ void GL_Clear( bool color, bool depth, bool stencil, byte stencilValue, float r,
 		
 		if( GL_IsNativeFramebufferActive() )
 		{
-			///RENDERLOG_PRINT( "GL_Clear() SetNativeFramebuffer\n" );
-			///glBindFramebuffer( GL_FRAMEBUFFER, 0 );
-			///backEnd.glState.currentFramebuffer = NULL;
 			GL_SetNativeRenderDestination();
 		}
 	}
@@ -479,17 +493,23 @@ void GL_ClearColor( const float r, const float g, const float b, const float a, 
 */
 void GL_SetRenderDestination( const idRenderDestination * dest )
 {
-	const GLuint fbo = reinterpret_cast<GLuint>( dest->GetAPIObject() );
+	const GLuint fbo = GetGLObject( dest->GetAPIObject() );
 
 	if( backEnd.glState.currentFramebufferObject != fbo )
 	{
-		glBindFramebuffer( GL_DRAW_FRAMEBUFFER, fbo );
+		glBindFramebuffer( GL_FRAMEBUFFER, fbo );
 
 		backEnd.glState.currentFramebufferObject = fbo;
+		backEnd.glState.currentRenderDestination = dest;
 
 		RENDERLOG_PRINT( "GL_SetRenderDestination( %s, %u )\n", dest->GetName(), fbo );
 	}
 }
+/*
+========================
+ GL_SetNativeRenderDestination
+========================
+*/
 void GL_SetNativeRenderDestination()
 {
 	if( backEnd.glState.currentFramebufferObject != GL_NONE )
@@ -497,9 +517,19 @@ void GL_SetNativeRenderDestination()
 		glBindFramebuffer( GL_FRAMEBUFFER, GL_NONE );
 
 		backEnd.glState.currentFramebufferObject = GL_NONE;
+		backEnd.glState.currentRenderDestination = nullptr;
 
 		RENDERLOG_PRINT( "GL_SetNativeRenderDestination()\n" );
 	}
+}
+/*
+========================
+ GetCurrentRenderDestination
+========================
+*/
+const idRenderDestination * GetCurrentRenderDestination()
+{
+	return backEnd.glState.currentRenderDestination;
 }
 
 /*
@@ -518,7 +548,7 @@ bool GL_IsNativeFramebufferActive()
 */
 bool GL_IsBound( const idRenderDestination * dest )
 {
-	GLuint fbo = reinterpret_cast<GLuint>( dest->GetAPIObject() );
+	GLuint fbo = GetGLObject( dest->GetAPIObject() );
 	return( backEnd.glState.currentFramebufferObject == fbo );
 }
 
@@ -532,23 +562,33 @@ void GL_BlitRenderBuffer(
 	const idRenderDestination * dst, const idScreenRect & dstRect,
 	bool color, bool linearFiltering )
 {
-	const GLuint srcFBO = src ? reinterpret_cast<GLuint>( src->GetAPIObject() ) : GL_ZERO;
-	const GLuint dstFBO = dst ? reinterpret_cast<GLuint>( dst->GetAPIObject() ) : GL_ZERO;
+	const GLuint srcFBO = src ? GetGLObject( src->GetAPIObject() ) : GL_ZERO;
+	const GLuint dstFBO = dst ? GetGLObject( dst->GetAPIObject() ) : GL_ZERO;
 
-	glBindFramebuffer( GL_READ_FRAMEBUFFER_EXT, srcFBO );
-	glBindFramebuffer( GL_DRAW_FRAMEBUFFER_EXT, dstFBO );
+	if( GLEW_ARB_direct_state_access )
+	{
+		glBlitNamedFramebuffer( srcFBO, dstFBO,
+			srcRect.x1, srcRect.y1, srcRect.x2, srcRect.y2,
+			dstRect.x1, dstRect.y1, dstRect.x2, dstRect.y2,
+			color ? GL_COLOR_BUFFER_BIT : GL_DEPTH_BUFFER_BIT,
+			linearFiltering ? GL_LINEAR : GL_NEAREST );
+	}
+	else {
+		glBindFramebuffer( GL_READ_FRAMEBUFFER, srcFBO );
+		glBindFramebuffer( GL_DRAW_FRAMEBUFFER, dstFBO );
 
-	backEnd.glState.currentFramebufferObject = MAX_UNSIGNED_TYPE( GLuint );
+		backEnd.glState.currentFramebufferObject = MAX_UNSIGNED_TYPE( GLuint );
 
-	glBlitFramebuffer(
-		srcRect.x1, srcRect.y1, srcRect.x2, srcRect.y2,
-		dstRect.x1, dstRect.y1, dstRect.x2, dstRect.y2,
-		color ? GL_COLOR_BUFFER_BIT : GL_DEPTH_BUFFER_BIT,
-		linearFiltering ? GL_LINEAR : GL_NEAREST );
+		glBlitFramebuffer(
+			srcRect.x1, srcRect.y1, srcRect.x2, srcRect.y2,
+			dstRect.x1, dstRect.y1, dstRect.x2, dstRect.y2,
+			color ? GL_COLOR_BUFFER_BIT : GL_DEPTH_BUFFER_BIT,
+			linearFiltering ? GL_LINEAR : GL_NEAREST );
+	}
 
 	RENDERLOG_OPEN_BLOCK("GL_Blit");
-	RENDERLOG_PRINT( "src: %s, %u rect:%i,%i,%i,%i\n", src ? src->GetName() : "NATIVE", srcFBO, srcRect.x1, srcRect.y1, srcRect.x2, srcRect.y2 );
-	RENDERLOG_PRINT( "dst: %s, %u rect:%i,%i,%i,%i\n", dst ? dst->GetName() : "NATIVE", dstFBO, dstRect.x1, dstRect.y1, dstRect.x2, dstRect.y2 );
+	RENDERLOG_PRINT( "src: %s, %u, rect:%i,%i,%i,%i\n", src ? src->GetName() : "NATIVE", srcFBO, srcRect.x1, srcRect.y1, srcRect.x2, srcRect.y2 );
+	RENDERLOG_PRINT( "dst: %s, %u, rect:%i,%i,%i,%i\n", dst ? dst->GetName() : "NATIVE", dstFBO, dstRect.x1, dstRect.y1, dstRect.x2, dstRect.y2 );
 	RENDERLOG_CLOSE_BLOCK();
 }
 
@@ -564,16 +604,60 @@ void GL_CopyCurrentColorToTexture( idImage * img, int x, int y, int imageWidth, 
 	release_assert( !img->GetOpts().IsMultisampled() );
 	release_assert( !img->GetOpts().IsArray() );
 
-#if !defined( USE_GLES2 )
+#if !defined( USE_GLES3 )
 	if( GL_IsNativeFramebufferActive() )
 	{
 		glReadBuffer( GL_BACK );
 	}
 #endif
+#if 0
+	if( GLEW_NV_copy_image && !GL_IsNativeFramebufferActive() )
+	{
+		img->Resize( imageWidth, imageHeight, 1 );
+
+		const GLuint srcName = GetGLObject( GetCurrentRenderDestination()->GetColorImage()->GetAPIObject() );
+		const GLuint dstName = GetGLObject( img->GetAPIObject() );
+
+		glCopyImageSubDataNV(
+			srcName, GL_TEXTURE_2D, 0, x, y, 0,
+			dstName, GL_TEXTURE_2D, 0, 0, 0, 0,
+			imageWidth, imageHeight, 1 );
+
+		GL_CheckErrors();
+
+		backEnd.pc.c_copyFrameBuffer++;
+
+		RENDERLOG_PRINT( "GL_CopyCurrentColorToTextureNV( dst: %s %ix%i, %i,%i,%i,%i )\n",
+			img->GetName(), img->GetUploadWidth(), img->GetUploadHeight(), x, y, imageWidth, imageHeight );
+
+		return;
+	}
+	else if( GLEW_ARB_copy_image && !GL_IsNativeFramebufferActive() )
+	{
+		img->Resize( imageWidth, imageHeight, 1 );
+
+		const GLuint srcName = GetGLObject( GetCurrentRenderDestination()->GetColorImage()->GetAPIObject() );
+		const GLuint dstName = GetGLObject( img->GetAPIObject() );
+
+		glCopyImageSubData(
+			srcName, GL_TEXTURE_2D, 0, x, y, 0,
+			dstName, GL_TEXTURE_2D, 0, 0, 0, 0,
+			imageWidth, imageHeight, 1 );
+
+		GL_CheckErrors();
+
+		backEnd.pc.c_copyFrameBuffer++;
+
+		RENDERLOG_PRINT( "GL_CopyCurrentColorToTextureARB( dst: %s %ix%i, %i,%i,%i,%i )\n",
+			img->GetName(), img->GetUploadWidth(), img->GetUploadHeight(), x, y, imageWidth, imageHeight );
+
+		return;
+	}
+#endif
 
 	///glTextureObject_t tex;
 	///tex.DeriveTargetInfo( this );
-	GLuint texnum = reinterpret_cast<GLuint>( img->GetAPIObject() );
+	GLuint texnum = GetGLObject( img->GetAPIObject() );
 	glBindTexture( GL_TEXTURE_2D, texnum );
 
 	img->Resize( imageWidth, imageHeight, 1 );
@@ -600,11 +684,9 @@ void GL_CopyCurrentColorToTexture( idImage * img, int x, int y, int imageWidth, 
 		else
 		#endif
 		{
-			if( GLEW_ARB_texture_storage )
-			{
+			if( GLEW_ARB_texture_storage ) {
 				glCopyTexSubImage2D( GL_TEXTURE_2D, 0, 0, 0, x, y, imageWidth, imageHeight );
-			}
-			else {
+			} else {
 				glCopyTexImage2D( GL_TEXTURE_2D, 0, GL_RGBA16F, x, y, imageWidth, imageHeight, 0 );
 			}
 		}
@@ -652,16 +734,20 @@ void GL_CopyCurrentDepthToTexture( idImage *img, int x, int y, int newImageWidth
 
 	if( img->Resize( newImageWidth, newImageHeight, 1 ) ) // makes bind call if resized
 	{
+		// x, y Specify the window coordinates of the lower left corner of the rectangular region of pixels to be copied.
+
 		if( GLEW_ARB_texture_storage )
 		{
 			glCopyTexSubImage2D( GL_TEXTURE_2D, 0, 0, 0, x, y, newImageWidth, newImageHeight );
 		}
-		else {
+		else
+		{
 			glCopyTexImage2D( GL_TEXTURE_2D, 0, GL_DEPTH_STENCIL, x, y, newImageWidth, newImageHeight, 0 );
 		}
 	}
-	else {
-		GLuint texnum = reinterpret_cast<GLuint>( img->GetAPIObject() );
+	else
+	{
+		GLuint texnum = GetGLObject( img->GetAPIObject() );
 
 		if( GLEW_EXT_direct_state_access )
 		{
@@ -669,18 +755,21 @@ void GL_CopyCurrentDepthToTexture( idImage *img, int x, int y, int newImageWidth
 			{
 				glCopyTextureSubImage2DEXT( texnum, GL_TEXTURE_2D, 0, 0, 0, x, y, newImageWidth, newImageHeight );
 			}
-			else {
+			else
+			{
 				glCopyTextureImage2DEXT( texnum, GL_TEXTURE_2D, 0, GL_DEPTH_STENCIL, x, y, newImageWidth, newImageHeight, 0 );
 			}
 		}
-		else {
+		else
+		{
 			glBindTexture( GL_TEXTURE_2D, texnum );
 
 			if( GLEW_ARB_texture_storage )
 			{
 				glCopyTexSubImage2D( GL_TEXTURE_2D, 0, 0, 0, x, y, newImageWidth, newImageHeight );
 			}
-			else {
+			else
+			{
 				glCopyTexImage2D( GL_TEXTURE_2D, 0, GL_DEPTH_STENCIL, x, y, newImageWidth, newImageHeight, 0 );
 			}
 		}
@@ -696,6 +785,16 @@ void GL_CopyCurrentDepthToTexture( idImage *img, int x, int y, int newImageWidth
 
 /*
 ========================
+ GL_DisableRasterizer
+========================
+*/
+void GL_DisableRasterizer()
+{
+	glEnable( GL_RASTERIZER_DISCARD );
+}
+
+/*
+========================
  GL_SetDefaultState
 
 	This should initialize all GL state that any part of the entire program
@@ -705,6 +804,9 @@ void GL_CopyCurrentDepthToTexture( idImage *img, int x, int y, int newImageWidth
 void GL_SetDefaultState()
 {
 	RENDERLOG_PRINT( "--- GL_SetDefaultState ---\n" );
+
+	//glClipControl( GL_LOWER_LEFT, GL_NEGATIVE_ONE_TO_ONE );
+	//glClipControl( GL_LOWER_LEFT, GL_ZERO_TO_ONE );
 	
 	glClearDepth( 1.0f );
 	
@@ -713,6 +815,7 @@ void GL_SetDefaultState()
 	GL_State( 0, true );
 	
 	backEnd.glState.currentFramebufferObject = MAX_UNSIGNED_TYPE( GLuint );
+	backEnd.glState.currentRenderDestination = nullptr;
 	GL_SetNativeRenderDestination();
 	
 	// These are changed by GL_Cull
@@ -728,11 +831,16 @@ void GL_SetDefaultState()
 	glDisable( GL_POLYGON_OFFSET_FILL );
 	glDisable( GL_POLYGON_OFFSET_LINE );
 	glPolygonMode( GL_FRONT_AND_BACK, GL_FILL );
+
+	//glEnable( GL_SAMPLE_COVERAGE );
+	//glEnable( GL_SAMPLE_MASK );
+	//glEnable( GL_TEXTURE_CUBE_MAP_SEAMLESS );
+	//glFrontFace( GL_CCW );
+	//glBlendEquation( GL_FUNC_ADD );
+	//glDisable( GL_SAMPLE_ALPHA_TO_COVERAGE );
+	//glSampleMaski( 0, 0xffffffff );
 	
 	// These should never be changed
-	// DG: deprecated in opengl 3.2 and not needed because we don't do fixed function pipeline
-	// glShadeModel( GL_SMOOTH );
-	// DG end
 	glEnable( GL_DEPTH_TEST );
 	glEnable( GL_BLEND );
 	glEnable( GL_SCISSOR_TEST );
@@ -889,6 +997,25 @@ void GL_State( uint64 stateBits, bool forceGlState )
 			glDepthMask( GL_TRUE );
 		}
 	}
+
+	//
+	// check stencil mask
+	//
+	// glStencilMask( 0x00 ); // effectively disables stencil writing.
+	// glStencilMask( 0xFF ); // write stencil
+	// 0xff is 11111111 in binary.That means GL can write to all 8 of the stencil bits.
+	// 0x00 is 00000000 in binary, and GL is not allowed to write to any bits when this mask is used.
+	/*
+		The stencil mask never disables the stencil buffer completely, you'd actually have to call glDisable (GL_STENCIL_TEST) for that.
+		It simply enables or disables writes to portions of it.
+
+		On a final note, if you disable GL_STENCIL_TEST or GL_DEPTH_TEST that actually does two things:
+
+		Disables the test
+		Disables writing stencil / depth values
+		So, if for some reason, you ever wanted to write a constant depth or stencil value and you assumed 
+		that disabling the test would accomplish that -- it won't. Use GL_ALWAYS for the test function instead of disabling the test if that is your intention.
+	*/
 	
 	//
 	// check colormask
@@ -1132,88 +1259,276 @@ uint64 GL_GetCurrentStateMinusStencil()
 	return GL_GetCurrentState() & ~( GLS_STENCIL_OP_BITS | GLS_STENCIL_FUNC_BITS | GLS_STENCIL_FUNC_REF_BITS | GLS_STENCIL_FUNC_MASK_BITS );
 }
 
+void GL_SetVertexMask( idBitFlags<vertexMask_t> vertexMask )
+{
+	vertexMask.HasFlag( VERTEX_MASK_POSITION )? glEnableVertexAttribArray( PC_ATTRIB_INDEX_POSITION ) : glDisableVertexAttribArray( PC_ATTRIB_INDEX_POSITION );
+	vertexMask.HasFlag( VERTEX_MASK_ST )? glEnableVertexAttribArray( PC_ATTRIB_INDEX_ST ) : glDisableVertexAttribArray( PC_ATTRIB_INDEX_ST );
+	vertexMask.HasFlag( VERTEX_MASK_NORMAL )? glEnableVertexAttribArray( PC_ATTRIB_INDEX_NORMAL ) : glDisableVertexAttribArray( PC_ATTRIB_INDEX_NORMAL );
+	vertexMask.HasFlag( VERTEX_MASK_COLOR )? glEnableVertexAttribArray( PC_ATTRIB_INDEX_COLOR ) : glDisableVertexAttribArray( PC_ATTRIB_INDEX_COLOR );
+	vertexMask.HasFlag( VERTEX_MASK_TANGENT )? glEnableVertexAttribArray( PC_ATTRIB_INDEX_TANGENT ) : glDisableVertexAttribArray( PC_ATTRIB_INDEX_TANGENT );
+	vertexMask.HasFlag( VERTEX_MASK_COLOR2 )? glEnableVertexAttribArray( PC_ATTRIB_INDEX_COLOR2 ) : glDisableVertexAttribArray( PC_ATTRIB_INDEX_COLOR2 );
+
+	if( vertexMask.HasFlag( VERTEX_MASK_POSITION ) ) {
+		glEnableVertexAttribArray( PC_ATTRIB_INDEX_POSITION );
+		glVertexAttribPointer( PC_ATTRIB_INDEX_POSITION, 3, GL_FLOAT, GL_FALSE, sizeof( idDrawVert ), idDrawVert::positionOffset );
+	} else {
+		glDisableVertexAttribArray( PC_ATTRIB_INDEX_POSITION );
+	}
+
+	if( vertexMask.HasFlag( VERTEX_MASK_ST ) ) {
+		glEnableVertexAttribArray( PC_ATTRIB_INDEX_ST );
+		glVertexAttribPointer( PC_ATTRIB_INDEX_ST, 2, GL_HALF_FLOAT, GL_TRUE, sizeof( idDrawVert ), idDrawVert::texcoordOffset );
+	} else {
+		glDisableVertexAttribArray( PC_ATTRIB_INDEX_ST );
+	}
+
+	if( vertexMask.HasFlag( VERTEX_MASK_NORMAL ) ) {
+		glEnableVertexAttribArray( PC_ATTRIB_INDEX_NORMAL );
+		glVertexAttribPointer( PC_ATTRIB_INDEX_NORMAL, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof( idDrawVert ), idDrawVert::normalOffset );
+	} else {
+		glDisableVertexAttribArray( PC_ATTRIB_INDEX_NORMAL );
+	}
+
+	if( vertexMask.HasFlag( VERTEX_MASK_COLOR ) ) {
+		glEnableVertexAttribArray( PC_ATTRIB_INDEX_COLOR );
+		glVertexAttribPointer( PC_ATTRIB_INDEX_COLOR, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof( idDrawVert ), idDrawVert::colorOffset );
+	} else {
+		glDisableVertexAttribArray( PC_ATTRIB_INDEX_COLOR );
+	}
+
+	if( vertexMask.HasFlag( VERTEX_MASK_TANGENT ) ) {
+		glEnableVertexAttribArray( PC_ATTRIB_INDEX_TANGENT );
+		glVertexAttribPointer( PC_ATTRIB_INDEX_TANGENT, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof( idDrawVert ), idDrawVert::tangentOffset );
+	} else {
+		glDisableVertexAttribArray( PC_ATTRIB_INDEX_TANGENT );
+	}
+
+	if( vertexMask.HasFlag( VERTEX_MASK_COLOR2 ) ) {
+		glEnableVertexAttribArray( PC_ATTRIB_INDEX_COLOR2 );
+		glVertexAttribPointer( PC_ATTRIB_INDEX_COLOR2, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof( idDrawVert ), idDrawVert::color2Offset );
+	} else {
+		glDisableVertexAttribArray( PC_ATTRIB_INDEX_COLOR2 );
+	}
+}
+
 /*
 ========================
  GL_SetVertexLayout
+	Use GL_OES_draw_elements_base_vertex for EGL3.0 backend
 ========================
 */
 void GL_SetVertexLayout( vertexLayoutType_t vertexLayout )
 {
-	switch( vertexLayout )
+	if( glConfig.ARB_vertex_attrib_binding && r_useVertexAttribFormat.GetBool() )
 	{
-		case LAYOUT_DRAW_VERT_POSITION_ONLY:
+		if( vertexLayout == LAYOUT_DRAW_VERT_FULL )
 		{
-			glEnableVertexAttribArray( PC_ATTRIB_INDEX_VERTEX );
-			glDisableVertexAttribArray( PC_ATTRIB_INDEX_NORMAL );
-			glDisableVertexAttribArray( PC_ATTRIB_INDEX_COLOR );
-			glDisableVertexAttribArray( PC_ATTRIB_INDEX_COLOR2 );
-			glDisableVertexAttribArray( PC_ATTRIB_INDEX_ST );
-			glDisableVertexAttribArray( PC_ATTRIB_INDEX_TANGENT );
-
-		#if defined( USE_GLES3 )
-			glVertexAttribPointer( PC_ATTRIB_INDEX_VERTEX, 3, GL_FLOAT, GL_FALSE, sizeof( idDrawVert ), ( void* )( vertOffset + idDrawVert::positionOffset ) );
-		#else
-			glVertexAttribPointer( PC_ATTRIB_INDEX_VERTEX, 3, GL_FLOAT, GL_FALSE, sizeof( idDrawVert ), idDrawVert::positionOffset );
-		#endif
-		} break;
-
-		case LAYOUT_DRAW_VERT_FULL:
-		{
-			glEnableVertexAttribArray( PC_ATTRIB_INDEX_VERTEX );
+			glEnableVertexAttribArray( PC_ATTRIB_INDEX_POSITION );
 			glEnableVertexAttribArray( PC_ATTRIB_INDEX_NORMAL );
 			glEnableVertexAttribArray( PC_ATTRIB_INDEX_COLOR );
 			glEnableVertexAttribArray( PC_ATTRIB_INDEX_COLOR2 );
 			glEnableVertexAttribArray( PC_ATTRIB_INDEX_ST );
 			glEnableVertexAttribArray( PC_ATTRIB_INDEX_TANGENT );
 
-		#if defined( USE_GLES3 )
-			glVertexAttribPointer( PC_ATTRIB_INDEX_VERTEX, 3, GL_FLOAT, GL_FALSE, sizeof( idDrawVert ), ( void* )( vertOffset + DRAWVERT_XYZ_OFFSET ) );
-			glVertexAttribPointer( PC_ATTRIB_INDEX_NORMAL, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof( idDrawVert ), ( void* )( vertOffset + DRAWVERT_NORMAL_OFFSET ) );
-			glVertexAttribPointer( PC_ATTRIB_INDEX_COLOR, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof( idDrawVert ), ( void* )( vertOffset + DRAWVERT_COLOR_OFFSET ) );
-			glVertexAttribPointer( PC_ATTRIB_INDEX_COLOR2, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof( idDrawVert ), ( void* )( vertOffset + DRAWVERT_COLOR2_OFFSET ) );
-		#if defined(USE_ANGLE)
-			glVertexAttribPointer( PC_ATTRIB_INDEX_ST, 2, GL_HALF_FLOAT_OES, GL_TRUE, sizeof( idDrawVert ), ( void* )( vertOffset + DRAWVERT_ST_OFFSET ) );
-		#else
-			glVertexAttribPointer( PC_ATTRIB_INDEX_ST, 2, GL_HALF_FLOAT, GL_TRUE, sizeof( idDrawVert ), ( void* )( vertOffset + DRAWVERT_ST_OFFSET ) );
-		#endif
-			glVertexAttribPointer( PC_ATTRIB_INDEX_TANGENT, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof( idDrawVert ), ( void* )( vertOffset + DRAWVERT_TANGENT_OFFSET ) );
+			glVertexAttribFormat( PC_ATTRIB_INDEX_POSITION, 3, GL_FLOAT, GL_FALSE, DRAWVERT_XYZ_OFFSET );
+			glVertexAttribFormat( PC_ATTRIB_INDEX_NORMAL, 4, GL_UNSIGNED_BYTE, GL_TRUE, DRAWVERT_NORMAL_OFFSET );
+			glVertexAttribFormat( PC_ATTRIB_INDEX_COLOR, 4, GL_UNSIGNED_BYTE, GL_TRUE, DRAWVERT_COLOR_OFFSET );
+			glVertexAttribFormat( PC_ATTRIB_INDEX_COLOR2, 4, GL_UNSIGNED_BYTE, GL_TRUE, DRAWVERT_COLOR2_OFFSET );
+			glVertexAttribFormat( PC_ATTRIB_INDEX_ST, 2, GL_HALF_FLOAT, GL_TRUE, DRAWVERT_ST_OFFSET );
+			glVertexAttribFormat( PC_ATTRIB_INDEX_TANGENT, 4, GL_UNSIGNED_BYTE, GL_TRUE, DRAWVERT_TANGENT_OFFSET );
+		}
+		else if( LAYOUT_DRAW_VERT_POSITION_ONLY )
+		{
+			glEnableVertexAttribArray( PC_ATTRIB_INDEX_POSITION );
+			glDisableVertexAttribArray( PC_ATTRIB_INDEX_NORMAL );
+			glDisableVertexAttribArray( PC_ATTRIB_INDEX_COLOR );
+			glDisableVertexAttribArray( PC_ATTRIB_INDEX_COLOR2 );
+			glDisableVertexAttribArray( PC_ATTRIB_INDEX_ST );
+			glDisableVertexAttribArray( PC_ATTRIB_INDEX_TANGENT );
 
-		#else
-			glVertexAttribPointer( PC_ATTRIB_INDEX_VERTEX, 3, GL_FLOAT, GL_FALSE, sizeof( idDrawVert ), idDrawVert::positionOffset );
-			glVertexAttribPointer( PC_ATTRIB_INDEX_NORMAL, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof( idDrawVert ), idDrawVert::normalOffset );
-			glVertexAttribPointer( PC_ATTRIB_INDEX_COLOR, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof( idDrawVert ), idDrawVert::colorOffset );
-			glVertexAttribPointer( PC_ATTRIB_INDEX_COLOR2, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof( idDrawVert ), idDrawVert::color2Offset );
-			glVertexAttribPointer( PC_ATTRIB_INDEX_ST, 2, GL_HALF_FLOAT, GL_TRUE, sizeof( idDrawVert ), idDrawVert::texcoordOffset );
-			glVertexAttribPointer( PC_ATTRIB_INDEX_TANGENT, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof( idDrawVert ), idDrawVert::tangentOffset );
-		#endif
-		} break;
+			glVertexAttribFormat( PC_ATTRIB_INDEX_POSITION, 3, GL_FLOAT, GL_FALSE, DRAWVERT_XYZ_OFFSET );
+		}
+		else if( LAYOUT_DRAW_VERT_POSITION_TEXCOORD )
+		{
+			glEnableVertexAttribArray( PC_ATTRIB_INDEX_POSITION );
+			glDisableVertexAttribArray( PC_ATTRIB_INDEX_NORMAL );
+			glDisableVertexAttribArray( PC_ATTRIB_INDEX_COLOR );
+			glDisableVertexAttribArray( PC_ATTRIB_INDEX_COLOR2 );
+			glEnableVertexAttribArray( PC_ATTRIB_INDEX_ST );
+			glDisableVertexAttribArray( PC_ATTRIB_INDEX_TANGENT );
 
+			glVertexAttribFormat( PC_ATTRIB_INDEX_POSITION, 3, GL_FLOAT, GL_FALSE, DRAWVERT_XYZ_OFFSET );
+			glVertexAttribFormat( PC_ATTRIB_INDEX_ST, 2, GL_HALF_FLOAT, GL_TRUE, DRAWVERT_ST_OFFSET );
+		}
+		else if( LAYOUT_DRAW_SHADOW_VERT_SKINNED )
+		{
+			glEnableVertexAttribArray( PC_ATTRIB_INDEX_POSITION );
+			glDisableVertexAttribArray( PC_ATTRIB_INDEX_NORMAL );
+			glEnableVertexAttribArray( PC_ATTRIB_INDEX_COLOR );
+			glEnableVertexAttribArray( PC_ATTRIB_INDEX_COLOR2 );
+			glDisableVertexAttribArray( PC_ATTRIB_INDEX_ST );
+			glDisableVertexAttribArray( PC_ATTRIB_INDEX_TANGENT );
 
-		//default:{
-		//} break;
+			glVertexAttribFormat( PC_ATTRIB_INDEX_POSITION, 4, GL_FLOAT, GL_FALSE, SHADOWVERTSKINNED_XYZW_OFFSET );
+			glVertexAttribFormat( PC_ATTRIB_INDEX_COLOR, 4, GL_UNSIGNED_BYTE, GL_TRUE, SHADOWVERTSKINNED_COLOR_OFFSET );
+			glVertexAttribFormat( PC_ATTRIB_INDEX_COLOR2, 4, GL_UNSIGNED_BYTE, GL_TRUE, SHADOWVERTSKINNED_COLOR2_OFFSET );
+		}
+		else if( LAYOUT_DRAW_SHADOW_VERT )
+		{
+			glEnableVertexAttribArray( PC_ATTRIB_INDEX_POSITION );
+			glDisableVertexAttribArray( PC_ATTRIB_INDEX_NORMAL );
+			glDisableVertexAttribArray( PC_ATTRIB_INDEX_COLOR );
+			glDisableVertexAttribArray( PC_ATTRIB_INDEX_COLOR2 );
+			glDisableVertexAttribArray( PC_ATTRIB_INDEX_ST );
+			glDisableVertexAttribArray( PC_ATTRIB_INDEX_TANGENT );
+
+			glVertexAttribFormat( PC_ATTRIB_INDEX_POSITION, 4, GL_FLOAT, GL_FALSE, SHADOWVERT_XYZW_OFFSET );
+		}
+	} 
+	else {
+		switch( vertexLayout )
+		{
+			case LAYOUT_DRAW_VERT_POSITION_ONLY:
+			{
+				glEnableVertexAttribArray( PC_ATTRIB_INDEX_POSITION );
+				glDisableVertexAttribArray( PC_ATTRIB_INDEX_NORMAL );
+				glDisableVertexAttribArray( PC_ATTRIB_INDEX_COLOR );
+				glDisableVertexAttribArray( PC_ATTRIB_INDEX_COLOR2 );
+				glDisableVertexAttribArray( PC_ATTRIB_INDEX_ST );
+				glDisableVertexAttribArray( PC_ATTRIB_INDEX_TANGENT );
+
+				glVertexAttribPointer( PC_ATTRIB_INDEX_POSITION, 3, GL_FLOAT, GL_FALSE, sizeof( idDrawVert ), idDrawVert::positionOffset );
+
+				RENDERLOG_PRINT( "GL_SetVertexLayout( LAYOUT_DRAW_VERT_POSITION_ONLY )\n" );
+			} break;
+
+			case LAYOUT_DRAW_VERT_POSITION_TEXCOORD:
+			{
+				glEnableVertexAttribArray( PC_ATTRIB_INDEX_POSITION );
+				glDisableVertexAttribArray( PC_ATTRIB_INDEX_NORMAL );
+				glDisableVertexAttribArray( PC_ATTRIB_INDEX_COLOR );
+				glDisableVertexAttribArray( PC_ATTRIB_INDEX_COLOR2 );
+				glEnableVertexAttribArray( PC_ATTRIB_INDEX_ST );
+				glDisableVertexAttribArray( PC_ATTRIB_INDEX_TANGENT );
+
+				glVertexAttribPointer( PC_ATTRIB_INDEX_POSITION, 3, GL_FLOAT, GL_FALSE, sizeof( idDrawVert ), idDrawVert::positionOffset );
+				glVertexAttribPointer( PC_ATTRIB_INDEX_ST, 2, GL_HALF_FLOAT, GL_TRUE, sizeof( idDrawVert ), idDrawVert::texcoordOffset );
+
+				RENDERLOG_PRINT( "GL_SetVertexLayout( LAYOUT_DRAW_VERT_POSITION_TEXCOORD )\n" );
+			} break;
+
+			case LAYOUT_DRAW_VERT_FULL:
+			{
+				glEnableVertexAttribArray( PC_ATTRIB_INDEX_POSITION );
+				glEnableVertexAttribArray( PC_ATTRIB_INDEX_NORMAL );
+				glEnableVertexAttribArray( PC_ATTRIB_INDEX_COLOR );
+				glEnableVertexAttribArray( PC_ATTRIB_INDEX_COLOR2 );
+				glEnableVertexAttribArray( PC_ATTRIB_INDEX_ST );
+				glEnableVertexAttribArray( PC_ATTRIB_INDEX_TANGENT );
+
+				glVertexAttribPointer( PC_ATTRIB_INDEX_POSITION, 3, GL_FLOAT, GL_FALSE, sizeof( idDrawVert ), idDrawVert::positionOffset );
+				glVertexAttribPointer( PC_ATTRIB_INDEX_NORMAL, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof( idDrawVert ), idDrawVert::normalOffset );
+				glVertexAttribPointer( PC_ATTRIB_INDEX_COLOR, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof( idDrawVert ), idDrawVert::colorOffset );
+				glVertexAttribPointer( PC_ATTRIB_INDEX_COLOR2, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof( idDrawVert ), idDrawVert::color2Offset );
+				glVertexAttribPointer( PC_ATTRIB_INDEX_ST, 2, GL_HALF_FLOAT, GL_TRUE, sizeof( idDrawVert ), idDrawVert::texcoordOffset );
+				glVertexAttribPointer( PC_ATTRIB_INDEX_TANGENT, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof( idDrawVert ), idDrawVert::tangentOffset );
+
+				RENDERLOG_PRINT( "GL_SetVertexLayout( LAYOUT_DRAW_VERT_FULL )\n" );
+			} break;
+
+			case LAYOUT_DRAW_SHADOW_VERT_SKINNED:
+			{
+				glEnableVertexAttribArray( PC_ATTRIB_INDEX_POSITION );
+				glDisableVertexAttribArray( PC_ATTRIB_INDEX_NORMAL );
+				glEnableVertexAttribArray( PC_ATTRIB_INDEX_COLOR );
+				glEnableVertexAttribArray( PC_ATTRIB_INDEX_COLOR2 );
+				glDisableVertexAttribArray( PC_ATTRIB_INDEX_ST );
+				glDisableVertexAttribArray( PC_ATTRIB_INDEX_TANGENT );
+
+				glVertexAttribPointer( PC_ATTRIB_INDEX_POSITION, 4, GL_FLOAT, GL_FALSE, sizeof( idShadowVertSkinned ), idShadowVertSkinned::xyzwOffset );
+				glVertexAttribPointer( PC_ATTRIB_INDEX_COLOR, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof( idShadowVertSkinned ), idShadowVertSkinned::colorOffset );
+				glVertexAttribPointer( PC_ATTRIB_INDEX_COLOR2, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof( idShadowVertSkinned ), idShadowVertSkinned::color2Offset );
+
+				RENDERLOG_PRINT( "GL_SetVertexLayout( LAYOUT_DRAW_SHADOW_VERT_SKINNED )\n" );
+			} break;
+
+			case LAYOUT_DRAW_SHADOW_VERT:
+			{
+				glEnableVertexAttribArray( PC_ATTRIB_INDEX_POSITION );
+				glDisableVertexAttribArray( PC_ATTRIB_INDEX_NORMAL );
+				glDisableVertexAttribArray( PC_ATTRIB_INDEX_COLOR );
+				glDisableVertexAttribArray( PC_ATTRIB_INDEX_COLOR2 );
+				glDisableVertexAttribArray( PC_ATTRIB_INDEX_ST );
+				glDisableVertexAttribArray( PC_ATTRIB_INDEX_TANGENT );
+
+				glVertexAttribPointer( PC_ATTRIB_INDEX_POSITION, 4, GL_FLOAT, GL_FALSE, sizeof( idShadowVert ), idShadowVert::xyzwOffset );
+
+				RENDERLOG_PRINT("GL_SetVertexLayout( LAYOUT_DRAW_SHADOW_VERT )\n");
+			} break;
+
+			default:{
+				release_assert("Unknown vertexLayoutType_t");
+			} break;
+		}
 	}
 }
 
 /*
-================
- GL_DrawElementsWithCounters
-================
+========================
+========================
 */
-void GL_DrawIndexed( const drawSurf_t* surf, int globalInstCount )
+static void GL_SetIndexBuffer( GLuint ibo )
+{
+	if( backEnd.glState.currentIndexBuffer != ( GLintptr )ibo || !r_useStateCaching.GetBool() )
+	{
+		glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, ibo );
+		backEnd.glState.currentIndexBuffer = ibo;
+	}
+}
+/*
+========================
+========================
+*/
+static void GL_SetVertexArray( GLuint vbo, vertexLayoutType_t vertexLayout )
+{
+	if( ( backEnd.glState.vertexLayout != vertexLayout ) || ( backEnd.glState.currentVertexBuffer != ( GLintptr )vbo ) || !r_useStateCaching.GetBool() )
+	{
+		if( glConfig.ARB_vertex_attrib_binding && r_useVertexAttribFormat.GetBool() )
+		{
+			const GLintptr baseOffset = 0;
+			const GLuint bindingIndex = 0;
+			glBindVertexBuffer( bindingIndex, vbo, baseOffset, sizeof( idDrawVert ) );
+		}
+		else {
+			glBindBuffer( GL_ARRAY_BUFFER, vbo );
+		}
+		backEnd.glState.currentVertexBuffer = ( GLintptr )vbo;
+
+		GL_SetVertexLayout( vertexLayout );
+		backEnd.glState.vertexLayout = vertexLayout;
+	}
+}
+
+/*
+============================================================
+ GL_DrawElementsWithCounters
+============================================================
+*/
+void GL_DrawIndexed( const drawSurf_t* surf, vertexLayoutType_t vertexLayout, int globalInstanceCount )
 {
 	// get vertex buffer --------------------------------
 
 	idVertexBuffer vertexBuffer;
 	vertexCache.GetVertexBuffer( surf->vertexCache, &vertexBuffer );
 	const GLint vertOffset = vertexBuffer.GetOffset();
-	const GLuint vbo = reinterpret_cast<GLuint>( vertexBuffer.GetAPIObject() );
+	const GLuint vbo = GetGLObject( vertexBuffer.GetAPIObject() );
 
 	// get index buffer --------------------------------
 
 	idIndexBuffer indexBuffer;
 	vertexCache.GetIndexBuffer( surf->indexCache, &indexBuffer );
 	const GLintptr indexOffset = indexBuffer.GetOffset();
-	const GLuint ibo = reinterpret_cast<GLuint>( indexBuffer.GetAPIObject() );
+	const GLuint ibo = GetGLObject( indexBuffer.GetAPIObject() );
 
 	// get joint buffer --------------------------------
 
@@ -1250,7 +1565,7 @@ void GL_DrawIndexed( const drawSurf_t* surf, int globalInstCount )
 		assert( ( jointBuffer.GetOffset() & ( glConfig.uniformBufferOffsetAlignment - 1 ) ) == 0 );
 
 		// RB: 64 bit fixes, changed GLuint to GLintptr
-		const GLintptr ubo = reinterpret_cast< GLintptr >( jointBuffer.GetAPIObject() );
+		const GLintptr ubo = GetGLObject( jointBuffer.GetAPIObject() );
 		// RB end
 
 		glBindBufferRange( GL_UNIFORM_BUFFER, BINDING_MATRICES_UBO, ubo, jointBuffer.GetOffset(), jointBuffer.GetNumJoints() * sizeof( idJointMat ) );
@@ -1258,48 +1573,99 @@ void GL_DrawIndexed( const drawSurf_t* surf, int globalInstCount )
 
 	renderProgManager.CommitUniforms();
 
-	// RB: 64 bit fixes, changed GLuint to GLintptr
-	if( backEnd.glState.currentIndexBuffer != ( GLintptr )ibo || !r_useStateCaching.GetBool() )
-	{
-		glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, ibo );
-		backEnd.glState.currentIndexBuffer = ibo;
-	}
+	GL_SetIndexBuffer( ibo );
+	GL_SetVertexArray( vbo, vertexLayout );
 
-	if( ( backEnd.glState.vertexLayout != LAYOUT_DRAW_VERT_FULL ) || ( backEnd.glState.currentVertexBuffer != ( GLintptr )vbo ) || !r_useStateCaching.GetBool() )
-	{
-		glBindBuffer( GL_ARRAY_BUFFER, vbo );
-		backEnd.glState.currentVertexBuffer = ( GLintptr )vbo;
-
-		GL_SetVertexLayout( LAYOUT_DRAW_VERT_FULL );
-		backEnd.glState.vertexLayout = LAYOUT_DRAW_VERT_FULL;
-	}
-
-#if defined( USE_GLES3 )
-	glDrawElements( GL_TRIANGLES,
-		r_singleTriangle.GetBool() ? 3 : surf->numIndexes,
-		GL_INDEX_TYPE,
-		( triIndex_t* )indexOffset );
-#else
-
-	///glDrawElementsBaseVertex( GL_TRIANGLES,
-	///						  r_singleTriangle.GetBool() ? 3 : surf->numIndexes,
-	///						  GL_INDEX_TYPE,
-	///						  ( triIndex_t* )indexOffset,
-	///						  vertOffset / sizeof( idDrawVert ) );
-
-	const GLsizei primcount = globalInstCount;
+	const GLsizei primcount = globalInstanceCount;
 	glDrawElementsInstancedBaseVertex( GL_TRIANGLES,
 		r_singleTriangle.GetBool() ? 3 : surf->numIndexes,
 		GL_INDEX_TYPE,
 		( triIndex_t* )indexOffset,
 		primcount,
 		vertOffset / sizeof( idDrawVert ) );
-#endif
 
-	// RB: added stats
 	backEnd.pc.c_drawElements++;
 	backEnd.pc.c_drawIndexes += surf->numIndexes;
-	// RB end
 
-	RENDERLOG_PRINT( "GL_DrawIndexed( VBO %u:%i, IBO %u:%i )\n", vbo, vertOffset, ibo, indexOffset );
+	RENDERLOG_PRINT( "GL_DrawIndexed( VBO %u:%i, IBO %u:%i, numIndexes:%i )\n", vbo, vertOffset, ibo, indexOffset, surf->numIndexes );
+}
+/*
+============================================================
+ GL_DrawZeroOneCube
+============================================================
+*/
+void GL_DrawZeroOneCube( vertexLayoutType_t vertexLayout, int instanceCount )
+{
+	const drawSurf_t* const surf = &backEnd.zeroOneCubeSurface;
+
+	renderProgManager.CommitUniforms();
+
+	// get vertex buffer --------------------------------
+
+	idVertexBuffer vertexBuffer;
+	vertexCache.GetVertexBuffer( surf->vertexCache, &vertexBuffer );
+	const GLint vertOffset = vertexBuffer.GetOffset();
+	const GLuint vbo = GetGLObject( vertexBuffer.GetAPIObject() );
+
+	// get index buffer --------------------------------
+
+	idIndexBuffer indexBuffer;
+	vertexCache.GetIndexBuffer( surf->indexCache, &indexBuffer );
+	const GLintptr indexOffset = indexBuffer.GetOffset();
+	const GLuint ibo = GetGLObject( indexBuffer.GetAPIObject() );
+
+	GL_SetIndexBuffer( ibo );
+	GL_SetVertexArray( vbo, vertexLayout );
+
+	glDrawElementsInstancedBaseVertex( GL_TRIANGLES,
+		r_singleTriangle.GetBool() ? 3 : surf->numIndexes,
+		GL_INDEX_TYPE,
+		( triIndex_t* )indexOffset,
+		instanceCount,
+		vertOffset / sizeof( idDrawVert ) );
+
+	backEnd.pc.c_drawElements++;
+	backEnd.pc.c_drawIndexes += surf->numIndexes;
+
+	RENDERLOG_PRINT( "GL_DrawZeroOneCube( VBO %u:%i, IBO %u:%i, numIndexes:%i )\n", vbo, vertOffset, ibo, indexOffset, surf->numIndexes );
+}
+/*
+============================================================
+ GL_DrawZeroOneCube
+============================================================
+*/
+void GL_DrawUnitSquare( vertexLayoutType_t vertexLayout, int instanceCount )
+{
+	const drawSurf_t* const surf = &backEnd.unitSquareSurface;
+
+	renderProgManager.CommitUniforms();
+
+	// get vertex buffer --------------------------------
+
+	idVertexBuffer vertexBuffer;
+	vertexCache.GetVertexBuffer( surf->vertexCache, &vertexBuffer );
+	const GLint vertOffset = vertexBuffer.GetOffset();
+	const GLuint vbo = GetGLObject( vertexBuffer.GetAPIObject() );
+
+	// get index buffer --------------------------------
+
+	idIndexBuffer indexBuffer;
+	vertexCache.GetIndexBuffer( surf->indexCache, &indexBuffer );
+	const GLintptr indexOffset = indexBuffer.GetOffset();
+	const GLuint ibo = GetGLObject( indexBuffer.GetAPIObject() );
+
+	GL_SetIndexBuffer( ibo );
+	GL_SetVertexArray( vbo, vertexLayout );
+
+	glDrawElementsInstancedBaseVertex( GL_TRIANGLES,
+		r_singleTriangle.GetBool() ? 3 : surf->numIndexes,
+		GL_INDEX_TYPE,
+		( triIndex_t* )indexOffset,
+		instanceCount,
+		vertOffset / sizeof( idDrawVert ) );
+
+	backEnd.pc.c_drawElements++;
+	backEnd.pc.c_drawIndexes += surf->numIndexes;
+
+	RENDERLOG_PRINT( "GL_DrawUnitSquare( VBO %u:%i, IBO %u:%i, numIndexes:%i )\n", vbo, vertOffset, ibo, indexOffset, surf->numIndexes );
 }

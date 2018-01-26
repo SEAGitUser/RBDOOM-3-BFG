@@ -175,7 +175,7 @@ void OBJExporter::ConvertBrushToOBJ( OBJGroup& group, const idMapBrush* mapBrush
 {
 	OBJExporter::OBJObject& geometry = group.objects.Alloc();
 	
-	geometry.name.Format( "Primitive.%i", primitiveNum );
+	geometry.name.Format<128>( "Primitive.%i", primitiveNum );
 	
 	// fix degenerate planes
 	idPlane* planes = ( idPlane* ) _alloca16( mapBrush->GetNumSides() * sizeof( planes[0] ) );
@@ -316,7 +316,7 @@ void OBJExporter::ConvertPatchToOBJ( OBJGroup& group, const idMapPatch* patch, i
 {
 	OBJExporter::OBJObject& geometry = group.objects.Alloc();
 	
-	geometry.name.Format( "Primitive.%i", primitiveNum );
+	geometry.name.Format<128>( "Primitive.%i", primitiveNum );
 	
 	idSurface_Patch* cp = new idSurface_Patch( *patch );
 	
@@ -365,7 +365,7 @@ void OBJExporter::ConvertMeshToOBJ( OBJGroup& group, const MapPolygonMesh* mesh,
 {
 	OBJExporter::OBJObject& geometry = group.objects.Alloc();
 	
-	geometry.name.Format( "Primitive.%i", primitiveNum );
+	geometry.name.Format<128>( "Primitive.%i", primitiveNum );
 	
 	const idList<idDrawVert>& verts = mesh->GetDrawVerts();
 	

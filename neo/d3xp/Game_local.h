@@ -519,10 +519,7 @@ public:
 	{
 		return framenum;
 	};
-	int						GetTime() const
-	{
-		return time;
-	};
+	int						GetTime() const { return time; };
 	
 	int						GetNextClientNum( int current ) const;
 	idPlayer* 				GetClientByNum( int current ) const;

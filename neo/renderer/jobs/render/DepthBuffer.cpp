@@ -12,17 +12,7 @@
 =========================================================================================
 */
 //idCVar r_drawWorldModelsOnly( "r_drawWorldModelsOnly", "0", CVAR_RENDERER | CVAR_BOOL, "" );
-idCVar r_useMultiDraw( "r_useMultiDraw", "1", CVAR_RENDERER | CVAR_BOOL, "" );
-
-static const uint32 MAX_MULTIDRAW_COUNT = 4096;
-struct multiDrawElementsBaseVertexParms_t {
-	int		count[ MAX_MULTIDRAW_COUNT ];
-	void *	indices[ MAX_MULTIDRAW_COUNT ];
-	int		basevertexes[ MAX_MULTIDRAW_COUNT ];
-	int		primcount;
-	GLuint	vbo, ibo;
-} drawCalls;
-static const size_t multiDrawParmsSize = SIZE_KB( sizeof( multiDrawElementsBaseVertexParms_t ) );
+idCVar r_useMultiDraw( "r_useMultiDraw", "1", CVAR_RENDERER | CVAR_BOOL, "use batched draw calls" );
 
 /*
 ==================
@@ -31,7 +21,7 @@ static const size_t multiDrawParmsSize = SIZE_KB( sizeof( multiDrawElementsBaseV
 */
 static void RB_FillDepthBufferGeneric( const drawSurf_t* const* drawSurfs, int numDrawSurfs )
 {
-	for( int i = 0; i < numDrawSurfs; i++ )
+	for( int i = 0; i < numDrawSurfs; ++i )
 	{
 		auto const drawSurf = drawSurfs[ i ];
 		auto const shader = drawSurf->material;
@@ -47,17 +37,7 @@ static void RB_FillDepthBufferGeneric( const drawSurf_t* const* drawSurfs, int n
 		const float* regs = drawSurf->shaderRegisters;
 
 		// if all stages of a material have been conditioned off, don't do anything
-		int stage = 0;
-		for( ; stage < shader->GetNumStages(); stage++ )
-		{
-			const shaderStage_t* const pStage = shader->GetStage( stage );
-			// check the stage enable condition
-			if( regs[ pStage->conditionRegister ] != 0 )
-			{
-				break;
-			}
-		}
-		if( stage == shader->GetNumStages() )
+		if( shader->ConditionedOff( regs ) )
 		{
 			continue;
 		}
@@ -65,9 +45,9 @@ static void RB_FillDepthBufferGeneric( const drawSurf_t* const* drawSurfs, int n
 		// change the matrix if needed
 		if( drawSurf->space != backEnd.currentSpace )
 		{
-			RB_SetMVP( drawSurf->space->mvp );
-
 			backEnd.currentSpace = drawSurf->space;
+
+			RB_SetMVP( drawSurf->space->mvp );
 		}
 
 		uint64 surfGLState = 0;
@@ -105,7 +85,7 @@ static void RB_FillDepthBufferGeneric( const drawSurf_t* const* drawSurfs, int n
 			bool didDraw = false;
 
 			// perforated surfaces may have multiple alpha tested stages
-			for( stage = 0; stage < shader->GetNumStages(); stage++ )
+			for( int stage = 0; stage < shader->GetNumStages(); stage++ )
 			{
 				auto const pStage = shader->GetStage( stage );
 
@@ -115,7 +95,7 @@ static void RB_FillDepthBufferGeneric( const drawSurf_t* const* drawSurfs, int n
 				}
 
 				// check the stage enable condition
-				if( regs[ pStage->conditionRegister ] == 0 )
+				if( pStage->SkipStage( regs ) )
 				{
 					continue;
 				}
@@ -125,7 +105,7 @@ static void RB_FillDepthBufferGeneric( const drawSurf_t* const* drawSurfs, int n
 				didDraw = true;
 
 				// set the alpha modulate
-				color[ 3 ] = regs[ pStage->color.registers[ SHADERPARM_ALPHA ] ];
+				color[ 3 ] = pStage->GetColorParmAlpha( regs );
 
 				// skip the entire stage if alpha would be black
 				if( color[ 3 ] <= 0.0f )
@@ -145,8 +125,9 @@ static void RB_FillDepthBufferGeneric( const drawSurf_t* const* drawSurfs, int n
 				GL_Color( color );
 
 				GL_State( stageGLState );
+
 				idRenderVector alphaTestValue( regs[ pStage->alphaTestRegister ] );
-				SetFragmentParm( RENDERPARM_ALPHA_TEST, alphaTestValue.ToFloatPtr() );
+				renderProgManager.SetRenderParm( RENDERPARM_ALPHA_TEST, alphaTestValue.ToFloatPtr() );
 
 				renderProgManager.BindShader_TextureVertexColor( drawSurf->jointCache );
 
@@ -206,7 +187,7 @@ static void RB_FillDepthBufferGeneric( const drawSurf_t* const* drawSurfs, int n
 		RENDERLOG_CLOSE_BLOCK();
 	}
 
-	SetFragmentParm( RENDERPARM_ALPHA_TEST, vec4_zero.ToFloatPtr() );
+	renderProgManager.SetRenderParm( RENDERPARM_ALPHA_TEST, vec4_zero.ToFloatPtr() );
 }
 
 /*
@@ -229,12 +210,11 @@ static void RB_FillDepthBufferGeneric( const drawSurf_t* const* drawSurfs, int n
 */
 void RB_FillDepthBufferFast( const drawSurf_t * const * drawSurfs, int numDrawSurfs )
 {
-	if( numDrawSurfs == 0 ) {
+	if( !numDrawSurfs ) {
 		return;
 	}
-
 	// if we are just doing 2D rendering, no need to fill the depth buffer
-	if( backEnd.viewDef->viewEntitys == NULL ) {
+	if( backEnd.viewDef->Is2DView() ) {
 		return;
 	}
 
@@ -244,7 +224,7 @@ void RB_FillDepthBufferFast( const drawSurf_t * const * drawSurfs, int numDrawSu
 	GL_StartDepthPass( backEnd.viewDef->GetScissor() );
 
 	// force MVP change on first surface
-	backEnd.currentSpace = NULL;
+	backEnd.ClearCurrentSpace();
 
 	// draw all the subview surfaces, which will already be at the start of the sorted list,
 	// with the general purpose path
@@ -253,8 +233,7 @@ void RB_FillDepthBufferFast( const drawSurf_t * const * drawSurfs, int numDrawSu
 	int	surfNum;
 	for( surfNum = 0; surfNum < numDrawSurfs; ++surfNum )
 	{
-		if( drawSurfs[ surfNum ]->material->GetSort() != SS_SUBVIEW )
-		{
+		if( drawSurfs[ surfNum ]->material->GetSort() != SS_SUBVIEW ) {
 			break;
 		}
 		RB_FillDepthBufferGeneric( &drawSurfs[ surfNum ], 1 );
@@ -268,9 +247,9 @@ void RB_FillDepthBufferFast( const drawSurf_t * const * drawSurfs, int numDrawSu
 
 	// draw all the opaque surfaces and build up a list of perforated surfaces that
 	// we will defer drawing until all opaque surfaces are done
-	GL_State( GLS_DEFAULT );
+	//GL_State( GLS_DEFAULT | GLS_COLORMASK | GLS_ALPHAMASK );
 
-#if 0
+#if 1
 	// continue checking past the subview surfaces
 	//for( ; surfNum < numDrawSurfs; ++surfNum ) { //SEA: back to front!
 	//	auto const surf = drawSurfs[ surfNum ];
@@ -327,9 +306,7 @@ void RB_FillDepthBufferFast( const drawSurf_t * const * drawSurfs, int numDrawSu
 	}
 #else
 
-	drawCalls.vbo = 0;
-	drawCalls.ibo = 0;
-	drawCalls.primcount = 0;
+	GL_StartMDBatch();
 
 	renderProgManager.BindShader_DepthWorld();
 
@@ -365,18 +342,18 @@ void RB_FillDepthBufferFast( const drawSurf_t * const * drawSurfs, int numDrawSu
 		// must render with less-equal for Z-Cull to work properly
 		assert( ( GL_GetCurrentState() & GLS_DEPTHFUNC_BITS ) == GLS_DEPTHFUNC_LESS );
 
-		idVertexBuffer vertexBuffer;
-		vertexCache.GetVertexBuffer( surf->vertexCache, &vertexBuffer );
-		const GLint vertOffset = vertexBuffer.GetOffset();
-		const GLuint vbo = reinterpret_cast< GLuint >( vertexBuffer.GetAPIObject() );
-
-		idIndexBuffer indexBuffer;
-		vertexCache.GetIndexBuffer( surf->indexCache, &indexBuffer );
-		const GLintptr indexOffset = indexBuffer.GetOffset();
-		const GLuint ibo = reinterpret_cast< GLuint >( indexBuffer.GetAPIObject() );
-
 		if( !r_useMultiDraw.GetBool() ) 
 		{
+			idVertexBuffer vertexBuffer;
+			vertexCache.GetVertexBuffer( surf->vertexCache, &vertexBuffer );
+			const GLint vertOffset = vertexBuffer.GetOffset();
+			const GLuint vbo = reinterpret_cast< GLuint >( vertexBuffer.GetAPIObject() );
+
+			idIndexBuffer indexBuffer;
+			vertexCache.GetIndexBuffer( surf->indexCache, &indexBuffer );
+			const GLintptr indexOffset = indexBuffer.GetOffset();
+			const GLuint ibo = reinterpret_cast< GLuint >( indexBuffer.GetAPIObject() );
+
 			//renderProgManager.CommitUniforms();
 
 			// RB: 64 bit fixes, changed GLuint to GLintptr
@@ -388,19 +365,21 @@ void RB_FillDepthBufferFast( const drawSurf_t * const * drawSurfs, int numDrawSu
 
 			if( ( backEnd.glState.vertexLayout != LAYOUT_DRAW_VERT_POSITION_ONLY ) || ( backEnd.glState.currentVertexBuffer != ( GLintptr )vbo ) || !r_useStateCaching.GetBool() )
 			{
-				glBindBuffer( GL_ARRAY_BUFFER, vbo );
+				if( glConfig.ARB_vertex_attrib_binding && r_useVertexAttribFormat.GetBool() )
+				{
+					const GLintptr baseOffset = 0;
+					const GLuint bindingIndex = 0;
+					glBindVertexBuffer( bindingIndex, vbo, baseOffset, sizeof( idDrawVert ) );
+				} 
+				else {
+					glBindBuffer( GL_ARRAY_BUFFER, vbo );
+				}
 				backEnd.glState.currentVertexBuffer = ( GLintptr )vbo;
 
 				GL_SetVertexLayout( LAYOUT_DRAW_VERT_POSITION_ONLY );
 				backEnd.glState.vertexLayout = LAYOUT_DRAW_VERT_POSITION_ONLY;
 			}
 
-		#if defined( USE_GLES3 )
-			glDrawElements( GL_TRIANGLES,
-				r_singleTriangle.GetBool() ? 3 : surf->numIndexes,
-				GL_INDEX_TYPE,
-				( triIndex_t* )indexOffset );
-		#else
 			const GLsizei primcount = 1;
 			glDrawElementsInstancedBaseVertex( GL_TRIANGLES,
 				r_singleTriangle.GetBool() ? 3 : surf->numIndexes,
@@ -408,51 +387,24 @@ void RB_FillDepthBufferFast( const drawSurf_t * const * drawSurfs, int numDrawSu
 				( triIndex_t* )indexOffset,
 				primcount,
 				vertOffset / sizeof( idDrawVert ) );
-		#endif
 
-			// RB: added stats
 			backEnd.pc.c_drawElements++;
 			backEnd.pc.c_drawIndexes += surf->numIndexes;
-			// RB end
 
 			RENDERLOG_PRINT( "GL_DrawIndexed( VBO %u:%i, IBO %u:%i )\n", vbo, vertOffset, ibo, indexOffset );
 		}
 		else
 		{
-			RENDERLOG_PRINT( "SetCall( VBO %u:%i, IBO %u:%i )\n", vbo, vertOffset, ibo, indexOffset );
-
-			backEnd.pc.c_drawElements++;
-			backEnd.pc.c_drawIndexes += surf->numIndexes;
-
-			drawCalls.count[ drawCalls.primcount ] = r_singleTriangle.GetBool() ? 3 : surf->numIndexes;
-			drawCalls.indices[ drawCalls.primcount ] = ( triIndex_t* )indexOffset;
-			drawCalls.basevertexes[ drawCalls.primcount ] = vertOffset / sizeof( idDrawVert );
-			
-			drawCalls.primcount++;
-
-			drawCalls.vbo = vbo;
-			drawCalls.ibo = ibo;
+			GL_SetupMDParm( surf );
 		}
 	}
 
-	if( drawCalls.primcount && r_useMultiDraw.GetBool() )
+	if( r_useMultiDraw.GetBool() )
 	{
-		glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, drawCalls.ibo );
-		backEnd.glState.currentIndexBuffer = drawCalls.ibo;
-
-		glBindBuffer( GL_ARRAY_BUFFER, drawCalls.vbo );
-		backEnd.glState.currentVertexBuffer = ( GLintptr )drawCalls.vbo;
-
-		GL_SetVertexLayout( LAYOUT_DRAW_VERT_POSITION_ONLY );
-		backEnd.glState.vertexLayout = LAYOUT_DRAW_VERT_POSITION_ONLY;
-
-		glMultiDrawElementsBaseVertex( GL_TRIANGLES,
-			drawCalls.count,
-			GL_INDEX_TYPE,
-			drawCalls.indices,
-			drawCalls.primcount,
-			drawCalls.basevertexes );
+		GL_FinishMDBatch();
 	}
+
+	//GL_State( GLS_DEFAULT );
 
 	for( int i = 0; i < numOpaqueSurfaces; ++i )
 	{
@@ -496,3 +448,114 @@ void RB_FillDepthBufferFast( const drawSurf_t * const * drawSurfs, int numDrawSu
 }
 
 
+
+
+
+
+
+
+#if 0
+
+struct depthBufferPassParms_t
+{
+	const idRenderView * renderView;
+
+	const drawSurf_t** subviewSurfaces = nullptr;
+	uint32 numSubviewSurfaces = 0;
+
+	const drawSurf_t** worldSurfaces = nullptr;
+	uint32 numWorldSurfaces = 0;
+
+	const drawSurf_t** opaqueSurfaces = nullptr;
+	uint32 numOpaqueSurfaces = 0;
+
+	const drawSurf_t** perforatedSurfaces = nullptr;
+	uint32 numPerforatedSurfaces = 0;
+};
+
+void RB_RenderDepthBufferPass( const depthBufferPassParms_t * parms )
+{
+	RENDERLOG_OPEN_MAINBLOCK( MRB_FILL_DEPTH_BUFFER );
+	RENDERLOG_OPEN_BLOCK( "RB_RenderDepthBufferFillPass" );
+
+	GL_StartDepthPass( backEnd.viewDef->GetScissor() );
+	
+	//
+	// Draw all the subview surfaces with the general purpose path
+	//
+
+	GL_State( GLS_DEFAULT );
+
+	backEnd.ClearCurrentSpace();
+
+	RB_FillDepthBufferGeneric( parms->subviewSurfaces, parms->numSubviewSurfaces );
+	
+	//
+	// Draw all the world surfaces
+	//
+
+	GL_State( GLS_DEFAULT | GLS_COLORMASK | GLS_ALPHAMASK );
+
+	renderProgManager.BindShader_DepthWorld();
+
+	for( uint32 surfNum; surfNum < parms->numWorldSurfaces; ++surfNum )
+	{
+		auto const surf = parms->worldSurfaces[ surfNum ];
+		auto const shader = surf->material;
+
+		RENDERLOG_OPEN_BLOCK( shader->GetName() );
+
+		// must render with less-equal for Z-Cull to work properly
+		assert( ( GL_GetCurrentState() & GLS_DEPTHFUNC_BITS ) == GLS_DEPTHFUNC_LESS );
+
+		// draw it solid
+		GL_DrawIndexed( surf );
+
+		RENDERLOG_CLOSE_BLOCK();
+	}
+
+	//
+	// Draw all the opaque surfaces
+	//
+
+	GL_State( GLS_DEFAULT );
+	backEnd.ClearCurrentSpace();
+
+	for( uint32 surfNum = 0; surfNum < parms->numOpaqueSurfaces; ++surfNum )
+	{
+		auto const surf = parms->opaqueSurfaces[ surfNum ];
+		auto const shader = surf->material;
+
+		// set polygon offset?
+
+		// set mvp matrix
+		if( surf->space != backEnd.currentSpace ) 
+		{
+			backEnd.currentSpace = surf->space;
+			RB_SetMVP( surf->space->mvp );
+		}
+
+		RENDERLOG_OPEN_BLOCK( shader->GetName() );
+
+		renderProgManager.BindShader_Depth( surf->jointCache );
+
+		// must render with less-equal for Z-Cull to work properly
+		assert( ( GL_GetCurrentState() & GLS_DEPTHFUNC_BITS ) == GLS_DEPTHFUNC_LESS );
+
+		// draw it solid
+		GL_DrawIndexed( surf );
+
+		RENDERLOG_CLOSE_BLOCK();
+	}
+
+	// draw all perforated surfaces with the general code path
+	RB_FillDepthBufferGeneric( parms->perforatedSurfaces, parms->numPerforatedSurfaces );
+
+	// Allow platform specific data to be collected after the depth pass.
+	GL_FinishDepthPass();
+
+	RENDERLOG_CLOSE_BLOCK();
+	RENDERLOG_CLOSE_MAINBLOCK();
+}
+
+#endif

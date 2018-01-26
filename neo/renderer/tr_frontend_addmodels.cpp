@@ -79,7 +79,7 @@ void R_SetupDrawSurfShader( drawSurf_t * drawSurf, const idMaterial * material, 
 		{
 			// evaluate the reference shader to find our shader parms
 			float refRegs[MAX_EXPRESSION_REGISTERS];
-			renderEntity->referenceShader->EvaluateRegisters( refRegs, renderEntity->shaderParms, viewDef->GetMaterialParms(), 
+			renderEntity->referenceShader->EvaluateRegisters( refRegs, renderEntity->shaderParms, viewDef->GetGlobalMaterialParms(),
 				viewDef->GetGameTimeSec( renderEntity->timeGroup ), renderEntity->referenceSound );
 					
 			auto pStage = renderEntity->referenceShader->GetStage( 0 );
@@ -97,7 +97,7 @@ void R_SetupDrawSurfShader( drawSurf_t * drawSurf, const idMaterial * material, 
 		drawSurf->shaderRegisters = regs;
 		
 		// process the shader expressions for conditionals / color / texcoords
-		material->EvaluateRegisters( regs, shaderParms, viewDef->GetMaterialParms(), viewDef->GetGameTimeSec( renderEntity->timeGroup ), renderEntity->referenceSound );
+		material->EvaluateRegisters( regs, shaderParms, viewDef->GetGlobalMaterialParms(), viewDef->GetGameTimeSec( renderEntity->timeGroup ), renderEntity->referenceSound );
 	}
 }
 
@@ -1145,7 +1145,7 @@ void R_LinkDrawSurfToView( drawSurf_t* drawSurf, idRenderView* viewDef )
 		memcpy( viewDef->drawSurfs, old, count );
 	}
 	
-	viewDef->drawSurfs[viewDef->numDrawSurfs] = drawSurf;
+	viewDef->drawSurfs[ viewDef->numDrawSurfs ] = drawSurf;
 	viewDef->numDrawSurfs++;
 }
 

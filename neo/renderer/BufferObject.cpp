@@ -113,7 +113,7 @@ static void * GL_CreateBuffer( const char *class_name, const void *class_ptr, GL
 	if( GLEW_KHR_debug )
 	{
 		idStrStatic<128> name;
-		name.Format( "%s(%p.%u)", class_name, class_ptr, bufferObject );
+		name.Format<128>( "%s(%p.%u)", class_name, class_ptr, bufferObject );
 		glObjectLabel( GL_BUFFER, bufferObject, name.Length(), name.c_str() );
 	}
 
@@ -338,8 +338,8 @@ void CopyBuffer( byte* dst, const byte* src, int numBytes )
 
 void CopyBuffer( byte* dst, const byte* src, int numBytes )
 {
-	assert_16_byte_aligned( dst );
-	assert_16_byte_aligned( src );
+	//assert_16_byte_aligned( dst );
+	//assert_16_byte_aligned( src );
 	memcpy( dst, src, numBytes );
 }
 
@@ -1051,17 +1051,17 @@ void idJointBuffer::Swap( idJointBuffer& other )
 /*
 ================================================================================================
 
-	idConstantBuffer
+	idUniformBuffer
 
 ================================================================================================
 */
 
 /*
 ========================
-idConstantBuffer::idConstantBuffer
+idUniformBuffer::idUniformBuffer
 ========================
 */
-idConstantBuffer::idConstantBuffer()
+idUniformBuffer::idUniformBuffer()
 {
 	size = 0;
 	offsetInOtherBuffer = OWNS_BUFFER_FLAG;
@@ -1072,26 +1072,26 @@ idConstantBuffer::idConstantBuffer()
 
 /*
 ========================
-idConstantBuffer::~idConstantBuffer
+idUniformBuffer::~idUniformBuffer
 ========================
 */
-idConstantBuffer::~idConstantBuffer()
+idUniformBuffer::~idUniformBuffer()
 {
 	FreeBufferObject();
 }
 
 /*
 ========================
-idConstantBuffer::idConstantBuffer
+idUniformBuffer::idUniformBuffer
 ========================
 */
-bool idConstantBuffer::AllocBufferObject( int allocSize, bufferUsageType_t allocUsage, const void* data )
+bool idUniformBuffer::AllocBufferObject( int allocSize, bufferUsageType_t allocUsage, const void* data )
 {
 	assert( apiObject == nullptr );
 	assert_16_byte_aligned( data );
 
 	if( allocSize <= 0 ) {
-		idLib::Error( "idConstantBuffer::AllocBufferObject: allocSize = %i", allocSize );
+		idLib::Error( "idUniformBuffer::AllocBufferObject: allocSize = %i", allocSize );
 	}
 
 	size = allocSize;
@@ -1100,7 +1100,7 @@ bool idConstantBuffer::AllocBufferObject( int allocSize, bufferUsageType_t alloc
 	// clear out any previous error
 	glGetError();
 
-	apiObject = GL_CreateBuffer( "idConstantBuffer", this, GL_UNIFORM_BUFFER, allocUsage, GetAllocedSize(), data );
+	apiObject = GL_CreateBuffer( "idUniformBuffer", this, GL_UNIFORM_BUFFER, allocUsage, GetAllocedSize(), data );
 
 	if( r_showBuffers.GetBool() ) {
 		idLib::Printf( "constants buffer %p api %p, size %i ( alloced %i ) bytes\n", this, GetAPIObject(), GetSize(), GetAllocedSize() );
@@ -1111,10 +1111,10 @@ bool idConstantBuffer::AllocBufferObject( int allocSize, bufferUsageType_t alloc
 
 /*
 ========================
-idConstantBuffer::FreeBufferObject
+idUniformBuffer::FreeBufferObject
 ========================
 */
-void idConstantBuffer::FreeBufferObject()
+void idUniformBuffer::FreeBufferObject()
 {
 	if( IsMapped() )
 	{
@@ -1145,10 +1145,10 @@ void idConstantBuffer::FreeBufferObject()
 
 /*
 ========================
-idConstantBuffer::ClearWithoutFreeing
+idUniformBuffer::ClearWithoutFreeing
 ========================
 */
-void idConstantBuffer::ClearWithoutFreeing()
+void idUniformBuffer::ClearWithoutFreeing()
 {
 	size = 0;
 	offsetInOtherBuffer = OWNS_BUFFER_FLAG;
@@ -1157,10 +1157,10 @@ void idConstantBuffer::ClearWithoutFreeing()
 
 /*
 ========================
-idConstantBuffer::Update
+idUniformBuffer::Update
 ========================
 */
-void idConstantBuffer::Update( int updateSize, const void* data ) const
+void idUniformBuffer::Update( int updateSize, const void* data ) const
 {
 	assert( apiObject != nullptr );
 	assert( IsMapped() == false );
@@ -1170,7 +1170,7 @@ void idConstantBuffer::Update( int updateSize, const void* data ) const
 
 	if( updateSize > size )
 	{
-		idLib::FatalError( "idConstantBuffer::Update: size overrun, %i > %i\n", updateSize, GetSize() );
+		idLib::FatalError( "idUniformBuffer::Update: size overrun, %i > %i\n", updateSize, GetSize() );
 	}
 	//glConfig.uniformBufferOffsetAlignment
 
@@ -1183,10 +1183,10 @@ void idConstantBuffer::Update( int updateSize, const void* data ) const
 
 /*
 ========================
-idConstantBuffer::MapBuffer
+idUniformBuffer::MapBuffer
 ========================
 */
-void* idConstantBuffer::MapBuffer( bufferMapType_t mapType ) const
+void* idUniformBuffer::MapBuffer( bufferMapType_t mapType ) const
 {
 	assert( apiObject != NULL );
 	assert( IsMapped() == false );
@@ -1195,7 +1195,7 @@ void* idConstantBuffer::MapBuffer( bufferMapType_t mapType ) const
 	buffer = GL_TryMapBufferRange( GL_UNIFORM_BUFFER, reinterpret_cast< GLintptr >( apiObject ), GetOffset(), GetAllocedSize(), GetMapFlags( mapType, true ) );
 	if( buffer == NULL )
 	{
-		idLib::FatalError( "idConstantBuffer::MapBuffer: failed" );
+		idLib::FatalError( "idUniformBuffer::MapBuffer: failed" );
 	}
 
 	SetMapped();
@@ -1208,14 +1208,14 @@ void* idConstantBuffer::MapBuffer( bufferMapType_t mapType ) const
 idIndexBuffer::UnmapBuffer
 ========================
 */
-void idConstantBuffer::UnmapBuffer() const
+void idUniformBuffer::UnmapBuffer() const
 {
 	assert( apiObject != NULL );
 	assert( IsMapped() );
 
 	if( !GL_TryUnmap( GL_UNIFORM_BUFFER, reinterpret_cast< GLintptr >( apiObject ) ) )
 	{
-		idLib::Printf( "idConstantBuffer::UnmapBuffer failed\n" );
+		idLib::Printf( "idUniformBuffer::UnmapBuffer failed\n" );
 	}
 
 	SetUnmapped();
@@ -1226,7 +1226,7 @@ void idConstantBuffer::UnmapBuffer() const
 idVertexBuffer::Reference
 ========================
 */
-void idConstantBuffer::Reference( const idConstantBuffer& other )
+void idUniformBuffer::Reference( const idUniformBuffer& other )
 {
 	assert( IsMapped() == false );
 	assert( other.IsMapped() == false );
@@ -1245,7 +1245,7 @@ void idConstantBuffer::Reference( const idConstantBuffer& other )
 idVertexBuffer::Reference
 ========================
 */
-void idConstantBuffer::Reference( const idConstantBuffer& other, int refOffset, int refSize )
+void idUniformBuffer::Reference( const idUniformBuffer& other, int refOffset, int refSize )
 {
 	assert( IsMapped() == false );
 	assert( other.IsMapped() == false );

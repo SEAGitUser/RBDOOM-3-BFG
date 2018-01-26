@@ -102,7 +102,7 @@ void idDeclParticle::GetStageBounds( idParticleStage* stage )
 	renderEntity.Clear();
 	renderEntity.axis = mat3_identity;
 	
-	renderView_t renderView;
+	renderViewParms_t renderView;
 	renderView.Clear();
 	renderView.viewaxis = mat3_identity;
 	

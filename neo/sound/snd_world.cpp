@@ -332,7 +332,6 @@ idSoundWorldLocal::Update
 */
 void idSoundWorldLocal::Update()
 {
-
 	if( s_noSound.GetBool() )
 	{
 		return;
@@ -466,12 +465,14 @@ void idSoundWorldLocal::Update()
 	// Update Hardware
 	// ------------------
 	shakeAmp = 0.0f;
+
+	idStrStatic<256> temp;
 	
 	idStr showVoiceTable;
 	bool showVoices = s_showVoices.GetBool();
 	if( showVoices )
 	{
-		showVoiceTable.Format( "currentCushionDB: %5.1f  freeVoices: %i zombieVoices: %i buffers:%i/%i\n", currentCushionDB,
+		showVoiceTable.Format<512>( "currentCushionDB: %5.1f  freeVoices: %i zombieVoices: %i buffers:%i/%i\n", currentCushionDB,
 							   soundSystemLocal.hardware.GetNumFreeVoices(), soundSystemLocal.hardware.GetNumZombieVoices(),
 							   soundSystemLocal.activeStreamBufferContexts.Num(), soundSystemLocal.freeStreamBufferContexts.Num() );
 	}
@@ -483,20 +484,26 @@ void idSoundWorldLocal::Update()
 		if( showVoices )
 		{
 			idStr voiceLine;
-			voiceLine.Format( "%5.1f db [%3i:%2i] %s", chan->volumeDB, chan->emitter->index, chan->logicalChannel, chan->CanMute() ? "" : " <CANT MUTE>\n" );
+			voiceLine.Format<256>( "%5.1f db [%3i:%2i] %s", chan->volumeDB, chan->emitter->index, chan->logicalChannel, chan->CanMute() ? "" : " <CANT MUTE>\n" );
 			idSoundSample* leadinSample = chan->leadinSample;
 			idSoundSample* loopingSample = chan->loopingSample;
 			if( loopingSample == NULL )
 			{
-				voiceLine.Append( va( "%ikhz*%i %s\n", leadinSample->SampleRate() / 1000, leadinSample->NumChannels(), leadinSample->GetName() ) );
+				temp.Clear();
+				temp.Format<256>( "%ikhz*%i %s\n", leadinSample->SampleRate() / 1000, leadinSample->NumChannels(), leadinSample->GetName() );
+				voiceLine.Append( temp );
 			}
 			else if( loopingSample == leadinSample )
 			{
-				voiceLine.Append( va( "%ikhz*%i <LOOPING> %s\n", leadinSample->SampleRate() / 1000, leadinSample->NumChannels(), leadinSample->GetName() ) );
+				temp.Clear();
+				temp.Format<256>( "%ikhz*%i <LOOPING> %s\n", leadinSample->SampleRate() / 1000, leadinSample->NumChannels(), leadinSample->GetName() );
+				voiceLine.Append( temp );
 			}
 			else
 			{
-				voiceLine.Append( va( "%ikhz*%i %s | %ikhz*%i %s\n", leadinSample->SampleRate() / 1000, leadinSample->NumChannels(), leadinSample->GetName(), loopingSample->SampleRate() / 1000, loopingSample->NumChannels(), loopingSample->GetName() ) );
+				temp.Clear();
+				temp.Format<256>( "%ikhz*%i %s | %ikhz*%i %s\n", leadinSample->SampleRate() / 1000, leadinSample->NumChannels(), leadinSample->GetName(), loopingSample->SampleRate() / 1000, loopingSample->NumChannels(), loopingSample->GetName() );
+				voiceLine.Append( temp );
 			}
 			showVoiceTable += voiceLine;
 		}
@@ -527,7 +534,7 @@ void idSoundWorldLocal::Update()
 				if( emitter->channels[c]->hardwareVoice != NULL )
 				{
 					audible = true;
-					maxGain = Max( maxGain, emitter->channels[c]->hardwareVoice->GetGain() );
+					maxGain = idMath::Max( maxGain, emitter->channels[c]->hardwareVoice->GetGain() );
 				}
 			}
 			if( !audible )
@@ -552,7 +559,9 @@ void idSoundWorldLocal::Update()
 			// draw the index
 			idVec3 textPos = emitter->origin;
 			textPos.z -= 8;
-			renderWorld->DrawText( va( "%i", e ), textPos, 0.1f, idVec4( 1, 0, 0, 1 ), listener.axis, 1, lifetime );
+			temp.Clear();
+			temp.Format<64>( "%i", e );
+			renderWorld->DrawText( temp.c_str(), textPos, 0.1f, idVec4( 1, 0, 0, 1 ), listener.axis, 1, lifetime );
 			textPos.z += 8;
 			
 			// run through all the channels
@@ -562,9 +571,9 @@ void idSoundWorldLocal::Update()
 				float	min = chan->parms.minDistance;
 				float	max = chan->parms.maxDistance;
 				const char* defaulted = chan->leadinSample->IsDefault() ? " *DEFAULTED*" : "";
-				idStr text;
-				text.Format( "%s (%i %i/%i)%s", chan->soundShader->GetName(), idMath::Ftoi( emitter->spatializedDistance ), idMath::Ftoi( min ), idMath::Ftoi( max ), defaulted );
-				renderWorld->DrawText( text, textPos, 0.1f, idVec4( 1, 0, 0, 1 ), listener.axis, 1, lifetime );
+				temp.Clear();
+				temp.Format<256>( "%s (%i %i/%i)%s", chan->soundShader->GetName(), idMath::Ftoi( emitter->spatializedDistance ), idMath::Ftoi( min ), idMath::Ftoi( max ), defaulted );
+				renderWorld->DrawText( temp.c_str(), textPos, 0.1f, idVec4( 1, 0, 0, 1 ), listener.axis, 1, lifetime );
 				textPos.z += 8;
 			}
 		}

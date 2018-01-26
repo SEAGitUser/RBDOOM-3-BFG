@@ -366,14 +366,15 @@ void idRenderWorldLocal::DebugScreenRect( const idVec4& color, const idScreenRec
 	bounds[ 0 ][ 0 ] = bounds[ 1 ][ 0 ] = dScale;
 	bounds[ 0 ][ 1 ] = -( rect.x1 - centerx ) / centerx * hScale;
 	bounds[ 1 ][ 1 ] = -( rect.x2 - centerx ) / centerx * hScale;
-	bounds[ 0 ][ 2 ] = ( rect.y1 - centery ) / centery * vScale;
-	bounds[ 1 ][ 2 ] = ( rect.y2 - centery ) / centery * vScale;
+	bounds[ 0 ][ 2 ] =  ( rect.y1 - centery ) / centery * vScale;
+	bounds[ 1 ][ 2 ] =  ( rect.y2 - centery ) / centery * vScale;
 
 	for( int i = 0; i < 4; i++ )
 	{
 		p[ i ].x = bounds[ 0 ][ 0 ];
 		p[ i ].y = bounds[ ( i ^ ( i >> 1 ) ) & 1 ].y;
 		p[ i ].z = bounds[ ( i >> 1 ) & 1 ].z;
+
 		p[ i ] = viewDef->GetOrigin() + p[ i ] * viewDef->GetAxis();
 	}
 	for( int i = 0; i < 4; i++ )

@@ -787,7 +787,7 @@ int idStr::Last( const char* str, bool casesensitive, int index ) const
 	}
 	return INVALID_POSITION;
 }
-
+#if 0
 /*
 ========================
 idStr::Format
@@ -795,23 +795,24 @@ idStr::Format
 perform a threadsafe sprintf to the string
 ========================
 */
+template< size_t _size_ >
 void idStr::Format( const char* fmt, ... )
 {
 	va_list argptr;
-	char text[MAX_PRINT_MSG];
-	
+	char text[ _size_ ]; // default MAX_PRINT_MSG
+
 	va_start( argptr, fmt );
 	int len = idStr::vsnPrintf( text, sizeof( text ) - 1, fmt, argptr );
 	va_end( argptr );
 	text[ sizeof( text ) - 1 ] = '\0';
-	
+
 	if( ( size_t )len >= sizeof( text ) - 1 )
 	{
 		idLib::common->FatalError( "Tried to set a large buffer using %s", fmt );
 	}
 	*this = text;
 }
-
+#endif
 /*
 ========================
 idStr::FormatInt
@@ -821,7 +822,10 @@ Formats integers with commas for readability.
 */
 idStr idStr::FormatInt( const int num, bool isCash )
 {
-	idStr val = va( "%d", num );
+	///idStr val = va( "%d", num );
+	idStr val; 
+	val.Format<256>( "%d", num ); //SEA thred safe!
+
 	int len = val.Length();
 	for( int i = 0 ; i < ( ( len - 1 ) / 3 ); i++ )
 	{
@@ -2764,6 +2768,7 @@ int numFormatList = sizeof( formatList ) / sizeof( formatList[0] );
 
 idStr idStr::FormatNumber( int number )
 {
+	idStrStatic<128> temp;
 	idStr string;
 	bool hit;
 	
@@ -2805,27 +2810,36 @@ idStr idStr::FormatNumber( int number )
 		{
 			if( !found )
 			{
-				string += va( "%i,", li->count );
+				temp.Clear();
+				temp.Format<128>( "%i,", li->count );
+				string += temp;
 			}
-			else
-			{
-				string += va( "%3.3i,", li->count );
+			else {
+				temp.Clear();
+				temp.Format<128>( "%3.3i,", li->count );
+				string += temp;
 			}
 			found = true;
 		}
 		else if( found )
 		{
-			string += va( "%3.3i,", li->count );
+			temp.Clear();
+			temp.Format<128>( "%3.3i,", li->count );
+			string += temp;
 		}
 	}
-	
+
 	if( found )
 	{
-		string += va( "%3.3i", number );
+		temp.Clear();
+		temp.Format<128>( "%3.3i", number );
+		string += temp;
 	}
 	else
 	{
-		string += va( "%i", number );
+		temp.Clear();
+		temp.Format<128>( "%i", number );
+		string += temp;
 	}
 	
 	// pad to proper size
@@ -2846,7 +2860,7 @@ CONSOLE_COMMAND( testStrId, "prints a localized string", 0 )
 		idLib::Printf( "need a str id like 'STR_SWF_ACCEPT' without the hash, it gets parsed as a separate argument\n" );
 		return;
 	}
-	
+
 	idStrId str( va( "#%s", args.Argv( 1 ) ) );
 	idLib::Printf( "%s = %s\n", args.Argv( 1 ), str.GetLocalizedString() );
 }

@@ -22,6 +22,326 @@ idCVar r_zfar( "r_zfar", "131072", CVAR_RENDERER | CVAR_FLOAT, "far Z clip plane
 idCVar r_useInfiniteFarZ( "r_useInfiniteFarZ", "1", CVAR_RENDERER | CVAR_BOOL, "use the no-far-clip-plane trick, ignoring r_zfar value" );
 idCVar r_jitter( "r_jitter", "0", CVAR_RENDERER | CVAR_BOOL, "randomly subpixel jitter the projection matrix", 0, 1 );
 
+#if 0
+/*
+=========================================================
+
+ ModifyProjectionMatrix
+
+ The following code modifies the OpenGL projection matrix so that the near plane of the standard 
+ view frustum is moved so that it coincides with a given arbitrary plane. The far plane is adjusted 
+ so that the resulting view frustum has the best shape possible. This code assumes that the original 
+ projection matrix is a perspective projection (standard or infinite). The clipPlane parameter must
+ be in camera-space coordinates, and its w-coordinate must be negative (corresponding to the camera 
+ being on the negative side of the plane).
+
+ For algorithmic details, see “Oblique View Frustum Depth Projection and Clipping”, 
+ by Eric Lengyel. This technique is also described in Game Programming Gems 5, Section 2.6.
+
+=========================================================
+*/
+inline float sgn( float a )
+{
+	if( a > 0.0F ) return ( 1.0F );
+	if( a < 0.0F ) return ( -1.0F );
+	return ( 0.0F );
+}
+void ModifyProjectionMatrixGL( const idVec4 & clipPlane )
+{
+	float     matrix[ 16 ];
+	idVec4    q;
+
+	// Grab the current projection matrix from OpenGL
+	glGetFloatv( GL_PROJECTION_MATRIX, matrix );
+
+	// Calculate the clip-space corner point opposite the clipping plane
+	// as (sgn(clipPlane.x), sgn(clipPlane.y), 1, 1) and
+	// transform it into camera space by multiplying it
+	// by the inverse of the projection matrix
+
+	q.x = ( sgn( clipPlane.x ) + matrix[ 8 ] ) / matrix[ 0 ];
+	q.y = ( sgn( clipPlane.y ) + matrix[ 9 ] ) / matrix[ 5 ];
+	q.z = -1.0F;
+	q.w = ( 1.0F + matrix[ 10 ] ) / matrix[ 14 ];
+
+	// Calculate the scaled plane vector
+	idVec4 c = clipPlane * ( 2.0F / ( clipPlane * q ) ); // Dot( clipPlane, q )
+
+	// Replace the third row of the projection matrix
+	matrix[ 2 ] = c.x;
+	matrix[ 6 ] = c.y;
+	matrix[ 10 ] = c.z + 1.0F;
+	matrix[ 14 ] = c.w;
+
+	// Load it back into OpenGL
+	glMatrixMode( GL_PROJECTION );
+	glLoadMatrixf( matrix );
+}
+void ModifyProjectionMatrixDX( const idVec4 & clipPlane )
+{
+	D3DXMatrix	matrix;
+	Vector4D	q;
+
+	// Grab the current projection matrix from Direct3D
+	D3DDevice.GetTransform( D3DTS_PROJECTION, &matrix );
+
+	// Transform the clip-space corner point opposite the clipping plane
+	// into camera space by multiplying it by the inverse of
+	// the projection matrix
+	q.x = ( sgn( clipPlane.x ) - matrix._31 ) / matrix._11;
+	q.y = ( sgn( clipPlane.y ) - matrix._32 ) / matrix._22;
+	q.z = 1.0F;
+	q.w = ( 1.0F - matrix._33 ) / matrix._43;
+
+	// Calculate the scaled plane vector
+	Vector4D c = clipPlane * ( 1.0F / ( clipPlane * q ) );
+
+	// Replace the third row of the projection matrix
+	matrix._13 = c.x;
+	matrix._23 = c.y;
+	matrix._33 = c.z;
+	matrix._43 = c.w;
+
+	// Load it back into Direct3D
+	D3DDevice.SetTransform( D3DTS_PROJECTION, &matrix );
+}
+
+// PolygonOffset
+void LoadOffsetMatrix( GLdouble l, GLdouble r, GLdouble b, GLdouble t, GLdouble n, GLdouble f, GLfloat delta, GLfloat pz )
+{
+	GLfloat	matrix[ 16 ];
+
+	// Set up standard perspective projection
+	glMatrixMode( GL_PROJECTION );
+	glFrustum( l, r, b, t, n, f );
+
+	// Retrieve the projection matrix
+	glGetFloatv( GL_PROJECTION_MATRIX, matrix );
+
+	// Calculate epsilon with equation (7)
+	GLfloat epsilon = -2.0F * f * n * delta / ( ( f + n ) * pz * ( pz + delta ) );
+
+	// Modify entry (3,3) of the projection matrix
+	matrix[ 10 ] *= 1.0F + epsilon;
+
+	// Send the projection matrix back to OpenGL
+	glLoadMatrixf( matrix );
+}
+
+// Frustum Cilinder culling
+
+class Frustum {
+private:
+
+	// Near and far plane distances
+	float		nearDistance;
+	float		farDistance;
+
+	// Precalculated normal components
+	float		leftRightX;
+	float		leftRightZ;
+	float		topBottomY;
+	float		topBottomZ;
+
+public:
+
+	// Constructor defines the frustum
+	Frustum( float l, float a, float n, float f );
+
+	// Intersection test returns true or false
+	bool CylinderVisible( vector3 p1, vector3 p2, float radius ) const;
+};
+
+Frustum::Frustum( float l, float a, float n, float f )
+{
+	// Save off near plane and far plane distances
+	nearDistance = n;
+	farDistance = f;
+
+	// Precalculate side plane normal components
+	float d = 1.0F / sqrt( l * l + 1.0F );
+	leftRightX = l * d;
+	leftRightZ = d;
+
+	d = 1.0F / sqrt( l * l + a * a );
+	topBottomY = l * d;
+	topBottomZ = a * d;
+}
+
+bool Frustum::CylinderVisible( vector3 p1, vector3 p2, float radius ) const
+{
+	// Calculate unit vector representing cylinder's axis
+	vector3 dp = p2 - p1;
+	dp.normalize();
+
+	// Visit near plane first, N = (0,0,-1)
+	float dot1 = -p1.z;
+	float dot2 = -p2.z;
+
+	// Calculate effective radius for near and far planes
+	float effectiveRadius = radius * sqrt( 1.0F - dp.z * dp.z );
+
+	// Test endpoints against adjusted near plane
+	float d = nearDistance - effectiveRadius;
+	bool interior1 = ( dot1 > d );
+	bool interior2 = ( dot2 > d );
+
+	if( !interior1 )
+	{
+		// If neither endpoint is interior, cylinder is not visible
+		if( !interior2 ) return ( false );
+
+		// p1 was outside, so move it to the near plane
+		float t = ( d + p1.z ) / dp.z;
+		p1.x -= t * dp.x;
+		p1.y -= t * dp.y;
+		p1.z = -d;
+	}
+	else if( !interior2 )
+	{
+		// p2 was outside, so move it to the near plane
+		float t = ( d + p1.z ) / dp.z;
+		p2.x = p1.x - t * dp.x;
+		p2.y = p1.y - t * dp.y;
+		p2.z = -d;
+	}
+
+	// Test endpoints against adjusted far plane
+	d = farDistance + effectiveRadius;
+	interior1 = ( dot1 < d );
+	interior2 = ( dot2 < d );
+
+	if( !interior1 )
+	{
+		// If neither endpoint is interior, cylinder is not visible
+		if( !interior2 ) return ( false );
+
+		// p1 was outside, so move it to the far plane
+		float t = ( d + p1.z ) / ( p2.z - p1.z );
+		p1.x -= t * ( p2.x - p1.x );
+		p1.y -= t * ( p2.y - p1.y );
+		p1.z = -d;
+	}
+	else if( !interior2 )
+	{
+		// p2 was outside, so move it to the far plane
+		float t = ( d + p1.z ) / ( p2.z - p1.z );
+		p2.x = p1.x - t * ( p2.x - p1.x );
+		p2.y = p1.y - t * ( p2.y - p1.y );
+		p2.z = -d;
+	}
+
+	// Visit left side plane next
+	// The normal components have been precalculated
+	float nx = leftRightX;
+	float nz = leftRightZ;
+
+	// Compute p1 * N and p2 * N
+	dot1 = nx * p1.x - nz * p1.z;
+	dot2 = nx * p2.x - nz * p2.z;
+
+	// Calculate effective radius for this plane
+	float s = nx * dp.x - nz * dp.z;
+	effectiveRadius = -radius * sqrt( 1.0F - s * s );
+
+	// Test endpoints against adjusted plane
+	interior1 = ( dot1 > effectiveRadius );
+	interior2 = ( dot2 > effectiveRadius );
+
+	if( !interior1 )
+	{
+		// If neither endpoint is interior, cylinder is not visible
+		if( !interior2 ) return ( false );
+
+		// p1 was outside, so move it to the plane
+		float t = ( effectiveRadius - dot1 ) / ( dot2 - dot1 );
+		p1.x += t * ( p2.x - p1.x );
+		p1.y += t * ( p2.y - p1.y );
+		p1.z += t * ( p2.z - p1.z );
+	}
+	else if( !interior2 )
+	{
+		// p2 was outside, so move it to the plane
+		float t = ( effectiveRadius - dot1 ) / ( dot2 - dot1 );
+		p2.x = p1.x + t * ( p2.x - p1.x );
+		p2.y = p1.y + t * ( p2.y - p1.y );
+		p2.z = p1.z + t * ( p2.z - p1.z );
+	}
+
+	// Visit right side plane next
+	dot1 = -nx * p1.x - nz * p1.z;
+	dot2 = -nx * p2.x - nz * p2.z;
+
+	s = -nx * dp.x - nz * dp.z;
+	effectiveRadius = -radius * sqrt( 1.0F - s * s );
+
+	interior1 = ( dot1 > effectiveRadius );
+	interior2 = ( dot2 > effectiveRadius );
+
+	if( !interior1 )
+	{
+		if( !interior2 ) return ( false );
+
+		float t = ( effectiveRadius - dot1 ) / ( dot2 - dot1 );
+		p1.x += t * ( p2.x - p1.x );
+		p1.y += t * ( p2.y - p1.y );
+		p1.z += t * ( p2.z - p1.z );
+	}
+	else if( !interior2 )
+	{
+		float t = ( effectiveRadius - dot1 ) / ( dot2 - dot1 );
+		p2.x = p1.x + t * ( p2.x - p1.x );
+		p2.y = p1.y + t * ( p2.y - p1.y );
+		p2.z = p1.z + t * ( p2.z - p1.z );
+	}
+
+	// Visit top side plane next
+	// The normal components have been precalculated
+	float ny = topBottomY;
+	nz = topBottomZ;
+
+	dot1 = -ny * p1.y - nz * p1.z;
+	dot2 = -ny * p2.y - nz * p2.z;
+
+	s = -ny * dp.y - nz * dp.z;
+	effectiveRadius = -radius * sqrt( 1.0F - s * s );
+
+	interior1 = ( dot1 > effectiveRadius );
+	interior2 = ( dot2 > effectiveRadius );
+
+	if( !interior1 )
+	{
+		if( !interior2 ) return ( false );
+
+		float t = ( effectiveRadius - dot1 ) / ( dot2 - dot1 );
+		p1.x += t * ( p2.x - p1.x );
+		p1.y += t * ( p2.y - p1.y );
+		p1.z += t * ( p2.z - p1.z );
+	}
+	else if( !interior2 )
+	{
+		float t = ( effectiveRadius - dot1 ) / ( dot2 - dot1 );
+		p2.x = p1.x + t * ( p2.x - p1.x );
+		p2.y = p1.y + t * ( p2.y - p1.y );
+		p2.z = p1.z + t * ( p2.z - p1.z );
+	}
+
+	// Finally, visit bottom side plane
+	dot1 = ny * p1.y - nz * p1.z;
+	dot2 = ny * p2.y - nz * p2.z;
+
+	s = ny * dp.y - nz * dp.z;
+	effectiveRadius = -radius * sqrt( 1.0F - s * s );
+
+	interior1 = ( dot1 > effectiveRadius );
+	interior2 = ( dot2 > effectiveRadius );
+
+	// At least one endpoint must be interior or cylinder is not visible
+	return ( interior1 | interior2 );
+}
+
+#endif
+
 /*
 ======================
 ======================
@@ -41,7 +361,6 @@ void idRenderView::DeriveData()
 	if( this->is2Dgui )
 	{
 		this->worldSpace.modelMatrix.Identity();
-
 		this->worldSpace.modelViewMatrix.Identity();
 
 		idRenderMatrix::CreateOrthogonalProjection(
@@ -405,6 +724,20 @@ bool idRenderView::PreciseCullSurface( const drawSurf_t * const drawSurf, idBoun
 	return false;
 }
 
+/*
+======================
+ ViewInsideLightVolume
+======================
+*/
+bool idRenderView::ViewInsideLightVolume( const idBounds & LightBounds ) const
+{
+	const float viewNearClippingDistance = GetZNear();
+
+	const bool bViewInsideLightVolume = ( GetOrigin() - LightBounds.GetCenter() ).LengthSqr()
+		< idMath::Square( LightBounds.GetRadius() * 1.05f + viewNearClippingDistance * 2.0f );
+
+	return bViewInsideLightVolume;
+}
 
 /*
 ======================
