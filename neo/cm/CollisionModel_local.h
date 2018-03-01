@@ -60,7 +60,7 @@ If you have questions concerning this license or the applicable additional terms
 #define CHOP_EPSILON						0.1f
 
 
-typedef struct cm_windingList_s
+struct cm_windingList_t
 {
 	int					numWindings;			// number of windings
 	idFixedWinding		w[MAX_WINDING_LIST];	// windings
@@ -70,7 +70,7 @@ typedef struct cm_windingList_s
 	float				radius;					// radius relative to origin for all windings
 	int					contents;				// winding surface contents
 	int					primitiveNum;			// number of primitive the windings came from
-} cm_windingList_t;
+};
 
 /*
 ===============================================================================
@@ -80,7 +80,7 @@ Collision model
 ===============================================================================
 */
 
-typedef struct cm_vertex_s
+struct cm_vertex_t
 {
 	idVec3					p;					// vertex point
 	int						checkcount;			// for multi-check avoidance
@@ -88,9 +88,9 @@ typedef struct cm_vertex_s
 	unsigned int			side;				// each bit tells at which side this vertex passes one of the trace model edges
 	unsigned int			sideSet;			// each bit tells if sidedness for the trace model edge has been calculated yet
 	// DG end
-} cm_vertex_t;
+};
 
-typedef struct cm_edge_s
+struct cm_edge_t
 {
 	int						checkcount;			// for multi-check avoidance
 	unsigned short			internal;			// a trace model can never collide with internal edges
@@ -101,15 +101,15 @@ typedef struct cm_edge_s
 	// DG end
 	int						vertexNum[2];		// start and end point of edge
 	idVec3					normal;				// edge normal
-} cm_edge_t;
+};
 
-typedef struct cm_polygonBlock_s
+struct cm_polygonBlock_t
 {
 	int						bytesRemaining;
 	byte* 					next;
-} cm_polygonBlock_t;
+};
 
-typedef struct cm_polygon_s
+struct cm_polygon_t
 {
 	idBounds				bounds;				// polygon bounds
 	int						checkcount;			// for multi-check avoidance
@@ -118,29 +118,29 @@ typedef struct cm_polygon_s
 	idPlane					plane;				// polygon plane
 	int						numEdges;			// number of edges
 	int						edges[1];			// variable sized, indexes into cm_edge_t list
-} cm_polygon_t;
+};
 
-typedef struct cm_polygonRef_s
+struct cm_polygonRef_t
 {
-	cm_polygon_t* 			p;					// pointer to polygon
-	struct cm_polygonRef_s* next;				// next polygon in chain
-} cm_polygonRef_t;
+	cm_polygon_t * 			p;					// pointer to polygon
+	cm_polygonRef_t *		next;				// next polygon in chain
+};
 
-typedef struct cm_polygonRefBlock_s
+struct cm_polygonRefBlock_t
 {
-	cm_polygonRef_t* 		nextRef;			// next polygon reference in block
-	struct cm_polygonRefBlock_s* next;			// next block with polygon references
-} cm_polygonRefBlock_t;
+	cm_polygonRef_t * 		nextRef;			// next polygon reference in block
+	cm_polygonRefBlock_t *	next;			// next block with polygon references
+};
 
-typedef struct cm_brushBlock_s
+struct cm_brushBlock_t
 {
 	int						bytesRemaining;
 	byte* 					next;
-} cm_brushBlock_t;
+};
 
-typedef struct cm_brush_s
+struct cm_brush_t
 {
-	cm_brush_s()
+	cm_brush_t()
 	{
 		checkcount = 0;
 		contents = 0;
@@ -155,37 +155,37 @@ typedef struct cm_brush_s
 	int						primitiveNum;		// number of brush primitive
 	int						numPlanes;			// number of bounding planes
 	idPlane					planes[1];			// variable sized
-} cm_brush_t;
+};
 
-typedef struct cm_brushRef_s
+struct cm_brushRef_t
 {
-	cm_brush_t* 			b;					// pointer to brush
-	struct cm_brushRef_s* 	next;				// next brush in chain
-} cm_brushRef_t;
+	cm_brush_t * 			b;					// pointer to brush
+	cm_brushRef_t * 		next;				// next brush in chain
+};
 
-typedef struct cm_brushRefBlock_s
+struct cm_brushRefBlock_t
 {
-	cm_brushRef_t* 			nextRef;			// next brush reference in block
-	struct cm_brushRefBlock_s* next;			// next block with brush references
-} cm_brushRefBlock_t;
+	cm_brushRef_t * 		nextRef;			// next brush reference in block
+	cm_brushRefBlock_t *	next;			// next block with brush references
+};
 
-typedef struct cm_node_s
+struct cm_node_t
 {
 	int						planeType;			// node axial plane type
 	float					planeDist;			// node plane distance
-	cm_polygonRef_t* 		polygons;			// polygons in node
-	cm_brushRef_t* 			brushes;			// brushes in node
-	struct cm_node_s* 		parent;				// parent of this node
-	struct cm_node_s* 		children[2];		// node children
-} cm_node_t;
+	cm_polygonRef_t * 		polygons;			// polygons in node
+	cm_brushRef_t * 		brushes;			// brushes in node
+	cm_node_t * 			parent;				// parent of this node
+	cm_node_t * 			children[2];		// node children
+};
 
-typedef struct cm_nodeBlock_s
+struct cm_nodeBlock_t
 {
-	cm_node_t* 				nextNode;			// next node in block
-	struct cm_nodeBlock_s* next;				// next block with nodes
-} cm_nodeBlock_t;
+	cm_node_t * 			nextNode;			// next node in block
+	cm_nodeBlock_t *		next;				// next block with nodes
+};
 
-typedef struct cm_model_s
+struct cm_model_t
 {
 	idStr					name;				// model name
 	idBounds				bounds;				// model bounds
@@ -194,17 +194,17 @@ typedef struct cm_model_s
 	// model geometry
 	int						maxVertices;		// size of vertex array
 	int						numVertices;		// number of vertices
-	cm_vertex_t* 			vertices;			// array with all vertices used by the model
+	cm_vertex_t * 			vertices;			// array with all vertices used by the model
 	int						maxEdges;			// size of edge array
 	int						numEdges;			// number of edges
-	cm_edge_t* 				edges;				// array with all edges used by the model
-	cm_node_t* 				node;				// first node of spatial subdivision
+	cm_edge_t * 			edges;				// array with all edges used by the model
+	cm_node_t * 			node;				// first node of spatial subdivision
 	// blocks with allocated memory
-	cm_nodeBlock_t* 		nodeBlocks;			// list with blocks of nodes
-	cm_polygonRefBlock_t* 	polygonRefBlocks;	// list with blocks of polygon references
-	cm_brushRefBlock_t* 	brushRefBlocks;		// list with blocks of brush references
-	cm_polygonBlock_t* 		polygonBlock;		// memory block with all polygons
-	cm_brushBlock_t* 		brushBlock;			// memory block with all brushes
+	cm_nodeBlock_t * 		nodeBlocks;			// list with blocks of nodes
+	cm_polygonRefBlock_t * 	polygonRefBlocks;	// list with blocks of polygon references
+	cm_brushRefBlock_t * 	brushRefBlocks;		// list with blocks of brush references
+	cm_polygonBlock_t * 	polygonBlock;		// memory block with all polygons
+	cm_brushBlock_t * 		brushBlock;			// memory block with all brushes
 	// statistics
 	int						numPolygons;
 	int						polygonMemory;
@@ -218,17 +218,17 @@ typedef struct cm_model_s
 	int						numRemovedPolys;
 	int						numMergedPolys;
 	int						usedMemory;
-} cm_model_t;
+};
 
 /*
 ===============================================================================
 
-Data used during collision detection calculations
+	Data used during collision detection calculations
 
 ===============================================================================
 */
 
-typedef struct cm_trmVertex_s
+struct cm_trmVertex_t
 {
 	int used;										// true if this vertex is used for collision detection
 	idVec3 p;										// vertex position
@@ -237,9 +237,9 @@ typedef struct cm_trmVertex_s
 	idPluecker pl;									// pluecker coordinate for vertex movement
 	idVec3 rotationOrigin;							// rotation origin for this vertex
 	idBounds rotationBounds;						// rotation bounds for this vertex
-} cm_trmVertex_t;
+};
 
-typedef struct cm_trmEdge_s
+struct cm_trmEdge_t
 {
 	int used;										// true when vertex is used for collision detection
 	idVec3 start;									// start of edge
@@ -250,18 +250,18 @@ typedef struct cm_trmEdge_s
 	idBounds rotationBounds;						// rotation bounds for this edge
 	idPluecker plzaxis;								// pluecker coordinate for rotation about the z-axis
 	unsigned short bitNum;							// vertex bit number
-} cm_trmEdge_t;
+};
 
-typedef struct cm_trmPolygon_s
+struct cm_trmPolygon_t
 {
 	int used;
 	idPlane plane;									// polygon plane
 	int numEdges;									// number of edges
 	int edges[MAX_TRACEMODEL_POLYEDGES];			// index into cm_traceWork_t->edges
 	idBounds rotationBounds;						// rotation bounds for this polygon
-} cm_trmPolygon_t;
+};
 
-typedef struct cm_traceWork_s
+struct cm_traceWork_t
 {
 	int numVerts;
 	cm_trmVertex_t vertices[MAX_TRACEMODEL_VERTS];	// trm vertices
@@ -306,7 +306,7 @@ typedef struct cm_traceWork_s
 	idPluecker polygonEdgePlueckerCache[CM_MAX_POLYGON_EDGES];
 	idPluecker polygonVertexPlueckerCache[CM_MAX_POLYGON_EDGES];
 	idVec3 polygonRotationOriginCache[CM_MAX_POLYGON_EDGES];
-} cm_traceWork_t;
+};
 
 /*
 ===============================================================================
@@ -316,11 +316,11 @@ Collision Map
 ===============================================================================
 */
 
-typedef struct cm_procNode_s
+struct cm_procNode_t
 {
 	idPlane plane;
-	int children[2];				// negative numbers are (-1 - areaNumber), 0 = solid
-} cm_procNode_t;
+	int children[2];	// negative numbers are (-1 - areaNumber), 0 = solid
+};
 
 class idCollisionModelManagerLocal : public idCollisionModelManager
 {
@@ -391,8 +391,8 @@ private:			// CollisionMap_translate.cpp
 	
 private:			// CollisionMap_rotate.cpp
 	int				CollisionBetweenEdgeBounds( cm_traceWork_t* tw, const idVec3& va, const idVec3& vb,
-			const idVec3& vc, const idVec3& vd, float tanHalfAngle,
-			idVec3& collisionPoint, idVec3& collisionNormal );
+												const idVec3& vc, const idVec3& vd, float tanHalfAngle,
+												idVec3& collisionPoint, idVec3& collisionNormal );
 	int				RotateEdgeThroughEdge( cm_traceWork_t* tw, const idPluecker& pl1,
 										   const idVec3& vc, const idVec3& vd,
 										   const float minTan, float& tanHalfAngle );
@@ -401,15 +401,14 @@ private:			// CollisionMap_rotate.cpp
 										  float& tanHalfAngle, float& dir );
 	void			RotateTrmEdgeThroughPolygon( cm_traceWork_t* tw, cm_polygon_t* poly, cm_trmEdge_t* trmEdge );
 	int				RotatePointThroughPlane( const cm_traceWork_t* tw, const idVec3& point, const idPlane& plane,
-			const float angle, const float minTan, float& tanHalfAngle );
+											const float angle, const float minTan, float& tanHalfAngle );
 	int				PointFurthestFromPlane( const cm_traceWork_t* tw, const idVec3& point, const idPlane& plane,
 											const float angle, float& tanHalfAngle, float& dir );
 	int				RotatePointThroughEpsilonPlane( const cm_traceWork_t* tw, const idVec3& point, const idVec3& endPoint,
-			const idPlane& plane, const float angle, const idVec3& origin,
-			float& tanHalfAngle, idVec3& collisionPoint, idVec3& endDir );
+													const idPlane& plane, const float angle, const idVec3& origin,
+													float& tanHalfAngle, idVec3& collisionPoint, idVec3& endDir );
 	void			RotateTrmVertexThroughPolygon( cm_traceWork_t* tw, cm_polygon_t* poly, cm_trmVertex_t* v, int vertexNum );
-	void			RotateVertexThroughTrmPolygon( cm_traceWork_t* tw, cm_trmPolygon_t* trmpoly, cm_polygon_t* poly,
-			cm_vertex_t* v, idVec3& rotationOrigin );
+	void			RotateVertexThroughTrmPolygon( cm_traceWork_t* tw, cm_trmPolygon_t* trmpoly, cm_polygon_t* poly, cm_vertex_t* v, idVec3& rotationOrigin );
 	bool			RotateTrmThroughPolygon( cm_traceWork_t* tw, cm_polygon_t* p );
 	void			BoundsForRotation( const idVec3& origin, const idVec3& axis, const idVec3& start, const idVec3& end, idBounds& bounds );
 	void			Rotation180( trace_t* results, const idVec3& rorg, const idVec3& axis,
@@ -535,33 +534,32 @@ private:			// CollisionMap_debug
 	int				ContentsFromString( const char* string ) const;
 	const char* 	StringFromContents( const int contents ) const;
 	void			DrawEdge( cm_model_t* model, int edgeNum, const idVec3& origin, const idMat3& axis );
-	void			DrawPolygon( cm_model_t* model, cm_polygon_t* p, const idVec3& origin, const idMat3& axis,
-								 const idVec3& viewOrigin );
-	void			DrawNodePolygons( cm_model_t* model, cm_node_t* node, const idVec3& origin, const idMat3& axis,
-									  const idVec3& viewOrigin, const float radius );
+	void			DrawPolygon( cm_model_t* model, cm_polygon_t* p, const idVec3& origin, const idMat3& axis, const idVec3& viewOrigin );
+	void			DrawNodePolygons( cm_model_t* model, cm_node_t* node, const idVec3& origin, const idMat3& axis, const idVec3& viewOrigin, const float radius );
 									  
-private:			// collision map data
-	idStr			mapName;
+private: // collision map data
+
+	idStr				mapName;
 	ID_TIME_T			mapFileTime;
-	int				loaded;
+	int					loaded;
 	// for multi-check avoidance
-	int				checkCount;
+	int					checkCount;
 	// models
-	int				maxModels;
-	int				numModels;
-	cm_model_t** 	models;
+	int					maxModels;
+	int					numModels;
+	cm_model_t ** 		models;
 	// polygons and brush for trm model
-	cm_polygonRef_t* trmPolygons[MAX_TRACEMODEL_POLYS];
-	cm_brushRef_t* 	trmBrushes[1];
-	const idMaterial* trmMaterial;
+	cm_polygonRef_t *	trmPolygons[MAX_TRACEMODEL_POLYS];
+	cm_brushRef_t * 	trmBrushes[1];
+	const idMaterial *	trmMaterial;
 	// for data pruning
-	int				numProcNodes;
-	cm_procNode_t* 	procNodes;
+	int					numProcNodes;
+	cm_procNode_t * 	procNodes;
 	// for retrieving contact points
-	bool			getContacts;
-	contactInfo_t* 	contacts;
-	int				maxContacts;
-	int				numContacts;
+	bool				getContacts;
+	contactInfo_t * 	contacts;
+	int					maxContacts;
+	int					numContacts;
 };
 
 // for debugging

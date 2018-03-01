@@ -507,7 +507,7 @@ private:
 	float					steamForce;
 	float					steamUpForce;
 	idForce_Constant		force;
-	renderEntity_t			steamRenderEntity;
+	renderEntityParms_t			steamRenderEntity;
 	qhandle_t				steamModelDefHandle;
 	
 	void					InitSteamRenderEntity();

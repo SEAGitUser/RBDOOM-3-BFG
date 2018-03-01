@@ -100,7 +100,7 @@ void idCursor3D::Think()
 {
 	if( thinkFlags & TH_THINK )
 	{
-		drag.Evaluate( gameLocal.time );
+		drag.Evaluate( gameLocal.GetTime() );
 	}
 	Present();
 }
@@ -299,12 +299,12 @@ void idDragEntity::Update( idPlayer* player )
 		
 		cursor->drag.SetDragPosition( cursor->GetPhysics()->GetOrigin() );
 		
-		renderEntity_t* renderEntity = drag->GetRenderEntity();
+		renderEntityParms_t* renderEntity = drag->GetRenderEntity();
 		idAnimator* dragAnimator = drag->GetAnimator();
 		
 		if( joint != INVALID_JOINT && renderEntity != NULL && dragAnimator != NULL )
 		{
-			dragAnimator->GetJointTransform( joint, gameLocal.time, cursor->draggedPosition, axis );
+			dragAnimator->GetJointTransform( joint, gameLocal.GetTime(), cursor->draggedPosition, axis );
 			cursor->draggedPosition = renderEntity->origin + cursor->draggedPosition * renderEntity->axis;
 			gameRenderWorld->DrawText( va( "%s\n%s\n%s, %s", drag->GetName(), drag->GetType()->classname, dragAnimator->GetJointName( joint ), bodyName.c_str() ), cursor->GetPhysics()->GetOrigin(), 0.1f, colorWhite, viewAxis, 1 );
 		}
@@ -319,7 +319,7 @@ void idDragEntity::Update( idPlayer* player )
 	if( selected.GetEntity() && g_dragShowSelection.GetBool() )
 	{
 		// draw the bbox of the selected entity
-		renderEntity_t* renderEntity = selected.GetEntity()->GetRenderEntity();
+		renderEntityParms_t* renderEntity = selected.GetEntity()->GetRenderEntity();
 		if( renderEntity )
 		{
 			gameRenderWorld->DebugBox( colorYellow, idBox( renderEntity->bounds, renderEntity->origin, renderEntity->axis ) );
@@ -481,11 +481,11 @@ bool idEditEntities::SelectEntity( const idVec3& origin, const idVec3& dir, cons
 		return false;
 	}
 	
-	if( gameLocal.time < nextSelectTime )
+	if( gameLocal.GetTime() < nextSelectTime )
 	{
 		return true;
 	}
-	nextSelectTime = gameLocal.time + 300;
+	nextSelectTime = gameLocal.GetTime() + 300;
 	
 	end = origin + dir * 4096.0f;
 	
@@ -667,8 +667,7 @@ void idEditEntities::DisplayEntities()
 	idStr textKey;
 	
 	for( ent = gameLocal.spawnedEntities.Next(); ent != NULL; ent = ent->spawnNode.Next() )
-	{
-	
+	{	
 		idVec4 color;
 		
 		textKey = "";
@@ -999,7 +998,7 @@ void idGameEdit::EntityChangeSpawnArgs( idEntity* ent, const idDict* newArgs )
 {
 	if( ent )
 	{
-		for( int i = 0 ; i < newArgs->GetNumKeyVals() ; i ++ )
+		for( int i = 0 ; i < newArgs->GetNumKeyVals() ; ++i )
 		{
 			const idKeyValue* kv = newArgs->GetKeyVal( i );
 			
@@ -1072,7 +1071,7 @@ idGameEdit::PlayerIsValid
 */
 bool idGameEdit::PlayerIsValid() const
 {
-	return ( gameLocal.GetLocalPlayer() != NULL );
+	return( gameLocal.GetLocalPlayer() != NULL );
 }
 
 /*

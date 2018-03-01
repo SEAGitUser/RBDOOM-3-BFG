@@ -431,8 +431,8 @@ void	idRenderWorldLocal::WriteLoadMap()
 	demoHeader_t	header;
 	strncpy( header.mapname, mapName.c_str(), sizeof( header.mapname ) - 1 );
 	header.version = 4;
-	header.sizeofRenderEntity = sizeof( renderEntity_t );
-	header.sizeofRenderLight = sizeof( renderLight_t );
+	header.sizeofRenderEntity = sizeof( renderEntityParms_t );
+	header.sizeofRenderLight = sizeof( renderLightParms_t );
 	f->WriteInt( header.version );
 	f->WriteInt( header.sizeofRenderEntity );
 	f->WriteInt( header.sizeofRenderLight );
@@ -631,7 +631,7 @@ void	idRenderWorldLocal::WriteFreeLight( qhandle_t handle )
 WriteRenderLight
 ================
 */
-void	idRenderWorldLocal::WriteRenderLight( idDemoFile* f, qhandle_t handle, const renderLight_t* light )
+void	idRenderWorldLocal::WriteRenderLight( idDemoFile* f, qhandle_t handle, const renderLightParms_t* light )
 {
 
 	// only the main renderWorld writes stuff to demos, not the wipes or
@@ -709,7 +709,7 @@ ReadRenderLight
 */
 void	idRenderWorldLocal::ReadRenderLight( )
 {
-	renderLight_t	light;
+	renderLightParms_t	light;
 	int				index, i;
 	
 	common->ReadDemo()->ReadInt( index );
@@ -836,7 +836,7 @@ ReadRenderEntity
 */
 void idRenderWorldLocal::ReadRenderEntity()
 {
-	renderEntity_t ent;
+	renderEntityParms_t ent;
 	int index;
 	
 	common->ReadDemo()->ReadInt( index );

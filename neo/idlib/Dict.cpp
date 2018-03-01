@@ -941,11 +941,11 @@ bool idDict::ReadFromIniFile( idFile* f )
 	{
 		if( parser.PeekTokenType( TT_PUNCTUATION, P_SQBRACKETOPEN, &token ) )
 		{
-			success = success && parser.ExpectTokenType( TT_PUNCTUATION, P_SQBRACKETOPEN, &token );
+			success = success && parser.ExpectTokenType( TT_PUNCTUATION, P_SQBRACKETOPEN, token );
 			success = success && parser.ReadToken( &token );
 			prefix = token.c_str();
 			prefix.Append( '/' );
-			success = success && parser.ExpectTokenType( TT_PUNCTUATION, P_SQBRACKETCLOSE, &token );
+			success = success && parser.ExpectTokenType( TT_PUNCTUATION, P_SQBRACKETCLOSE, token );
 		}
 		
 		if( !parser.PeekTokenType( TT_NAME, 0, &token ) )
@@ -954,8 +954,8 @@ bool idDict::ReadFromIniFile( idFile* f )
 			break;
 		}
 		
-		success = success && parser.ExpectTokenType( TT_NAME, 0, &token );
-		success = success && parser.ExpectTokenType( TT_PUNCTUATION, P_ASSIGN, &token2 );
+		success = success && parser.ExpectTokenType( TT_NAME, 0, token );
+		success = success && parser.ExpectTokenType( TT_PUNCTUATION, P_ASSIGN, token2 );
 		success = success && ( parser.ParseRestOfLine( valueStr ) != NULL );
 		
 		valueStr = idStr::CStyleUnQuote( valueStr );

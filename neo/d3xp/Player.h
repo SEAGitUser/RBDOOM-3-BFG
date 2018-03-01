@@ -285,7 +285,7 @@ public:
 	
 	class idPlayerView		playerView;			// handles damage kicks and effects
 	
-	renderEntity_t			laserSightRenderEntity;	// replace crosshair for 3DTV
+	renderEntityParms_t			laserSightRenderEntity;	// replace crosshair for 3DTV
 	qhandle_t				laserSightHandle;
 	
 	bool					noclip;

@@ -54,7 +54,7 @@ idCVar r_lodMaterialDistance( "r_lodMaterialDistance", "500", CVAR_RENDERER | CV
  R_SetupDrawSurfShader
 ===================
 */
-void R_SetupDrawSurfShader( drawSurf_t * drawSurf, const idMaterial * material, const renderEntity_t * renderEntity, const idRenderView * viewDef )
+void R_SetupDrawSurfShader( drawSurf_t * drawSurf, const idMaterial * material, const renderEntityParms_t * renderEntity, const idRenderView * viewDef )
 {
 	drawSurf->material = material;
 	drawSurf->sort = material->GetSort();

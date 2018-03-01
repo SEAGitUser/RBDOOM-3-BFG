@@ -81,8 +81,7 @@ hand a job should consume no more than a couple of
 multiple processing units.
 ================================================
 */
-class idParallelJobList
-{
+class idParallelJobList {
 	friend class idParallelJobManagerLocal;
 public:
 
@@ -144,8 +143,7 @@ This is the only interface through which job lists
 should be allocated or freed.
 ================================================
 */
-class idParallelJobManager
-{
+class idParallelJobManager {
 public:
 	virtual						~idParallelJobManager() {}
 	
@@ -176,8 +174,7 @@ void RegisterJob( jobRun_t function, const char* name );
 idParallelJobRegistration
 ================================================
 */
-class idParallelJobRegistration
-{
+class idParallelJobRegistration {
 public:
 	idParallelJobRegistration( jobRun_t function, const char* name );
 };

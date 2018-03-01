@@ -540,7 +540,7 @@ idImage* idImageManager::ScratchImage( const char* _name, idImageOpts* imgOpts, 
 	int hash = name.FileNameHash();
 	for( int i = imageHash.First( hash ); i != -1; i = imageHash.Next( i ) )
 	{
-		idImage* image = images[i];
+		idImage* image = images[ i ];
 		if( name.Icmp( image->GetName() ) == 0 )
 		{
 			// the built in's, like _white and _flat always match the other options
@@ -610,7 +610,7 @@ idImage* idImageManager::GetImage( const char* _name ) const
 	int hash = name.FileNameHash();
 	for( int i = imageHash.First( hash ); i != -1; i = imageHash.Next( i ) )
 	{
-		idImage* image = images[i];
+		idImage* image = images[ i ];
 		if( name.Icmp( image->GetName() ) == 0 )
 		{
 			return image;
@@ -627,7 +627,7 @@ PurgeAllImages
 */
 void idImageManager::PurgeAllImages()
 {
-	for( int i = 0; i < images.Num(); i++ )
+	for( int i = 0; i < images.Num(); ++i )
 	{
 		assert( images[ i ] );
 		images[ i ]->PurgeImage();
@@ -641,7 +641,7 @@ ReloadImages
 */
 void idImageManager::ReloadImages( bool all )
 {
-	for( int i = 0; i < images.Num(); i++ )
+	for( int i = 0; i < images.Num(); ++i )
 	{
 		assert( images[ i ] );
 		images[ i ]->Reload( all );

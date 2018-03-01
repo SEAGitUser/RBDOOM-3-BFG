@@ -766,8 +766,7 @@ static void RB_Tonemap( const idRenderView* viewDef )
 	if( glConfig.multisamples > 0 )
 	{
 		GL_BindTexture( 0, renderImageManager->currentRenderHDRImageNoMSAA );
-	}
-	else
+	} else
 	#endif
 	{
 		GL_BindTexture( 0, renderImageManager->currentRenderHDRImage );
@@ -1176,7 +1175,7 @@ static void RB_SSAO( const idRenderView* viewDef )
 	jitterTexOffset[ 3 ] = 0.0f;
 	renderProgManager.SetRenderParm( RENDERPARM_JITTERTEXOFFSET, jitterTexOffset ); // rpJitterTexOffset
 
-	GL_BindTexture( 0, renderImageManager->currentNormalsImage );
+	GL_BindTexture( 0, renderImageManager->currentNormalsImage ); // viewNormalMap
 	GL_BindTexture( 1, ( r_useHierarchicalDepthBuffer.GetBool() ) ? renderImageManager->hierarchicalZbufferImage : renderImageManager->currentDepthImage );
 
 	GL_DrawUnitSquare();

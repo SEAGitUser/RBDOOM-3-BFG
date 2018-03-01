@@ -189,11 +189,11 @@ void RB_DrawComplexMaterialInteraction( drawInteraction_t & inter,
 {
 	RENDERLOG_OPEN_BLOCK( surfaceMaterial->GetName() );
 
-	for( int surfaceStageNum = 0; surfaceStageNum < surfaceMaterial->GetNumStages(); surfaceStageNum++ )
+	for( int stageNum = 0; stageNum < surfaceMaterial->GetNumStages(); stageNum++ )
 	{
-		auto const surfaceStage = surfaceMaterial->GetStage( surfaceStageNum );
+		auto const surfaceMaterialStage = surfaceMaterial->GetStage( stageNum );
 
-		switch( surfaceStage->lighting )
+		switch( surfaceMaterialStage->lighting )
 		{
 			case SL_COVERAGE:
 			{
@@ -209,7 +209,7 @@ void RB_DrawComplexMaterialInteraction( drawInteraction_t & inter,
 			case SL_BUMP:
 			{
 				// ignore stage that fails the condition
-				if( !surfaceRegs[ surfaceStage->conditionRegister ] )
+				if( !surfaceRegs[ surfaceMaterialStage->conditionRegister ] )
 				{
 					break;
 				}
@@ -218,16 +218,16 @@ void RB_DrawComplexMaterialInteraction( drawInteraction_t & inter,
 				{
 					RB_DrawSingleInteraction( &inter );
 				}
-				inter.bumpImage = surfaceStage->texture.image;
+				inter.bumpImage = surfaceMaterialStage->texture.image;
 				inter.diffuseImage = NULL;
 				inter.specularImage = NULL;
-				RB_SetupInteractionStage( surfaceStage, surfaceRegs, NULL, inter.bumpMatrix, NULL );
+				RB_SetupInteractionStage( surfaceMaterialStage, surfaceRegs, NULL, inter.bumpMatrix, NULL );
 				break;
 			}
 			case SL_DIFFUSE:
 			{
 				// ignore stage that fails the condition
-				if( !surfaceRegs[ surfaceStage->conditionRegister ] )
+				if( !surfaceRegs[ surfaceMaterialStage->conditionRegister ] )
 				{
 					break;
 				}
@@ -236,15 +236,15 @@ void RB_DrawComplexMaterialInteraction( drawInteraction_t & inter,
 				{
 					RB_DrawSingleInteraction( &inter );
 				}
-				inter.diffuseImage = surfaceStage->texture.image;
-				inter.vertexColor = surfaceStage->vertexColor;
-				RB_SetupInteractionStage( surfaceStage, surfaceRegs, diffuseColorMul.ToFloatPtr(), inter.diffuseMatrix, inter.diffuseColor.ToFloatPtr() );
+				inter.diffuseImage = surfaceMaterialStage->texture.image;
+				inter.vertexColor = surfaceMaterialStage->vertexColor;
+				RB_SetupInteractionStage( surfaceMaterialStage, surfaceRegs, diffuseColorMul.ToFloatPtr(), inter.diffuseMatrix, inter.diffuseColor.ToFloatPtr() );
 				break;
 			}
 			case SL_SPECULAR:
 			{
 				// ignore stage that fails the condition
-				if( !surfaceRegs[ surfaceStage->conditionRegister ] )
+				if( !surfaceRegs[ surfaceMaterialStage->conditionRegister ] )
 				{
 					break;
 				}
@@ -253,9 +253,9 @@ void RB_DrawComplexMaterialInteraction( drawInteraction_t & inter,
 				{
 					RB_DrawSingleInteraction( &inter );
 				}
-				inter.specularImage = surfaceStage->texture.image;
-				inter.vertexColor = surfaceStage->vertexColor;
-				RB_SetupInteractionStage( surfaceStage, surfaceRegs, specularColorMul.ToFloatPtr(), inter.specularMatrix, inter.specularColor.ToFloatPtr() );
+				inter.specularImage = surfaceMaterialStage->texture.image;
+				inter.vertexColor = surfaceMaterialStage->vertexColor;
+				RB_SetupInteractionStage( surfaceMaterialStage, surfaceRegs, specularColorMul.ToFloatPtr(), inter.specularMatrix, inter.specularColor.ToFloatPtr() );
 				break;
 			}
 		}

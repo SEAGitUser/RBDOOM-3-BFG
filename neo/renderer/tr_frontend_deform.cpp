@@ -871,7 +871,7 @@ Emit particles from the surface.
 */
 static drawSurf_t* R_ParticleDeform( drawSurf_t* surf, bool useArea )
 {
-	const renderEntity_t* renderEntity = &surf->space->entityDef->GetParms();
+	const renderEntityParms_t* renderEntity = &surf->space->entityDef->GetParms();
 	const idRenderView* viewDef = tr.viewDef;
 	const idDeclParticle* particleSystem = ( const idDeclParticle* )surf->material->GetDeformDecl();
 	const idTriangles* srcTri = surf->frontEndGeo;

@@ -887,9 +887,7 @@ void R_InitOpenGL()
 	
 	// recheck all the extensions (FIXME: this might be dangerous)
 	R_CheckPortableExtensions();
-	
-	renderProgManager.Init();
-	
+
 	r_initialized = true;
 	
 	// allocate the vertex array range or vertex objects
@@ -1341,7 +1339,7 @@ void idRenderSystemLocal::Init()
 	ambientLightVector[2] = 0.8925f;
 	ambientLightVector[3] = 1.0f;
 	
-	memset( &backEnd, 0, sizeof( backEnd ) );
+	backEnd.Clear();
 	
 	R_InitCvars();
 	
@@ -1353,10 +1351,11 @@ void idRenderSystemLocal::Init()
 
 	UpdateStereo3DMode();
 
+	RB_InitBuffers();
+
 	renderImageManager->Init();
 	renderDestManager.Init();
-
-	RB_InitBuffers();
+	renderProgManager.Init();
 	
 	idCinematic::InitCinematic();
 	

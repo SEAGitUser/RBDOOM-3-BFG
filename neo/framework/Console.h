@@ -85,7 +85,7 @@ public:
 	virtual void	Draw( bool forceFullScreen ) = 0;
 	virtual void    Resize() = 0;
 
-	virtual void	Print( const char* text ) = 0;	
+	virtual void	Print( const char* text, bool bInDraw ) = 0;
 	virtual void	PrintOverlay( idOverlayHandle& handle, justify_t justify, VERIFY_FORMAT_STRING const char* text, ... ) = 0;
 	
 	virtual idDebugGraph* 	CreateGraph( int numItems ) = 0;

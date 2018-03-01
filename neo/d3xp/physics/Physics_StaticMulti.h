@@ -37,9 +37,7 @@ If you have questions concerning this license or the applicable additional terms
 ===============================================================================
 */
 
-class idPhysics_StaticMulti : public idPhysics
-{
-
+class idPhysics_StaticMulti : public idPhysics {
 public:
 	CLASS_PROTOTYPE( idPhysics_StaticMulti );
 	

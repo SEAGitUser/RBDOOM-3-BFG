@@ -319,9 +319,7 @@ R_ImageAdd
 */
 static void R_ImageAdd( byte* data1, int width1, int height1, byte* data2, int width2, int height2 )
 {
-	int		i, j;
-	int		c;
-	byte*	newMap;
+	byte* newMap = NULL;
 	
 	// resample pic2 to the same size as pic1
 	if( width2 != width1 || height2 != height1 )
@@ -329,17 +327,12 @@ static void R_ImageAdd( byte* data1, int width1, int height1, byte* data2, int w
 		newMap = R_Dropsample( data2, width2, height2, width1, height1 );
 		data2 = newMap;
 	}
-	else
+		
+	int c = width1 * height1 * 4;
+	
+	for( int i = 0 ; i < c ; ++i )
 	{
-		newMap = NULL;
-	}
-	
-	
-	c = width1 * height1 * 4;
-	
-	for( i = 0 ; i < c ; ++i )
-	{
-		j = data1[i] + data2[i];
+		int j = data1[i] + data2[i];
 		if( j > 255 )
 		{
 			j = 255;

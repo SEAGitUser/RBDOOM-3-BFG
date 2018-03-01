@@ -95,4 +95,34 @@ private:
 	int					size;
 };
 
+template< typename Type >
+class idBitFlags {
+	Type flags;
+public:
+	// set specific flag(s)
+	void SetFlag( const Type flag )
+	{
+		this->flags |= flag;
+	}
+	// clear specific flag(s)
+	void ClearFlag( const Type flag )
+	{
+		this->flags &= ~flag;
+	}
+	// test for existance of specific flag(s)
+	bool HasFlag( const Type flag ) const
+	{
+		return( this->flags & flag ) != 0;
+	}
+	void Clear()
+	{
+		flags = 0;
+	}
+
+	void operator = ( Type other )
+	{
+		flags = other;
+	}
+};
+
 #endif /* !__BITFIELD_H__ */

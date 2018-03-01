@@ -392,7 +392,6 @@ idGameLocal::Shutdown
 */
 void idGameLocal::Shutdown()
 {
-
 	if( !common )
 	{
 		return;
@@ -1264,7 +1263,6 @@ idGameLocal::InitFromNewMap
 */
 void idGameLocal::InitFromNewMap( const char* mapName, idRenderWorld* renderWorld, idSoundWorld* soundWorld, int gameMode, int randseed )
 {
-
 	this->gameType = ( gameType_t )idMath::ClampInt( GAME_SP, GAME_COUNT - 1, gameMode );
 	
 	if( mapFileName.Length() )

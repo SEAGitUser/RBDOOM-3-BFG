@@ -366,10 +366,6 @@ idCollisionModelManagerLocal::DrawModel
 void idCollisionModelManagerLocal::DrawModel( cmHandle_t handle, const idVec3& modelOrigin, const idMat3& modelAxis,
 		const idVec3& viewOrigin, const float radius )
 {
-
-	cm_model_t* model;
-	idVec3 viewPos;
-	
 	if( handle < 0 && handle >= numModels )
 	{
 		return;
@@ -381,8 +377,8 @@ void idCollisionModelManagerLocal::DrawModel( cmHandle_t handle, const idVec3& m
 		cm_drawColor.ClearModified();
 	}
 	
-	model = models[ handle ];
-	viewPos = ( viewOrigin - modelOrigin ) * modelAxis.Transpose();
+	auto model = models[ handle ];
+	idVec3 viewPos = ( viewOrigin - modelOrigin ) * modelAxis.Transpose();
 	checkCount++;
 	DrawNodePolygons( model, model->node, modelOrigin, modelAxis, viewPos, radius );
 }

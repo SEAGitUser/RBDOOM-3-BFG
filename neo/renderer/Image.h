@@ -64,7 +64,7 @@ enum textureUsage_t
 	TD_COVERAGE,			// coverage map for fill depth pass when YCoCG is used
 	TD_DEPTH,				// depth buffer copy for motion blur
 	// RB begin
-	TD_SHADOWMAP,		// depth buffer for shadow mapping
+	TD_SHADOWMAP,			// depth buffer for shadow mapping
 
 	TD_RGBA16F,
 	TD_RGBA32F,
@@ -318,8 +318,9 @@ class idUniqueTextureSampler
 
 class idImage 
 {
-	friend class Framebuffer;
 	friend class idRenderDestination;
+	friend class idDeclRenderParm;
+
 public:
 	idImage( const char* name );
 	
@@ -349,7 +350,7 @@ public:
 	
 	ID_INLINE void	AddReference() { refCount++; };
 	
-	void			MakeDefault();	// fill with a grid pattern
+	void			MakeDefault( textureType_t = TT_2D );	// fill with a grid pattern
 	
 	ID_INLINE const idImageOpts & GetOpts() const { return opts; }
 	ID_INLINE int	GetUploadWidth() const { return opts.width; }
@@ -396,6 +397,8 @@ public:
 	ID_INLINE bool		IsMultisampled() const { return opts.IsMultisampled(); }
 	ID_INLINE bool		IsDepth() const { return opts.IsDepth(); }
 	ID_INLINE bool		IsDepthStencil() const { return opts.IsDepthStencil(); }
+	ID_INLINE bool		UsageShadowMap() const { return usage == TD_SHADOWMAP; }
+
 
 	ID_INLINE bool		IsLoaded() const { return apiObject != nullptr; }
 	ID_INLINE void *	GetAPIObject() const { return apiObject; }
@@ -527,6 +530,7 @@ public:
 	// built-in images
 	void CreateIntrinsicImages();
 	idImage* 			defaultImage;
+	idImage* 			defaultImageCube;
 	idImage* 			flatNormalMap;				// 128 128 255 in all pixels
 	idImage* 			alphaNotchImage;			// 2x1 texture with just 1110 and 1111 with point sampling
 	idImage* 			whiteImage;					// full of 0xff

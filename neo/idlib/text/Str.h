@@ -259,6 +259,7 @@ public:
 	idStr& 					RemoveColors();
 	void					CapLength( int );
 	void					Fill( const char ch, int newlen );
+	void					Swap( idStr& rhs );
 
 	ID_INLINE int			UTF8Length();
 	ID_INLINE uint32		UTF8Char( int& idx );
@@ -286,7 +287,7 @@ public:
 	idStr					Right( int len ) const;							// return the rightmost 'len' characters
 	idStr					Mid( int start, int len ) const;				// return 'len' characters starting at 'start'
 	// perform a threadsafe sprintf to the string
-	template< size_t _size_ = MAX_PRINT_MSG > void Format( VERIFY_FORMAT_STRING const char* fmt, ... );
+	template< size_t _size_ = MAX_STRING_CHARS > idStr & Format( VERIFY_FORMAT_STRING const char* fmt, ... ); // MAX_PRINT_MSG
 	static idStr			FormatInt( const int num, bool isCash = false );			// formats an integer as a value with commas
 	static idStr			FormatCash( const int num ) { return FormatInt( num, true ); }
 	
@@ -503,7 +504,7 @@ perform a threadsafe sprintf to the string
 ========================
 */
 template< size_t _size_ >
-void idStr::Format( const char* fmt, ... )
+idStr & idStr::Format( const char* fmt, ... )
 {
 	va_list argptr;
 	char text[ _size_ ]; // default MAX_PRINT_MSG
@@ -518,6 +519,8 @@ void idStr::Format( const char* fmt, ... )
 		idLib::FatalError( "Tried to set a large buffer using %s", fmt );
 	}
 	*this = text;
+
+	return *this;
 }
 
 /*
@@ -985,14 +988,7 @@ ID_INLINE int idStr::Length() const
 
 ID_INLINE int idStr::Allocated() const
 {
-	if( data != baseBuffer )
-	{
-		return GetAlloced();
-	}
-	else
-	{
-		return 0;
-	}
+	return ( data != baseBuffer )? GetAlloced() : 0;
 }
 
 ID_INLINE void idStr::Empty()
@@ -1004,7 +1000,7 @@ ID_INLINE void idStr::Empty()
 
 ID_INLINE bool idStr::IsEmpty() const
 {
-	return ( idStr::Cmp( data, "" ) == 0 );
+	return( idStr::Cmp( data, "" ) == 0 );
 }
 
 ID_INLINE void idStr::Clear()
@@ -1031,7 +1027,7 @@ ID_INLINE void idStr::Append( const idStr& text )
 {
 	int newLen = len + text.Length();
 	EnsureAlloced( newLen + 1 );
-	for( int i = 0; i < text.len; i++ )
+	for( int i = 0; i < text.len; ++i )
 	{
 		data[ len + i ] = text[ i ];
 	}
@@ -1041,14 +1037,11 @@ ID_INLINE void idStr::Append( const idStr& text )
 
 ID_INLINE void idStr::Append( const char* text )
 {
-	int newLen;
-	int i;
-	
 	if( text )
 	{
-		newLen = len + Length( text );
+		int newLen = len + Length( text );
 		EnsureAlloced( newLen + 1 );
-		for( i = 0; text[ i ]; i++ )
+		for( int i = 0; text[ i ]; ++i )
 		{
 			data[ len + i ] = text[ i ];
 		}
@@ -1059,14 +1052,11 @@ ID_INLINE void idStr::Append( const char* text )
 
 ID_INLINE void idStr::Append( const char* text, int l )
 {
-	int newLen;
-	int i;
-	
 	if( text && l )
 	{
-		newLen = len + l;
+		int newLen = len + l;
 		EnsureAlloced( newLen + 1 );
-		for( i = 0; text[ i ] && i < l; i++ )
+		for( int i = 0; text[ i ] && i < l; ++i )
 		{
 			data[ len + i ] = text[ i ];
 		}
@@ -1077,8 +1067,6 @@ ID_INLINE void idStr::Append( const char* text, int l )
 
 ID_INLINE void idStr::Insert( const char a, int index )
 {
-	int i, l;
-	
 	if( index < 0 )
 	{
 		index = 0;
@@ -1088,9 +1076,9 @@ ID_INLINE void idStr::Insert( const char a, int index )
 		index = len;
 	}
 	
-	l = 1;
+	int l = 1;
 	EnsureAlloced( len + l + 1 );
-	for( i = len; i >= index; i-- )
+	for( int i = len; i >= index; --i )
 	{
 		data[i + l] = data[i];
 	}
@@ -1100,8 +1088,6 @@ ID_INLINE void idStr::Insert( const char a, int index )
 
 ID_INLINE void idStr::Insert( const char* text, int index )
 {
-	int i, l;
-	
 	if( index < 0 )
 	{
 		index = 0;
@@ -1111,13 +1097,13 @@ ID_INLINE void idStr::Insert( const char* text, int index )
 		index = len;
 	}
 	
-	l = Length( text );
+	int l = Length( text );
 	EnsureAlloced( len + l + 1 );
-	for( i = len; i >= index; i-- )
+	for( int i = len; i >= index; --i )
 	{
 		data[i + l] = data[i];
 	}
-	for( i = 0; i < l; i++ )
+	for( int i = 0; i < l; ++i )
 	{
 		data[index + i] = text[i];
 	}
@@ -1126,7 +1112,7 @@ ID_INLINE void idStr::Insert( const char* text, int index )
 
 ID_INLINE void idStr::ToLower()
 {
-	for( int i = 0; data[i]; i++ )
+	for( int i = 0; data[i]; ++i )
 	{
 		if( CharIsUpper( data[i] ) )
 		{
@@ -1137,7 +1123,7 @@ ID_INLINE void idStr::ToLower()
 
 ID_INLINE void idStr::ToUpper()
 {
-	for( int i = 0; data[i]; i++ )
+	for( int i = 0; data[i]; ++i )
 	{
 		if( CharIsLower( data[i] ) )
 		{
@@ -1369,13 +1355,13 @@ ID_INLINE idStr& idStr::CleanFilename()
 ID_INLINE int idStr::Length( const char* s )
 {
 	int i;
-	for( i = 0; s[i]; i++ ) {}
+	for( i = 0; s[i]; ++i ) {}
 	return i;
 }
 
 ID_INLINE char* idStr::ToLower( char* s )
 {
-	for( int i = 0; s[i]; i++ )
+	for( int i = 0; s[i]; ++i )
 	{
 		if( CharIsUpper( s[i] ) )
 		{
@@ -1387,7 +1373,7 @@ ID_INLINE char* idStr::ToLower( char* s )
 
 ID_INLINE char* idStr::ToUpper( char* s )
 {
-	for( int i = 0; s[i]; i++ )
+	for( int i = 0; s[i]; ++i )
 	{
 		if( CharIsLower( s[i] ) )
 		{
@@ -1400,7 +1386,7 @@ ID_INLINE char* idStr::ToUpper( char* s )
 ID_INLINE int idStr::Hash( const char* string )
 {
 	int i, hash = 0;
-	for( i = 0; *string != '\0'; i++ )
+	for( i = 0; *string != '\0'; ++i )
 	{
 		hash += ( *string++ ) * ( i + 119 );
 	}
@@ -1410,7 +1396,7 @@ ID_INLINE int idStr::Hash( const char* string )
 ID_INLINE int idStr::Hash( const char* string, int length )
 {
 	int i, hash = 0;
-	for( i = 0; i < length; i++ )
+	for( i = 0; i < length; ++i )
 	{
 		hash += ( *string++ ) * ( i + 119 );
 	}
@@ -1420,7 +1406,7 @@ ID_INLINE int idStr::Hash( const char* string, int length )
 ID_INLINE int idStr::IHash( const char* string )
 {
 	int i, hash = 0;
-	for( i = 0; *string != '\0'; i++ )
+	for( i = 0; *string != '\0'; ++i )
 	{
 		hash += ToLower( *string++ ) * ( i + 119 );
 	}
@@ -1430,7 +1416,7 @@ ID_INLINE int idStr::IHash( const char* string )
 ID_INLINE int idStr::IHash( const char* string, int length )
 {
 	int i, hash = 0;
-	for( i = 0; i < length; i++ )
+	for( i = 0; i < length; ++i )
 	{
 		hash += ToLower( *string++ ) * ( i + 119 );
 	}
@@ -1455,7 +1441,7 @@ ID_INLINE bool idStr::IsHexColor( const char *s )
 			return false;
 		}
 	}
-	return ( i == 6 );
+	return( i == 6 );
 }
 
 ID_INLINE bool idStr::HasHexColorAlpha( const char *s ) 
@@ -1466,7 +1452,7 @@ ID_INLINE bool idStr::HasHexColorAlpha( const char *s )
 			return false;
 		}
 	}
-	return ( i == 8 );
+	return( i == 8 );
 }
 
 ID_INLINE char idStr::ToLower( char c )
@@ -1555,11 +1541,6 @@ ID_INLINE int idStr::DynamicMemoryUsed() const
 	return ( data == baseBuffer ) ? 0 : GetAlloced();
 }
 
-/*
-========================
-idStr::CopyRange
-========================
-*/
 ID_INLINE void idStr::CopyRange( const char* text, int start, int end )
 {
 	int l = end - start;
@@ -1573,5 +1554,19 @@ ID_INLINE void idStr::CopyRange( const char* text, int start, int end )
 	data[ l ] = '\0';
 	len = l;
 }
+/*
+ID_INLINE void idStr::Swap( idStr& rhs )
+{
+	if( rhs.data != rhs.baseBuffer && data != baseBuffer )
+	{
+		SwapValues( data, rhs.data );
+		SwapValues( len, rhs.len );
+		SwapValues( alloced, rhs.alloced );
+	}
+	else
+	{
+		SwapValues( *this, rhs );
+	}
+}*/
 
 #endif /* !__STR_H__ */

@@ -412,8 +412,8 @@ ID_INLINE idBounds& idBounds::RotateSelf( const idMat3& rotation )
 
 ID_INLINE bool idBounds::ContainsPoint( const idVec3& p ) const
 {
-	if( p[0] < b[0][0] || p[1] < b[0][1] || p[2] < b[0][2]
-			|| p[0] > b[1][0] || p[1] > b[1][1] || p[2] > b[1][2] )
+	if( p[0] < b[0][0] || p[1] < b[0][1] || p[2] < b[0][2] || 
+		p[0] > b[1][0] || p[1] > b[1][1] || p[2] > b[1][2] )
 	{
 		return false;
 	}
@@ -422,8 +422,8 @@ ID_INLINE bool idBounds::ContainsPoint( const idVec3& p ) const
 
 ID_INLINE bool idBounds::IntersectsBounds( const idBounds& a ) const
 {
-	if( a.b[1][0] < b[0][0] || a.b[1][1] < b[0][1] || a.b[1][2] < b[0][2]
-			|| a.b[0][0] > b[1][0] || a.b[0][1] > b[1][1] || a.b[0][2] > b[1][2] )
+	if( a.b[1][0] < b[0][0] || a.b[1][1] < b[0][1] || a.b[1][2] < b[0][2] || 
+		a.b[0][0] > b[1][0] || a.b[0][1] > b[1][1] || a.b[0][2] > b[1][2] )
 	{
 		return false;
 	}

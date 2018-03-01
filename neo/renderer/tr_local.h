@@ -46,8 +46,8 @@ renderlogs/eventlog_.txt        renderMode == RENDER_MODE_SYNC
 #include "Image.h"
 #include "Font.h"
 #include "RenderDestination.h"
-
-#include "DeclRenderParm.h"
+//#include "DeclRenderParm.h"
+//#include "DeclRenderProg.h"
 
 // maximum texture units
 const int MAX_PROG_TEXTURE_PARMS	= 16;
@@ -66,25 +66,6 @@ typedef idHandle<qhandle_t, -1>	idRenderIndex;
 
 typedef ALIGNTYPE16 idVec4 idRenderVector;
 typedef ALIGNTYPE16 idPlane idRenderPlane;
-
-template< typename Type >
-class idBitFlags {
-	Type flags;
-public:
-	// set specific flag(s)
-	void SetFlag( const Type flag ) {
-		this->flags |= flag;
-	}
-	// clear specific flag(s)
-	void ClearFlag( const Type flag ) {
-		this->flags &= ~flag;
-	}
-	// test for existance of specific flag(s)
-	bool HasFlag( const Type flag ) const {
-		return( this->flags & flag ) != 0;
-	}
-	void Clear() { flags = 0; }
-};
 
 enum demoCommand_t
 {
@@ -206,7 +187,7 @@ class idRenderLightLocal
 	friend class idRenderWorldLocal;
 	friend void CreateMapLight( const idMapEntity* ); //SEA: temp temp
 private:
-	renderLight_t			parms;					// specification
+	renderLightParms_t			parms;					// specification
 	
 	// first added, so the prelight model is not valid
 	idRenderWorldLocal* 	world;
@@ -248,7 +229,7 @@ public:
 	ID_INLINE int						GetIndex() const { return index; }
 	ID_INLINE idRenderWorldLocal *		GetOwner() const { return world; }
 
-	ID_INLINE const renderLight_t &		GetParms() const { return parms; }
+	ID_INLINE const renderLightParms_t &		GetParms() const { return parms; }
 	ID_INLINE const idVec3 &			GetOrigin() const { return parms.origin; }
 	ID_INLINE const idMat3 &			GetAxis() const { return parms.axis; }
 	ID_INLINE bool						LightCastsShadows() const { return parms.forceShadows || ( !parms.noShadows && lightShader->LightCastsShadows() ); }
@@ -276,7 +257,7 @@ class idRenderEntityLocal
 {
 	friend class idRenderWorldLocal;
 private:
-	renderEntity_t			parms;
+	renderEntityParms_t			parms;
 	
 	idRenderWorldLocal* 	world;
 	int						index;					// in world entityDefs
@@ -325,7 +306,7 @@ public:
 	ID_INLINE int						GetIndex() const { return index; }
 	ID_INLINE idRenderWorldLocal *		GetOwner() const { return world; }
 
-	ID_INLINE const renderEntity_t &	GetParms() const { return parms; }
+	ID_INLINE const renderEntityParms_t &	GetParms() const { return parms; }
 	ID_INLINE const idVec3 &			GetOrigin() const { return parms.origin; }
 	ID_INLINE const idMat3 &			GetAxis() const { return parms.axis; }
 	ID_INLINE const idRenderModel *		GetModel() const { return parms.hModel; }
@@ -792,7 +773,10 @@ enum uboBindings_t
 {
 	BINDING_GLOBAL_UBO	= 0,
 	BINDING_MATRICES_UBO,
+	BINDING_PREVIOUS_MATRICES_UBO,
 	BINDING_SHADOW_UBO,
+	BINDING_PROG_PARMS_UBO,
+	BINDING_UBO_MAX
 };
 #if 0
 struct constantBuffersInfo_t {
@@ -890,12 +874,11 @@ struct glstate_t
 	// RB: 64 bit fixes, changed unsigned int to uintptr_t
 	uintptr_t			currentVertexBuffer;
 	uintptr_t			currentIndexBuffer;
-	
-	Framebuffer*		currentFramebuffer;
-	// RB end
 
 	GLuint				currentFramebufferObject;
 	const idRenderDestination * currentRenderDestination;
+
+	uint32				currentProgramObject;
 	
 	float				polyOfsScale;
 	float				polyOfsBias;
@@ -960,6 +943,11 @@ struct backEndState_t
 	ID_INLINE void ClearCurrentSpace()
 	{
 		currentSpace = nullptr;
+	}
+
+	ID_INLINE void Clear()
+	{
+		memset( this, 0, sizeof( *this ) );
 	}
 };
 
@@ -1527,7 +1515,7 @@ TR_FRONTEND_ADDMODELS
 ============================================================
 */
 
-void R_SetupDrawSurfShader( drawSurf_t*, const idMaterial*, const renderEntity_t*, const idRenderView* );
+void R_SetupDrawSurfShader( drawSurf_t*, const idMaterial*, const renderEntityParms_t*, const idRenderView* );
 void R_SetupDrawSurfJoints( drawSurf_t*, const idTriangles*, const idMaterial* );
 void R_LinkDrawSurfToView( drawSurf_t*, idRenderView* );
 

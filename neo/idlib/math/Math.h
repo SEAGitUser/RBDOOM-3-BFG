@@ -436,7 +436,7 @@ public:
 	
 	static float				LerpToWithScale( const float cur, const float dest, const float scale );
 
-	template<typename T> static ID_INLINE T	Sign( T f ) { return ( f > 0 ) ? 1 : ( ( f < 0 ) ? -1 : 0 ); }
+	template<typename T> static ID_INLINE T	Sign( T f ) { return ( f > 0 )? 1 : ( ( f < 0 )? -1 : 0 ); }
 	template<typename T> static ID_INLINE T	Square( T x ) { return x * x; }
 	template<typename T> static ID_INLINE T	Cube( T x ) { return x * x * x; }
 	

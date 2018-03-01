@@ -249,8 +249,8 @@ ID_INLINE void idVec2::Clamp( const idVec2& min, const idVec2& max )
 
 ID_INLINE void idVec2::Snap()
 {
-	x = floor( x + 0.5f );
-	y = floor( y + 0.5f );
+	x = floorf( x + 0.5f );
+	y = floorf( y + 0.5f );
 }
 
 ID_INLINE void idVec2::SnapInt()
@@ -378,6 +378,7 @@ public:
 	explicit idVec3( const float x, const float y, const float z );
 	
 	void 			Set( const float x, const float y, const float z );
+	ID_INLINE void	Set( float xyz ) { Set( xyz, xyz, xyz ); }
 	void			Zero();
 	
 	float			operator[]( const int index ) const;

@@ -198,7 +198,7 @@ void idRenderDestination::CreateFromImages( const targetList_t *_targetList, idI
 	if( GLEW_KHR_debug )
 	{
 		idStrStatic<128> name;
-		name.Format<128>( "idRenderDestination(\"%s\")(%u)", GetName(), fbo );
+		name.Format( "idRenderDestination(\"%s\")(%u)", GetName(), fbo );
 		glObjectLabel( GL_FRAMEBUFFER, fbo, name.Length(), name.c_str() );
 	}
 

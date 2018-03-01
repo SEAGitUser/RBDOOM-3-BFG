@@ -505,12 +505,7 @@ small chars are drawn at native screen resolution
 */
 void idRenderSystemLocal::DrawSmallChar( int x, int y, int ch )
 {
-	int row, col;
-	float frow, fcol;
-	float size;
-	
-	ch &= 255;
-	
+	ch &= 255;	
 	if( ch == ' ' )
 	{
 		return;
@@ -521,12 +516,12 @@ void idRenderSystemLocal::DrawSmallChar( int x, int y, int ch )
 		return;
 	}
 	
-	row = ch >> 4;
-	col = ch & 15;
+	int row = ch >> 4;
+	int col = ch & 15;
 	
-	frow = row * 0.0625f;
-	fcol = col * 0.0625f;
-	size = 0.0625f;
+	float frow = row * 0.0625f; // 1 / 16
+	float fcol = col * 0.0625f;
+	float size = 0.0625f;
 	
 	DrawStretchPic( x, y, SMALLCHAR_WIDTH, SMALLCHAR_HEIGHT,
 					fcol, frow,
@@ -546,13 +541,9 @@ Coordinates are at 640 by 480 virtual resolution
 */
 void idRenderSystemLocal::DrawSmallStringExt( int x, int y, const char* string, const idVec4& setColor, bool forceColor )
 {
-	idVec4		color;
-	const unsigned char*	s;
-	int			xx;
-	
 	// draw the colored text
-	s = ( const unsigned char* )string;
-	xx = x;
+	auto s = ( const unsigned char* )string;
+	int xx = x;
 	SetColor( setColor );
 	while( *s )
 	{
@@ -564,9 +555,8 @@ void idRenderSystemLocal::DrawSmallStringExt( int x, int y, const char* string, 
 				{
 					SetColor( setColor );
 				}
-				else
-				{
-					color = idStr::ColorForIndex( *( s + 1 ) );
+				else {
+					idVec4 color = idStr::ColorForIndex( *( s + 1 ) );
 					color[3] = setColor[3];
 					SetColor( color );
 				}
@@ -574,10 +564,12 @@ void idRenderSystemLocal::DrawSmallStringExt( int x, int y, const char* string, 
 			s += 2;
 			continue;
 		}
+
 		DrawSmallChar( xx, y, *s );
 		xx += SMALLCHAR_WIDTH;
 		s++;
 	}
+
 	SetColor( colorWhite );
 }
 
@@ -588,12 +580,7 @@ idRenderSystemLocal::DrawBigChar
 */
 void idRenderSystemLocal::DrawBigChar( int x, int y, int ch )
 {
-	int row, col;
-	float frow, fcol;
-	float size;
-	
-	ch &= 255;
-	
+	ch &= 255;	
 	if( ch == ' ' )
 	{
 		return;
@@ -604,12 +591,12 @@ void idRenderSystemLocal::DrawBigChar( int x, int y, int ch )
 		return;
 	}
 	
-	row = ch >> 4;
-	col = ch & 15;
+	int row = ch >> 4;
+	int col = ch & 15;
 	
-	frow = row * 0.0625f;
-	fcol = col * 0.0625f;
-	size = 0.0625f;
+	float frow = row * 0.0625f;
+	float fcol = col * 0.0625f;
+	float size = 0.0625f;
 	
 	DrawStretchPic( x, y, BIGCHAR_WIDTH, BIGCHAR_HEIGHT,
 					fcol, frow,
@@ -629,13 +616,9 @@ Coordinates are at 640 by 480 virtual resolution
 */
 void idRenderSystemLocal::DrawBigStringExt( int x, int y, const char* string, const idVec4& setColor, bool forceColor )
 {
-	idVec4		color;
-	const char*	s;
-	int			xx;
-	
 	// draw the colored text
-	s = string;
-	xx = x;
+	const char* s = string;
+	int xx = x;
 	SetColor( setColor );
 	while( *s )
 	{
@@ -647,9 +630,8 @@ void idRenderSystemLocal::DrawBigStringExt( int x, int y, const char* string, co
 				{
 					SetColor( setColor );
 				}
-				else
-				{
-					color = idStr::ColorForIndex( *( s + 1 ) );
+				else {
+					idVec4 color = idStr::ColorForIndex( *( s + 1 ) );
 					color[3] = setColor[3];
 					SetColor( color );
 				}
@@ -657,10 +639,12 @@ void idRenderSystemLocal::DrawBigStringExt( int x, int y, const char* string, co
 			s += 2;
 			continue;
 		}
+
 		DrawBigChar( xx, y, *s );
 		xx += BIGCHAR_WIDTH;
 		s++;
 	}
+
 	SetColor( colorWhite );
 }
 
@@ -688,9 +672,7 @@ const emptyCommand_t* idRenderSystemLocal::SwapCommandBuffers(
 	uint64* shadowMicroSec,
 	uint64* gpuMicroSec )
 {
-
-	SwapCommandBuffers_FinishRendering( frontEndMicroSec, backEndMicroSec, shadowMicroSec, gpuMicroSec );
-	
+	SwapCommandBuffers_FinishRendering( frontEndMicroSec, backEndMicroSec, shadowMicroSec, gpuMicroSec );	
 	return SwapCommandBuffers_FinishCommandBuffers();
 }
 

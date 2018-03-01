@@ -739,7 +739,7 @@ bool idRenderModelStatic::IsReloadable() const
 idRenderModelStatic::Bounds
 ================
 */
-idBounds idRenderModelStatic::Bounds( const struct renderEntity_s* mdef ) const
+idBounds idRenderModelStatic::Bounds( const struct renderEntityParms_t* mdef ) const
 {
 	return bounds;
 }
@@ -759,7 +759,7 @@ float idRenderModelStatic::DepthHack() const
 idRenderModelStatic::InstantiateDynamicModel
 ================
 */
-idRenderModel* idRenderModelStatic::InstantiateDynamicModel( const struct renderEntity_s* ent, const idRenderView* view, idRenderModel* cachedModel )
+idRenderModel* idRenderModelStatic::InstantiateDynamicModel( const struct renderEntityParms_t* ent, const idRenderView* view, idRenderModel* cachedModel )
 {
 	if( cachedModel )
 	{
@@ -2974,11 +2974,11 @@ void idRenderModelStatic::PurgeModel()
 {
 	for( int i = 0; i < surfaces.Num(); i++ )
 	{
-		modelSurface_t* surf = &surfaces[i];
+		auto surf = &surfaces[i];
 		
-		if( surf->geometry )
+		if( surf->GetTriangles() )
 		{
-			idTriangles::FreeStatic( surf->geometry );
+			idTriangles::FreeStatic( surf->GetTriangles() );
 		}
 	}
 	surfaces.Clear();
@@ -3001,9 +3001,9 @@ We are about to restart the vertex cache, so dump everything
 */
 void idRenderModelStatic::FreeVertexCache()
 {
-	for( int j = 0; j < surfaces.Num(); j++ )
+	for( int j = 0; j < surfaces.Num(); ++j )
 	{
-		auto * tri = surfaces[j].geometry;
+		auto * tri = surfaces[j].GetTriangles();
 		if( tri == NULL )
 		{
 			continue;

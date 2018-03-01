@@ -134,17 +134,17 @@ bool idTokenParser::ExpectTokenString( const char* string )
 	return true;
 }
 // expect a certain token type
-bool idTokenParser::ExpectTokenType( int type, int subtype, idToken* token )
+bool idTokenParser::ExpectTokenType( int type, int subtype, idToken & token )
 {
 	idStr str;
 	
-	if( !ReadToken( token ) )
+	if( !ReadToken( &token ) )
 	{
 		Error( "couldn't read expected token" );
 		return false;
 	}
 	
-	if( token->type != type )
+	if( token.type != type )
 	{
 		switch( type )
 		{
@@ -167,12 +167,12 @@ bool idTokenParser::ExpectTokenType( int type, int subtype, idToken* token )
 				str = "unknown type";
 				break;
 		}
-		Error( "expected a %s but found '%s'", str.c_str(), token->c_str() );
+		Error( "expected a %s but found '%s'", str.c_str(), token.c_str() );
 		return false;
 	}
-	if( token->type == TT_NUMBER )
+	if( token.type == TT_NUMBER )
 	{
-		if( ( token->subtype & subtype ) != subtype )
+		if( ( token.subtype & subtype ) != subtype )
 		{
 			str.Clear();
 			if( subtype & TT_DECIMAL ) str = "decimal ";
@@ -184,18 +184,18 @@ bool idTokenParser::ExpectTokenType( int type, int subtype, idToken* token )
 			if( subtype & TT_FLOAT ) str += "float ";
 			if( subtype & TT_INTEGER ) str += "integer ";
 			str.StripTrailing( ' ' );
-			Error( "expected %s but found '%s'", str.c_str(), token->c_str() );
+			Error( "expected %s but found '%s'", str.c_str(), token.c_str() );
 			return false;
 		}
 	}
-	else if( token->type == TT_PUNCTUATION )
+	else if( token.type == TT_PUNCTUATION )
 	{
 		if( subtype < 0 )
 		{
 			Error( "BUG: wrong punctuation subtype" );
 			return false;
 		}
-		if( token->subtype != subtype )
+		if( token.subtype != subtype )
 		{
 			//Error( "expected '%s' but found '%s'", idLexer::GetPunctuationFromId( subtype ), token->c_str() );
 			return false;
@@ -254,7 +254,7 @@ int idTokenParser::ParseInt()
 	}
 	if( token.type == TT_PUNCTUATION && token == "-" )
 	{
-		ExpectTokenType( TT_NUMBER, TT_INTEGER, &token );
+		ExpectTokenType( TT_NUMBER, TT_INTEGER, token );
 		return -( ( signed int ) token.GetIntValue() );
 	}
 	else if( token.type != TT_NUMBER || token.subtype == TT_FLOAT )
@@ -267,7 +267,7 @@ int idTokenParser::ParseInt()
 bool idTokenParser::ParseBool()
 {
 	idToken token;
-	if( !ExpectTokenType( TT_NUMBER, 0, &token ) )
+	if( !ExpectTokenType( TT_NUMBER, 0, token ) )
 	{
 		Error( "couldn't read expected boolean" );
 		return false;
@@ -298,7 +298,7 @@ float idTokenParser::ParseFloat( bool* errorFlag )
 	}
 	if( token.type == TT_PUNCTUATION && token == "-" )
 	{
-		ExpectTokenType( TT_NUMBER, 0, &token );
+		ExpectTokenType( TT_NUMBER, 0, token );
 		return -token.GetFloatValue();
 	}
 	else if( token.type != TT_NUMBER )

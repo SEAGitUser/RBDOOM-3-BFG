@@ -29,59 +29,6 @@ If you have questions concerning this license or the applicable additional terms
 #ifndef __RENDERPROGS_H__
 #define __RENDERPROGS_H__
 
-static const int PC_ATTRIB_INDEX_POSITION	= 0;
-static const int PC_ATTRIB_INDEX_NORMAL		= 1;
-static const int PC_ATTRIB_INDEX_COLOR		= 2;
-static const int PC_ATTRIB_INDEX_COLOR2		= 3;
-static const int PC_ATTRIB_INDEX_ST			= 4;
-static const int PC_ATTRIB_INDEX_TANGENT	= 5;
-
-/*
-================================================
-	vertexMask_t
-
-	NOTE: There is a PS3 dependency between the bit flag specified here and the vertex
-	attribute index and attribute semantic specified in DeclRenderProg.cpp because the
-	stored render prog vertexMask is initialized with cellCgbGetVertexConfiguration().
-	The ATTRIB_INDEX_ defines are used to make sure the vertexMask_t and attrib assignment
-	in DeclRenderProg.cpp are in sync.
-
-	Even though VERTEX_MASK_XYZ_SHORT and VERTEX_MASK_ST_SHORT are not real attributes,
-	they come before the VERTEX_MASK_MORPH to reduce the range of vertex program
-	permutations defined by the vertexMask_t bits on the Xbox 360 (see MAX_VERTEX_DECLARATIONS).
-================================================
-*/
-enum vertexMask_t
-{
-	VERTEX_MASK_POSITION	= BIT( PC_ATTRIB_INDEX_POSITION ),
-	VERTEX_MASK_ST			= BIT( PC_ATTRIB_INDEX_ST ),
-	VERTEX_MASK_NORMAL		= BIT( PC_ATTRIB_INDEX_NORMAL ),
-	VERTEX_MASK_COLOR		= BIT( PC_ATTRIB_INDEX_COLOR ),
-	VERTEX_MASK_TANGENT		= BIT( PC_ATTRIB_INDEX_TANGENT ),
-	VERTEX_MASK_COLOR2		= BIT( PC_ATTRIB_INDEX_COLOR2 ),
-};
-
-enum vertexAttributeIndex_e
-{
-	VS_IN_POSITION	,
-	VS_IN_NORMAL	,
-	VS_IN_COLOR		,
-	VS_IN_COLOR2	,
-	VS_IN_ST		,
-	VS_IN_TANGENT	,
-	VS_IN_MAX
-};
-
-enum shaderType_e {
-	SHT_VERTEX,
-	SHT_TESS_CTRL,		// GL_TESS_CONTROL / DX_HULL
-	SHT_TESS_EVAL,		// GL_TESS_EVALUATION / DX_DOMAIN
-	SHT_GEOMETRY,
-	SHT_FRAGMENT,
-	SHT_COMPUTE,
-	SHT_MAX
-};
-
 // This enum list corresponds to the global constant register indecies as defined in global.inc for all
 // shaders.  We used a shared pool to keeps things simple.  If something changes here then it also
 // needs to change in global.inc and vice versa
@@ -224,8 +171,8 @@ struct glslUniformLocation_t
 idRenderProgManager
 ================================================================================================
 */
-class idRenderProgManager
-{
+class idRenderProgManager {
+	friend class idDeclRenderProg;
 public:
 	idRenderProgManager();
 	virtual ~idRenderProgManager();
@@ -240,6 +187,7 @@ public:
 	int		FindVertexShader( const char* name );
 	int		FindGeometryShader( const char* name );
 	int		FindFragmentShader( const char* name );
+	int		FindShader( const char* name, shaderType_e shaderType );
 	
 	// RB: added progIndex to handle many custom renderprogs
 	void BindShader( int progIndex, int vIndex, int gIndex, int fIndex, bool builtin );
@@ -492,7 +440,7 @@ public:
 	const char*	GetGLSLParmName( int rp ) const;
 	int			GetGLSLCurrentProgram() const { return currentRenderProgram; }
 	int			FindGLSLProgram( const char* name, int vIndex, int fIndex );
-	
+
 protected:
 
 	void	LoadShader( int index, shaderType_e shaderType );
@@ -606,10 +554,13 @@ protected:
 	static const char* GLSLMacroNames[MAX_SHADER_MACRO_NAMES];
 	const char*	GetGLSLMacroName( shaderFeature_t sf ) const;
 	
-	GLuint  CreateGLSLShaderObject( shaderType_e shaderType, const char * sourceGLSL, const char * fileName ) const;
-	GLuint	LoadGLSLShader( GLenum target, const char* name, const char* nameOutSuffix, uint32 shaderFeatures, bool builtin, idList<int>& uniforms );
+	GLuint	LoadGLSLShader( shaderType_e, const char* name, const char* nameOutSuffix, uint32 shaderFeatures, bool builtin, idList<int>& uniforms );
 	void	LoadGLSLProgram( const int programIndex, const int vertexShaderIndex, const int geometryShaderIndex, const int fragmentShaderIndex );
-	
+	GLuint  CreateGLSLShaderObject( shaderType_e, const char * sourceGLSL, const char * fileName ) const;
+
+	void TestParseProg();
+	bool ParseProg( const char* text, const int textLength, const char* progName, int baseLine );
+
 	static const GLuint INVALID_PROGID = MAX_UNSIGNED_TYPE( GLuint );
 	typedef idHandle<GLuint, INVALID_PROGID> idGLSLShader;
 		
@@ -661,7 +612,7 @@ protected:
 		}
 		idStr	name;
 		GLuint	progId;
-		int		vertexMask;
+		vertexMask_t vertexMask;
 		int			vertShaderIndex;
 		int			geomShaderIndex;
 		int			fragShaderIndex;
@@ -680,15 +631,50 @@ protected:
 	idList<vertShader_t, TAG_RENDER> vertShaders;
 	idList<geomShader_t, TAG_RENDER> geomShaders;
 	idList<fragShader_t, TAG_RENDER> fragShaders;
-};
 
-class idRenderProgram {
-	void *	apiObject;
-public:
-	void *	GetAPIObject() const
+	/////////////////////////////////////
+
+	enum shaderFlags_t {
+
+	};
+
+	struct glslShader_t 
 	{
-		return apiObject;
-	}
+		shaderType_e	type;
+		idStrStatic<128> name;
+		idStrStatic<64> nameOutSuffix;
+		GLuint			objectID;
+		uint32			flags;
+		idList<int>		uniforms;
+
+		glslShader_t() : objectID( INVALID_PROGID ), flags( 0 ) {
+		}
+		bool HasFlag( int flag ) const { return( ( flags & flag ) != 0 ); }
+		void SetFlag( const int flag ) { flags |= flag; }
+		void ClearFlag( const int flag ) { flags &= ~flag; }
+	};
+	idArray< idList< glslShader_t, TAG_RENDER >, SHT_MAX > m_shaders;
+	idArray< int, SHT_MAX > m_currentShaders;
+
+	struct glslProg_t 
+	{
+		idStrStatic<128> name;
+		GLuint			objectID;
+		vertexMask_t	vertexMask;
+
+		idArray< int, SHT_MAX >	shaderIndexes;
+		idArray< GLint, SHT_MAX > uniformArrays;
+
+		glslProg_t() : objectID( INVALID_PROGID ) 
+		{
+			for( int i = 0; i < SHT_MAX; i++ ) {
+				shaderIndexes[ i ] = -1;
+			}
+			for( int i = 0; i < SHT_MAX; i++ ) {
+				uniformArrays[ i ] = -1;
+			}
+		}
+	};
 };
 
 extern idRenderProgManager renderProgManager;

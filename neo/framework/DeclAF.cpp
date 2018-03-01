@@ -908,7 +908,7 @@ bool idDeclAF::ParseBody( idLexer& src )
 	
 	body->SetDefault( this );
 	
-	if( !src.ExpectTokenType( TT_STRING, 0, &token ) || !src.ExpectTokenString( "{" ) )
+	if( !src.ExpectTokenType( TT_STRING, 0, token ) || !src.ExpectTokenString( "{" ) )
 	{
 		return false;
 	}
@@ -924,7 +924,7 @@ bool idDeclAF::ParseBody( idLexer& src )
 	{	
 		if( !token.Icmp( "model" ) )
 		{
-			if( !src.ExpectTokenType( TT_NAME, 0, &token ) )
+			if( !src.ExpectTokenType( TT_NAME, 0, token ) )
 			{
 				return false;
 			}
@@ -1043,7 +1043,7 @@ bool idDeclAF::ParseBody( idLexer& src )
 		}
 		else if( !token.Icmp( "joint" ) )
 		{
-			if( !src.ExpectTokenType( TT_STRING, 0, &token ) )
+			if( !src.ExpectTokenType( TT_STRING, 0, token ) )
 			{
 				return false;
 			}
@@ -1089,7 +1089,7 @@ bool idDeclAF::ParseBody( idLexer& src )
 		}
 		else if( !token.Icmp( "containedjoints" ) )
 		{
-			if( !src.ExpectTokenType( TT_STRING, 0, &token ) )
+			if( !src.ExpectTokenType( TT_STRING, 0, token ) )
 			{
 				return false;
 			}
@@ -1150,8 +1150,7 @@ bool idDeclAF::ParseFixed( idLexer& src )
 	constraint->SetDefault( this );
 	constraints.Alloc() = constraint;
 	
-	if( !src.ExpectTokenType( TT_STRING, 0, &token ) ||
-			!src.ExpectTokenString( "{" ) )
+	if( !src.ExpectTokenType( TT_STRING, 0, token ) || !src.ExpectTokenString( "{" ) )
 	{
 		return false;
 	}
@@ -1160,16 +1159,15 @@ bool idDeclAF::ParseFixed( idLexer& src )
 	constraint->name = token;
 	
 	while( src.ReadToken( &token ) )
-	{
-	
+	{	
 		if( !token.Icmp( "body1" ) )
 		{
-			src.ExpectTokenType( TT_STRING, 0, &token );
+			src.ExpectTokenType( TT_STRING, 0, token );
 			constraint->body1 = token;
 		}
 		else if( !token.Icmp( "body2" ) )
 		{
-			src.ExpectTokenType( TT_STRING, 0, &token );
+			src.ExpectTokenType( TT_STRING, 0, token );
 			constraint->body2 = token;
 		}
 		else if( token == "}" )
@@ -1199,8 +1197,7 @@ bool idDeclAF::ParseBallAndSocketJoint( idLexer& src )
 	constraint->SetDefault( this );
 	constraints.Alloc() = constraint;
 	
-	if( !src.ExpectTokenType( TT_STRING, 0, &token ) ||
-			!src.ExpectTokenString( "{" ) )
+	if( !src.ExpectTokenType( TT_STRING, 0, token ) || !src.ExpectTokenString( "{" ) )
 	{
 		return false;
 	}
@@ -1213,16 +1210,15 @@ bool idDeclAF::ParseBallAndSocketJoint( idLexer& src )
 	constraint->shaft[0].ToVec3().Zero();
 	
 	while( src.ReadToken( &token ) )
-	{
-	
+	{	
 		if( !token.Icmp( "body1" ) )
 		{
-			src.ExpectTokenType( TT_STRING, 0, &token );
+			src.ExpectTokenType( TT_STRING, 0, token );
 			constraint->body1 = token;
 		}
 		else if( !token.Icmp( "body2" ) )
 		{
-			src.ExpectTokenType( TT_STRING, 0, &token );
+			src.ExpectTokenType( TT_STRING, 0, token );
 			constraint->body2 = token;
 		}
 		else if( !token.Icmp( "anchor" ) )
@@ -1303,8 +1299,7 @@ bool idDeclAF::ParseUniversalJoint( idLexer& src )
 	constraint->SetDefault( this );
 	constraints.Alloc() = constraint;
 	
-	if( !src.ExpectTokenType( TT_STRING, 0, &token ) ||
-			!src.ExpectTokenString( "{" ) )
+	if( !src.ExpectTokenType( TT_STRING, 0, token ) || !src.ExpectTokenString( "{" ) )
 	{
 		return false;
 	}
@@ -1318,16 +1313,15 @@ bool idDeclAF::ParseUniversalJoint( idLexer& src )
 	constraint->shaft[1].ToVec3().Zero();
 	
 	while( src.ReadToken( &token ) )
-	{
-	
+	{	
 		if( !token.Icmp( "body1" ) )
 		{
-			src.ExpectTokenType( TT_STRING, 0, &token );
+			src.ExpectTokenType( TT_STRING, 0, token );
 			constraint->body1 = token;
 		}
 		else if( !token.Icmp( "body2" ) )
 		{
-			src.ExpectTokenType( TT_STRING, 0, &token );
+			src.ExpectTokenType( TT_STRING, 0, token );
 			constraint->body2 = token;
 		}
 		else if( !token.Icmp( "anchor" ) )
@@ -1407,8 +1401,7 @@ bool idDeclAF::ParseHinge( idLexer& src )
 	constraint->SetDefault( this );
 	constraints.Alloc() = constraint;
 	
-	if( !src.ExpectTokenType( TT_STRING, 0, &token ) ||
-			!src.ExpectTokenString( "{" ) )
+	if( !src.ExpectTokenType( TT_STRING, 0, token ) || !src.ExpectTokenString( "{" ) )
 	{
 		return false;
 	}
@@ -1422,15 +1415,14 @@ bool idDeclAF::ParseHinge( idLexer& src )
 	
 	while( src.ReadToken( &token ) )
 	{
-	
 		if( !token.Icmp( "body1" ) )
 		{
-			src.ExpectTokenType( TT_STRING, 0, &token );
+			src.ExpectTokenType( TT_STRING, 0, token );
 			constraint->body1 = token;
 		}
 		else if( !token.Icmp( "body2" ) )
 		{
-			src.ExpectTokenType( TT_STRING, 0, &token );
+			src.ExpectTokenType( TT_STRING, 0, token );
 			constraint->body2 = token;
 		}
 		else if( !token.Icmp( "anchor" ) )
@@ -1493,8 +1485,7 @@ bool idDeclAF::ParseSlider( idLexer& src )
 	constraint->SetDefault( this );
 	constraints.Alloc() = constraint;
 	
-	if( !src.ExpectTokenType( TT_STRING, 0, &token ) ||
-			!src.ExpectTokenString( "{" ) )
+	if( !src.ExpectTokenType( TT_STRING, 0, token ) || !src.ExpectTokenString( "{" ) )
 	{
 		return false;
 	}
@@ -1505,16 +1496,15 @@ bool idDeclAF::ParseSlider( idLexer& src )
 	constraint->friction = 0.5f;
 	
 	while( src.ReadToken( &token ) )
-	{
-	
+	{	
 		if( !token.Icmp( "body1" ) )
 		{
-			src.ExpectTokenType( TT_STRING, 0, &token );
+			src.ExpectTokenType( TT_STRING, 0, token );
 			constraint->body1 = token;
 		}
 		else if( !token.Icmp( "body2" ) )
 		{
-			src.ExpectTokenType( TT_STRING, 0, &token );
+			src.ExpectTokenType( TT_STRING, 0, token );
 			constraint->body2 = token;
 		}
 		else if( !token.Icmp( "axis" ) )
@@ -1555,8 +1545,7 @@ bool idDeclAF::ParseSpring( idLexer& src )
 	constraint->SetDefault( this );
 	constraints.Alloc() = constraint;
 	
-	if( !src.ExpectTokenType( TT_STRING, 0, &token ) ||
-			!src.ExpectTokenString( "{" ) )
+	if( !src.ExpectTokenType( TT_STRING, 0, token ) || !src.ExpectTokenString( "{" ) )
 	{
 		return false;
 	}
@@ -1567,16 +1556,15 @@ bool idDeclAF::ParseSpring( idLexer& src )
 	constraint->friction = 0.5f;
 	
 	while( src.ReadToken( &token ) )
-	{
-	
+	{	
 		if( !token.Icmp( "body1" ) )
 		{
-			src.ExpectTokenType( TT_STRING, 0, &token );
+			src.ExpectTokenType( TT_STRING, 0, token );
 			constraint->body1 = token;
 		}
 		else if( !token.Icmp( "body2" ) )
 		{
-			src.ExpectTokenType( TT_STRING, 0, &token );
+			src.ExpectTokenType( TT_STRING, 0, token );
 			constraint->body2 = token;
 		}
 		else if( !token.Icmp( "anchor1" ) )
@@ -1651,24 +1639,23 @@ bool idDeclAF::ParseSettings( idLexer& src )
 	
 	while( src.ReadToken( &token ) )
 	{
-	
 		if( !token.Icmp( "mesh" ) )
 		{
-			if( !src.ExpectTokenType( TT_STRING, 0, &token ) )
+			if( !src.ExpectTokenType( TT_STRING, 0, token ) )
 			{
 				return false;
 			}
 		}
 		else if( !token.Icmp( "anim" ) )
 		{
-			if( !src.ExpectTokenType( TT_STRING, 0, &token ) )
+			if( !src.ExpectTokenType( TT_STRING, 0, token ) )
 			{
 				return false;
 			}
 		}
 		else if( !token.Icmp( "model" ) )
 		{
-			if( !src.ExpectTokenType( TT_STRING, 0, &token ) )
+			if( !src.ExpectTokenType( TT_STRING, 0, token ) )
 			{
 				return false;
 			}
@@ -1676,7 +1663,7 @@ bool idDeclAF::ParseSettings( idLexer& src )
 		}
 		else if( !token.Icmp( "skin" ) )
 		{
-			if( !src.ExpectTokenType( TT_STRING, 0, &token ) )
+			if( !src.ExpectTokenType( TT_STRING, 0, token ) )
 			{
 				return false;
 			}

@@ -72,7 +72,7 @@ void idRenderWindow::BuildAnimation( int time )
 	{
 		return;
 	}
-	
+
 	if( animName.Length() && animClass.Length() )
 	{
 		worldEntity.numJoints = worldEntity.hModel->NumJoints();
@@ -85,7 +85,6 @@ void idRenderWindow::BuildAnimation( int time )
 		}
 	}
 	updateAnimation = false;
-	
 }
 
 void idRenderWindow::PreRender()
@@ -99,10 +98,12 @@ void idRenderWindow::PreRender()
 		spawnArgs.Set( "name", "light_1" );
 		spawnArgs.Set( "origin", lightOrigin.ToVec3().ToString() );
 		spawnArgs.Set( "_color", lightColor.ToVec3().ToString() );
+
 		gameEdit->ParseSpawnArgsToRenderLight( &spawnArgs, &rLight );
+
 		lightDef = world->AddLightDef( &rLight );
-		
-		if( !modelName[0] )
+
+		if( !modelName[ 0 ] )
 		{
 			common->Warning( "Window '%s' in gui '%s': no model set", GetName(), GetGui()->GetSourceFile() );
 		}
@@ -111,16 +112,15 @@ void idRenderWindow::PreRender()
 		spawnArgs.Set( "classname", "func_static" );
 		spawnArgs.Set( "model", modelName );
 		spawnArgs.Set( "origin", modelOrigin.c_str() );
+
 		gameEdit->ParseSpawnArgsToRenderEntity( &spawnArgs, &worldEntity );
+
 		if( worldEntity.hModel )
 		{
 			idVec3 v = modelRotate.ToVec3();
 			worldEntity.axis = v.ToMat3();
-			worldEntity.shaderParms[ SHADERPARM_RED   ] = 1.0f;
-			worldEntity.shaderParms[ SHADERPARM_GREEN ] = 1.0f;
-			worldEntity.shaderParms[ SHADERPARM_BLUE  ] = 1.0f;
-			worldEntity.shaderParms[ SHADERPARM_ALPHA ] = 1.0f;
-			
+			worldEntity.SetColorParm( 1.0, 1.0, 1.0, 1.0 );
+
 			modelDef = world->AddEntityDef( &worldEntity );
 		}
 		needsRender = false;
@@ -130,10 +130,12 @@ void idRenderWindow::PreRender()
 void idRenderWindow::Render( int time )
 {
 	rLight.origin = lightOrigin.ToVec3();
-	rLight.shaderParms[SHADERPARM_RED] = lightColor.x();
-	rLight.shaderParms[SHADERPARM_GREEN] = lightColor.y();
-	rLight.shaderParms[SHADERPARM_BLUE] = lightColor.z();
+	rLight.shaderParms[ SHADERPARM_RED ] = lightColor.x();
+	rLight.shaderParms[ SHADERPARM_GREEN ] = lightColor.y();
+	rLight.shaderParms[ SHADERPARM_BLUE ] = lightColor.z();
+
 	world->UpdateLightDef( lightDef, &rLight );
+
 	if( worldEntity.hModel )
 	{
 		if( updateAnimation )
@@ -161,18 +163,19 @@ void idRenderWindow::Draw( int time, float x, float y )
 	refdef.Clear();
 	refdef.vieworg = viewOffset.ToVec3();;
 	//refdef.vieworg.Set(-128, 0, 0);
-	
+
 	refdef.viewaxis.Identity();
-	refdef.shaderParms[ SHADERPARM_RED   ] = 1.0f;
+	refdef.shaderParms[ SHADERPARM_RED ] = 1.0f;
 	refdef.shaderParms[ SHADERPARM_GREEN ] = 1.0f;
-	refdef.shaderParms[ SHADERPARM_BLUE  ] = 1.0f;
+	refdef.shaderParms[ SHADERPARM_BLUE ] = 1.0f;
 	refdef.shaderParms[ SHADERPARM_ALPHA ] = 1.0f;
-	
+
 	refdef.fov_x = 90.0f;
 	refdef.fov_y = 2.0f * idMath::ATan( ( float )drawRect.h / drawRect.w ) * idMath::M_RAD2DEG;
-	
-	refdef.time[0] = time;
-	refdef.time[1] = time;
+
+	refdef.time[ 0 ] = time;
+	refdef.time[ 1 ] = time;
+
 	world->RenderScene( &refdef );
 }
 
@@ -185,7 +188,6 @@ void idRenderWindow::PostParse()
 //
 idWinVar* idRenderWindow::GetWinVarByName( const char* _name, bool fixup, drawWin_t** owner )
 {
-//
 	if( idStr::Icmp( _name, "model" ) == 0 )
 	{
 		return &modelName;
@@ -217,11 +219,9 @@ idWinVar* idRenderWindow::GetWinVarByName( const char* _name, bool fixup, drawWi
 	if( idStr::Icmp( _name, "needsRender" ) == 0 )
 	{
 		return &needsRender;
-	}	
-//
-//
+	}
+
 	return idWindow::GetWinVarByName( _name, fixup, owner );
-//
 }
 
 bool idRenderWindow::ParseInternalVar( const char* _name, idTokenParser* src )

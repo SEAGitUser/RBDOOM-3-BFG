@@ -299,7 +299,7 @@ bool idMoveable::Collide( const trace_t& collision, const idVec3& velocity )
 	idEntity* ent;
 
 	v = -( velocity * collision.c.normal );
-	if( v > BOUNCE_SOUND_MIN_VELOCITY && gameLocal.time > nextSoundTime )
+	if( v > BOUNCE_SOUND_MIN_VELOCITY && gameLocal.GetTime() > nextSoundTime )
 	{
 		f = v > BOUNCE_SOUND_MAX_VELOCITY ? 1.0f : idMath::Sqrt( v - BOUNCE_SOUND_MIN_VELOCITY ) * ( 1.0f / idMath::Sqrt( BOUNCE_SOUND_MAX_VELOCITY - BOUNCE_SOUND_MIN_VELOCITY ) );
 		if( StartSound( "snd_bounce", SND_CHANNEL_ANY, 0, false, NULL ) )
@@ -308,11 +308,11 @@ bool idMoveable::Collide( const trace_t& collision, const idVec3& velocity )
 			// which causes footsteps on ai's to not honor their shader parms
 			SetSoundVolume( f );
 		}
-		nextSoundTime = gameLocal.time + 500;
+		nextSoundTime = gameLocal.GetTime() + 500;
 	}
 
 	// _D3XP :: changes relating to the addition of monsterDamage
-	if( !common->IsClient() && canDamage && gameLocal.time > nextDamageTime )
+	if( !common->IsClient() && canDamage && gameLocal.GetTime() > nextDamageTime )
 	{
 		bool hasDamage = damage.Length() > 0;
 		bool hasMonsterDamage = monsterDamage.Length() > 0;
@@ -354,7 +354,7 @@ bool idMoveable::Collide( const trace_t& collision, const idVec3& velocity )
 					}
 				}
 
-				nextDamageTime = gameLocal.time + 1000;
+				nextDamageTime = gameLocal.GetTime() + 1000;
 			}
 		}
 	}
@@ -369,10 +369,10 @@ bool idMoveable::Collide( const trace_t& collision, const idVec3& velocity )
 		}
 	}
 
-	if( fxCollide.Length() && gameLocal.time > nextCollideFxTime )
+	if( fxCollide.Length() && gameLocal.GetTime() > nextCollideFxTime )
 	{
 		idEntityFx::StartFx( fxCollide, &collision.c.point, NULL, this, false );
-		nextCollideFxTime = gameLocal.time + 3500;
+		nextCollideFxTime = gameLocal.GetTime() + 3500;
 	}
 
 	return false;
@@ -486,13 +486,13 @@ bool idMoveable::FollowInitialSplinePath()
 {
 	if( initialSpline != NULL )
 	{
-		if( gameLocal.time < initialSpline->GetTime( initialSpline->GetNumValues() - 1 ) )
+		if( gameLocal.GetTime() < initialSpline->GetTime( initialSpline->GetNumValues() - 1 ) )
 		{
-			idVec3 splinePos = initialSpline->GetCurrentValue( gameLocal.time );
+			idVec3 splinePos = initialSpline->GetCurrentValue( gameLocal.GetTime() );
 			idVec3 linearVelocity = ( splinePos - physicsObj.GetOrigin() ) * com_engineHz_latched;
 			physicsObj.SetLinearVelocity( linearVelocity );
 
-			idVec3 splineDir = initialSpline->GetCurrentFirstDerivative( gameLocal.time );
+			idVec3 splineDir = initialSpline->GetCurrentFirstDerivative( gameLocal.GetTime() );
 			idVec3 dir = initialSplineDir * physicsObj.GetAxis();
 			idVec3 angularVelocity = dir.Cross( splineDir );
 			angularVelocity.Normalize();
@@ -500,8 +500,7 @@ bool idMoveable::FollowInitialSplinePath()
 			physicsObj.SetAngularVelocity( angularVelocity );
 			return true;
 		}
-		else
-		{
+		else {
 			delete initialSpline;
 			initialSpline = NULL;
 		}
@@ -641,7 +640,7 @@ void idMoveable::Event_Activate( idEntity* activator )
 		PostEventSec( &EV_SetAngularVelocity, delay, init_avelocity );
 	}
 
-	InitInitialSpline( gameLocal.time );
+	InitInitialSpline( gameLocal.GetTime() );
 }
 
 /*
@@ -911,8 +910,8 @@ idExplodingBarrel::idExplodingBarrel()
 	isStable = true;
 	particleModelDefHandle = -1;
 	lightDefHandle = -1;
-	memset( &particleRenderEntity, 0, sizeof( particleRenderEntity ) );
-	memset( &light, 0, sizeof( light ) );
+	particleRenderEntity.Clear();
+	light.Clear();
 	particleTime = 0;
 	lightTime = 0;
 	time = 0.0f;
@@ -1011,8 +1010,8 @@ void idExplodingBarrel::Spawn()
 	lightTime = 0;
 	particleTime = 0;
 	time = spawnArgs.GetFloat( "time" );
-	memset( &particleRenderEntity, 0, sizeof( particleRenderEntity ) );
-	memset( &light, 0, sizeof( light ) );
+	particleRenderEntity.Clear();
+	light.Clear();
 }
 
 /*
@@ -1027,22 +1026,19 @@ void idExplodingBarrel::UpdateLight()
 		if( state == BURNING )
 		{
 			// ramp the color up over 250 ms
-			float pct = ( gameLocal.serverTime - lightTime ) / 250.f;
+			float pct = ( gameLocal.GetServerGameTimeMs() - lightTime ) / 250.f;
 			if( pct > 1.0f )
 			{
 				pct = 1.0f;
 			}
 			light.origin = physicsObj.GetAbsBounds().GetCenter();
-			light.axis = mat3_identity;
-			light.shaderParms[ SHADERPARM_RED ] = pct;
-			light.shaderParms[ SHADERPARM_GREEN ] = pct;
-			light.shaderParms[ SHADERPARM_BLUE ] = pct;
-			light.shaderParms[ SHADERPARM_ALPHA ] = pct;
+			light.axis.Identity();
+			light.SetColorParm( pct, pct, pct, pct );
 			gameRenderWorld->UpdateLightDef( lightDefHandle, &light );
 		}
 		else
 		{
-			if( gameLocal.serverTime - lightTime > 250 )
+			if( gameLocal.GetServerGameTimeMs() - lightTime > 250 )
 			{
 				gameRenderWorld->FreeLightDef( lightDefHandle );
 				lightDefHandle = -1;
@@ -1084,7 +1080,7 @@ void idExplodingBarrel::Think()
 	if( particleModelDefHandle >= 0 )
 	{
 		particleRenderEntity.origin = physicsObj.GetAbsBounds().GetCenter();
-		particleRenderEntity.axis = mat3_identity;
+		particleRenderEntity.axis.Identity();
 		gameRenderWorld->UpdateEntityDef( particleModelDefHandle, &particleRenderEntity );
 	}
 }
@@ -1135,7 +1131,7 @@ void idExplodingBarrel::StopBurning()
 		particleModelDefHandle = -1;
 
 		particleTime = 0;
-		memset( &particleRenderEntity, 0, sizeof( particleRenderEntity ) );
+		particleRenderEntity.Clear();
 	}
 }
 
@@ -1159,13 +1155,10 @@ void idExplodingBarrel::AddParticles( const char* name, bool burn )
 		if( modelDef )
 		{
 			particleRenderEntity.origin = physicsObj.GetAbsBounds().GetCenter();
-			particleRenderEntity.axis = mat3_identity;
+			particleRenderEntity.axis.Identity();
 			particleRenderEntity.hModel = modelDef;
 			float rgb = ( burn ) ? 0.0f : 1.0f;
-			particleRenderEntity.shaderParms[ SHADERPARM_RED ] = rgb;
-			particleRenderEntity.shaderParms[ SHADERPARM_GREEN ] = rgb;
-			particleRenderEntity.shaderParms[ SHADERPARM_BLUE ] = rgb;
-			particleRenderEntity.shaderParms[ SHADERPARM_ALPHA ] = rgb;
+			particleRenderEntity.SetColorParm( rgb, rgb, rgb, rgb );
 			particleRenderEntity.shaderParms[ SHADERPARM_TIMEOFFSET ] = -MS2SEC( gameLocal.realClientTime );
 			particleRenderEntity.shaderParms[ SHADERPARM_DIVERSITY ] = ( burn ) ? 1.0f : gameLocal.random.RandomInt( 90 );
 			particleRenderEntity.timeGroup = explicitTimeGroup;
@@ -1191,19 +1184,16 @@ void idExplodingBarrel::AddLight( const char* name, bool burn )
 		gameRenderWorld->FreeLightDef( lightDefHandle );
 	}
 	light.Clear();
-	light.axis = mat3_identity;
+	light.axis.Identity();
 	light.lightRadius.x = spawnArgs.GetFloat( "light_radius" );
 	light.lightRadius.y = light.lightRadius.z = light.lightRadius.x;
 	light.origin = physicsObj.GetOrigin();
 	light.origin.z += 128;
 	light.pointLight = true;
 	light.shader = declManager->FindMaterial( name );
-	light.shaderParms[ SHADERPARM_RED ] = 2.0f;
-	light.shaderParms[ SHADERPARM_GREEN ] = 2.0f;
-	light.shaderParms[ SHADERPARM_BLUE ] = 2.0f;
-	light.shaderParms[ SHADERPARM_ALPHA ] = 2.0f;
+	light.SetColorParm( 2.0f, 2.0f, 2.0f, 2.0f );
 	lightDefHandle = gameRenderWorld->AddLightDef( &light );
-	lightTime = gameLocal.serverTime;
+	lightTime = gameLocal.GetServerGameTimeMs();
 	BecomeActive( TH_THINK );
 }
 
@@ -1280,7 +1270,7 @@ void idExplodingBarrel::Killed( idEntity* inflictor, idEntity* attacker, int dam
 			byte		msgBuf[ MAX_EVENT_PARAM_SIZE ];
 
 			msg.InitWrite( msgBuf, sizeof( msgBuf ) );
-			msg.WriteLong( gameLocal.time );
+			msg.WriteLong( gameLocal.GetTime() );
 			ServerSendEvent( EVENT_EXPLODE, &msg, false );
 		}
 	}

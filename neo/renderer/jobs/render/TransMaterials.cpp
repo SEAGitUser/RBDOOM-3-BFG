@@ -124,9 +124,9 @@ void RB_PrepareStageTexturing( const materialStage_t* pStage, const drawSurf_t* 
 
 		const int* parms = surf->material->GetTexGenRegisters();
 
-		float wobbleDegrees = surf->shaderRegisters[ parms[ 0 ] ] * ( idMath::PI / 180.0f );
-		float wobbleSpeed = surf->shaderRegisters[ parms[ 1 ] ] * ( 2.0f * idMath::PI / 60.0f );
-		float rotateSpeed = surf->shaderRegisters[ parms[ 2 ] ] * ( 2.0f * idMath::PI / 60.0f );
+		const float wobbleDegrees = surf->shaderRegisters[ parms[ 0 ] ] * ( idMath::PI / 180.0f );
+		const float wobbleSpeed = surf->shaderRegisters[ parms[ 1 ] ] * ( 2.0f * idMath::PI / 60.0f );
+		const float rotateSpeed = surf->shaderRegisters[ parms[ 2 ] ] * ( 2.0f * idMath::PI / 60.0f );
 
 		idVec3 axis[ 3 ];
 		{
@@ -175,11 +175,9 @@ void RB_PrepareStageTexturing( const materialStage_t* pStage, const drawSurf_t* 
 
 		renderProgManager.SetRenderParms( RENDERPARM_WOBBLESKY_X, transform, 3 );
 		renderProgManager.BindShader_WobbleSky();
-
 	}
 	else if( ( pStage->texture.texgen == TG_SCREEN ) || ( pStage->texture.texgen == TG_SCREEN2 ) )
 	{
-
 		useTexGenParm[ 0 ] = 1.0f;
 		useTexGenParm[ 1 ] = 1.0f;
 		useTexGenParm[ 2 ] = 1.0f;
@@ -200,7 +198,6 @@ void RB_PrepareStageTexturing( const materialStage_t* pStage, const drawSurf_t* 
 		RENDERLOG_PRINT( "TEXGEN_Q = %4.3f, %4.3f, %4.3f, %4.3f\n", mat[ 3 ][ 0 ], mat[ 3 ][ 1 ], mat[ 3 ][ 2 ], mat[ 3 ][ 3 ] );
 
 		RENDERLOG_OUTDENT();
-
 	}
 	else if( pStage->texture.texgen == TG_DIFFUSE_CUBE )
 	{
@@ -223,7 +220,6 @@ void RB_PrepareStageTexturing( const materialStage_t* pStage, const drawSurf_t* 
 */
 void RB_FinishStageTexturing( const materialStage_t* pStage, const drawSurf_t* surf )
 {
-
 	if( pStage->texture.cinematic )
 	{
 		// unbind the extra bink textures
@@ -259,8 +255,8 @@ void RB_FinishStageTexturing( const materialStage_t* pStage, const drawSurf_t* s
 */
 int RB_DrawTransMaterialPasses( const drawSurf_t* const* const drawSurfs, const int numDrawSurfs, const float guiStereoScreenOffset, const int stereoEye )
 {
-	// only obey skipAmbient if we are rendering a view
-	if( backEnd.viewDef->viewEntitys && r_skipAmbient.GetBool() )
+	// only obey skipAmbient if we are rendering a 3d view
+	if( !backEnd.viewDef->Is2DView() && r_skipAmbient.GetBool() )
 	{
 		return numDrawSurfs;
 	}

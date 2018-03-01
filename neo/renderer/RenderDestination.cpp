@@ -49,9 +49,12 @@ idRenderDestinationManager::idRenderDestinationManager()
 */
 void idRenderDestinationManager::Init()
 {
-	cmdSystem->AddCommand( "listRenderDest", ListRenderDestinations_f, CMD_FL_RENDERER, "lists render destinations" );
-
 	// glTexImage2D( GL_TEXTURE_2D, 0, GL_R11F_G11F_B10F, 1680, 1050, 0, GL_RGB, GL_HALF_FLOAT, 0000000000000000 );
+	{
+
+	}
+
+	// Init render destinations
 
 	// SHADOWMAPS
 	{
@@ -142,6 +145,8 @@ void idRenderDestinationManager::Init()
 	}
 
 	backEnd.glState.currentFramebufferObject = NULL;
+
+	cmdSystem->AddCommand( "listRenderDest", ListRenderDestinations_f, CMD_FL_RENDERER, "lists render destinations" );
 }
 
 /*

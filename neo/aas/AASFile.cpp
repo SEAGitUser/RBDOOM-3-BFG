@@ -132,7 +132,7 @@ bool Reachability_Special_Read( idLexer& src, idReachability_Special* reach )
 		{
 			return true;
 		}
-		src.ExpectTokenType( TT_STRING, 0, &value );
+		src.ExpectTokenType( TT_STRING, 0, value );
 		reach->dict.Set( key, value );
 	}
 	return false;
@@ -345,7 +345,7 @@ bool idAASSettings::FromParser( idLexer& src )
 		else if( token == "fileExtension" )
 		{
 			src.ExpectTokenString( "=" );
-			src.ExpectTokenType( TT_STRING, 0, &token );
+			src.ExpectTokenType( TT_STRING, 0, token );
 			fileExtension = token;
 		}
 		else if( token == "gravity" )
@@ -1320,7 +1320,7 @@ bool idAASFileLocal::Load( const idStr& fileName, unsigned int mapFileCRC )
 		return false;
 	}
 	
-	if( !src.ExpectTokenType( TT_NUMBER, TT_INTEGER, &token ) )
+	if( !src.ExpectTokenType( TT_NUMBER, TT_INTEGER, token ) )
 	{
 		common->Warning( "AAS file '%s' has no map file CRC", name.c_str() );
 		return false;

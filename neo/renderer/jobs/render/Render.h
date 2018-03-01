@@ -238,11 +238,151 @@ struct expOp_t {
 	GetDest@expOp_t@@QEBAPEBVidDeclRenderParm@@XZ   @6     š?  ?
 }
 
+enum {
+	REFERENCE_MASK_GEOMETRY,
+	REFERENCE_MASK_JOINTS,
+	REFERENCE_MASK_MORPH,
+	REFERENCE_MASK_ST,
+	REFERENCE_MASK_CONSTANTS,
+	REFERENCE_MASK_PARMS,
+	REFERENCE_MASK_ALL
+};
+
+MC_BAD,
+MC_INVISIBLE,
+MC_PERFORATED,
+MC_TRANSLUCENT,
+MC_OPAQUE,
+MC_PERFORATED_FOR_MODELFADE,
+materialCoverage_t
+
+INPUT_TYPE_KEYBOARD,
+INPUT_TYPE_MOUSE,
+INPUT_TYPE_GAMEPAD,
+inputType_t
 
 */
 
-
-
+struct renderSettings_t 
+{
+	bool	isComboMap;
+	bool	isToolsWorld;
+	bool	skipWorld;
+	bool	skipModels;
+	bool	skipLights;
+	bool	skipBlendLightShadows;
+	bool	skipSuppress;
+	bool	skipFeedback;
+	bool	skipDynamic;
+	bool	skipAddAlways;
+	bool	skipOpaqueSurfaces;
+	bool	skipSubSurfaceScattering;
+	bool	skipAutosprites;
+	bool	skipOcclusionBaseModel;
+	bool	skipBlendedSurfaces;
+	bool	skipDistortionSurfaces;
+	bool	skipEmissiveSurfaces;
+	bool	skipOcclusionSurfaces;
+	bool	skipGuis;
+	bool	skipInGameGuis;
+	bool	skipAdaptiveGlare;
+	bool	skipPostProcess;
+	bool	skipEmissiveGlare;
+	bool	skipBlendLights;
+	bool	skipSlowLights;
+	bool	skipSelfShadows;
+	bool	skipAmbientOcclusion;
+	bool	skipFog;
+	bool	skipGodRays;
+	bool	skipHazeFlare;
+	bool	skipPostSpecular;
+	bool	skipNodeCPUCulling;
+	bool	skipNodeGPUCulling;
+	bool	skipAreaCPUCulling;
+	bool	skipAreaGPUCulling;
+	bool	skipModelCPUCulling;
+	bool	skipModelGPUCulling;
+	bool	skipLightCPUCulling;
+	bool	skipLightGPUCulling;
+	bool	skipSurfaceCPUCulling;
+	bool	skipModelRangeCulling;
+	bool	skipLightRangeCulling;
+	bool	screenSpaceReflections;
+	bool	singleWorldArea;
+	bool	singleLight;
+	bool	singleModel;
+	bool	singleSurface;
+	bool	singleGuiSurface;
+	bool	singleDimShadow;
+	bool	singleSelfShadow;
+	bool	lockView;
+	bool	forceTwoSidedDepth;
+	bool	useAmbientEnv;
+	bool	feedbackBGRA;
+	bool	showOcclusionBoxes;
+	bool	forceOcclusionBoxQueries;
+	uint32	numViews;
+	bool	generateMipMaps;
+	uint64	guiFrameCount;
+	uint32	queryThreshold;
+	bool	doPreZMask;
+	bool	dimShadowUseQuery;
+	bool	dimShadowDepthBoundsTest;
+	uint32	dimShadowResolution;
+	uint32	dimShadowResolutionCap;
+	bool	dimShadowForceHighQuality;
+	bool	showDimShadows;
+	float	dimShadowMaxLixelsPerUnit;
+	float	dimShadowLixelScale;
+	float	dimShadowDensity;
+	float	dimShadowPolyOfsUnits;
+	float	dimShadowPolyOfsFactor;
+	float	dimShadowMaxVisibleRange;
+	float	dimShadowFadeVisibilityRange;
+	float	dimShadowSkipRangeCulling;
+	uint32	selfShadowResolution;
+	uint32	selfShadowResolutionCap;
+	float	selfShadowDensity;
+	float	selfShadowPolyOfsUnits;
+	float	selfShadowPolyOfsFactor;
+	float	selfShadowMaxVisibleRange;
+	float	selfShadowFadeVisibilityRange;
+	float	selfShadowLixelScale;
+	float	selfShadowSkipRangeCulling;
+	float	subSurfaceScatteringMaxVisibilityRange;
+	float	subSurfaceScatteringFadeVisibilityRange;
+	float	subSurfaceScatteringSkipRangeCulling;
+	bool	sortBlendedSurfacesBackToFront;
+	bool	useLightScissors;
+	bool	useLightDepthBoundsTest;
+	bool	useDeferredSlowMapLighting;
+	bool	showLightScissors;
+	bool	showBlendedLights;
+	int		postProcessDofMode;
+	bool	sortCoverage;
+	bool	sortSSS;
+	bool	sortSkybox;
+	bool	sortBackgroundFar;
+	bool	sortBackground;
+	bool	sortBackgroundEmit;
+	bool	sortEmit;
+	bool	sortEmitOnly;
+	bool	sortLight;
+	bool	sortDecal;
+	bool	sortTransSort;
+	bool	sortTrans;
+	bool	sortWater;
+	bool	sortPerturber;
+	bool	sortLast;
+	float	viewNearZ;
+	float	viewFarZ;
+	idVec2	guiOriginOffset;
+	const idDeclRenderProg * progShowGuiOverdraw;
+	idVec4		clearColor;
+	idVec3		viewOrigin;
+	idBounds	viewBounds;
+	idBounds	detailBounds;
+};
 
 class idRender {
 /*
@@ -385,7 +525,7 @@ WaitAndSwap@idRender@@QEAAXPEAX_N@Z A2      G  ?
 	uint	numSelfShadows;
 	int		renderViewModels;
 	int		renderPasses;
-	int		settings;
+	renderSettings_t	settings;
 	int		renderViewObject;
 	int		world;
 	int		worldSpace;

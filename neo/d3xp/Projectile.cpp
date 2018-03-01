@@ -2593,7 +2593,7 @@ void idBFGProjectile::Launch( const idVec3& start, const idVec3& dir, const idVe
 		}
 		
 		beamTarget_t bt;
-		memset( &bt.renderEntity, 0, sizeof( renderEntity_t ) );
+		memset( &bt.renderEntity, 0, sizeof( renderEntityParms_t ) );
 		bt.renderEntity.origin = GetPhysics()->GetOrigin();
 		bt.renderEntity.axis = GetPhysics()->GetAxis();
 		bt.renderEntity.shaderParms[ SHADERPARM_BEAM_WIDTH ] = beamWidth;
@@ -2633,7 +2633,7 @@ void idBFGProjectile::Launch( const idVec3& start, const idVec3& dir, const idVe
 		if( dist < radius )
 		{
 			beamTarget_t bt;
-			memset( &bt.renderEntity, 0, sizeof( renderEntity_t ) );
+			memset( &bt.renderEntity, 0, sizeof( renderEntityParms_t ) );
 			bt.renderEntity.origin = GetPhysics()->GetOrigin();
 			bt.renderEntity.axis = GetPhysics()->GetAxis();
 			bt.renderEntity.shaderParms[ SHADERPARM_BEAM_WIDTH ] = beamWidth;

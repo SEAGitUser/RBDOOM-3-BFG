@@ -39,7 +39,7 @@ If you have questions concerning this license or the applicable additional terms
 
 class idDeclAF;
 
-typedef enum
+enum declAFConstraintType_t
 {
 	DECLAF_CONSTRAINT_INVALID,
 	DECLAF_CONSTRAINT_FIXED,
@@ -48,19 +48,18 @@ typedef enum
 	DECLAF_CONSTRAINT_HINGE,
 	DECLAF_CONSTRAINT_SLIDER,
 	DECLAF_CONSTRAINT_SPRING
-} declAFConstraintType_t;
+};
 
-typedef enum
+enum declAFJointMod_t
 {
 	DECLAF_JOINTMOD_AXIS,
 	DECLAF_JOINTMOD_ORIGIN,
 	DECLAF_JOINTMOD_BOTH
-} declAFJointMod_t;
+};
 
 typedef bool ( *getJointTransform_t )( void* model, const idJointMat* frame, const char* jointName, idVec3& origin, idMat3& axis );
 
-class idAFVector
-{
+class idAFVector {
 public:
 	enum
 	{
@@ -93,8 +92,7 @@ private:
 	bool					negate;
 };
 
-class idDeclAF_Body
-{
+class idDeclAF_Body {
 public:
 	idStr					name;
 	idStr					jointName;
@@ -120,8 +118,7 @@ public:
 	void					SetDefault( const idDeclAF* file );
 };
 
-class idDeclAF_Constraint
-{
+class idDeclAF_Constraint {
 public:
 	idStr					name;
 	idStr					body1;
@@ -151,8 +148,7 @@ public:
 	void					SetDefault( const idDeclAF* file );
 };
 
-class idDeclAF : public idDecl
-{
+class idDeclAF : public idDecl {
 	friend class idAFFileManager;
 public:
 	idDeclAF();

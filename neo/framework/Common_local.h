@@ -381,7 +381,7 @@ private:
 	
 	char* 						rd_buffer;
 	int							rd_buffersize;
-	void	( *rd_flush )( const char* buffer );
+	void( *rd_flush )( const char* buffer );
 	
 	idStr						warningCaption;
 	idStrList					warningList;

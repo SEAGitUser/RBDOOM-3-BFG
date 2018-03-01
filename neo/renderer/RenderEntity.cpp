@@ -427,7 +427,7 @@ idRenderModel* idRenderEntityLocal::EmitDynamicModel()
 void idRenderEntityLocal::ReadFromDemoFile( class idDemoFile* f )
 {
 	int i;
-	renderEntity_t ent;
+	renderEntityParms_t ent;
 	/* Initialize Pointers */
 	decals = NULL;
 	overlays = NULL;
@@ -702,7 +702,7 @@ static void LocalPlaneToGlobal( const idRenderMatrix & modelMatrix, const idPlan
 	Computes the light projection matrix for a point light.
 ========================
 */
-static float R_ComputePointLightProjectionMatrix( const renderLight_t& parms, idRenderMatrix& localProject )
+static float R_ComputePointLightProjectionMatrix( const renderLightParms_t& parms, idRenderMatrix& localProject )
 {
 	assert( light->parms.pointLight );
 
@@ -730,7 +730,7 @@ static const float SPOT_LIGHT_MIN_Z_FAR = 16.0f;
 	Computes the light projection matrix for a spot light.
 ========================
 */
-static float R_ComputeSpotLightProjectionMatrix( const renderLight_t& parms, idRenderMatrix& localProject )
+static float R_ComputeSpotLightProjectionMatrix( const renderLightParms_t& parms, idRenderMatrix& localProject )
 {
 	const float targetDistSqr = parms.target.LengthSqr();
 	const float invTargetDist = idMath::InvSqrt( targetDistSqr );
@@ -793,7 +793,7 @@ static float R_ComputeSpotLightProjectionMatrix( const renderLight_t& parms, idR
 	Computes the light projection matrix for a parallel light.
 ========================
 */
-static float R_ComputeParallelLightProjectionMatrix( const renderLight_t& parms, idRenderMatrix& localProject )
+static float R_ComputeParallelLightProjectionMatrix( const renderLightParms_t& parms, idRenderMatrix& localProject )
 {
 	assert( light->parms.parallel );
 

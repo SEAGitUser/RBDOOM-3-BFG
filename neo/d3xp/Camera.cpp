@@ -138,7 +138,7 @@ void idCameraView::Event_Activate( idEntity* activator )
 		{
 			if( g_debugCinematic.GetBool() )
 			{
-				gameLocal.Printf( "%d: '%s' start\n", gameLocal.framenum, GetName() );
+				gameLocal.Printf( "%d: '%s' start\n", gameLocal.GetFrameNum(), GetName() );
 			}
 			
 			gameLocal.SetCamera( this );
@@ -147,7 +147,7 @@ void idCameraView::Event_Activate( idEntity* activator )
 		{
 			if( g_debugCinematic.GetBool() )
 			{
-				gameLocal.Printf( "%d: '%s' stop\n", gameLocal.framenum, GetName() );
+				gameLocal.Printf( "%d: '%s' stop\n", gameLocal.GetFrameNum(), GetName() );
 			}
 			gameLocal.SetCamera( NULL );
 		}
@@ -163,7 +163,7 @@ void idCameraView::Stop()
 {
 	if( g_debugCinematic.GetBool() )
 	{
-		gameLocal.Printf( "%d: '%s' stop\n", gameLocal.framenum, GetName() );
+		gameLocal.Printf( "%d: '%s' stop\n", gameLocal.GetFrameNum(), GetName() );
 	}
 	gameLocal.SetCamera( NULL );
 	ActivateTargets( gameLocal.GetLocalPlayer() );
@@ -464,10 +464,10 @@ void idCameraAnim::Start()
 	
 	if( g_debugCinematic.GetBool() )
 	{
-		gameLocal.Printf( "%d: '%s' start\n", gameLocal.framenum, GetName() );
+		gameLocal.Printf( "%d: '%s' start\n", gameLocal.GetFrameNum(), GetName() );
 	}
 	
-	starttime = gameLocal.time;
+	starttime = gameLocal.GetTime();
 	gameLocal.SetCamera( this );
 	BecomeActive( TH_THINK );
 	
@@ -489,7 +489,7 @@ void idCameraAnim::Stop()
 	{
 		if( g_debugCinematic.GetBool() )
 		{
-			gameLocal.Printf( "%d: '%s' stop\n", gameLocal.framenum, GetName() );
+			gameLocal.Printf( "%d: '%s' stop\n", gameLocal.GetFrameNum(), GetName() );
 		}
 		
 		BecomeInactive( TH_THINK );
@@ -544,7 +544,7 @@ void idCameraAnim::GetViewParms( renderViewParms_t* view )
 	
 	SetTimeState ts( timeGroup );
 	
-	frameTime	= ( gameLocal.time - starttime ) * frameRate;
+	frameTime	= ( gameLocal.GetTime() - starttime ) * frameRate;
 	frame		= frameTime / 1000;
 	lerp		= ( frameTime % 1000 ) * 0.001f;
 	
@@ -563,7 +563,7 @@ void idCameraAnim::GetViewParms( renderViewParms_t* view )
 	
 	if( g_debugCinematic.GetBool() )
 	{
-		int prevFrameTime	= ( gameLocal.previousTime - starttime ) * frameRate;
+		int prevFrameTime	= ( gameLocal.GetPreviousGameTimeMs() - starttime ) * frameRate;
 		int prevFrame		= prevFrameTime / 1000;
 		int prevCut;
 		
@@ -580,7 +580,7 @@ void idCameraAnim::GetViewParms( renderViewParms_t* view )
 		
 		if( prevCut != cut )
 		{
-			gameLocal.Printf( "%d: '%s' cut %d\n", gameLocal.framenum, GetName(), cut );
+			gameLocal.Printf( "%d: '%s' cut %d\n", gameLocal.GetFrameNum(), GetName(), cut );
 		}
 	}
 	

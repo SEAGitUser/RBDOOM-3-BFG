@@ -55,8 +55,6 @@ idEntityFx::Save
 */
 void idEntityFx::Save( idSaveGame* savefile ) const
 {
-	int i;
-	
 	savefile->WriteInt( started );
 	savefile->WriteInt( nextTriggerTime );
 	savefile->WriteFX( fxEffect );
@@ -64,16 +62,14 @@ void idEntityFx::Save( idSaveGame* savefile ) const
 	
 	savefile->WriteInt( actions.Num() );
 	
-	for( i = 0; i < actions.Num(); i++ )
-	{
-	
+	for( int i = 0; i < actions.Num(); i++ )
+	{	
 		if( actions[i].lightDefHandle >= 0 )
 		{
 			savefile->WriteBool( true );
 			savefile->WriteRenderLight( actions[i].renderLight );
 		}
-		else
-		{
+		else {
 			savefile->WriteBool( false );
 		}
 		
@@ -82,8 +78,7 @@ void idEntityFx::Save( idSaveGame* savefile ) const
 			savefile->WriteBool( true );
 			savefile->WriteRenderEntity( actions[i].renderEntity );
 		}
-		else
-		{
+		else {
 			savefile->WriteBool( false );
 		}
 		
@@ -103,7 +98,6 @@ idEntityFx::Restore
 */
 void idEntityFx::Restore( idRestoreGame* savefile )
 {
-	int i;
 	int num;
 	bool hasObject;
 	
@@ -115,17 +109,15 @@ void idEntityFx::Restore( idRestoreGame* savefile )
 	savefile->ReadInt( num );
 	
 	actions.SetNum( num );
-	for( i = 0; i < num; i++ )
-	{
-	
+	for( int i = 0; i < num; i++ )
+	{	
 		savefile->ReadBool( hasObject );
 		if( hasObject )
 		{
 			savefile->ReadRenderLight( actions[i].renderLight );
 			actions[i].lightDefHandle = gameRenderWorld->AddLightDef( &actions[i].renderLight );
 		}
-		else
-		{
+		else {
 			actions[i].renderLight.Clear();
 			actions[i].lightDefHandle = -1;
 		}
@@ -136,8 +128,7 @@ void idEntityFx::Restore( idRestoreGame* savefile )
 			savefile->ReadRenderEntity( actions[i].renderEntity );
 			actions[i].modelDefHandle = gameRenderWorld->AddEntityDef( &actions[i].renderEntity );
 		}
-		else
-		{
+		else {
 			actions[i].renderEntity.Clear();
 			actions[i].modelDefHandle = -1;
 		}
@@ -162,7 +153,6 @@ idEntityFx::Setup
 */
 void idEntityFx::Setup( const char* fx )
 {
-
 	if( started >= 0 )
 	{
 		return;					// already started
@@ -177,12 +167,10 @@ void idEntityFx::Setup( const char* fx )
 	systemName = fx;
 	started = 0;
 	
-	fxEffect = static_cast<const idDeclFX*>( declManager->FindType( DECL_FX, systemName.c_str() ) );
-	
+	fxEffect = static_cast<const idDeclFX*>( declManager->FindType( DECL_FX, systemName.c_str() ) );	
 	if( fxEffect )
 	{
-		idFXLocalAction localAction;
-		
+		idFXLocalAction localAction;		
 		memset( &localAction, 0, sizeof( idFXLocalAction ) );
 		
 		actions.AssureSize( fxEffect->events.Num(), localAction );
@@ -196,8 +184,7 @@ void idEntityFx::Setup( const char* fx )
 			{
 				laction.delay = fxaction.random1 + gameLocal.random.RandomFloat() * ( fxaction.random2 - fxaction.random1 );
 			}
-			else
-			{
+			else {
 				laction.delay = fxaction.delay;
 			}
 			laction.start = -1;
@@ -339,7 +326,7 @@ idEntityFx::Done
 */
 const bool idEntityFx::Done()
 {
-	if( started > 0 && gameLocal.time > started + Duration() )
+	if( started > 0 && gameLocal.GetTime() > started + Duration() )
 	{
 		return true;
 	}
@@ -362,17 +349,17 @@ void idEntityFx::ApplyFade( const idFXSingleAction& fxaction, idFXLocalAction& l
 		}
 		if( laction.modelDefHandle != -1 )
 		{
-			laction.renderEntity.shaderParms[SHADERPARM_RED] = ( fxaction.fadeInTime ) ? fadePct : 1.0f - fadePct;
+			laction.renderEntity.shaderParms[SHADERPARM_RED]   = ( fxaction.fadeInTime ) ? fadePct : 1.0f - fadePct;
 			laction.renderEntity.shaderParms[SHADERPARM_GREEN] = ( fxaction.fadeInTime ) ? fadePct : 1.0f - fadePct;
-			laction.renderEntity.shaderParms[SHADERPARM_BLUE] = ( fxaction.fadeInTime ) ? fadePct : 1.0f - fadePct;
+			laction.renderEntity.shaderParms[SHADERPARM_BLUE]  = ( fxaction.fadeInTime ) ? fadePct : 1.0f - fadePct;
 			
 			gameRenderWorld->UpdateEntityDef( laction.modelDefHandle, &laction.renderEntity );
 		}
 		if( laction.lightDefHandle != -1 )
 		{
-			laction.renderLight.shaderParms[SHADERPARM_RED] = fxaction.lightColor.x * ( ( fxaction.fadeInTime ) ? fadePct : 1.0f - fadePct );
+			laction.renderLight.shaderParms[SHADERPARM_RED]   = fxaction.lightColor.x * ( ( fxaction.fadeInTime ) ? fadePct : 1.0f - fadePct );
 			laction.renderLight.shaderParms[SHADERPARM_GREEN] = fxaction.lightColor.y * ( ( fxaction.fadeInTime ) ? fadePct : 1.0f - fadePct );
-			laction.renderLight.shaderParms[SHADERPARM_BLUE] = fxaction.lightColor.z * ( ( fxaction.fadeInTime ) ? fadePct : 1.0f - fadePct );
+			laction.renderLight.shaderParms[SHADERPARM_BLUE]  = fxaction.lightColor.z * ( ( fxaction.fadeInTime ) ? fadePct : 1.0f - fadePct );
 			
 			gameRenderWorld->UpdateLightDef( laction.lightDefHandle, &laction.renderLight );
 		}
@@ -582,13 +569,13 @@ void idEntityFx::Run( int time )
 			{
 				if( useAction->modelDefHandle == -1 )
 				{
-					memset( &useAction->renderEntity, 0, sizeof( renderEntity_t ) );
+					memset( &useAction->renderEntity, 0, sizeof( renderEntityParms_t ) );
 					useAction->renderEntity.origin = GetPhysics()->GetOrigin() + fxaction.offset;
 					useAction->renderEntity.axis = ( fxaction.explicitAxis ) ? fxaction.axis : GetPhysics()->GetAxis();
 					useAction->renderEntity.hModel = renderModelManager->FindModel( fxaction.data );
-					useAction->renderEntity.shaderParms[ SHADERPARM_RED ]		= 1.0f;
-					useAction->renderEntity.shaderParms[ SHADERPARM_GREEN ]		= 1.0f;
-					useAction->renderEntity.shaderParms[ SHADERPARM_BLUE ]		= 1.0f;
+					useAction->renderEntity.shaderParms[ SHADERPARM_RED ]	= 1.0f;
+					useAction->renderEntity.shaderParms[ SHADERPARM_GREEN ]	= 1.0f;
+					useAction->renderEntity.shaderParms[ SHADERPARM_BLUE ]	= 1.0f;
 					useAction->renderEntity.shaderParms[ SHADERPARM_TIMEOFFSET ] = -MS2SEC( time );
 					useAction->renderEntity.shaderParms[3] = 1.0f;
 					useAction->renderEntity.shaderParms[5] = 0.0f;
@@ -625,8 +612,7 @@ void idEntityFx::Run( int time )
 					{
 						gameLocal.Warning( "projectile \'%s\' not found", fxaction.data.c_str() );
 					}
-					else
-					{
+					else {
 						gameLocal.SpawnEntityDef( *projectileDef, &ent, false );
 						if( ent && ent->IsType( idProjectile::Type ) )
 						{
@@ -661,8 +647,7 @@ void idEntityFx::Run( int time )
 					{
 						gameLocal.Warning( "shockwave \'%s\' not found", shockDefName.c_str() );
 					}
-					else
-					{
+					else {
 						gameLocal.SpawnEntityDef( *projectileDef, &ent );
 						ent->SetOrigin( GetPhysics()->GetOrigin() + fxaction.offset );
 						ent->PostEventMS( &EV_Remove, ent->spawnArgs.GetInt( "duration" ) );
@@ -705,7 +690,6 @@ idEntityFx::Spawn
 */
 void idEntityFx::Spawn()
 {
-
 	if( g_skipFX.GetBool() )
 	{
 		return;
@@ -744,7 +728,7 @@ void idEntityFx::Think()
 	
 	if( thinkFlags & TH_THINK )
 	{
-		Run( gameLocal.time );
+		Run( gameLocal.GetTime() );
 	}
 	
 	RunPhysics();
@@ -760,7 +744,6 @@ idEntityFx::Event_ClearFx
 */
 void idEntityFx::Event_ClearFx()
 {
-
 	if( g_skipFX.GetBool() )
 	{
 		return;
@@ -799,37 +782,33 @@ idEntityFx::Event_Trigger
 */
 void idEntityFx::Event_Trigger( idEntity* activator )
 {
-
 	if( g_skipFX.GetBool() )
 	{
 		return;
 	}
-	
-	float		fxActionDelay;
-	const char* fx;
-	
-	if( gameLocal.time < nextTriggerTime )
+
+	if( gameLocal.GetTime() < nextTriggerTime )
 	{
 		return;
 	}
 	
+	const char* fx;
 	if( spawnArgs.GetString( "fx", "", &fx ) )
 	{
 		Setup( fx );
-		Start( gameLocal.time );
+		Start( gameLocal.GetTime() );
 		PostEventMS( &EV_Fx_KillFx, Duration() );
 		BecomeActive( TH_THINK );
 	}
 	
-	fxActionDelay = spawnArgs.GetFloat( "fxActionDelay" );
+	float fxActionDelay = spawnArgs.GetFloat( "fxActionDelay" );
 	if( fxActionDelay != 0.0f )
 	{
-		nextTriggerTime = gameLocal.time + SEC2MS( fxActionDelay );
+		nextTriggerTime = gameLocal.GetTime() + SEC2MS( fxActionDelay );
 	}
-	else
-	{
+	else {
 		// prevent multiple triggers on same frame
-		nextTriggerTime = gameLocal.time + 1;
+		nextTriggerTime = gameLocal.GetTime() + 1;
 	}
 	PostEventSec( &EV_Fx_Action, fxActionDelay, activator );
 }
@@ -842,7 +821,6 @@ idEntityFx::StartFx
 */
 idEntityFx* idEntityFx::StartFx( const char* fx, const idVec3* useOrigin, const idMat3* useAxis, idEntity* ent, bool bind )
 {
-
 	if( g_skipFX.GetBool() || !fx || !*fx )
 	{
 		return NULL;
@@ -895,25 +873,23 @@ idEntityFx::ReadFromSnapshot
 */
 void idEntityFx::ReadFromSnapshot( const idBitMsg& msg )
 {
-	int fx_index, start_time, max_lapse;
-	
 	GetPhysics()->ReadFromSnapshot( msg );
 	ReadBindFromSnapshot( msg );
-	fx_index = gameLocal.ClientRemapDecl( DECL_FX, msg.ReadLong() );
-	start_time = msg.ReadLong();
+	int fx_index = gameLocal.ClientRemapDecl( DECL_FX, msg.ReadLong() );
+	int start_time = msg.ReadLong();
 	
 	if( fx_index != -1 && start_time > 0 && !fxEffect && started < 0 )
 	{
+		int max_lapse;
 		spawnArgs.GetInt( "effect_lapse", "1000", max_lapse );
-		if( gameLocal.time - start_time > max_lapse )
+		if( gameLocal.GetTime() - start_time > max_lapse )
 		{
 			// too late, skip the effect completely
 			started = 0;
 			return;
 		}
 		const idDeclFX* fx = static_cast<const idDeclFX*>( declManager->DeclByIndex( DECL_FX, fx_index ) );
-		if( !fx )
-		{
+		if( !fx ) {
 			gameLocal.Error( "FX at index %d not found", fx_index );
 		}
 		fxEffect = fx;
@@ -929,10 +905,9 @@ idEntityFx::ClientThink
 */
 void idEntityFx::ClientThink( const int curTime, const float fraction, const bool predict )
 {
-
 	if( gameLocal.isNewFrame )
 	{
-		Run( gameLocal.serverTime );
+		Run( gameLocal.GetServerGameTimeMs() );
 	}
 	
 	InterpolatePhysics( fraction );
@@ -948,7 +923,7 @@ void idEntityFx::ClientPredictionThink()
 {
 	if( gameLocal.isNewFrame )
 	{
-		Run( gameLocal.time );
+		Run( gameLocal.GetTime() );
 	}
 	RunPhysics();
 	Present();
@@ -973,9 +948,7 @@ idTeleporter::Event_DoAction
 */
 void idTeleporter::Event_DoAction( idEntity* activator )
 {
-	float angle;
-	
-	angle = spawnArgs.GetFloat( "angle" );
+	float angle = spawnArgs.GetFloat( "angle" );
 	idAngles a( 0, spawnArgs.GetFloat( "angle" ), 0 );
 	activator->Teleport( GetPhysics()->GetOrigin(), a, NULL );
 }

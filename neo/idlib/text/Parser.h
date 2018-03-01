@@ -52,9 +52,12 @@ If you have questions concerning this license or the applicable additional terms
 #define INDENT_IFDEF			0x0008
 #define INDENT_IFNDEF			0x0010
 
+//SEA: TODO define scope
+
 // macro definitions
 struct define_t {
 	char *			name;						// define name
+	int				scope;
 	int				flags;						// define flags
 	int				builtin;					// > 0 if builtin define
 	int				numparms;					// number of define parameters
@@ -63,7 +66,7 @@ struct define_t {
 	define_t *		next;						// next defined macro in a list
 	define_t *		hashnext;					// next define in the hash chain
 
-	idListNode<define_t> listNode; 
+	//idListNode<define_t> listNode; 
 	//idListNode<define_t> hashNode;
 };
 
@@ -109,7 +112,7 @@ public:
 	// expect a certain token, reads the token when available
 	bool				ExpectTokenString( const char *string, idToken* other = NULL );
 	// expect a certain token type
-	bool				ExpectTokenType( int type, int subtype, idToken* token );
+	bool				ExpectTokenType( int type, int subtype, idToken & );
 	// expect a token
 	bool				ExpectAnyToken( idToken* token );
 	// returns true if the next token equals the given string and removes the token from the source
@@ -126,9 +129,9 @@ public:
 	bool				SkipRestOfLine();
 	// skip the braced section
 	bool				SkipBracedSection( bool parseFirstBrace = true );
-	// parse a braced section into a string
+	// parse a braced section into a string ( expands precompilation ).
 	const char *		ParseBracedSection( idStr &out, int tabs = -1, bool parseFirstBrace = true, char intro = '{', char outro = '}' );
-	// parse a braced section into a string, maintaining indents and newlines
+	// parse a braced section into a string, maintaining indents and newlines, no precompilation.
 	bool 				ParseBracedSectionExact( idStr& out, int tabs = -1, bool parseFirstBrace = true );
 	// parse the rest of the line
 	const char* 		ParseRestOfLine( idStr& out );
@@ -156,7 +159,9 @@ public:
 	void				GetStringFromMarker( idStr& out, bool clean = false );
 	// add a define to the source
 	bool				AddDefine( const char* string );
-	bool				RemoveDefine( const char* string );
+	// remove define from the source
+	void				RemoveDefine( const char* string );
+	///void				RemoveDefines( bool freeDefineHashTable );
 	// add includes to the source
 	int					AddIncludes( const idStrList& includes );
 	// add an include to the source
@@ -208,9 +213,12 @@ public:
 	void				PushDependencies();
 	void				PopDependencies();
 
+	void PushDefineScope( const char* scopeName );
+	void PopDefineScope();
+
 protected:
 
-	typedef idLinkedList<define_t, &define_t::listNode> defineList_t;
+	///typedef idLinkedList<define_t, &define_t::listNode> defineList_t;
 
 	bool				loaded;						// set when a source file is loaded from file or memory
 	bool				OSPath;						// true if the file was loaded from an OS path
@@ -220,6 +228,7 @@ protected:
 	int					flags;						// flags used for script parsing
 	idLexer * 			scriptstack;				// stack with scripts of the source
 	idToken * 			tokens;						// tokens to read first
+/*SEA*/int				defineScope;
 	define_t * 			defines;					// list with macro definitions
 	define_t ** 		definehash;					// hash chain with defines
 	indent_t * 			indentstack;				// stack with indents
@@ -229,11 +238,23 @@ protected:
 	int					startLine;					// line offset
 	const char *		marker_p;
 
+	// includeLevel
+
 	// list with global defines added to every source loaded
-	static defineList_t	globalDefines;
+	///static defineList_t	globalDefines;
+	static define_t *	globaldefines;
 
 	idStrList			dependencies;				// list of filenames that have been included
 	idStack< int >		dependencyStateStack;		// stack of the number of dependencies
+
+	/*
+	struct idDependency {
+		includeLevel;
+		fileName;
+	}
+	idList<idParser::indent_t,11>
+	idList<idParser::idDependency,11>
+	*/
 
 protected:
 
@@ -265,9 +286,6 @@ protected:
 	bool				Evaluate( signed int* intvalue, double* floatvalue, int integer );
 	bool				DollarEvaluate( signed int* intvalue, double* floatvalue, int integer );
 
-	// RB: allow override
-	virtual bool		Directive_include( idToken* token, bool supressWarning );
-	// RB end
 	bool				Directive_include();
 	bool				Directive_define( bool isTemplate );
 	bool				Directive_undef();

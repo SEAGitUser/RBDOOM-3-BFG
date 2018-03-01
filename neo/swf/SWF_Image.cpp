@@ -112,9 +112,7 @@ byte* idSWF::idDecompressJPEG::Load( const byte* input, int inputSize, int& widt
 {
 	jpeg_decompress_struct* cinfo = ( jpeg_decompress_struct* )vinfo;
 	
-	try
-	{
-	
+	try {	
 		width = 0;
 		height = 0;
 		
@@ -130,8 +128,7 @@ byte* idSWF::idDecompressJPEG::Load( const byte* input, int inputSize, int& widt
 		cinfo->src = &src;
 		
 		int result = 0;
-		do
-		{
+		do {
 			result = jpeg_read_header( cinfo, FALSE );
 		}
 		while( result == JPEG_HEADER_TABLES_ONLY );

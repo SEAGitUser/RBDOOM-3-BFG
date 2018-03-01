@@ -126,8 +126,7 @@ void GL_BindTexture( int unit, idImage *img )
 			if( glConfig.directStateAccess )
 			{
 				glBindMultiTextureEXT( GL_TEXTURE0 + _unit, _target, _name );
-			}
-			else
+			} else
 		#endif
 			{
 				glActiveTexture( GL_TEXTURE0 + _unit );
@@ -228,6 +227,7 @@ void GL_BindTexture( int unit, idImage *img, idTextureSampler *sampler )
 void GL_ResetProgramState()
 {
 	renderProgManager.Unbind();
+	backEnd.glState.currentProgramObject = GL_NONE;
 }
 
 /*
@@ -415,12 +415,18 @@ GL_Color
 */
 void GL_Color( float r, float g, float b, float a )
 {
-	float parm[4];
-	parm[0] = idMath::ClampFloat( 0.0f, 1.0f, r );
-	parm[1] = idMath::ClampFloat( 0.0f, 1.0f, g );
-	parm[2] = idMath::ClampFloat( 0.0f, 1.0f, b );
-	parm[3] = idMath::ClampFloat( 0.0f, 1.0f, a );
-	renderProgManager.SetRenderParm( RENDERPARM_COLOR, parm );
+	//ALIGN16( float parm[4] );
+	//parm[0] = idMath::ClampFloat( 0.0f, 1.0f, r );
+	//parm[1] = idMath::ClampFloat( 0.0f, 1.0f, g );
+	//parm[2] = idMath::ClampFloat( 0.0f, 1.0f, b );
+	//parm[3] = idMath::ClampFloat( 0.0f, 1.0f, a );
+	//renderProgManager.SetRenderParm( RENDERPARM_COLOR, parm );
+
+	auto & parm = renderProgManager.GetRenderParm( RENDERPARM_COLOR );
+	parm[ 0 ] = idMath::ClampFloat( 0.0f, 1.0f, r );
+	parm[ 1 ] = idMath::ClampFloat( 0.0f, 1.0f, g );
+	parm[ 2 ] = idMath::ClampFloat( 0.0f, 1.0f, b );
+	parm[ 3 ] = idMath::ClampFloat( 0.0f, 1.0f, a );
 }
 
 /*
@@ -1259,7 +1265,7 @@ uint64 GL_GetCurrentStateMinusStencil()
 	return GL_GetCurrentState() & ~( GLS_STENCIL_OP_BITS | GLS_STENCIL_FUNC_BITS | GLS_STENCIL_FUNC_REF_BITS | GLS_STENCIL_FUNC_MASK_BITS );
 }
 
-void GL_SetVertexMask( idBitFlags<vertexMask_t> vertexMask )
+void GL_SetVertexMask( vertexMask_t vertexMask )
 {
 	vertexMask.HasFlag( VERTEX_MASK_POSITION )? glEnableVertexAttribArray( PC_ATTRIB_INDEX_POSITION ) : glDisableVertexAttribArray( PC_ATTRIB_INDEX_POSITION );
 	vertexMask.HasFlag( VERTEX_MASK_ST )? glEnableVertexAttribArray( PC_ATTRIB_INDEX_ST ) : glDisableVertexAttribArray( PC_ATTRIB_INDEX_ST );

@@ -848,8 +848,7 @@ bool idLexer::ReadNumber( idToken* token )
 			token->subtype = TT_OCTAL | TT_INTEGER;
 		}
 	}
-	else
-	{
+	else {
 		// decimal integer or floating point number or ip address
 		dot = 0;
 		while( 1 )
@@ -1165,7 +1164,8 @@ bool idLexer::ReadToken( idToken* token )
 	whiteSpaceStart_p = script_p;
 	token->whiteSpaceStart_p = script_p;
 	// read white space before token
-	if( !SkipWhiteSpace( false ) ) // !ReadWhiteSpace()
+	if( !SkipWhiteSpace( false ) )
+	//if( !ReadWhiteSpace() )
 	{
 		return false;
 	}
@@ -1290,17 +1290,17 @@ bool idLexer::ExpectTokenString( const char *string )
 idLexer::ExpectTokenType
 ================
 */
-bool idLexer::ExpectTokenType( int type, int subtype, idToken *token )
+bool idLexer::ExpectTokenType( int type, int subtype, idToken & token )
 {
 	idStr str;
 
-	if( !ReadToken( token ) )
+	if( !ReadToken( &token ) )
 	{
 		Error( "couldn't read expected token" );
 		return false;
 	}
 
-	if( token->type != type )
+	if( token.type != type )
 	{
 		switch( type )
 		{
@@ -1311,12 +1311,12 @@ bool idLexer::ExpectTokenType( int type, int subtype, idToken *token )
 			case TT_PUNCTUATION: str = "punctuation"; break;
 			default: str = "unknown type"; break;
 		}
-		Error( "expected a %s but found '%s'", str.c_str(), token->c_str() );
+		Error( "expected a %s but found '%s'", str.c_str(), token.c_str() );
 		return false;
 	}
-	if( token->type == TT_NUMBER )
+	if( token.type == TT_NUMBER )
 	{
-		if( ( token->subtype & subtype ) != subtype )
+		if( ( token.subtype & subtype ) != subtype )
 		{
 			str.Clear();
 			if( subtype & TT_DECIMAL ) str = "decimal ";
@@ -1328,20 +1328,20 @@ bool idLexer::ExpectTokenType( int type, int subtype, idToken *token )
 			if( subtype & TT_FLOAT ) str += "float ";
 			if( subtype & TT_INTEGER ) str += "integer ";
 			str.StripTrailing( ' ' );
-			Error( "expected %s but found '%s'", str.c_str(), token->c_str() );
+			Error( "expected %s but found '%s'", str.c_str(), token.c_str() );
 			return false;
 		}
 	}
-	else if( token->type == TT_PUNCTUATION )
+	else if( token.type == TT_PUNCTUATION )
 	{
 		if( subtype < 0 )
 		{
 			Error( "BUG: wrong punctuation subtype" );
 			return false;
 		}
-		if( token->subtype != subtype )
+		if( token.subtype != subtype )
 		{
-			Error( "expected '%s' but found '%s'", GetPunctuationFromId( subtype ), token->c_str() );
+			Error( "expected '%s' but found '%s'", GetPunctuationFromId( subtype ), token.c_str() );
 			return false;
 		}
 	}
@@ -1369,21 +1369,24 @@ bool idLexer::ExpectAnyToken( idToken *token )
 idLexer::CheckTokenString
 ================
 */
-bool idLexer::CheckTokenString( const char *string )
+bool idLexer::CheckTokenString( const char *string, idToken *tok )
 {
-	idToken tok;
+	idToken _token;
+	if( !tok ) {
+		tok = &_token;
+	}
 
-	if( !ReadToken( &tok ) )
+	if( !ReadToken( tok ) )
 	{
 		return false;
 	}
 	// if the given string is available
-	if( tok == string )
+	if( *tok == string )
 	{
 		return true;
 	}
 	// unread token
-	UnreadToken( &tok );
+	UnreadToken( tok );
 	return false;
 }
 
@@ -1708,7 +1711,7 @@ int idLexer::ParseInt()
 	}
 	if( token.type == TT_PUNCTUATION && token == "-" )
 	{
-		ExpectTokenType( TT_NUMBER, TT_INTEGER, &token );
+		ExpectTokenType( TT_NUMBER, TT_INTEGER, token );
 		return -( ( signed int )token.GetIntValue() );
 	}
 	else if( token.type != TT_NUMBER || token.subtype == TT_FLOAT )
@@ -1727,7 +1730,7 @@ bool idLexer::ParseBool()
 {
 	idToken token;
 
-	if( !ExpectTokenType( TT_NUMBER, 0, &token ) )
+	if( !ExpectTokenType( TT_NUMBER, 0, token ) )
 	{
 		Error( "couldn't read expected boolean" );
 		return false;
@@ -1756,15 +1759,14 @@ float idLexer::ParseFloat( bool* errorFlag )
 			Warning( "couldn't read expected floating point number" );
 			*errorFlag = true;
 		}
-		else
-		{
+		else {
 			Error( "couldn't read expected floating point number" );
 		}
 		return 0;
 	}
 	if( token.type == TT_PUNCTUATION && token == "-" )
 	{
-		ExpectTokenType( TT_NUMBER, 0, &token );
+		ExpectTokenType( TT_NUMBER, 0, token );
 		return -token.GetFloatValue();
 	}
 	else if( token.type != TT_NUMBER )
@@ -1774,8 +1776,7 @@ float idLexer::ParseFloat( bool* errorFlag )
 			Warning( "expected float value, found '%s'", token.c_str() );
 			*errorFlag = true;
 		}
-		else
-		{
+		else {
 			Error( "expected float value, found '%s'", token.c_str() );
 		}
 	}
@@ -2004,10 +2005,6 @@ Internal brace depths are properly skipped.
 */
 const char *idLexer::ParseBracedSection( idStr &out, int tabs, bool parseFirstBrace, char intro, char outro )
 {
-	idToken token;
-	int i, depth;
-	bool doTabs;
-
 	char temp[ 2 ] = { '\0', '\0' };
 	temp[ 0 ] = intro;
 
@@ -2020,8 +2017,11 @@ const char *idLexer::ParseBracedSection( idStr &out, int tabs, bool parseFirstBr
 		}
 		out = temp;
 	}
-	depth = 1;
-	doTabs = ( tabs >= 0 );
+
+	idToken token;
+	int i, depth = 1;
+	bool doTabs = ( tabs >= 0 );
+
 	do {
 		if( !ReadToken( &token ) )
 		{
@@ -2038,7 +2038,7 @@ const char *idLexer::ParseBracedSection( idStr &out, int tabs, bool parseFirstBr
 		if( doTabs && token.linesCrossed )
 		{
 			i = tabs;
-			if( token[ 0 ] == '}' && i > 0 )
+			if( token[ 0 ] == outro && i > 0 )
 			{
 				i--;
 			}
@@ -2047,6 +2047,7 @@ const char *idLexer::ParseBracedSection( idStr &out, int tabs, bool parseFirstBr
 				out += "\t";
 			}
 		}
+	#if 0
 		if( token.type != TT_STRING )
 		{
 			if( token[ 0 ] == intro )
@@ -2079,7 +2080,50 @@ const char *idLexer::ParseBracedSection( idStr &out, int tabs, bool parseFirstBr
 			}
 			out += "\"" + token + "\"";
 		}
-	} while( depth );
+	#endif
+		if( token.type == TT_STRING )
+		{
+			if( out.Length() )
+			{
+				out += " ";
+			}
+			out += "\"" + token + "\"";
+		}
+		else if ( token.type == TT_LITERAL )
+		{
+			if( out.Length() )
+			{
+				out += " ";
+			}
+			out += "\'" + token + "\'";
+		}
+		else
+		{
+			if( token[ 0 ] == intro )
+			{
+				depth++;
+				if( doTabs )
+				{
+					tabs++;
+				}
+			}
+			else if( token[ 0 ] == outro )
+			{
+				depth--;
+				if( doTabs )
+				{
+					tabs--;
+				}
+			}
+
+			if( out.Length() )
+			{
+				out += " ";
+			}
+			out += token;
+		}
+	} 
+	while( depth );
 
 	return out.c_str();
 }

@@ -76,7 +76,7 @@ const char DEFAULT_FORECOLOR[] = "0 0 0 1";
 const char DEFAULT_BORDERCOLOR[] = "0 0 0 1";
 const char DEFAULT_TEXTSCALE[] = "0.4";
 
-typedef enum
+enum wexpOpType_t
 {
 	WOP_TYPE_ADD,
 	WOP_TYPE_SUBTRACT,
@@ -98,21 +98,21 @@ typedef enum
 	WOP_TYPE_VARI,
 	WOP_TYPE_VARB,
 	WOP_TYPE_COND
-} wexpOpType_t;
+};
 
-typedef enum
+enum wexpRegister_t
 {
 	WEXP_REG_TIME,
 	WEXP_REG_NUM_PREDEFINED
-} wexpRegister_t;
+};
 
-typedef struct
+struct wexpOp_t
 {
 	wexpOpType_t opType;
 	// RB: 64 bit fixes, changed int to intptr_t
 	intptr_t	a, b, c, d;
 	// RB end
-} wexpOp_t;
+};
 
 struct idRegEntry
 {
@@ -242,7 +242,7 @@ public:
 	{
 		return gui;
 	};
-	bool Contains( float x, float y );
+	bool Contains( float x, float y ) const;
 	size_t Size();
 	virtual size_t Allocated();
 	idStr* GetStrPtrByName( const char* _name );
@@ -263,11 +263,8 @@ public:
 	void DrawBorderAndCaption( const idRectangle& drawRect );
 	void DrawCaption( int time, float x, float y );
 	void SetupTransforms( float x, float y );
-	bool Contains( const idRectangle& sr, float x, float y );
-	const char* GetName()
-	{
-		return name;
-	};
+	bool Contains( const idRectangle& sr, float x, float y ) const;
+	const char* GetName() const { return name; };
 	
 	virtual bool Parse( idTokenParser* src, bool rebuild = true );
 	virtual const char* HandleEvent( const sysEvent_t* event, bool* updateVisuals );
@@ -311,10 +308,7 @@ public:
 	void FixupParms();
 	void GetScriptString( const char* name, idStr& out );
 	void SetScriptParams();
-	bool HasOps()
-	{
-		return ( ops.Num() > 0 );
-	};
+	bool HasOps() const { return( ops.Num() > 0 ); };
 	float EvalRegs( int test = -1, bool force = false );
 	void StartTransition();
 	void AddTransition( idWinVar* dest, idVec4 from, idVec4 to, int time, float accelTime, float decelTime );
@@ -331,25 +325,16 @@ public:
 	intptr_t ParseExpression( idTokenParser* src, idWinVar* var = NULL, intptr_t component = 0 );
 	// DG end
 	int ExpressionConstant( float f );
-	idRegisterList* RegList()
-	{
-		return &regList;
-	}
+	idRegisterList* RegList() { return &regList; }
 	void AddCommand( const char* cmd );
 	void AddUpdateVar( idWinVar* var );
-	bool Interactive();
-	bool ContainsStateVars();
+	bool Interactive() const;
+	bool ContainsStateVars() const;
 	void SetChildWinVarVal( const char* name, const char* var, const char* val );
 	idWindow* GetFocusedChild();
 	idWindow* GetCaptureChild();
-	const char* GetComment()
-	{
-		return comment;
-	}
-	void SetComment( const char* p )
-	{
-		comment = p;
-	}
+	const char* GetComment() const { return comment; }
+	void SetComment( const char* p ) { comment = p; }
 	
 	idStr cmd;
 	
@@ -357,7 +342,7 @@ public:
 	
 	void		AddDefinedVar( idWinVar* var );
 	
-	idWindow*	FindChildByPoint( float x, float y, idWindow* below = NULL );
+	const idWindow *	FindChildByPoint( float x, float y, idWindow* below = NULL ) const;
 	int			GetChildIndex( idWindow* window );
 	int			GetChildCount();
 	idWindow*	GetChild( int index );
@@ -371,14 +356,14 @@ public:
 	
 protected:
 
-	friend		class rvGEWindowWrapper;
+	friend class rvGEWindowWrapper;
 	
-	idWindow*	FindChildByPoint( float x, float y, idWindow** below );
-	void		SetDefaults();
+	const idWindow *	FindChildByPoint( float x, float y, idWindow** below ) const;
+	void				SetDefaults();
 	
 	friend class idSimpleWindow;
 	friend class idUserInterfaceLocal;
-	bool IsSimple();
+	bool IsSimple() const;
 	void UpdateWinVars();
 	void DisableRegister( const char* _name );
 	void Transition();

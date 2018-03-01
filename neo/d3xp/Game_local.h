@@ -113,19 +113,20 @@ const int NUM_RENDER_PORTAL_BITS	= idMath::BitsForInteger( PS_BLOCK_ALL );
 
 const int MAX_EVENT_PARAM_SIZE		= 128;
 
-typedef struct entityNetEvent_s
+struct entityNetEvent_t
 {
 	int						spawnId;
 	int						event;
 	int						time;
 	int						paramsSize;
 	byte					paramsBuf[MAX_EVENT_PARAM_SIZE];
-	struct entityNetEvent_s*	next;
-	struct entityNetEvent_s* prev;
-} entityNetEvent_t;
 
-enum
-{
+	entityNetEvent_t *		next;
+	entityNetEvent_t *		prev;
+	//idListNode< entityNetEvent_t >	node;
+};
+
+enum {
 	GAME_RELIABLE_MESSAGE_SYNCEDCVARS,
 	GAME_RELIABLE_MESSAGE_SPAWN_PLAYER,
 	GAME_RELIABLE_MESSAGE_CHAT,
@@ -148,33 +149,32 @@ enum
 	GAME_RELIABLE_MESSAGE_CLIENT_HITSCAN_HIT
 };
 
-typedef enum
+enum gameState_t
 {
 	GAMESTATE_UNINITIALIZED,		// prior to Init being called
 	GAMESTATE_NOMAP,				// no map loaded
 	GAMESTATE_STARTUP,				// inside InitFromNewMap().  spawning map entities.
 	GAMESTATE_ACTIVE,				// normal gameplay
 	GAMESTATE_SHUTDOWN				// inside MapShutdown().  clearing memory.
-} gameState_t;
+};
 
-typedef struct
+struct spawnSpot_t
 {
 	idEntity*	ent;
 	int			dist;
 	int			team;
-} spawnSpot_t;
+};
 
 //============================================================================
 
-class idEventQueue
-{
+class idEventQueue {
 public:
-	typedef enum
+	enum outOfOrderBehaviour_t
 	{
 		OUTOFORDER_IGNORE,
 		OUTOFORDER_DROP,
 		OUTOFORDER_SORT
-	} outOfOrderBehaviour_t;
+	};
 	
 	idEventQueue() : start( NULL ), end( NULL ) {}
 	
@@ -201,8 +201,7 @@ private:
 //============================================================================
 
 template< class type >
-class idEntityPtr
-{
+class idEntityPtr {
 public:
 	idEntityPtr();
 	
@@ -285,8 +284,7 @@ enum slowmoState_t
 
 //============================================================================
 
-class idGameLocal : public idGame
-{
+class idGameLocal : public idGame {
 public:
 
 	int						previousServerTime;		// time in msec of last frame on the server
@@ -418,10 +416,7 @@ public:
 	
 	virtual void			GetClientStats( int clientNum, char* data, const int len );
 	
-	virtual bool			IsInGame() const
-	{
-		return GameState() == GAMESTATE_ACTIVE;
-	}
+	virtual bool			IsInGame() const { return GameState() == GAMESTATE_ACTIVE; }
 	
 	virtual int				MapPeerToClient( int peer ) const;
 	virtual int				GetLocalClientNum() const;
@@ -466,10 +461,7 @@ public:
 	
 	void					RegisterEntity( idEntity* ent, int forceSpawnId, const idDict& spawnArgsToCopy );
 	void					UnregisterEntity( idEntity* ent );
-	const idDict& 			GetSpawnArgs() const
-	{
-		return spawnArgs;
-	}
+	const idDict& 			GetSpawnArgs() const { return spawnArgs; }
 	
 	bool					RequirementMet( idEntity* activator, const idStr& requires, int removeItem );
 	
@@ -478,10 +470,7 @@ public:
 	
 	bool					InPlayerPVS( idEntity* ent ) const;
 	bool					InPlayerConnectedArea( idEntity* ent ) const;
-	pvsHandle_t				GetPlayerPVS()
-	{
-		return playerPVS;
-	};
+	pvsHandle_t				GetPlayerPVS() { return playerPVS; };
 	
 	void					SetCamera( idCamera* cam );
 	idCamera* 				GetCamera() const;
@@ -515,11 +504,9 @@ public:
 	const idVec3& 			GetGravity() const;
 	
 	// added the following to assist licensees with merge issues
-	int						GetFrameNum() const
-	{
-		return framenum;
-	};
-	int						GetTime() const { return time; };
+	auto					GetFrameNum() const { return framenum; };
+	auto					GetTime() const { return time; };
+	auto					GetPreviousGameTimeMs() const { return previousTime; }
 	
 	int						GetNextClientNum( int current ) const;
 	idPlayer* 				GetClientByNum( int current ) const;
@@ -544,14 +531,8 @@ public:
 	void					ClientProcessReliableMessage( int type, const idBitMsg& msg );
 	
 	// Snapshot times - track exactly what times we are interpolating from and to
-	int						GetSSEndTime() const
-	{
-		return netInterpolationInfo.ssEndTime;
-	}
-	int						GetSSStartTime() const
-	{
-		return netInterpolationInfo.ssStartTime;
-	}
+	int						GetSSEndTime() const { return netInterpolationInfo.ssEndTime; }
+	int						GetSSStartTime() const { return netInterpolationInfo.ssStartTime; }
 	
 	virtual void			SetServerGameTimeMs( const int time );
 	virtual int				GetServerGameTimeMs() const;
@@ -559,22 +540,13 @@ public:
 	idEntity* 				FindPredictedEntity( uint32 predictedKey, idTypeInfo* type );
 	uint32					GeneratePredictionKey( idWeapon* weapon, idPlayer* playerAttacker, int overrideKey );
 	
-	int						GetLastClientUsercmdMilliseconds( int playerIndex ) const
-	{
-		return usercmdLastClientMilliseconds[ playerIndex ];
-	}
+	int						GetLastClientUsercmdMilliseconds( int playerIndex ) const { return usercmdLastClientMilliseconds[ playerIndex ]; }
 	
 	void					SetGlobalMaterial( const idMaterial* mat );
 	const idMaterial* 		GetGlobalMaterial();
 	
-	void					SetGibTime( int _time )
-	{
-		nextGibTime = _time;
-	};
-	int						GetGibTime()
-	{
-		return nextGibTime;
-	};
+	void					SetGibTime( int _time ) { nextGibTime = _time; };
+	int						GetGibTime() { return nextGibTime; };
 	
 	virtual bool				InhibitControls();
 	virtual bool				IsPDAOpen() const;
@@ -616,10 +588,7 @@ public:
 	
 	void					Shell_ClearRepeater();
 	
-	const char* 			GetMapFileName()
-	{
-		return mapFileName.c_str();
-	}
+	const char* 			GetMapFileName() { return mapFileName.c_str(); }
 	
 	const char* 			GetMPPlayerDefName() const;
 	
@@ -736,8 +705,7 @@ extern idAnimManager		animationLib;
 
 //============================================================================
 
-class idGameError : public idException
-{
+class idGameError : public idException {
 public:
 	idGameError( const char* text ) : idException( text ) {}
 };

@@ -122,8 +122,8 @@ private:
 	// used for prediction in mp
 	int						clientPredictPickupMilliseconds;
 	
-	bool					UpdateRenderEntity( renderEntity_s* renderEntity, const renderViewParms_t* renderView ) const;
-	static bool				ModelCallback( renderEntity_s* renderEntity, const renderViewParms_t* renderView );
+	bool					UpdateRenderEntity( renderEntityParms_t* renderEntity, const renderViewParms_t* renderView ) const;
+	static bool				ModelCallback( renderEntityParms_t* renderEntity, const renderViewParms_t* renderView );
 	
 	void					Event_DropToFloor();
 	void					Event_Touch( idEntity* other, trace_t* trace );
@@ -268,7 +268,7 @@ private:
 	const function_t* 		scriptReturned;
 	const function_t* 		scriptCaptured;
 	
-	renderLight_t           itemGlow;           // Used by flags when they are picked up
+	renderLightParms_t           itemGlow;           // Used by flags when they are picked up
 	int                     itemGlowHandle;
 	
 	int						lastNuggetDrop;

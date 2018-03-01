@@ -71,7 +71,7 @@ void idRenderModelPrt::TouchData()
 idRenderModelPrt::InstantiateDynamicModel
 ====================
 */
-idRenderModel* idRenderModelPrt::InstantiateDynamicModel( const struct renderEntity_s* renderEntity, const idRenderView* viewDef, idRenderModel* cachedModel )
+idRenderModel* idRenderModelPrt::InstantiateDynamicModel( const struct renderEntityParms_t* renderEntity, const idRenderView* viewDef, idRenderModel* cachedModel )
 {
 	idRenderModelStatic*	staticModel;
 	
@@ -270,7 +270,7 @@ dynamicModel_t idRenderModelPrt::IsDynamicModel() const
 idRenderModelPrt::Bounds
 ====================
 */
-idBounds idRenderModelPrt::Bounds( const struct renderEntity_s* ent ) const
+idBounds idRenderModelPrt::Bounds( const struct renderEntityParms_t* ent ) const
 {
 	return particleSystem->bounds;
 }

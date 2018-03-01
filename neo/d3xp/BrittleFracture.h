@@ -39,23 +39,21 @@ of the render model which can fracture.
 ===============================================================================
 */
 
-typedef struct shard_s
+struct shard_t
 {
 	idClipModel* 				clipModel;
 	idFixedWinding				winding;
 	idList<idFixedWinding*, TAG_PHYSICS_BRITTLE>	decals;
 	idList<bool>				edgeHasNeighbour;
-	idList<struct shard_s*, TAG_PHYSICS_BRITTLE>	neighbours;
+	idList<shard_t*, TAG_PHYSICS_BRITTLE>	neighbours;
 	idPhysics_RigidBody			physicsObj;
 	int							droppedTime;
 	bool						atEdge;
 	int							islandNum;
-} shard_t;
+};
 
 
-class idBrittleFracture : public idEntity
-{
-
+class idBrittleFracture : public idEntity {
 public:
 	CLASS_PROTOTYPE( idBrittleFracture );
 	
@@ -125,8 +123,8 @@ private:
 	mutable int					lastRenderEntityUpdate;
 	mutable bool				changed;
 	
-	bool						UpdateRenderEntity( renderEntity_s* renderEntity, const renderViewParms_t* renderView ) const;
-	static bool					ModelCallback( renderEntity_s* renderEntity, const renderViewParms_t* renderView );
+	bool						UpdateRenderEntity( renderEntityParms_t* renderEntity, const renderViewParms_t* renderView ) const;
+	static bool					ModelCallback( renderEntityParms_t* renderEntity, const renderViewParms_t* renderView );
 	
 	void						AddShard( idClipModel* clipModel, idFixedWinding& w );
 	void						RemoveShard( int index );

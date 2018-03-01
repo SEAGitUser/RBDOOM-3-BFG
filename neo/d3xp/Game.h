@@ -46,7 +46,6 @@ If you have questions concerning this license or the applicable additional terms
 
 struct gameReturn_t
 {
-
 	gameReturn_t() :
 		syncNextGameFrame( false ),
 		vibrationLow( 0 ),
@@ -65,8 +64,7 @@ struct gameReturn_t
 #define TIME_GROUP1		0
 #define TIME_GROUP2		1
 
-class idGame
-{
+class idGame {
 public:
 	virtual						~idGame() {}
 	
@@ -98,46 +96,46 @@ public:
 	virtual void				SetPersistentPlayerInfo( int clientNum, const idDict& playerInfo ) = 0;
 	
 	// Loads a map and spawns all the entities.
-	virtual void				InitFromNewMap( const char* mapName, idRenderWorld* renderWorld, idSoundWorld* soundWorld, int gameMode, int randseed ) = 0;
+	virtual void				InitFromNewMap( const char* mapName, idRenderWorld*, idSoundWorld*, int gameMode, int randseed ) = 0;
 	
 	// Loads a map from a savegame file.
-	virtual bool				InitFromSaveGame( const char* mapName, idRenderWorld* renderWorld, idSoundWorld* soundWorld, idFile* saveGameFile, idFile* stringTableFile, int saveGameVersion ) = 0;
+	virtual bool				InitFromSaveGame( const char* mapName, idRenderWorld*, idSoundWorld*, idFile* saveGameFile, idFile* stringTableFile, int saveGameVersion ) = 0;
 	
 	// Saves the current game state, common may have written some data to the file already.
 	virtual void				SaveGame( idFile* saveGameFile, idFile* stringTableFile ) = 0;
 	
 	// Pulls the current player location from the game information
-	virtual void				GetSaveGameDetails( idSaveGameDetails& gameDetails ) = 0;
+	virtual void				GetSaveGameDetails( idSaveGameDetails& ) = 0;
 	
 	// Shut down the current map.
 	virtual void				MapShutdown() = 0;
 	
 	// Caches media referenced from in key/value pairs in the given dictionary.
-	virtual void				CacheDictionaryMedia( const idDict* dict ) = 0;
+	virtual void				CacheDictionaryMedia( const idDict* ) = 0;
 	
-	virtual void				Preload( const idPreloadManifest& manifest ) = 0;
+	virtual void				Preload( const idPreloadManifest& ) = 0;
 	
 	// Runs a game frame, may return a session command for level changing, etc
-	virtual void				RunFrame( idUserCmdMgr& cmdMgr, gameReturn_t& gameReturn ) = 0;
+	virtual void				RunFrame( idUserCmdMgr&, gameReturn_t& ) = 0;
 	
 	// Makes rendering and sound system calls to display for a given clientNum.
 	virtual bool				Draw( int clientNum ) = 0;
 	
-	virtual bool				HandlePlayerGuiEvent( const sysEvent_t* ev ) = 0;
+	virtual bool				HandlePlayerGuiEvent( const sysEvent_t* ) = 0;
 	
 	// Writes a snapshot of the server game state.
-	virtual void				ServerWriteSnapshot( idSnapShot& ss ) = 0;
+	virtual void				ServerWriteSnapshot( idSnapShot& ) = 0;
 	
 	// Processes a reliable message
-	virtual void				ProcessReliableMessage( int clientNum, int type, const idBitMsg& msg ) = 0;
+	virtual void				ProcessReliableMessage( int clientNum, int type, const idBitMsg& ) = 0;
 	
 	virtual void				SetInterpolation( const float fraction, const int serverGameMS, const int ssStartTime, const int ssEndTime ) = 0;
 	
 	// Reads a snapshot and updates the client game state.
-	virtual void				ClientReadSnapshot( const idSnapShot& ss ) = 0;
+	virtual void				ClientReadSnapshot( const idSnapShot& ) = 0;
 	
 	// Runs prediction on entities at the client.
-	virtual void				ClientRunFrame( idUserCmdMgr& cmdMgr, bool lastPredictFrame, gameReturn_t& ret ) = 0;
+	virtual void				ClientRunFrame( idUserCmdMgr&, bool lastPredictFrame, gameReturn_t& ) = 0;
 	
 	// Used to manage divergent time-lines
 	virtual int					GetTimeGroupTime( int timeGroup ) = 0;
@@ -157,7 +155,7 @@ public:
 	virtual int					GetLocalClientNum() const = 0;
 	
 	// compute an angle offset to be applied to the given client's aim
-	virtual void				GetAimAssistAngles( idAngles& angles ) = 0;
+	virtual void				GetAimAssistAngles( idAngles& ) = 0;
 	virtual float				GetAimAssistSensitivity() = 0;
 	
 	// Release the mouse when the PDA is open
@@ -170,31 +168,31 @@ public:
 	
 	// MAIN MENU FUNCTIONS
 	virtual bool				InhibitControls() = 0;
-	virtual void				Shell_Init( const char* filename, idSoundWorld* sw ) = 0;
+	virtual void				Shell_Init( const char* filename, idSoundWorld* ) = 0;
 	virtual void				Shell_Cleanup() = 0;
 	virtual void				Shell_CreateMenu( bool inGame ) = 0;
 	virtual void				Shell_ClosePause() = 0;
 	virtual void				Shell_Show( bool show ) = 0;
 	virtual bool				Shell_IsActive() const = 0;
-	virtual bool				Shell_HandleGuiEvent( const sysEvent_t* sev ) = 0;
+	virtual bool				Shell_HandleGuiEvent( const sysEvent_t* ) = 0;
 	virtual void				Shell_Render() = 0;
 	virtual void				Shell_ResetMenu() = 0;
 	virtual void				Shell_SyncWithSession() = 0;
 	virtual void				Shell_UpdateSavedGames() = 0;
 	virtual void				Shell_SetCanContinue( bool valid ) = 0;
 	virtual void				Shell_UpdateClientCountdown( int countdown ) = 0;
-	virtual void				Shell_UpdateLeaderboard( const idLeaderboardCallback* callback ) = 0;
+	virtual void				Shell_UpdateLeaderboard( const idLeaderboardCallback* ) = 0;
 	virtual void				Shell_SetGameComplete() = 0;
 	virtual bool				SkipCinematicScene() = 0;
 	virtual bool				CheckInCinematic() = 0;
 	
 	// Demo helper functions
-	virtual void				StartDemoPlayback( idRenderWorld* renderworld ) = 0;
+	virtual void				StartDemoPlayback( idRenderWorld* ) = 0;
 	
 	virtual bool				ProcessDemoCommand( idDemoFile* readDemo ) = 0;
 };
 
-extern idGame* 					game;
+extern idGame * 				game;
 
 
 /*
@@ -205,7 +203,7 @@ extern idGame* 					game;
 ===============================================================================
 */
 
-typedef struct
+struct refSound_t
 {
 	idSoundEmitter* 			referenceSound;	// this is the interface to the sound system, created
 	// with idSoundWorld::AllocSoundEmitter() when needed
@@ -217,7 +215,11 @@ typedef struct
 	// samples in a multi-sample list from the shader are used
 	bool						waitfortrigger;	// don't start it at spawn time
 	soundShaderParms_t			parms;			// override volume, flags, etc
-} refSound_t;
+
+	void Clear() {
+		memset( this, 0, sizeof( *this ) );
+	}
+};
 
 enum
 {
@@ -232,15 +234,14 @@ class idEntity;
 class idMD5Anim;
 
 // FIXME: this interface needs to be reworked but it properly separates code for the time being
-class idGameEdit
-{
+class idGameEdit {
 public:
 	virtual						~idGameEdit() {}
 	
 	// These are the canonical idDict to parameter parsing routines used by both the game and tools.
-	virtual void				ParseSpawnArgsToRenderLight( const idDict* args, renderLight_t* renderLight );
-	virtual void				ParseSpawnArgsToRenderEntity( const idDict* args, renderEntity_t* renderEntity );
-	virtual void				ParseSpawnArgsToRefSound( const idDict* args, refSound_t* refSound );
+	virtual void				ParseSpawnArgsToRenderLight( const idDict* args, renderLightParms_t* );
+	virtual void				ParseSpawnArgsToRenderEntity( const idDict* args, renderEntityParms_t* );
+	virtual void				ParseSpawnArgsToRefSound( const idDict* args, refSound_t* );
 	
 	// Animation system calls for non-game based skeletal rendering.
 	virtual idRenderModel* 		ANIM_GetModelFromEntityDef( const char* classname );
@@ -251,10 +252,10 @@ public:
 	virtual int					ANIM_GetNumAnimsFromEntityDef( const idDict* args );
 	virtual const char* 		ANIM_GetAnimNameFromEntityDef( const idDict* args, int animNum );
 	virtual const idMD5Anim* 	ANIM_GetAnim( const char* fileName );
-	virtual int					ANIM_GetLength( const idMD5Anim* anim );
-	virtual int					ANIM_GetNumFrames( const idMD5Anim* anim );
-	virtual void				ANIM_CreateAnimFrame( const idRenderModel* model, const idMD5Anim* anim, int numJoints, idJointMat* frame, int time, const idVec3& offset, bool remove_origin_offset );
-	virtual idRenderModel* 		ANIM_CreateMeshForAnim( idRenderModel* model, const char* classname, const char* animname, int frame, bool remove_origin_offset );
+	virtual int					ANIM_GetLength( const idMD5Anim* );
+	virtual int					ANIM_GetNumFrames( const idMD5Anim* );
+	virtual void				ANIM_CreateAnimFrame( const idRenderModel*, const idMD5Anim*, int numJoints, idJointMat* frame, int time, const idVec3& offset, bool remove_origin_offset );
+	virtual idRenderModel* 		ANIM_CreateMeshForAnim( idRenderModel*, const char* classname, const char* animname, int frame, bool remove_origin_offset );
 	
 	// Articulated Figure calls for AF editor and Radiant.
 	virtual bool				AF_SpawnEntity( const char* fileName );
@@ -266,7 +267,7 @@ public:
 	// Entity selection.
 	virtual void				ClearEntitySelection();
 	virtual int					GetSelectedEntities( idEntity* list[], int max );
-	virtual void				AddSelectedEntity( idEntity* ent );
+	virtual void				AddSelectedEntity( idEntity* );
 	
 	// Selection methods
 	virtual void				TriggerSelected();
@@ -278,25 +279,25 @@ public:
 	virtual const char* 		GetUniqueEntityName( const char* classname ) const;
 	
 	// Entity methods.
-	virtual void				EntityGetOrigin( idEntity* ent, idVec3& org ) const;
-	virtual void				EntityGetAxis( idEntity* ent, idMat3& axis ) const;
-	virtual void				EntitySetOrigin( idEntity* ent, const idVec3& org );
-	virtual void				EntitySetAxis( idEntity* ent, const idMat3& axis );
-	virtual void				EntityTranslate( idEntity* ent, const idVec3& org );
-	virtual const idDict* 		EntityGetSpawnArgs( idEntity* ent ) const;
-	virtual void				EntityUpdateChangeableSpawnArgs( idEntity* ent, const idDict* dict );
-	virtual void				EntityChangeSpawnArgs( idEntity* ent, const idDict* newArgs );
-	virtual void				EntityUpdateVisuals( idEntity* ent );
-	virtual void				EntitySetModel( idEntity* ent, const char* val );
-	virtual void				EntityStopSound( idEntity* ent );
-	virtual void				EntityDelete( idEntity* ent );
-	virtual void				EntitySetColor( idEntity* ent, const idVec3 color );
+	virtual void				EntityGetOrigin( idEntity*, idVec3& org ) const;
+	virtual void				EntityGetAxis( idEntity*, idMat3& axis ) const;
+	virtual void				EntitySetOrigin( idEntity*, const idVec3& org );
+	virtual void				EntitySetAxis( idEntity*, const idMat3& axis );
+	virtual void				EntityTranslate( idEntity*, const idVec3& org );
+	virtual const idDict* 		EntityGetSpawnArgs( idEntity* ) const;
+	virtual void				EntityUpdateChangeableSpawnArgs( idEntity*, const idDict* dict );
+	virtual void				EntityChangeSpawnArgs( idEntity*, const idDict* newArgs );
+	virtual void				EntityUpdateVisuals( idEntity* );
+	virtual void				EntitySetModel( idEntity*, const char* val );
+	virtual void				EntityStopSound( idEntity* );
+	virtual void				EntityDelete( idEntity* );
+	virtual void				EntitySetColor( idEntity*, const idVec3 color );
 	
 	// Player methods.
 	virtual bool				PlayerIsValid() const;
 	virtual void				PlayerGetOrigin( idVec3& org ) const;
 	virtual void				PlayerGetAxis( idMat3& axis ) const;
-	virtual void				PlayerGetViewAngles( idAngles& angles ) const;
+	virtual void				PlayerGetViewAngles( idAngles& ) const;
 	virtual void				PlayerGetEyePosition( idVec3& org ) const;
 	
 	// In game map editing support.
@@ -312,7 +313,7 @@ public:
 	
 };
 
-extern idGameEdit* 				gameEdit;
+extern idGameEdit * 			gameEdit;
 
 
 /*
@@ -325,9 +326,7 @@ extern idGameEdit* 				gameEdit;
 
 const int GAME_API_VERSION		= 8;
 
-typedef struct
-{
-
+struct gameImport_t {
 	int							version;				// API version
 	idSys* 						sys;					// non-portable system services
 	idCommon* 					common;					// common
@@ -342,19 +341,16 @@ typedef struct
 	idAASFileManager* 			AASFileManager;			// AAS file manager
 	idCollisionModelManager* 	collisionModelManager;	// collision model manager
 	
-} gameImport_t;
+};
 
-typedef struct
-{
-
+struct gameExport_t {
 	int							version;				// API version
 	idGame* 					game;					// interface to run the game
-	idGameEdit* 				gameEdit;				// interface for in-game editing
-	
-} gameExport_t;
+	idGameEdit* 				gameEdit;				// interface for in-game editing	
+};
 
 extern "C" {
-	typedef gameExport_t* ( *GetGameAPI_t )( gameImport_t* import );
+	typedef gameExport_t* ( *GetGameAPI_t )( gameImport_t* );
 }
 
 #endif /* !__GAME_H__ */

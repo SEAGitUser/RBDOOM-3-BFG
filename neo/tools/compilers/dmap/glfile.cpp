@@ -448,7 +448,7 @@ void WriteGLView( tree_t* tree, const char* source, int entityNum, bool force )
 	}
 	
 	idStrStatic< MAX_OSPATH > path;
-	path.Format<MAX_OSPATH>( "%s_BSP_%s_%i.obj", dmapGlobals.mapFileBase, source, entityNum );
+	path.Format( "%s_BSP_%s_%i.obj", dmapGlobals.mapFileBase, source, entityNum );
 	idFileLocal objFile( fileSystem->OpenFileWrite( path, "fs_basepath" ) );
 	
 	//path.SetFileExtension( ".mtl" );
@@ -534,7 +534,7 @@ void WriteGLView( bspface_t* list, const char* source )
 	}
 	
 	idStrStatic< MAX_OSPATH > path;
-	path.Format<MAX_OSPATH>( "%s_BSP_%s_%i.obj", dmapGlobals.mapFileBase, source, dmapGlobals.entityNum );
+	path.Format( "%s_BSP_%s_%i.obj", dmapGlobals.mapFileBase, source, dmapGlobals.entityNum );
 	idFileLocal objFile( fileSystem->OpenFileWrite( path, "fs_basepath" ) );
 	
 	//path.SetFileExtension( ".mtl" );

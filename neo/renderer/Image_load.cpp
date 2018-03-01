@@ -599,8 +599,7 @@ void idImage::ActuallyLoadImage( bool fromBackEnd )
 			{
 				commonLocal.LoadPacifierBinarizeProgressTotal( opts.width * opts.width * 6 * 4 / 3 );
 			}
-			else
-			{
+			else {
 				commonLocal.LoadPacifierBinarizeProgressTotal( opts.width * opts.width * 6 );
 			}
 			
@@ -660,12 +659,12 @@ void idImage::ActuallyLoadImage( bool fromBackEnd )
 			{
 				commonLocal.LoadPacifierBinarizeProgressTotal( opts.width * opts.width * 6 * 4 / 3 );
 			}
-			else
-			{
+			else {
 				commonLocal.LoadPacifierBinarizeProgressTotal( opts.width * opts.width * 6 );
 			}
 			
 			im.Load2DFromMemory( opts.width, opts.height, pic, opts.numLevels, opts.format, opts.colorFormat, opts.gammaMips );
+			
 			commonLocal.LoadPacifierBinarizeEnd();
 			
 			Mem_Free( pic );
@@ -674,8 +673,7 @@ void idImage::ActuallyLoadImage( bool fromBackEnd )
 	}
 	
 	AllocImage();
-	
-	
+		
 	for( int i = 0; i < im.NumImages(); i++ )
 	{
 		const bimageImage_t& img = im.GetImageHeader( i );

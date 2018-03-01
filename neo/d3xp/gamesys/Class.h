@@ -100,7 +100,7 @@ public:
 		type = D_EVENT_ENTITY;
 		value = reinterpret_cast<intptr_t>( data );
 	};
-	idEventArg( const struct trace_s* data )
+	idEventArg( const struct trace_t* data )
 	{
 		type = D_EVENT_TRACE;
 		value = reinterpret_cast<intptr_t>( data );

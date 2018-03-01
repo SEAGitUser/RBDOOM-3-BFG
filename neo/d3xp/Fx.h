@@ -37,11 +37,11 @@ If you have questions concerning this license or the applicable additional terms
 ===============================================================================
 */
 
-typedef struct
+struct idFXLocalAction
 {
-	renderLight_t			renderLight;			// light presented to the renderer
+	renderLightParms_t			renderLight;			// light presented to the renderer
 	qhandle_t				lightDefHandle;			// handle to renderer light def
-	renderEntity_t			renderEntity;			// used to present a model to the renderer
+	renderEntityParms_t			renderEntity;			// used to present a model to the renderer
 	int						modelDefHandle;			// handle to static renderer model
 	float					delay;
 	int						particleSystem;
@@ -50,10 +50,9 @@ typedef struct
 	bool					shakeStarted;
 	bool					decalDropped;
 	bool					launched;
-} idFXLocalAction;
+};
 
-class idEntityFx : public idEntity
-{
+class idEntityFx : public idEntity {
 public:
 	CLASS_PROTOTYPE( idEntityFx );
 	
@@ -75,8 +74,8 @@ public:
 	const char* 			Joint();
 	const bool				Done();
 	
-	virtual void			WriteToSnapshot( idBitMsg& msg ) const;
-	virtual void			ReadFromSnapshot( const idBitMsg& msg );
+	virtual void			WriteToSnapshot( idBitMsg& ) const;
+	virtual void			ReadFromSnapshot( const idBitMsg& );
 	virtual void			ClientThink( const int curTime, const float fraction, const bool predict );
 	virtual void			ClientPredictionThink();
 	

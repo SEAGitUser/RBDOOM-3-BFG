@@ -450,8 +450,7 @@ idCommonLocal::Frame
 */
 void idCommonLocal::Frame()
 {
-	try
-	{
+	try {
 		SCOPED_PROFILE_EVENT( "Common::Frame" );
 		
 		// This is the only place this is incremented
@@ -518,15 +517,13 @@ void idCommonLocal::Frame()
 		// RB begin
 #if defined(USE_DOOMCLASSIC)
 		const bool pauseGame = ( !mapSpawned
-								 || ( !IsMultiplayer()
-									  && ( Dialog().IsDialogPausing() || session->IsSystemUIShowing()
-										   || ( game && game->Shell_IsActive() ) || com_pause.GetInteger() ) ) )
+								 || ( !IsMultiplayer() && ( Dialog().IsDialogPausing() || session->IsSystemUIShowing()
+									|| ( game && game->Shell_IsActive() ) || com_pause.GetInteger() ) ) )
 							   && !IsPlayingDoomClassic();
 #else
 		const bool pauseGame = ( !mapSpawned
-								 || ( !IsMultiplayer()
-									  && ( Dialog().IsDialogPausing() || session->IsSystemUIShowing()
-										   || ( game && game->Shell_IsActive() ) || com_pause.GetInteger() ) ) );
+								 || ( !IsMultiplayer() && ( Dialog().IsDialogPausing() || session->IsSystemUIShowing()
+									|| ( game && game->Shell_IsActive() ) || com_pause.GetInteger() ) ) );
 #endif
 		// RB end
 		
@@ -559,8 +556,7 @@ void idCommonLocal::Frame()
 		{
 			renderCommands = renderSystem->SwapCommandBuffers( &time_frontend, &time_backend, &time_shadows, &time_gpu );
 		}
-		else
-		{
+		else {
 			// the GPU will stay idle through command generation for minimal
 			// input latency
 			renderSystem->SwapCommandBuffers_FinishRendering( &time_frontend, &time_backend, &time_shadows, &time_gpu );
@@ -748,10 +744,9 @@ void idCommonLocal::Frame()
 		// Store server game time - don't let time go past last SS time in case we are extrapolating
 		if( IsClient() )
 		{
-			newCmd.serverGameMilliseconds = std::min( Game()->GetServerGameTimeMs(), Game()->GetSSEndTime() );
+			newCmd.serverGameMilliseconds = idMath::Min( Game()->GetSSEndTime(), Game()->GetServerGameTimeMs() );
 		}
-		else
-		{
+		else {
 			newCmd.serverGameMilliseconds = Game()->GetServerGameTimeMs();
 		}
 		
@@ -867,12 +862,12 @@ void idCommonLocal::Frame()
 	catch( idException& )
 	{
 		// an ERP_DROP was thrown
-#if defined(USE_DOOMCLASSIC)
+	#if defined( USE_DOOMCLASSIC )
 		if( currentGame == DOOM_CLASSIC || currentGame == DOOM2_CLASSIC )
 		{
 			return;
 		}
-#endif
+	#endif
 		
 		// kill loading gui
 		delete loadGUI;
@@ -900,15 +895,13 @@ void idCommonLocal::RunDoomClassicFrame()
 	static int doomTics = 0;
 	
 	if( DoomLib::expansionDirty )
-	{
-	
+	{	
 		// re-Initialize the Doom Engine.
 		DoomLib::Interface.Shutdown();
 		DoomLib::Interface.Startup( 1, false );
 		DoomLib::expansionDirty = false;
 	}
-	
-	
+		
 	if( DoomLib::Interface.Frame( doomTics, &userCmdMgr ) )
 	{
 		Globals* data = ( Globals* )DoomLib::GetGlobalData( 0 );

@@ -98,7 +98,7 @@ void idDeclParticle::GetStageBounds( idParticleStage* stage )
 	
 	particleGen_t g;
 	
-	renderEntity_t renderEntity;
+	renderEntityParms_t renderEntity;
 	renderEntity.Clear();
 	renderEntity.axis = mat3_identity;
 	
@@ -522,7 +522,6 @@ idDeclParticle::Parse
 */
 bool idDeclParticle::Parse( const char* text, const int textLength, bool allowBinaryVersion )
 {
-
 	if( cvarSystem->GetCVarBool( "fs_buildresources" ) )
 	{
 		fileSystem->AddParticlePreload( GetName() );
@@ -636,7 +635,6 @@ idDeclParticle::LoadBinary
 */
 bool idDeclParticle::LoadBinary( idFile* file, unsigned int checksum )
 {
-
 	if( file == NULL )
 	{
 		return false;

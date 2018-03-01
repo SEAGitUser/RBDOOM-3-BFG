@@ -45,7 +45,7 @@ the default image will be grey with a white box outline
 to allow you to see the mapping coordinates on a surface
 ==================
 */
-void idImage::MakeDefault()
+void idImage::MakeDefault( textureType_t textureType )
 {
 	int		x, y;
 	byte	data[DEFAULT_SIZE][DEFAULT_SIZE][4];
@@ -67,25 +67,25 @@ void idImage::MakeDefault()
 		// white border
 		for( x = 0 ; x < DEFAULT_SIZE ; x++ )
 		{
-			data[0][x][0] =
-				data[0][x][1] =
-					data[0][x][2] =
-						data[0][x][3] = 255;
-						
-			data[x][0][0] =
-				data[x][0][1] =
-					data[x][0][2] =
-						data[x][0][3] = 255;
-						
-			data[DEFAULT_SIZE - 1][x][0] =
-				data[DEFAULT_SIZE - 1][x][1] =
-					data[DEFAULT_SIZE - 1][x][2] =
-						data[DEFAULT_SIZE - 1][x][3] = 255;
-						
-			data[x][DEFAULT_SIZE - 1][0] =
-				data[x][DEFAULT_SIZE - 1][1] =
-					data[x][DEFAULT_SIZE - 1][2] =
-						data[x][DEFAULT_SIZE - 1][3] = 255;
+			data[ 0 ][ x ][ 0 ] =
+			data[ 0 ][ x ][ 1 ] =
+			data[ 0 ][ x ][ 2 ] =
+			data[ 0 ][ x ][ 3 ] = 255;
+
+			data[ x ][ 0 ][ 0 ] =
+			data[ x ][ 0 ][ 1 ] =
+			data[ x ][ 0 ][ 2 ] =
+			data[ x ][ 0 ][ 3 ] = 255;
+
+			data[ DEFAULT_SIZE - 1 ][ x ][ 0 ] =
+			data[ DEFAULT_SIZE - 1 ][ x ][ 1 ] =
+			data[ DEFAULT_SIZE - 1 ][ x ][ 2 ] =
+			data[ DEFAULT_SIZE - 1 ][ x ][ 3 ] = 255;
+
+			data[ x ][ DEFAULT_SIZE - 1 ][ 0 ] =
+			data[ x ][ DEFAULT_SIZE - 1 ][ 1 ] =
+			data[ x ][ DEFAULT_SIZE - 1 ][ 2 ] =
+			data[ x ][ DEFAULT_SIZE - 1 ][ 3 ] = 255;
 		}
 	}
 	else
@@ -102,14 +102,32 @@ void idImage::MakeDefault()
 		}
 	}
 	
-	GenerateImage( ( byte* )data,  DEFAULT_SIZE, DEFAULT_SIZE, 1, 1, TF_DEFAULT, TR_REPEAT, TD_DEFAULT );
-				   
+	if( textureType == TT_CUBIC ) 
+	{
+		const byte* pic[ 6 ] = { ( byte* )data, ( byte* )data, ( byte* )data, ( byte* )data, ( byte* )data, ( byte* )data };
+		GenerateCubeImage( pic, DEFAULT_SIZE, 1, TF_DEFAULT, TD_DEFAULT );
+	}
+	else if( textureType == TT_3D )
+	{
+		release_assert( "MakeDefault( TT_3D )" );
+	}
+	else // TT_2D
+	{
+		GenerateImage( ( byte* )data, DEFAULT_SIZE, DEFAULT_SIZE, 1, 1, TF_DEFAULT, TR_REPEAT, TD_DEFAULT );
+
+	}
+		   
 	defaulted = true;
 }
 
 static void R_DefaultImage( idImage* image )
 {
-	image->MakeDefault();
+	image->MakeDefault( TT_2D );
+}
+
+static void R_DefaultCubeImage( idImage* image )
+{
+	image->MakeDefault( TT_CUBIC );
 }
 
 static void R_WhiteImage( idImage* image )
@@ -530,10 +548,10 @@ static void R_CreateShadowMapImage_Res4( idImage* image )
 
 static void R_CreateShadowMapImage( idImage* image )
 {
-	//int size = shadowMapResolutions[ 0 ];
-	//image->GenerateImage( nullptr, size, size, 6, 1, TF_LINEAR, TR_CLAMP_TO_ZERO_ALPHA, TD_SHADOWMAP );
+	int size = shadowMapResolutions[ 4 ];
+	image->GenerateImage( nullptr, size, size, 6, 1, TF_LINEAR, TR_CLAMP_TO_ZERO_ALPHA, TD_SHADOWMAP );
 	
-	idImageOpts opts;
+	/*idImageOpts opts;
 	opts.textureType = TT_2D;
 	opts.format = FMT_DEPTH;
 	opts.colorFormat = CFM_DEFAULT;
@@ -546,7 +564,7 @@ static void R_CreateShadowMapImage( idImage* image )
 	opts.readback = false;
 
 	image->AllocImage( opts, TF_LINEAR, TR_CLAMP_TO_ZERO_ALPHA );
-	image->EnableDepthCompareModeOGL();
+	image->EnableDepthCompareModeOGL();*/
 }
 
 const static int JITTER_SIZE = 128;
@@ -945,6 +963,292 @@ static void R_Create3DJitterImage( idImage* image )
 	//create_jitter_lookup( jitter_lookup_64, JITTER_SIZE, 8, 8 );	// 8 'estimation' samples, 64 total samples
 	//create_jitter_lookup( jitter_lookup_32, JITTER_SIZE, 4, 8 );	// 4 'estimation' samples, 32 total samples
 }
+
+// SIKKPINs
+
+static void R_AmbientNormalImage( idImage *image )
+{
+	byte	data[ DEFAULT_SIZE ][ DEFAULT_SIZE ][ 4 ];
+	int		i;
+
+	int red = ( globalImages->image_useNormalCompression.GetInteger() == 1 ) ? 0 : 3;
+	int alpha = ( red == 0 ) ? 3 : 0;
+	// flat normal map for default bunp mapping
+	for( i = 0; i < 4; i++ )
+	{
+		data[ 0 ][ i ][ red ] = ( byte )( 255 * tr.ambientLightVector[ 0 ] );
+		data[ 0 ][ i ][ 1 ] = ( byte )( 255 * tr.ambientLightVector[ 1 ] );
+		data[ 0 ][ i ][ 2 ] = ( byte )( 255 * tr.ambientLightVector[ 2 ] );
+		data[ 0 ][ i ][ alpha ] = 255;
+	}
+	const byte	*pics[ 6 ];
+	for( i = 0; i < 6; i++ )
+	{
+		pics[ i ] = data[ 0 ][ 0 ];
+	}
+	// this must be a cube map for fragment programs to simply substitute for the normalization cube map
+	image->GenerateCubeImage( pics, 2, TF_DEFAULT, true, TD_HIGH_QUALITY );
+}
+
+static void CreateSquareLight( void )
+{
+	byte		*buffer;
+	int			x, y;
+	int			dx, dy;
+	int			d;
+	int			width, height;
+
+	width = height = 128;
+
+	buffer = ( byte * )R_StaticAlloc( 128 * 128 * 4 );
+
+	for( x = 0; x < 128; x++ )
+	{
+		if( x < 32 )
+		{
+			dx = 32 - x;
+		}
+		else if( x > 96 )
+		{
+			dx = x - 96;
+		}
+		else
+		{
+			dx = 0;
+		}
+		for( y = 0; y < 128; y++ )
+		{
+			if( y < 32 )
+			{
+				dy = 32 - y;
+			}
+			else if( y > 96 )
+			{
+				dy = y - 96;
+			}
+			else
+			{
+				dy = 0;
+			}
+			d = ( byte )idMath::Sqrt( dx * dx + dy * dy );
+			if( d > 32 )
+			{
+				d = 32;
+			}
+			d = 255 - d * 8;
+			if( d < 0 )
+			{
+				d = 0;
+			}
+			buffer[ ( y * 128 + x ) * 4 + 0 ] =
+				buffer[ ( y * 128 + x ) * 4 + 1 ] =
+				buffer[ ( y * 128 + x ) * 4 + 2 ] = d;
+			buffer[ ( y * 128 + x ) * 4 + 3 ] = 255;
+		}
+	}
+
+	R_WriteTGA( "lights/squarelight.tga", buffer, width, height );
+
+	R_StaticFree( buffer );
+}
+
+static void CreateFlashOff( void )
+{
+	byte		*buffer;
+	int			x, y;
+	int			d;
+	int			width, height;
+
+	width = 256;
+	height = 4;
+
+	buffer = ( byte * )R_StaticAlloc( width * height * 4 );
+
+	for( x = 0; x < width; x++ )
+	{
+		for( y = 0; y < height; y++ )
+		{
+			d = 255 - ( x * 256 / width );
+			buffer[ ( y*width + x ) * 4 + 0 ] =
+				buffer[ ( y*width + x ) * 4 + 1 ] =
+				buffer[ ( y*width + x ) * 4 + 2 ] = d;
+			buffer[ ( y*width + x ) * 4 + 3 ] = 255;
+		}
+	}
+
+	R_WriteTGA( "lights/flashoff.tga", buffer, width, height );
+
+	R_StaticFree( buffer );
+}
+
+
+/*
+===============
+CreatePitFogImage
+===============
+*/
+void CreatePitFogImage( void )
+{
+	byte	data[ 16 ][ 16 ][ 4 ];
+	int		i, j;
+
+	memset( data, 0, sizeof( data ) );
+	for( i = 0; i < 16; i++ )
+	{
+		int		a;
+
+	#if 0
+		if( i > 14 )
+		{
+			a = 0;
+		}
+		else
+		#endif		
+		{
+			a = i * 255 / 15;
+			if( a > 255 )
+			{
+				a = 255;
+			}
+		}
+
+		for( j = 0; j < 16; j++ )
+		{
+			data[ j ][ i ][ 0 ] =
+				data[ j ][ i ][ 1 ] =
+				data[ j ][ i ][ 2 ] = 255;
+			data[ j ][ i ][ 3 ] = a;
+		}
+	}
+
+	R_WriteTGA( "shapes/pitFalloff.tga", data[ 0 ][ 0 ], 16, 16 );
+}
+
+/*
+===============
+CreatealphaSquareImage
+===============
+*/
+void CreatealphaSquareImage( void )
+{
+	byte	data[ 16 ][ 16 ][ 4 ];
+	int		i, j;
+
+	for( i = 0; i < 16; i++ )
+	{
+		int		a;
+
+		for( j = 0; j < 16; j++ )
+		{
+			if( i == 0 || i == 15 || j == 0 || j == 15 )
+			{
+				a = 0;
+			}
+			else
+			{
+				a = 255;
+			}
+			data[ j ][ i ][ 0 ] =
+				data[ j ][ i ][ 1 ] =
+				data[ j ][ i ][ 2 ] = 255;
+			data[ j ][ i ][ 3 ] = a;
+		}
+	}
+
+	R_WriteTGA( "shapes/alphaSquare.tga", data[ 0 ][ 0 ], 16, 16 );
+}
+
+#define	NORMAL_MAP_SIZE		32
+
+/*** NORMALIZATION CUBE MAP CONSTRUCTION ***/
+
+/* Given a cube map face index, cube map size, and integer 2D face position,
+* return the cooresponding normalized vector.
+*/
+static void GetCubeVector( int i, int cubesize, int x, int y, idVec3 & vector )
+{
+	float s = ( ( float )x + 0.5 ) / ( float )cubesize;
+	float t = ( ( float )y + 0.5 ) / ( float )cubesize;
+	float sc = s * 2.0 - 1.0;
+	float tc = t * 2.0 - 1.0;
+
+	switch( i )
+	{
+		case 0:
+			vector[ 0 ] = 1.0;
+			vector[ 1 ] = -tc;
+			vector[ 2 ] = -sc;
+			break;
+		case 1:
+			vector[ 0 ] = -1.0;
+			vector[ 1 ] = -tc;
+			vector[ 2 ] = sc;
+			break;
+		case 2:
+			vector[ 0 ] = sc;
+			vector[ 1 ] = 1.0;
+			vector[ 2 ] = tc;
+			break;
+		case 3:
+			vector[ 0 ] = sc;
+			vector[ 1 ] = -1.0;
+			vector[ 2 ] = -tc;
+			break;
+		case 4:
+			vector[ 0 ] = sc;
+			vector[ 1 ] = -tc;
+			vector[ 2 ] = 1.0;
+			break;
+		case 5:
+			vector[ 0 ] = -sc;
+			vector[ 1 ] = -tc;
+			vector[ 2 ] = -1.0;
+			break;
+	}
+
+	float mag = idMath::InvSqrt( vector[ 0 ] * vector[ 0 ] + vector[ 1 ] * vector[ 1 ] + vector[ 2 ] * vector[ 2 ] );
+	vector[ 0 ] *= mag;
+	vector[ 1 ] *= mag;
+	vector[ 2 ] *= mag;
+}
+
+/* Initialize a cube map texture object that generates RGB values
+* that when expanded to a [-1,1] range in the register combiners
+* form a normalized vector matching the per-pixel vector used to
+* access the cube map.
+*/
+static void MakeNormalizeVectorCubeMap( idImage *image )
+{
+	idVec3 vector;
+	byte *pixels[ 6 ];
+	const int size = NORMAL_MAP_SIZE;
+
+	pixels[ 0 ] = ( GLubyte* )Mem_Alloc( size * size * 4 * 6 );
+
+	for( int i = 0; i < 6; i++ )
+	{
+		pixels[ i ] = pixels[ 0 ] + i * size * size * 4;
+
+		for( int y = 0; y < size; y++ ) {
+			for( int x = 0; x < size; x++ )
+			{
+				GetCubeVector( i, size, x, y, vector );
+
+				pixels[ i ][ 4 * ( y * size + x ) + 0 ] = ( byte )( 128 + 127 * vector[ 0 ] );
+				pixels[ i ][ 4 * ( y * size + x ) + 1 ] = ( byte )( 128 + 127 * vector[ 1 ] );
+				pixels[ i ][ 4 * ( y * size + x ) + 2 ] = ( byte )( 128 + 127 * vector[ 2 ] );
+				pixels[ i ][ 4 * ( y * size + x ) + 3 ] = 255;
+			}
+		}
+	}
+
+	image->GenerateCubeImage( ( const byte ** )pixels, size, TF_LINEAR, false, TD_HIGH_QUALITY );
+
+	Mem_Free( pixels[ 0 ] );
+}
+
+
+
 #endif
 /*
 ================
@@ -955,12 +1259,15 @@ void idImageManager::CreateIntrinsicImages()
 {
 	// create built in images
 	defaultImage = ImageFromFunction( "_default", R_DefaultImage );
+	defaultImageCube = ImageFromFunction( "_defaultCube", R_DefaultCubeImage );
 	whiteImage = ImageFromFunction( "_white", R_WhiteImage );
 	blackImage = ImageFromFunction( "_black", R_BlackImage );
 	flatNormalMap = ImageFromFunction( "_flat", R_FlatNormalImage );
+	//ambientNormalMap = ImageFromFunction( "_ambient", R_AmbientNormalImage );
 	alphaNotchImage = ImageFromFunction( "_alphaNotch", R_AlphaNotchImage );
 	fogImage = ImageFromFunction( "_fog", R_FogImage );
 	fogEnterImage = ImageFromFunction( "_fogEnter", R_FogEnterImage );
+	//normalCubeMapImage = ImageFromFunction( "_normalCubeMap", MakeNormalizeVectorCubeMap );
 	noFalloffImage = ImageFromFunction( "_noFalloff", R_CreateNoFalloffImage );
 	ImageFromFunction( "_quadratic", R_QuadraticImage );
 	
@@ -973,34 +1280,32 @@ void idImageManager::CreateIntrinsicImages()
 
 	shadowMapArray = ImageFromFunction( "_shadowMapArray", R_CreateShadowMapImage );
 	
-	jitterImage1 = renderImageManager->ImageFromFunction( "_jitter1", R_CreateJitterImage1 );
-	jitterImage4 = renderImageManager->ImageFromFunction( "_jitter4", R_CreateJitterImage4 );
-	jitterImage16 = renderImageManager->ImageFromFunction( "_jitter16", R_CreateJitterImage16 );
+	jitterImage1  = ImageFromFunction( "_jitter1", R_CreateJitterImage1 );
+	jitterImage4  = ImageFromFunction( "_jitter4", R_CreateJitterImage4 );
+	jitterImage16 = ImageFromFunction( "_jitter16", R_CreateJitterImage16 );
 	
-	randomImage256 = renderImageManager->ImageFromFunction( "_random256", R_CreateRandom256Image );
+	randomImage256 = ImageFromFunction( "_random256", R_CreateRandom256Image );
 	
-	currentRenderHDRImage = renderImageManager->ImageFromFunction( "_currentRenderHDR", R_HDR_RGBA16FImage_ResNative );
+	currentRenderHDRImage = ImageFromFunction( "_currentRenderHDR", R_HDR_RGBA16FImage_ResNative );
 #if defined( USE_HDR_MSAA )
-	currentRenderHDRImageNoMSAA = renderImageManager->ImageFromFunction( "_currentRenderHDRNoMSAA", R_HDR_RGBA16FImage_ResNative_NoMSAA );
+	currentRenderHDRImageNoMSAA = ImageFromFunction( "_currentRenderHDRNoMSAA", R_HDR_RGBA16FImage_ResNative_NoMSAA );
 #endif
-	currentRenderHDRImageQuarter = renderImageManager->ImageFromFunction( "_currentRenderHDRQuarter", R_HDR_RGBA16FImage_ResQuarter );
-	currentRenderHDRImage64 = renderImageManager->ImageFromFunction( "_currentRenderHDR64", R_HDR_RGBA16FImage_Res64 );
+	currentRenderHDRImageQuarter = ImageFromFunction( "_currentRenderHDRQuarter", R_HDR_RGBA16FImage_ResQuarter );
+	currentRenderHDRImage64 = ImageFromFunction( "_currentRenderHDR64", R_HDR_RGBA16FImage_Res64 );
 	
-	bloomRenderImage[0] = renderImageManager->ImageFromFunction( "_bloomRender0", R_HDR_RGBA16FImage_ResQuarter_Linear );
-	bloomRenderImage[1] = renderImageManager->ImageFromFunction( "_bloomRender1", R_HDR_RGBA16FImage_ResQuarter_Linear );
+	bloomRenderImage[0] = ImageFromFunction( "_bloomRender0", R_HDR_RGBA16FImage_ResQuarter_Linear );
+	bloomRenderImage[1] = ImageFromFunction( "_bloomRender1", R_HDR_RGBA16FImage_ResQuarter_Linear );
 	
 	heatmap5Image = ImageFromFunction( "_heatmap5", R_CreateHeatmap5ColorsImage );
 	heatmap7Image = ImageFromFunction( "_heatmap7", R_CreateHeatmap7ColorsImage );
 	
-	grainImage1 = renderImageManager->ImageFromFunction( "_grain1", R_CreateGrainImage1 );
+	grainImage1 = ImageFromFunction( "_grain1", R_CreateGrainImage1 );
 	
-	smaaInputImage = ImageFromFunction( "_smaaInput", R_RGBA8LinearImage );
-	
-	smaaAreaImage = renderImageManager->ImageFromFunction( "_smaaArea", R_CreateSMAAAreaImage );
-	smaaSearchImage = renderImageManager->ImageFromFunction( "_smaaSearch", R_CreateSMAASearchImage );
-	
-	smaaEdgesImage = renderImageManager->ImageFromFunction( "_smaaEdges", R_SMAAImage_ResNative );
-	smaaBlendImage = renderImageManager->ImageFromFunction( "_smaaBlend", R_SMAAImage_ResNative );
+	smaaInputImage  = ImageFromFunction( "_smaaInput", R_RGBA8LinearImage );	
+	smaaAreaImage   = ImageFromFunction( "_smaaArea", R_CreateSMAAAreaImage );
+	smaaSearchImage = ImageFromFunction( "_smaaSearch", R_CreateSMAASearchImage );	
+	smaaEdgesImage  = ImageFromFunction( "_smaaEdges", R_SMAAImage_ResNative );
+	smaaBlendImage  = ImageFromFunction( "_smaaBlend", R_SMAAImage_ResNative );
 	
 	currentNormalsImage = ImageFromFunction( "_currentNormals", R_SMAAImage_ResNative );
 	
@@ -1011,11 +1316,13 @@ void idImageManager::CreateIntrinsicImages()
 	// RB end
 	
 	// scratchImage is used for screen wipes/doublevision etc..
-	scratchImage = ImageFromFunction( "_scratch", R_RGBA8Image );
+	scratchImage  = ImageFromFunction( "_scratch", R_RGBA8Image );
 	scratchImage2 = ImageFromFunction( "_scratch2", R_RGBA8Image );
+	//scratchCubeMapImage = ImageFromFunction( "_scratchCubeMap", MakeNormalizeVectorCubeMap );
 	accumImage = ImageFromFunction( "_accum", R_RGBA8Image );
 	currentRenderImage = ImageFromFunction( "_currentRender", R_RGBA8Image );
-	currentDepthImage = ImageFromFunction( "_currentDepth", R_DepthImage );
+	//mirrorRenderImage = ImageFromFunction( "_mirrorRender", R_RGBA8Image );	// sikk - mirror render specific image
+	currentDepthImage  = ImageFromFunction( "_currentDepth", R_DepthImage );
 	
 	// save a copy of this for material comparison, because currentRenderImage may get
 	// reassigned during stereo rendering

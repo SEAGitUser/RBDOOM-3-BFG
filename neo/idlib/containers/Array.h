@@ -98,7 +98,7 @@ public:
 	}
 	
 private:
-	T_				ptr[numElements];
+	T_				ptr[ numElements ];
 };
 
 #define ARRAY_COUNT( arrayName ) ( sizeof( arrayName )/sizeof( arrayName[0] ) )

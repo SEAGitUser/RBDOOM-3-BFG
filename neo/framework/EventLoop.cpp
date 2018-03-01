@@ -63,13 +63,12 @@ idEventLoop::GetRealEvent
 */
 sysEvent_t	idEventLoop::GetRealEvent()
 {
-	int			r;
 	sysEvent_t	ev;
 	
 	// either get an event from the system or the journal file
 	if( com_journal.GetInteger() == 2 )
 	{
-		r = com_journalFile->Read( &ev, sizeof( ev ) );
+		int r = com_journalFile->Read( &ev, sizeof( ev ) );
 		if( r != sizeof( ev ) )
 		{
 			common->FatalError( "Error reading from journal file" );
@@ -84,14 +83,13 @@ sysEvent_t	idEventLoop::GetRealEvent()
 			}
 		}
 	}
-	else
-	{
+	else {
 		ev = Sys_GetEvent();
 		
 		// write the journal value out if needed
 		if( com_journal.GetInteger() == 1 )
 		{
-			r = com_journalFile->Write( &ev, sizeof( ev ) );
+			int r = com_journalFile->Write( &ev, sizeof( ev ) );
 			if( r != sizeof( ev ) )
 			{
 				common->FatalError( "Error writing to journal file" );
@@ -117,14 +115,12 @@ idEventLoop::PushEvent
 */
 void idEventLoop::PushEvent( sysEvent_t* event )
 {
-	sysEvent_t*		ev;
-	static			bool printedWarning;
+	static bool printedWarning;
 	
-	ev = &com_pushedEvents[ com_pushedEventsHead & ( MAX_PUSHED_EVENTS - 1 ) ];
+	auto ev = &com_pushedEvents[ com_pushedEventsHead & ( MAX_PUSHED_EVENTS - 1 ) ];
 	
 	if( com_pushedEventsHead - com_pushedEventsTail >= MAX_PUSHED_EVENTS )
-	{
-	
+	{	
 		// don't print the warning constantly, or it can give time for more...
 		if( !printedWarning )
 		{
@@ -138,8 +134,7 @@ void idEventLoop::PushEvent( sysEvent_t* event )
 		}
 		com_pushedEventsTail++;
 	}
-	else
-	{
+	else {
 		printedWarning = false;
 	}
 	
@@ -181,8 +176,7 @@ void idEventLoop::ProcessEvent( sysEvent_t ev )
 		cmdSystem->BufferCommandText( CMD_EXEC_APPEND, ( char* )ev.evPtr );
 		cmdSystem->BufferCommandText( CMD_EXEC_APPEND, "\n" );
 	}
-	else
-	{
+	else {
 		common->ProcessEvent( &ev );
 	}
 	
@@ -203,8 +197,7 @@ int idEventLoop::RunEventLoop( bool commandExecution )
 	sysEvent_t	ev;
 	
 	while( 1 )
-	{
-	
+	{	
 		if( commandExecution )
 		{
 			// execute any bound commands before processing another event
@@ -231,7 +224,6 @@ idEventLoop::Init
 */
 void idEventLoop::Init()
 {
-
 	initialTimeOffset = Sys_Milliseconds();
 	
 	common->StartupVariable( "journal" );
@@ -292,9 +284,7 @@ int idEventLoop::Milliseconds()
 	sysEvent_t	ev;
 	
 	// get events and push them until we get a null event with the current time
-	do
-	{
-	
+	do {	
 		ev = Com_GetRealEvent();
 		if( ev.evType != SE_NONE )
 		{

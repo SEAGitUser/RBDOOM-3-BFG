@@ -111,14 +111,15 @@ void idCommonLocal::VPrintf( const char* fmt, va_list args )
 	static bool	logFileFailed = false;
 	
 	// if the cvar system is not initialized
-	if( !cvarSystem->IsInitialized() )
-	{
+	if( !cvarSystem->IsInitialized() ) {
 		return;
 	}
+
+	char msg[ MAX_PRINT_MSG_SIZE ];
+	msg[ 0 ] = '\0';
+
 	// optionally put a timestamp at the beginning of each print,
 	// so we can see how long different init sections are taking
-	char msg[MAX_PRINT_MSG_SIZE];
-	msg[ 0 ] = '\0';
 	if( com_timestampPrints.GetInteger() )
 	{
 		int	t = Sys_Milliseconds();
@@ -126,8 +127,7 @@ void idCommonLocal::VPrintf( const char* fmt, va_list args )
 		{
 			sprintf( msg, "[%5.2f]", MS2SEC( t ) );
 		}
-		else
-		{
+		else {
 			sprintf( msg, "[%i]", t );
 		}
 	}
@@ -150,6 +150,7 @@ void idCommonLocal::VPrintf( const char* fmt, va_list args )
 		strcat( rd_buffer, msg );
 		return;
 	}
+
 #ifndef ID_RETAIL
 	if( com_printFilter.GetString() != NULL && com_printFilter.GetString()[ 0 ] != '\0' )
 	{
@@ -178,17 +179,17 @@ void idCommonLocal::VPrintf( const char* fmt, va_list args )
 	if( !idLib::IsMainThread() )
 	{
 		// RB: printf should be thread-safe on Linux
-#if defined(_WIN32)
-		OutputDebugString( msg );
-#else
-		printf( "%s", msg );
-#endif
+	#if defined( _WIN32 )
+		::OutputDebugString( msg );
+	#else
+		::printf( "%s", msg );
+	#endif
 		// RB end
 		return;
 	}
 	
 	// echo to console buffer
-	console->Print( msg );
+	console->Print( msg, false );
 	
 	// remove any color codes
 	idStr::RemoveColors( msg );
@@ -291,7 +292,7 @@ void idCommonLocal::DPrintf( const char* fmt, ... )
 	
 	if( !cvarSystem->IsInitialized() || !com_developer.GetBool() )
 	{
-		return;			// don't confuse non-developers with techie stuff...
+		return;	// don't confuse non-developers with techie stuff...
 	}
 	
 	va_start( argptr, fmt );
@@ -303,7 +304,7 @@ void idCommonLocal::DPrintf( const char* fmt, ... )
 	bool temp = com_refreshOnPrint;
 	com_refreshOnPrint = false;
 	
-	Printf( S_COLOR_RED"%s", msg );
+	Printf( S_COLOR_GRAY "%s", msg );
 	
 	com_refreshOnPrint = temp;
 }
@@ -330,7 +331,7 @@ void idCommonLocal::DWarning( const char* fmt, ... )
 	va_end( argptr );
 	msg[sizeof( msg ) - 1] = '\0';
 	
-	Printf( S_COLOR_YELLOW"WARNING: %s\n", msg );
+	Printf( S_COLOR_YELLOW "WARNING: %s\n", msg );
 }
 
 /*

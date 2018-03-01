@@ -877,14 +877,11 @@ idCmdSystemLocal::ArgCompletion_DeclName
 */
 void idCmdSystemLocal::ArgCompletion_DeclName( const idCmdArgs& args, void( *callback )( const char* s ), int type )
 {
-	int i, num;
-	
-	if( declManager == NULL )
-	{
+	if( declManager == NULL ) {
 		return;
 	}
-	num = declManager->GetNumDecls( ( declType_t )type );
-	for( i = 0; i < num; i++ )
+	int num = declManager->GetNumDecls( ( declType_t )type );
+	for( int i = 0; i < num; i++ )
 	{
 		callback( idStr( args.Argv( 0 ) ) + " " + declManager->DeclByIndex( ( declType_t )type, i , false )->GetName() );
 	}

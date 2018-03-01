@@ -73,7 +73,7 @@ idCVar com_allowConsole( "com_allowConsole", "0", CVAR_BOOL | CVAR_SYSTEM | CVAR
 idCVar com_allowConsole( "com_allowConsole", "1", CVAR_BOOL | CVAR_SYSTEM | CVAR_INIT, "allow toggling console with the tilde key" );
 #endif
 
-idCVar com_developer( "developer", "0", CVAR_BOOL | CVAR_SYSTEM | CVAR_NOCHEAT, "developer mode" );
+idCVar com_developer( "developer", "1", CVAR_BOOL | CVAR_SYSTEM | CVAR_NOCHEAT, "developer mode" );
 idCVar com_speeds( "com_speeds", "0", CVAR_BOOL | CVAR_SYSTEM | CVAR_NOCHEAT, "show engine timings" );
 // DG: support "com_showFPS 2" for fps-only view like in classic doom3 => make it CVAR_INTEGER
 idCVar com_showFPS( "com_showFPS", "0", CVAR_INTEGER | CVAR_SYSTEM | CVAR_ARCHIVE | CVAR_NOCHEAT, "show frames rendered per second. 0: off 1: default bfg values, 2: only show FPS (classic view)" );
@@ -1150,8 +1150,7 @@ idCommonLocal::Init
 */
 void idCommonLocal::Init( int argc, const char* const* argv, const char* cmdline )
 {
-	try
-	{
+	try {
 		// set interface pointers used by idLib
 		idLib::sys			= sys;
 		idLib::common		= common;
@@ -1168,8 +1167,7 @@ void idCommonLocal::Init( int argc, const char* const* argv, const char* cmdline
 		//::MessageBox( NULL, cmdline, "blah", MB_OK );
 		// parse command line options
 		idCmdArgs args;
-		if( cmdline )
-		{
+		if( cmdline ) {
 			// tokenize if the OS doesn't do it for us
 			args.TokenizeString( cmdline, true );
 			argv = args.GetArgs( &argc );
@@ -1185,7 +1183,7 @@ void idCommonLocal::Init( int argc, const char* const* argv, const char* cmdline
 		// register all static CVars
 		idCVar::RegisterStaticVars();
 		
-		idLib::Printf( "QA Timing INIT: %06dms\n", Sys_Milliseconds() );
+		///idLib::Printf( "QA Timing INIT: %06dms\n", Sys_Milliseconds() );
 		
 		// print engine version
 		Printf( "%s\n", version.string );
@@ -1470,7 +1468,6 @@ idCommonLocal::Shutdown
 */
 void idCommonLocal::Shutdown()
 {
-
 	if( com_shuttingDown )
 	{
 		return;

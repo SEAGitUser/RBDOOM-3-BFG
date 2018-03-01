@@ -125,7 +125,7 @@ static void R_AddSingleLight( viewLight_t* vLight )
 			auto lightStage = lightShader->GetStage( lightStageNum );
 			
 			// ignore stages that fail the condition
-			if( !lightRegs[ lightStage->conditionRegister ] )
+			if( lightStage->SkipStage( lightRegs ) )
 			{
 				continue;
 			}
@@ -199,7 +199,7 @@ static void R_AddSingleLight( viewLight_t* vLight )
 			idRenderMatrix::ProjectedFullyClippedBounds( projected, invProjectMVPMatrix, bounds_zeroOneCube );
 		}
 		
-		if( projected[ 0 ][ 2 ] >= projected[ 1 ][ 2 ] )
+		if( projected[ 0 ].z >= projected[ 1 ].z )
 		{
 			// the light was culled to the view frustum
 			return;

@@ -122,6 +122,7 @@ public:
 	short GetWidth() const { return x2 - x1 + 1; }
 	short GetHeight() const { return y2 - y1 + 1; }
 	int	GetArea() const { return ( x2 - x1 + 1 ) * ( y2 - y1 + 1 ); }
+	bool IsValid() const { return( GetWidth() > 0 && GetHeight() > 0 ); }
 	
 	// expand by one pixel each way to fix roundoffs
 	void Expand() { x1--; y1--; x2++; y2++; }

@@ -448,7 +448,7 @@ void idMD5Mesh::ParseMesh( idLexer& parser, int numJoints, const idJointMat* joi
 idMD5Mesh::UpdateSurface
 ====================
 */
-void idMD5Mesh::UpdateSurface( const struct renderEntity_s* ent, const idJointMat* entJoints, const idJointMat* entJointsInverted, modelSurface_t* surf )
+void idMD5Mesh::UpdateSurface( const struct renderEntityParms_t* ent, const idJointMat* entJoints, const idJointMat* entJointsInverted, modelSurface_t* surf )
 {
 	tr.pc.c_deformedSurfaces++;
 	tr.pc.c_deformedVerts += deformInfo->numOutputVerts;
@@ -1115,7 +1115,7 @@ This calculates a rough bounds by using the joint radii without
 transforming all the points
 ====================
 */
-idBounds idRenderModelMD5::Bounds( const renderEntity_t* ent ) const
+idBounds idRenderModelMD5::Bounds( const renderEntityParms_t* ent ) const
 {
 	if( ent == NULL )
 	{
@@ -1131,7 +1131,7 @@ idBounds idRenderModelMD5::Bounds( const renderEntity_t* ent ) const
 idRenderModelMD5::DrawJoints
 ====================
 */
-void idRenderModelMD5::DrawJoints( const renderEntity_t* ent, const idRenderView* view ) const
+void idRenderModelMD5::DrawJoints( const renderEntityParms_t* ent, const idRenderView* view ) const
 {
 	int					i;
 	int					num;
@@ -1283,7 +1283,7 @@ static void TransformJoints( idJointMat* __restrict outJoints, const int numJoin
 idRenderModelMD5::InstantiateDynamicModel
 ====================
 */
-idRenderModel* idRenderModelMD5::InstantiateDynamicModel( const struct renderEntity_s* ent, const idRenderView* view, idRenderModel* cachedModel )
+idRenderModel* idRenderModelMD5::InstantiateDynamicModel( const struct renderEntityParms_t* ent, const idRenderView* view, idRenderModel* cachedModel )
 {
 	if( cachedModel != NULL && !r_useCachedDynamicModels.GetBool() )
 	{

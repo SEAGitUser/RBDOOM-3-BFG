@@ -197,8 +197,8 @@ private:
 	idMat3					spawnAxis;
 	qhandle_t				particleModelDefHandle;
 	qhandle_t				lightDefHandle;
-	renderEntity_t			particleRenderEntity;
-	renderLight_t			light;
+	renderEntityParms_t			particleRenderEntity;
+	renderLightParms_t			light;
 	int						particleTime;
 	int						lightTime;
 	float					time;

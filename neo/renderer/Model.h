@@ -63,11 +63,33 @@ struct idRenderView;
 
 #include "Triangles.h"
 
-struct modelSurface_t
+struct modelSurface_t 
 {
 	int							id;
 	const idMaterial * 			shader;
 	idTriangles * 				geometry;
+
+	auto GetMaterial() const
+	{
+		return shader;
+	}
+
+	auto GetTriangles() const
+	{
+		return geometry;
+	}
+
+	auto GetID() const
+	{
+		return id;
+	}
+
+	void Clear()
+	{
+		id = 0;
+		shader = nullptr;
+		geometry = nullptr;
+	}
 };
 
 enum dynamicModel_t
@@ -82,8 +104,7 @@ enum jointHandle_t
 	INVALID_JOINT				= -1
 };
 
-class idMD5Joint
-{
+class idMD5Joint {
 public:
 	idMD5Joint()
 	{
@@ -97,8 +118,7 @@ public:
 // the init methods may be called again on an already created model when
 // a reloadModels is issued
 
-class idRenderModel
-{
+class idRenderModel {
 public:
 	virtual						~idRenderModel() {};
 	
@@ -207,7 +227,7 @@ public:
 	
 	// dynamic models should return a fast, conservative approximation
 	// static models should usually return the exact value
-	virtual idBounds			Bounds( const struct renderEntity_s* = NULL ) const = 0;
+	virtual idBounds			Bounds( const struct renderEntityParms_t* = NULL ) const = 0;
 	
 	// returns value != 0.0f if the model requires the depth hack
 	virtual float				DepthHack() const = 0;
@@ -219,7 +239,7 @@ public:
 	// The renderer will delete the returned dynamic model the next view
 	// This isn't const, because it may need to reload a purged model if it
 	// wasn't precached correctly.
-	virtual idRenderModel* 		InstantiateDynamicModel( const struct renderEntity_s*, const idRenderView*, idRenderModel* cachedModel ) = 0;
+	virtual idRenderModel* 		InstantiateDynamicModel( const struct renderEntityParms_t*, const idRenderView*, idRenderModel* cachedModel ) = 0;
 	
 	// Returns the number of joints or 0 if the model is not an MD5
 	virtual int					NumJoints() const = 0;

@@ -40,7 +40,8 @@ const struct achievementInfo_t
 {
 	int required;
 	bool lifetime; // true means the current count is stored on the player profile.  Doesn't matter for single count achievements.
-} achievementInfo [ACHIEVEMENTS_NUM] =
+} 
+	achievementInfo [ACHIEVEMENTS_NUM] =
 {
 	{ 50, true }, // ACHIEVEMENT_EARN_ALL_50_TROPHIES
 	{ 1, true }, // ACHIEVEMENT_COMPLETED_DIFFICULTY_0

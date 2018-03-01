@@ -108,7 +108,7 @@ void idSaveGame::Close()
 	// read trace models
 	idClipModel::SaveTraceModels( this );
 	
-	for( int i = 1; i < objects.Num(); i++ )
+	for( int i = 1; i < objects.Num(); ++i )
 	{
 		CallSave_r( objects[ i ]->GetType(), objects[ i ] );
 	}
@@ -144,11 +144,11 @@ idSaveGame::WriteDecls
 void idSaveGame::WriteDecls()
 {
 	// Write out all loaded decls
-	for( int t = 0; t < declManager->GetNumDeclTypes(); t++ )
+	for( int t = 0; t < declManager->GetNumDeclTypes(); ++t )
 	{
-		for( int d = 0; d < declManager->GetNumDecls( ( declType_t )t ); d++ )
+		for( int d = 0; d < declManager->GetNumDecls( ( declType_t )t ); ++d )
 		{
-			const idDecl* decl = declManager->DeclByIndex( ( declType_t )t, d, false );
+			auto decl = declManager->DeclByIndex( ( declType_t )t, d, false );
 			if( decl == NULL || decl->GetState() == DS_UNPARSED )
 			{
 				continue;
@@ -172,7 +172,7 @@ idSaveGame::WriteObjectList
 void idSaveGame::WriteObjectList()
 {
 	WriteInt( objects.Num() - 1 );
-	for( int i = 1; i < objects.Num(); i++ )
+	for( int i = 1; i < objects.Num(); ++i )
 	{
 		WriteString( objects[ i ]->GetClassname() );
 	}
@@ -379,10 +379,9 @@ idSaveGame::WriteBounds
 */
 void idSaveGame::WriteWinding( const idWinding& w )
 {
-	int i, num;
-	num = w.GetNumPoints();
+	int num = w.GetNumPoints();
 	file->WriteBig( num );
-	for( i = 0; i < num; i++ )
+	for( int i = 0; i < num; i++ )
 	{
 		idVec5 v = w[i];
 		file->WriteBig( v );
@@ -417,9 +416,7 @@ idSaveGame::WriteObject
 */
 void idSaveGame::WriteObject( const idClass* obj )
 {
-	int index;
-	
-	index = objects.FindIndex( obj );
+	int index = objects.FindIndex( obj );
 	if( index < 0 )
 	{
 		gameLocal.DPrintf( "idSaveGame::WriteObject - WriteObject FindIndex failed\n" );
@@ -448,21 +445,17 @@ idSaveGame::WriteDict
 */
 void idSaveGame::WriteDict( const idDict* dict )
 {
-	int num;
-	int i;
-	const idKeyValue* kv;
-	
 	if( !dict )
 	{
 		WriteInt( -1 );
 	}
 	else
 	{
-		num = dict->GetNumKeyVals();
+		int num = dict->GetNumKeyVals();
 		WriteInt( num );
-		for( i = 0; i < num; i++ )
+		for( int i = 0; i < num; i++ )
 		{
-			kv = dict->GetKeyVal( i );
+			auto kv = dict->GetKeyVal( i );
 			WriteString( kv->GetKey() );
 			WriteString( kv->GetValue() );
 		}
@@ -561,15 +554,13 @@ idSaveGame::WriteSoundShader
 */
 void idSaveGame::WriteSoundShader( const idSoundShader* shader )
 {
-	const char* name;
-	
 	if( !shader )
 	{
 		WriteString( "" );
 	}
 	else
 	{
-		name = shader->GetName();
+		auto name = shader->GetName();
 		WriteString( name );
 	}
 }
@@ -581,15 +572,13 @@ idSaveGame::WriteModel
 */
 void idSaveGame::WriteModel( const idRenderModel* model )
 {
-	const char* name;
-	
 	if( !model )
 	{
 		WriteString( "" );
 	}
 	else
 	{
-		name = model->Name();
+		auto name = model->Name();
 		WriteString( name );
 	}
 }
@@ -601,15 +590,13 @@ idSaveGame::WriteUserInterface
 */
 void idSaveGame::WriteUserInterface( const idUserInterface* ui, bool unique )
 {
-	const char* name;
-	
 	if( !ui )
 	{
 		WriteString( "" );
 	}
 	else
 	{
-		name = ui->Name();
+		auto name = ui->Name();
 		WriteString( name );
 		WriteBool( unique );
 		if( ui->WriteToSaveGame( file ) == false )
@@ -624,7 +611,7 @@ void idSaveGame::WriteUserInterface( const idUserInterface* ui, bool unique )
 idSaveGame::WriteRenderEntity
 ================
 */
-void idSaveGame::WriteRenderEntity( const renderEntity_t& renderEntity )
+void idSaveGame::WriteRenderEntity( const renderEntityParms_t& renderEntity )
 {
 	int i;
 	
@@ -686,10 +673,8 @@ void idSaveGame::WriteRenderEntity( const renderEntity_t& renderEntity )
 idSaveGame::WriteRenderLight
 ================
 */
-void idSaveGame::WriteRenderLight( const renderLight_t& renderLight )
+void idSaveGame::WriteRenderLight( const renderLightParms_t& renderLight )
 {
-	int i;
-	
 	WriteMat3( renderLight.axis );
 	WriteVec3( renderLight.origin );
 	
@@ -716,7 +701,7 @@ void idSaveGame::WriteRenderLight( const renderLight_t& renderLight )
 	
 	WriteMaterial( renderLight.shader );
 	
-	for( i = 0; i < MAX_ENTITY_SHADER_PARMS; i++ )
+	for( int i = 0; i < MAX_ENTITY_SHADER_PARMS; i++ )
 	{
 		WriteFloat( renderLight.shaderParms[ i ] );
 	}
@@ -767,8 +752,6 @@ idSaveGame::WriteRenderView
 */
 void idSaveGame::WriteRenderView( const renderViewParms_t& view )
 {
-	int i;
-	
 	WriteInt( view.viewID );
 	WriteInt( 0 /* view.x */ );
 	WriteInt( 0 /* view.y */ );
@@ -784,7 +767,7 @@ void idSaveGame::WriteRenderView( const renderViewParms_t& view )
 	
 	WriteInt( view.time[0] );
 	
-	for( i = 0; i < MAX_GLOBAL_SHADER_PARMS; i++ )
+	for( int i = 0; i < MAX_GLOBAL_SHADER_PARMS; i++ )
 	{
 		WriteFloat( view.shaderParms[ i ] );
 	}
@@ -957,7 +940,8 @@ idRestoreGame::ReadDecls
 void idRestoreGame::ReadDecls()
 {
 	idStr declName;
-	for( int t = 0; t < declManager->GetNumDeclTypes(); t++ )
+	//SEA: Temp Fix ( adding new types breaks old savefile loading )
+	for( int t = 0; t < 15/*declManager->GetNumDeclTypes()*/; t++ )
 	{
 		while( true )
 		{
@@ -988,7 +972,7 @@ void idRestoreGame::CreateObjects()
 	objects.SetNum( num + 1 );
 	memset( objects.Ptr(), 0, sizeof( objects[ 0 ] ) * objects.Num() );
 	
-	for( i = 1; i < objects.Num(); i++ )
+	for( i = 1; i < objects.Num(); ++i )
 	{
 		ReadString( classname );
 		type = idClass::GetClass( classname );
@@ -1052,7 +1036,6 @@ void idRestoreGame::DeleteObjects
 */
 void idRestoreGame::DeleteObjects()
 {
-
 	// Remove the NULL object before deleting
 	objects.RemoveIndex( 0 );
 	
@@ -1523,7 +1506,7 @@ void idRestoreGame::ReadUserInterface( idUserInterface*& ui )
 idRestoreGame::ReadRenderEntity
 ================
 */
-void idRestoreGame::ReadRenderEntity( renderEntity_t& renderEntity )
+void idRestoreGame::ReadRenderEntity( renderEntityParms_t& renderEntity )
 {
 	int i;
 	int index;
@@ -1588,7 +1571,7 @@ void idRestoreGame::ReadRenderEntity( renderEntity_t& renderEntity )
 idRestoreGame::ReadRenderLight
 ================
 */
-void idRestoreGame::ReadRenderLight( renderLight_t& renderLight )
+void idRestoreGame::ReadRenderLight( renderLightParms_t& renderLight )
 {
 	int index;
 	int i;

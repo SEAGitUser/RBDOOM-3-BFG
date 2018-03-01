@@ -91,6 +91,8 @@ const int MAX_EXPRESSION_REGISTERS = 4096;
 #include "../renderer/Cinematic.h"
 #include "../renderer/Material.h"
 #include "../renderer/BufferObject.h"
+#include "../renderer/DeclRenderParm.h"
+#include "../renderer/DeclRenderProg.h"
 #include "../renderer/VertexCache.h"
 #include "../renderer/Model.h"
 #include "../renderer/ModelManager.h"

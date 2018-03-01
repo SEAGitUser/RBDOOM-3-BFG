@@ -77,7 +77,7 @@ this is the canonical renderLight parm parsing,
 which should be used by dmap and the editor
 ================
 */
-void idGameEdit::ParseSpawnArgsToRenderLight( const idDict* args, renderLight_t* renderLight )
+void idGameEdit::ParseSpawnArgsToRenderLight( const idDict* args, renderLightParms_t* renderLight )
 {
 	bool	gotTarget, gotUp, gotRight;
 	const char*	texture;
@@ -148,14 +148,14 @@ void idGameEdit::ParseSpawnArgsToRenderLight( const idDict* args, renderLight_t*
 	
 	// check for other attributes
 	args->GetVector( "_color", "1 1 1", color );
-	renderLight->shaderParms[ SHADERPARM_RED ]		= color[0];
-	renderLight->shaderParms[ SHADERPARM_GREEN ]	= color[1];
-	renderLight->shaderParms[ SHADERPARM_BLUE ]		= color[2];
+	renderLight->shaderParms[ SHADERPARM_RED ]	 = color[0];
+	renderLight->shaderParms[ SHADERPARM_GREEN ] = color[1];
+	renderLight->shaderParms[ SHADERPARM_BLUE ]	 = color[2];
 	args->GetFloat( "shaderParm3", "1", renderLight->shaderParms[ SHADERPARM_TIMESCALE ] );
 	if( !args->GetFloat( "shaderParm4", "0", renderLight->shaderParms[ SHADERPARM_TIMEOFFSET ] ) )
 	{
 		// offset the start time of the shader to sync it to the game time
-		renderLight->shaderParms[ SHADERPARM_TIMEOFFSET ] = -MS2SEC( gameLocal.time );
+		renderLight->shaderParms[ SHADERPARM_TIMEOFFSET ] = -MS2SEC( gameLocal.GetTime() );
 	}
 	
 	args->GetFloat( "shaderParm5", "0", renderLight->shaderParms[5] );
@@ -177,7 +177,6 @@ idLight::UpdateChangeableSpawnArgs
 */
 void idLight::UpdateChangeableSpawnArgs( const idDict* source )
 {
-
 	idEntity::UpdateChangeableSpawnArgs( source );
 	
 	if( source )
@@ -342,9 +341,18 @@ void idLight::Spawn()
 	localLightAxis = renderLight.axis * GetPhysics()->GetAxis().Transpose();
 	
 	// set the base color from the shader parms
-	baseColor.Set( renderLight.shaderParms[ SHADERPARM_RED ], renderLight.shaderParms[ SHADERPARM_GREEN ], renderLight.shaderParms[ SHADERPARM_BLUE ] );
-	previousBaseColor.Set( renderLight.shaderParms[ SHADERPARM_RED ], renderLight.shaderParms[ SHADERPARM_GREEN ], renderLight.shaderParms[ SHADERPARM_BLUE ] );
-	nextBaseColor.Set( renderLight.shaderParms[ SHADERPARM_RED ], renderLight.shaderParms[ SHADERPARM_GREEN ], renderLight.shaderParms[ SHADERPARM_BLUE ] );
+	baseColor.Set( 
+		renderLight.shaderParms[ SHADERPARM_RED ], 
+		renderLight.shaderParms[ SHADERPARM_GREEN ], 
+		renderLight.shaderParms[ SHADERPARM_BLUE ] );
+	previousBaseColor.Set( 
+		renderLight.shaderParms[ SHADERPARM_RED ], 
+		renderLight.shaderParms[ SHADERPARM_GREEN ], 
+		renderLight.shaderParms[ SHADERPARM_BLUE ] );
+	nextBaseColor.Set( 
+		renderLight.shaderParms[ SHADERPARM_RED ], 
+		renderLight.shaderParms[ SHADERPARM_GREEN ], 
+		renderLight.shaderParms[ SHADERPARM_BLUE ] );
 	
 	// set the number of light levels
 	spawnArgs.GetInt( "levels", "1", levels );
@@ -470,17 +478,14 @@ idLight::SetLightLevel
 */
 void idLight::SetLightLevel()
 {
-	idVec3	color;
-	float	intensity;
-	
-	intensity = ( float )currentLevel / ( float )levels;
-	color = baseColor * intensity;
+	float intensity = ( float )currentLevel / ( float )levels;
+	idVec3 color = baseColor * intensity;
 	renderLight.shaderParms[ SHADERPARM_RED ]	= color[ 0 ];
 	renderLight.shaderParms[ SHADERPARM_GREEN ]	= color[ 1 ];
 	renderLight.shaderParms[ SHADERPARM_BLUE ]	= color[ 2 ];
-	renderEntity.shaderParms[ SHADERPARM_RED ]	= color[ 0 ];
+	renderEntity.shaderParms[ SHADERPARM_RED ]	 = color[ 0 ];
 	renderEntity.shaderParms[ SHADERPARM_GREEN ] = color[ 1 ];
-	renderEntity.shaderParms[ SHADERPARM_BLUE ]	= color[ 2 ];
+	renderEntity.shaderParms[ SHADERPARM_BLUE ]	 = color[ 2 ];
 	PresentLightDefChange();
 	PresentModelDefChange();
 }
@@ -581,14 +586,9 @@ idLight::SetLightParms
 */
 void idLight::SetLightParms( float parm0, float parm1, float parm2, float parm3 )
 {
-	renderLight.shaderParms[ SHADERPARM_RED ]		= parm0;
-	renderLight.shaderParms[ SHADERPARM_GREEN ]		= parm1;
-	renderLight.shaderParms[ SHADERPARM_BLUE ]		= parm2;
-	renderLight.shaderParms[ SHADERPARM_ALPHA ]		= parm3;
-	renderEntity.shaderParms[ SHADERPARM_RED ]		= parm0;
-	renderEntity.shaderParms[ SHADERPARM_GREEN ]	= parm1;
-	renderEntity.shaderParms[ SHADERPARM_BLUE ]		= parm2;
-	renderEntity.shaderParms[ SHADERPARM_ALPHA ]	= parm3;
+	renderLight.SetColorParm( parm0, parm1, parm2, parm3 );
+	renderEntity.SetColorParm( parm0, parm1, parm2, parm3 );
+
 	PresentLightDefChange();
 	PresentModelDefChange();
 }
@@ -600,9 +600,8 @@ idLight::SetRadiusXYZ
 */
 void idLight::SetRadiusXYZ( float x, float y, float z )
 {
-	renderLight.lightRadius[0] = x;
-	renderLight.lightRadius[1] = y;
-	renderLight.lightRadius[2] = z;
+	renderLight.lightRadius.Set( x, y, z );
+
 	PresentLightDefChange();
 }
 
@@ -613,7 +612,8 @@ idLight::SetRadius
 */
 void idLight::SetRadius( float radius )
 {
-	renderLight.lightRadius[0] = renderLight.lightRadius[1] = renderLight.lightRadius[2] = radius;
+	renderLight.lightRadius.Set( radius );
+
 	PresentLightDefChange();
 }
 
@@ -626,7 +626,7 @@ void idLight::On()
 {
 	currentLevel = levels;
 	// offset the start time of the shader to sync it to the game time
-	renderLight.shaderParms[ SHADERPARM_TIMEOFFSET ] = -MS2SEC( gameLocal.time );
+	renderLight.shaderParms[ SHADERPARM_TIMEOFFSET ] = -MS2SEC( gameLocal.GetTime() );
 	if( ( soundWasPlaying || refSound.waitfortrigger ) && refSound.shader )
 	{
 		StartSoundShader( refSound.shader, SND_CHANNEL_ANY, 0, false, NULL );
@@ -663,8 +663,8 @@ void idLight::Fade( const idVec4& to, float fadeTime )
 {
 	GetColor( fadeFrom );
 	fadeTo = to;
-	fadeStart = gameLocal.time;
-	fadeEnd = gameLocal.time + SEC2MS( fadeTime );
+	fadeStart = gameLocal.GetTime();
+	fadeEnd = gameLocal.GetTime() + SEC2MS( fadeTime );
 	BecomeActive( TH_THINK );
 }
 
@@ -732,8 +732,7 @@ void idLight::BecomeBroken( idEntity* activator )
 	}
 	
 	if( common->IsServer() )
-	{
-	
+	{	
 		ServerSendEvent( EVENT_BECOMEBROKEN, NULL, true );
 		
 		if( spawnArgs.GetString( "def_damage", "", &damageDefName ) )
@@ -747,8 +746,8 @@ void idLight::BecomeBroken( idEntity* activator )
 	ActivateTargets( activator );
 	
 	// offset the start time of the shader to sync it to the game time
-	renderEntity.shaderParms[ SHADERPARM_TIMEOFFSET ] = -MS2SEC( gameLocal.time );
-	renderLight.shaderParms[ SHADERPARM_TIMEOFFSET ] = -MS2SEC( gameLocal.time );
+	renderEntity.shaderParms[ SHADERPARM_TIMEOFFSET ] = -MS2SEC( gameLocal.GetTime() );
+	renderLight.shaderParms[ SHADERPARM_TIMEOFFSET ] = -MS2SEC( gameLocal.GetTime() );
 	
 	// set the state parm
 	renderEntity.shaderParms[ SHADERPARM_MODE ] = 1;
@@ -801,7 +800,6 @@ idLight::PresentModelDefChange
 */
 void idLight::PresentModelDefChange()
 {
-
 	if( !renderEntity.hModel || IsHidden() )
 	{
 		return;
@@ -868,12 +866,11 @@ void idLight::Think()
 	{
 		if( fadeEnd > 0 )
 		{
-			if( gameLocal.time < fadeEnd )
+			if( gameLocal.GetTime() < fadeEnd )
 			{
-				color.Lerp( fadeFrom, fadeTo, ( float )( gameLocal.time - fadeStart ) / ( float )( fadeEnd - fadeStart ) );
+				color.Lerp( fadeFrom, fadeTo, ( float )( gameLocal.GetTime() - fadeStart ) / ( float )( fadeEnd - fadeStart ) );
 			}
-			else
-			{
+			else {
 				color = fadeTo;
 				fadeEnd = 0;
 				BecomeInactive( TH_THINK );
@@ -893,7 +890,6 @@ idLight::ClientThink
 */
 void idLight::ClientThink( const int curTime, const float fraction, const bool predict )
 {
-
 	InterpolatePhysics( fraction );
 	
 	if( baseColor != nextBaseColor )
@@ -1120,20 +1116,17 @@ idLight::Event_SetSoundHandles
 */
 void idLight::Event_SetSoundHandles()
 {
-	int i;
-	idEntity* targetEnt;
-	
 	if( !refSound.referenceSound )
 	{
 		return;
 	}
 	
-	for( i = 0; i < targets.Num(); i++ )
+	for( int i = 0; i < targets.Num(); ++i )
 	{
-		targetEnt = targets[ i ].GetEntity();
+		auto targetEnt = targets[ i ].GetEntity();
 		if( targetEnt != NULL && targetEnt->IsType( idLight::Type ) )
 		{
-			idLight*	light = static_cast<idLight*>( targetEnt );
+			idLight* light = static_cast<idLight*>( targetEnt );
 			light->lightParent = this;
 			
 			// explicitly delete any sounds on the entity
@@ -1185,7 +1178,6 @@ idLight::WriteToSnapshot
 */
 void idLight::WriteToSnapshot( idBitMsg& msg ) const
 {
-
 	GetPhysics()->WriteToSnapshot( msg );
 	WriteBindToSnapshot( msg );
 	
@@ -1300,17 +1292,11 @@ idLight::ClientReceiveEvent
 */
 bool idLight::ClientReceiveEvent( int event, int time, const idBitMsg& msg )
 {
-
-	switch( event )
+	if( event == EVENT_BECOMEBROKEN )
 	{
-		case EVENT_BECOMEBROKEN:
-		{
-			BecomeBroken( NULL );
-			return true;
-		}
-		default:
-		{
-			return idEntity::ClientReceiveEvent( event, time, msg );
-		}
+		BecomeBroken( NULL );
+		return true;
 	}
+
+	return idEntity::ClientReceiveEvent( event, time, msg );
 }

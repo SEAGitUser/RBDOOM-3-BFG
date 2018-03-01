@@ -228,7 +228,7 @@ void idStr::ReAllocate( int amount, bool keepold )
 #ifdef USE_STRING_DATA_ALLOCATOR
 		stringDataAllocator.Free( data );
 #else
-		delete [] data;
+		delete[] data;
 #endif
 	}
 	
@@ -1270,7 +1270,7 @@ idStr::CollapsePath
 idStr &idStr::CollapsePath() 
 {
 	int i, length = 0;
-	for ( i = 0; i < len; i++ ) 
+	for ( i = 0; i < len; ++i ) 
 	{
 		if ( data[i] == '.' )
 		{
@@ -1331,7 +1331,7 @@ idStr::StripFileExtension
 */
 idStr& idStr::StripFileExtension()
 {
-	for( int i = len - 1; i >= 0; i-- )
+	for( int i = len - 1; i >= 0; --i )
 	{
 		//if ( data[i] == '/' || data[i] == '\\' ) {
 		//	break;
@@ -1353,7 +1353,7 @@ idStr::StripAbsoluteFileExtension
 */
 idStr& idStr::StripAbsoluteFileExtension()
 {
-	for( int i = 0; i < len; i++ )
+	for( int i = 0; i < len; ++i )
 	{
 		if( data[i] == '.' )
 		{
@@ -1361,8 +1361,7 @@ idStr& idStr::StripAbsoluteFileExtension()
 			len = i;
 			break;
 		}
-	}
-	
+	}	
 	return *this;
 }
 
@@ -1374,7 +1373,7 @@ idStr::DefaultFileExtension
 idStr& idStr::DefaultFileExtension( const char* extension )
 {
 	// do nothing if the string already has an extension
-	for( int i = len - 1; i >= 0; i-- )
+	for( int i = len - 1; i >= 0; --i )
 	{
 		if( data[i] == '.' )
 		{
@@ -2811,12 +2810,12 @@ idStr idStr::FormatNumber( int number )
 			if( !found )
 			{
 				temp.Clear();
-				temp.Format<128>( "%i,", li->count );
+				temp.Format( "%i,", li->count );
 				string += temp;
 			}
 			else {
 				temp.Clear();
-				temp.Format<128>( "%3.3i,", li->count );
+				temp.Format( "%3.3i,", li->count );
 				string += temp;
 			}
 			found = true;
@@ -2824,7 +2823,7 @@ idStr idStr::FormatNumber( int number )
 		else if( found )
 		{
 			temp.Clear();
-			temp.Format<128>( "%3.3i,", li->count );
+			temp.Format( "%3.3i,", li->count );
 			string += temp;
 		}
 	}
@@ -2832,13 +2831,13 @@ idStr idStr::FormatNumber( int number )
 	if( found )
 	{
 		temp.Clear();
-		temp.Format<128>( "%3.3i", number );
+		temp.Format( "%3.3i", number );
 		string += temp;
 	}
 	else
 	{
 		temp.Clear();
-		temp.Format<128>( "%i", number );
+		temp.Format( "%i", number );
 		string += temp;
 	}
 	

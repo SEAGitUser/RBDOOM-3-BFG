@@ -371,7 +371,7 @@ void idClipModel::LoadModel( const int renderModelHandle )
 	this->renderModelHandle = renderModelHandle;
 	if( renderModelHandle != -1 )
 	{
-		const renderEntity_t* renderEntity = gameRenderWorld->GetRenderEntity( renderModelHandle );
+		const renderEntityParms_t* renderEntity = gameRenderWorld->GetRenderEntity( renderModelHandle );
 		if( renderEntity )
 		{
 			bounds = renderEntity->bounds;
@@ -772,7 +772,7 @@ void idClipModel::Link( idClip& clp, idEntity* ent, int newId, const idVec3& new
 	if( renderModelHandle != -1 )
 	{
 		this->renderModelHandle = renderModelHandle;
-		const renderEntity_t* renderEntity = gameRenderWorld->GetRenderEntity( renderModelHandle );
+		const renderEntityParms_t* renderEntity = gameRenderWorld->GetRenderEntity( renderModelHandle );
 		if( renderEntity )
 		{
 			this->bounds = renderEntity->bounds;

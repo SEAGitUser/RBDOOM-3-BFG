@@ -30,7 +30,6 @@ If you have questions concerning this license or the applicable additional terms
 
 enum achievement_t
 {
-
 	ACHIEVEMENT_INVALID = -1,
 	
 	ACHIEVEMENT_EARN_ALL_50_TROPHIES,					// 0 // DONE -- (automagic?)
@@ -135,8 +134,7 @@ Manages a List of Achievements associated with a particular Player.
 This is setup to only have one achievement manager per game.
 ================================================
 */
-class idAchievementManager
-{
+class idAchievementManager {
 public:
 	idAchievementManager();
 	

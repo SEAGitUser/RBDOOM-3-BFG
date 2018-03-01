@@ -106,7 +106,6 @@ LeaderboardLocal_Init
 */
 void LeaderboardLocal_Init()
 {
-
 	const idList< mpMap_t > maps = common->GetMapList();
 	
 	const char** gameModes = NULL;
@@ -115,20 +114,16 @@ void LeaderboardLocal_Init()
 	
 	// Iterate through all the available maps, and generate leaderboard Defs, and IDs for each.
 	for( int mapIdx = 0; mapIdx < maps.Num(); mapIdx++ )
-	{
-	
+	{	
 		for( int modeIdx = 0; modeIdx < numModes; modeIdx++ )
-		{
-		
+		{		
 			// Check the supported modes on the map.
 			if( maps[ mapIdx ].supportedModes & BIT( modeIdx ) )
-			{
-			
+			{			
 				const columnGameMode_t gamemode = gameMode_columnDefs[ modeIdx ];
 				
 				// Generate a Leaderboard ID for the map/mode
-				int boardID = LeaderboardLocal_GetID( mapIdx, modeIdx );
-				
+				int boardID = LeaderboardLocal_GetID( mapIdx, modeIdx );				
 				
 				// Create and Register the leaderboard with the sys_stats registered Leaderboards
 				leaderboardDefinition_t* newLeaderboardDef = Sys_CreateLeaderboardDef( boardID,
@@ -137,9 +132,7 @@ void LeaderboardLocal_Init()
 						gamemode.rankOrder,
 						gamemode.supportsAttachments,
 						gamemode.checkAgainstCurrent );
-						
-						
-						
+		
 				// Set the leaderboard name.
 				const char* mapname = idLocalization::GetString( maps[ mapIdx ].mapName );
 				newLeaderboardDef->boardName.Format<256>( "%s %s", mapname, gamemode.abrevName );
@@ -148,12 +141,10 @@ void LeaderboardLocal_Init()
 				if( Sys_FindLeaderboardDef( boardID ) != newLeaderboardDef )
 				{
 					idLib::Error( "Leaderboards_Init leaderboard creation failed" );
-				}
-				
+				}				
 			}
 		}
-	}
-	
+	}	
 }
 
 /*
@@ -163,7 +154,6 @@ LeaderboardLocal_Shutdown
 */
 void LeaderboardLocal_Shutdown()
 {
-
 	Sys_DestroyLeaderboardDefs();
 }
 
@@ -357,12 +347,9 @@ CONSOLE_COMMAND( testLeaderboardUpload, "<gameType 0 - 4 > <frags = 0> <wins = 1
 
 CONSOLE_COMMAND( testLeaderboardUpload_SendToClients, "<gameType 0 - 4 > <frags = 0> <wins = 1>", 0 )
 {
-
 	for( int playerIdx = 0; playerIdx < gameLocal.numClients; playerIdx++ )
-	{
-	
-		leaderboardStats_t stats = { 1, 1, 1, 1 };
-		
+	{	
+		leaderboardStats_t stats = { 1, 1, 1, 1 };	
 		LeaderboardLocal_Upload( gameLocal.lobbyUserIDs[ playerIdx ], gameLocal.gameType, stats );
 	}
 	

@@ -46,8 +46,6 @@ bool idSWF::isMouseInClientArea = false;
 
 extern idCVar in_useJoystick;
 
-
-
 /*
 ===================
 idSWF::idSWF
@@ -55,22 +53,21 @@ idSWF::idSWF
 */
 idSWF::idSWF( const char* filename_, idSoundWorld* soundWorld_ )
 {
-
 	atlasMaterial = NULL;
-	
+
 	swfScale = 1.0f;
 	scaleToVirtual.Set( 1.0f, 1.0f );
-	
+
 	random.SetSeed( Sys_Milliseconds() );
-	
+
 	guiSolid = declManager->FindMaterial( "guiSolid" );
 	guiCursor_arrow = declManager->FindMaterial( "ui/assets/guicursor_arrow" );
 	guiCursor_hand = declManager->FindMaterial( "ui/assets/guicursor_hand" );
 	white = declManager->FindMaterial( "_white" );
-	
+
 	// RB:
 	debugFont = renderSystem->RegisterFont( "Arial Narrow" );
-	
+
 	tooltipButtonImage.Append( keyButtonImages_t( "<JOY1>", "guis/assets/hud/controller/xb360/a", "guis/assets/hud/controller/ps3/cross", 37, 37, 0 ) );
 	tooltipButtonImage.Append( keyButtonImages_t( "<JOY2>", "guis/assets/hud/controller/xb360/b", "guis/assets/hud/controller/ps3/circle", 37, 37, 0 ) );
 	tooltipButtonImage.Append( keyButtonImages_t( "<JOY3>", "guis/assets/hud/controller/xb360/x", "guis/assets/hud/controller/ps3/square", 37, 37, 0 ) );
@@ -82,33 +79,33 @@ idSWF::idSWF( const char* filename_, idSoundWorld* soundWorld_ )
 	tooltipButtonImage.Append( keyButtonImages_t( "<MOUSE1>", "guis/assets/hud/controller/mouse1", "", 64, 52, 0 ) );
 	tooltipButtonImage.Append( keyButtonImages_t( "<MOUSE2>", "guis/assets/hud/controller/mouse2", "", 64, 52, 0 ) );
 	tooltipButtonImage.Append( keyButtonImages_t( "<MOUSE3>", "guis/assets/hud/controller/mouse3", "", 64, 52, 0 ) );
-	
+
 	for( int index = 0; index < tooltipButtonImage.Num(); index++ )
 	{
-		if( ( tooltipButtonImage[index].xbImage != NULL ) && ( tooltipButtonImage[index].xbImage[0] != '\0' ) )
+		if( ( tooltipButtonImage[ index ].xbImage != NULL ) && ( tooltipButtonImage[ index ].xbImage[ 0 ] != '\0' ) )
 		{
-			declManager->FindMaterial( tooltipButtonImage[index].xbImage );
+			declManager->FindMaterial( tooltipButtonImage[ index ].xbImage );
 		}
-		if( ( tooltipButtonImage[index].psImage != NULL ) && ( tooltipButtonImage[index].psImage[0] != '\0' ) )
+		if( ( tooltipButtonImage[ index ].psImage != NULL ) && ( tooltipButtonImage[ index ].psImage[ 0 ] != '\0' ) )
 		{
-			declManager->FindMaterial( tooltipButtonImage[index].psImage );
+			declManager->FindMaterial( tooltipButtonImage[ index ].psImage );
 		}
 	}
-	
+
 	frameWidth = 0;
 	frameHeight = 0;
 	frameRate = 0;
 	lastRenderTime = 0;
-	
+
 	isActive = false;
 	inhibitControl = false;
 	useInhibtControl = true;
-	
+
 	crop = false;
 	blackbars = false;
 	paused = false;
 	hasHitObject = false;
-	
+
 	useMouse = true;
 	mouseEnabled = false;
 	renderBorder = 0;
@@ -116,7 +113,7 @@ idSWF::idSWF( const char* filename_, idSoundWorld* soundWorld_ )
 	hoverObject = NULL;
 	soundWorld = NULL;
 	forceNonPCPlatform = false;
-	
+
 	if( idStr::Cmpn( filename_, "swf/", 4 ) != 0 )
 	{
 		// if it doesn't already have swf/ in front of it, add it
@@ -130,21 +127,21 @@ idSWF::idSWF( const char* filename_, idSoundWorld* soundWorld_ )
 	filename.ToLower();
 	filename.BackSlashesToSlashes();
 	filename.SetFileExtension( ".swf" );
-	
+
 	timestamp = fileSystem->GetTimestamp( filename );
-	
+
 	mainsprite = new( TAG_SWF ) idSWFSprite( this );
 	mainspriteInstance = NULL;
-	
+
 	idStr binaryFileName = "generated/";
 	binaryFileName += filename;
 	binaryFileName.SetFileExtension( ".bswf" );
-	
+
 	// RB: add JSON alternative
 	idStr jsonFileName = filename;
 	jsonFileName.SetFileExtension( ".json" );
 	ID_TIME_T jsonSourceTime = fileSystem->GetTimestamp( jsonFileName );
-	
+
 	bool loadedFromJSON = false;
 	if( swf_loadBinary.GetBool() )
 	{
@@ -152,13 +149,13 @@ idSWF::idSWF( const char* filename_, idSoundWorld* soundWorld_ )
 		{
 			timestamp = jsonSourceTime;
 		}
-		
+
 		if( !LoadBinary( binaryFileName, timestamp ) )
 		{
 			if( LoadJSON( jsonFileName ) )
 			{
 				loadedFromJSON = true;
-				
+
 				WriteBinary( binaryFileName );
 			}
 			else if( LoadSWF( filename ) )
@@ -178,45 +175,45 @@ idSWF::idSWF( const char* filename_, idSoundWorld* soundWorld_ )
 			LoadSWF( filename );
 		}
 	}
-	
+
 	if( postLoadExportFlashToSWF.GetBool() )
 	{
 		idStr jsonFileName = "exported/";
 		jsonFileName += filename;
 		jsonFileName.SetFileExtension( ".json" );
-		
+
 		WriteJSON( jsonFileName );
 	}
-	
+
 	idStr atlasFileName = binaryFileName;
 	atlasFileName.SetFileExtension( ".tga" );
 	atlasMaterial = declManager->FindMaterial( atlasFileName );
-	
+
 	byte* atlasExportImageRGBA = NULL;
 	int atlasExportImageWidth = 0;
 	int atlasExportImageHeight = 0;
-	
+
 	if( /*!loadedFromJSON &&*/ ( postLoadExportFlashToJSON.GetBool() || postLoadExportFlashAtlas.GetBool() || postLoadExportFlashToSWF.GetBool() ) )
 	{
 		idStrStatic< MAX_OSPATH > generatedName = atlasFileName;
 		generatedName.StripFileExtension();
 		idImage::GetGeneratedName( generatedName, TD_DEFAULT, IMG_LAYOUT_2D );
-		
+
 		idBinaryImage im( generatedName );
 		ID_TIME_T binaryFileTime = im.LoadFromGeneratedFile( FILE_NOT_FOUND_TIMESTAMP );
-		
+
 		if( binaryFileTime != FILE_NOT_FOUND_TIMESTAMP )
 		{
 			auto & imgHeader = im.GetFileHeader();
 			auto & img = im.GetImageHeader( 0 );
-			
+
 			const byte* data = im.GetImageData( 0 );
-			
+
 			//( img.level, 0, 0, img.destZ, img.width, img.height, data );
-			
+
 			idTempArray<byte> rgba( img.width * img.height * 4 );
 			memset( rgba.Ptr(), 255, rgba.Size() );
-			
+
 			if( imgHeader.format == FMT_DXT1 )
 			{
 				idDxtDecoder dxt;
@@ -225,7 +222,7 @@ idSWF::idSWF( const char* filename_, idSoundWorld* soundWorld_ )
 			else if( imgHeader.format == FMT_DXT5 )
 			{
 				idDxtDecoder dxt;
-				
+
 				if( imgHeader.colorFormat == CFM_NORMAL_DXT5 )
 				{
 					dxt.DecompressNormalMapDXT5( data, rgba.Ptr(), img.width, img.height );
@@ -234,7 +231,8 @@ idSWF::idSWF( const char* filename_, idSoundWorld* soundWorld_ )
 				{
 					dxt.DecompressYCoCgDXT5( data, rgba.Ptr(), img.width, img.height );
 				}
-				else {			
+				else
+				{
 					dxt.DecompressImageDXT5( data, rgba.Ptr(), img.width, img.height );
 				}
 			}
@@ -287,52 +285,52 @@ idSWF::idSWF( const char* filename_, idSoundWorld* soundWorld_ )
 					pic[ i ] = data[ i ];
 				}
 			}
-			
+
 			idStr atlasFileNameExport = atlasFileName;
 			atlasFileNameExport.Replace( "generated/", "exported/" );
 			atlasFileNameExport.SetFileExtension( ".png" );
-			
+
 			R_WritePNG( atlasFileNameExport, rgba.Ptr(), 4, img.width, img.height, true, "fs_basepath" );
-			
+
 			if( postLoadExportFlashToSWF.GetBool() )
 			{
 				atlasExportImageWidth = img.width;
 				atlasExportImageHeight = img.height;
-				atlasExportImageRGBA = ( byte* ) Mem_Alloc( rgba.Size(), TAG_TEMP );
+				atlasExportImageRGBA = ( byte* )Mem_Alloc( rgba.Size(), TAG_TEMP );
 				memcpy( atlasExportImageRGBA, rgba.Ptr(), rgba.Size() );
 			}
 		}
 	}
-	
+
 	if( postLoadExportFlashToSWF.GetBool() )
 	{
 		idStr swfFileName = "exported/";
 		swfFileName += filename;
 		swfFileName.SetFileExtension( ".swf" );
-		
+
 		WriteSWF( swfFileName, atlasExportImageRGBA, atlasExportImageWidth, atlasExportImageHeight );
 	}
-	
+
 	if( atlasExportImageRGBA != NULL )
 	{
 		Mem_Free( atlasExportImageRGBA );
 		atlasExportImageRGBA = NULL;
 	}
 	// RB end
-	
+
 	globals = idSWFScriptObject::Alloc();
 	globals->Set( "_global", globals );
-	
+
 	globals->Set( "Object", &scriptFunction_Object );
-	
+
 	mainspriteInstance = spriteInstanceAllocator.Alloc();
 	mainspriteInstance->Init( mainsprite, NULL, 0 );
-	
+
 	shortcutKeys = idSWFScriptObject::Alloc();
 	scriptFunction_shortcutKeys_clear.Bind( this );
 	scriptFunction_shortcutKeys_clear.Call( shortcutKeys, idSWFParmList() );
 	globals->Set( "shortcutKeys", shortcutKeys );
-	
+
 	globals->Set( "deactivate", scriptFunction_deactivate.Bind( this ) );
 	globals->Set( "inhibitControl", scriptFunction_inhibitControl.Bind( this ) );
 	globals->Set( "useInhibit", scriptFunction_useInhibit.Bind( this ) );
@@ -347,7 +345,7 @@ idSWF::idSWF( const char* filename_, idSoundWorld* soundWorld_ )
 	globals->Set( "strReplace", scriptFunction_strReplace.Bind( this ) );
 	globals->Set( "getCVarInteger", scriptFunction_getCVarInteger.Bind( this ) );
 	globals->Set( "setCVarInteger", scriptFunction_setCVarInteger.Bind( this ) );
-	
+
 	globals->Set( "acos", scriptFunction_acos.Bind( this ) );
 	globals->Set( "cos", scriptFunction_cos.Bind( this ) );
 	globals->Set( "sin", scriptFunction_sin.Bind( this ) );
@@ -359,35 +357,35 @@ idSWF::idSWF( const char* filename_, idSoundWorld* soundWorld_ )
 	globals->Set( "floor", scriptFunction_floor.Bind( this ) );
 	globals->Set( "ceil", scriptFunction_ceil.Bind( this ) );
 	globals->Set( "toUpper", scriptFunction_toUpper.Bind( this ) );
-	
+
 	globals->SetNative( "platform", swfScriptVar_platform.Bind( &scriptFunction_getPlatform ) );
 	globals->SetNative( "blackbars", swfScriptVar_blackbars.Bind( this ) );
 	globals->SetNative( "cropToHeight", swfScriptVar_crop.Bind( this ) );
 	globals->SetNative( "cropToFit", swfScriptVar_crop.Bind( this ) );
 	globals->SetNative( "crop", swfScriptVar_crop.Bind( this ) );
-	
+
 	// Do this to touch any external references (like sounds)
 	// But disable script warnings because many globals won't have been created yet
 	extern idCVar swf_debug;
 	int debug = swf_debug.GetInteger();
 	swf_debug.SetInteger( 0 );
-	
+
 	mainspriteInstance->Run();
 	mainspriteInstance->RunActions();
 	mainspriteInstance->RunTo( 0 );
-	
+
 	swf_debug.SetInteger( debug );
-	
+
 	if( mouseX == -1 )
 	{
 		mouseX = ( frameWidth / 2 );
 	}
-	
+
 	if( mouseY == -1 )
 	{
 		mouseY = ( frameHeight / 2 );
 	}
-	
+
 	soundWorld = soundWorld_;
 }
 
@@ -400,40 +398,40 @@ idSWF::~idSWF()
 {
 	spriteInstanceAllocator.Free( mainspriteInstance );
 	delete mainsprite;
-	
-	for( int i = 0 ; i < dictionary.Num() ; i++ )
+
+	for( int i = 0; i < dictionary.Num(); i++ )
 	{
-		if( dictionary[i].sprite )
+		if( dictionary[ i ].sprite )
 		{
-			delete dictionary[i].sprite;
-			dictionary[i].sprite = NULL;
+			delete dictionary[ i ].sprite;
+			dictionary[ i ].sprite = NULL;
 		}
-		if( dictionary[i].shape )
+		if( dictionary[ i ].shape )
 		{
-			delete dictionary[i].shape;
-			dictionary[i].shape = NULL;
+			delete dictionary[ i ].shape;
+			dictionary[ i ].shape = NULL;
 		}
-		if( dictionary[i].font )
+		if( dictionary[ i ].font )
 		{
-			delete dictionary[i].font;
-			dictionary[i].font = NULL;
+			delete dictionary[ i ].font;
+			dictionary[ i ].font = NULL;
 		}
-		if( dictionary[i].text )
+		if( dictionary[ i ].text )
 		{
-			delete dictionary[i].text;
-			dictionary[i].text = NULL;
+			delete dictionary[ i ].text;
+			dictionary[ i ].text = NULL;
 		}
-		if( dictionary[i].edittext )
+		if( dictionary[ i ].edittext )
 		{
-			delete dictionary[i].edittext;
-			dictionary[i].edittext = NULL;
+			delete dictionary[ i ].edittext;
+			dictionary[ i ].edittext = NULL;
 		}
 	}
-	
+
 	globals->Clear();
 	tooltipButtonImage.Clear();
 	globals->Release();
-	
+
 	shortcutKeys->Clear();
 	shortcutKeys->Release();
 }
@@ -450,7 +448,7 @@ void idSWF::Activate( bool b )
 	{
 		inhibitControl = false;
 		lastRenderTime = Sys_Milliseconds();
-		
+
 		mainspriteInstance->FreeDisplayList();
 		mainspriteInstance->Play();
 		mainspriteInstance->Run();
@@ -519,7 +517,7 @@ idSWF::idSWFScriptFunction_inhibitControl::Call
 */
 idSWFScriptVar idSWF::idSWFScriptFunction_inhibitControl::Call( idSWFScriptObject* thisObject, const idSWFParmList& parms )
 {
-	pThis->inhibitControl = parms[0].ToBool();
+	pThis->inhibitControl = parms[ 0 ].ToBool();
 	return idSWFScriptVar();
 }
 
@@ -530,7 +528,7 @@ idSWF::idSWFScriptFunction_inhibitControl::Call
 */
 idSWFScriptVar idSWF::idSWFScriptFunction_useInhibit::Call( idSWFScriptObject* thisObject, const idSWFParmList& parms )
 {
-	pThis->useInhibtControl = parms[0].ToBool();
+	pThis->useInhibtControl = parms[ 0 ].ToBool();
 	return idSWFScriptVar();
 }
 
@@ -552,7 +550,7 @@ idSWF::idSWFScriptFunction_precacheSound::Call
 */
 idSWFScriptVar idSWF::idSWFScriptFunction_precacheSound::Call( idSWFScriptObject* thisObject, const idSWFParmList& parms )
 {
-	const idSoundShader* soundShader = declManager->FindSound( parms[0].ToString(), true );
+	const idSoundShader* soundShader = declManager->FindSound( parms[ 0 ].ToString(), true );
 	return soundShader->GetName();
 }
 
@@ -567,11 +565,11 @@ idSWFScriptVar idSWF::idSWFScriptFunction_playSound::Call( idSWFScriptObject* th
 	// specific channel passed in
 	if( parms.Num() > 1 )
 	{
-		channel = parms[1].ToInteger();
+		channel = parms[ 1 ].ToInteger();
 	}
-	
-	pThis->PlaySound( parms[0].ToString(), channel );
-	
+
+	pThis->PlaySound( parms[ 0 ].ToString(), channel );
+
 	return idSWFScriptVar();
 }
 
@@ -582,15 +580,14 @@ idSWF::idSWFScriptFunction_stopSounds::Call
 */
 idSWFScriptVar idSWF::idSWFScriptFunction_stopSounds::Call( idSWFScriptObject* thisObject, const idSWFParmList& parms )
 {
-
 	int channel = SCHANNEL_ANY;
 	if( parms.Num() == 1 )
 	{
-		channel = parms[0].ToInteger();
+		channel = parms[ 0 ].ToInteger();
 	}
-	
+
 	pThis->StopSound( channel );
-	
+
 	return idSWFScriptVar();
 }
 
@@ -611,10 +608,8 @@ idSWFScriptFunction_GetPlatform::Call
 */
 idSWFScriptVar idSWF::idSWFScriptFunction_getTruePlatform::Call( idSWFScriptObject* thisObject, const idSWFParmList& parms )
 {
-
 	return 2;
 }
-
 
 /*
 ========================
@@ -623,17 +618,16 @@ idSWFScriptFunction_GetPlatform::Call
 */
 idSWFScriptVar idSWF::idSWFScriptFunction_strReplace::Call( idSWFScriptObject* thisObject, const idSWFParmList& parms )
 {
-
 	if( parms.Num() != 3 )
 	{
 		return "";
 	}
-	
-	idStr str = parms[0].ToString();
-	idStr repString = parms[1].ToString();
-	idStr val = parms[2].ToString();
+
+	idStr str = parms[ 0 ].ToString();
+	idStr repString = parms[ 1 ].ToString();
+	idStr val = parms[ 2 ].ToString();
 	str.Replace( repString, val );
-	
+
 	return str;
 }
 
@@ -644,13 +638,12 @@ idSWFScriptFunction_GetPlatform::Call
 */
 idSWFScriptVar idSWF::idSWFScriptFunction_getLocalString::Call( idSWFScriptObject* thisObject, const idSWFParmList& parms )
 {
-
 	if( parms.Num() == 0 )
 	{
 		return idSWFScriptVar();
 	}
-	
-	idStr val = idLocalization::GetString( parms[0].ToString() );
+
+	idStr val = idLocalization::GetString( parms[ 0 ].ToString() );
 	return val;
 }
 
@@ -671,14 +664,12 @@ idSWF::GetPlatform
 */
 int	idSWF::GetPlatform()
 {
-
-
 	if( in_useJoystick.GetBool() || forceNonPCPlatform )
 	{
 		forceNonPCPlatform = false;
 		return 0;
 	}
-	
+
 	return 2;
 }
 
@@ -699,7 +690,7 @@ idSWFScriptFunction_getCVarInteger::Call
 */
 idSWFScriptVar idSWF::idSWFScriptFunction_getCVarInteger::Call( idSWFScriptObject* thisObject, const idSWFParmList& parms )
 {
-	return cvarSystem->GetCVarInteger( parms[0].ToString() );
+	return cvarSystem->GetCVarInteger( parms[ 0 ].ToString() );
 }
 
 /*
@@ -709,7 +700,7 @@ idSWFScriptFunction_setCVarInteger::Call
 */
 idSWFScriptVar idSWF::idSWFScriptFunction_setCVarInteger::Call( idSWFScriptObject* thisObject, const idSWFParmList& parms )
 {
-	cvarSystem->SetCVarInteger( parms[0].ToString(), parms[1].ToInteger() );
+	cvarSystem->SetCVarInteger( parms[ 0 ].ToString(), parms[ 1 ].ToInteger() );
 	return idSWFScriptVar();
 }
 
@@ -724,7 +715,7 @@ idSWFScriptVar idSWF::idSWFScriptFunction_acos::Call( idSWFScriptObject* thisObj
 	{
 		return idSWFScriptVar();
 	}
-	return idMath::ACos( parms[0].ToFloat() );
+	return idMath::ACos( parms[ 0 ].ToFloat() );
 }
 
 /*
@@ -738,7 +729,7 @@ idSWFScriptVar idSWF::idSWFScriptFunction_cos::Call( idSWFScriptObject* thisObje
 	{
 		return idSWFScriptVar();
 	}
-	return idMath::Cos( parms[0].ToFloat() );
+	return idMath::Cos( parms[ 0 ].ToFloat() );
 }
 
 /*
@@ -752,7 +743,7 @@ idSWFScriptVar idSWF::idSWFScriptFunction_sin::Call( idSWFScriptObject* thisObje
 	{
 		return idSWFScriptVar();
 	}
-	return ( idMath::Sin( parms[0].ToFloat() ) );
+	return ( idMath::Sin( parms[ 0 ].ToFloat() ) );
 }
 
 /*
@@ -766,7 +757,7 @@ idSWFScriptVar idSWF::idSWFScriptFunction_round::Call( idSWFScriptObject* thisOb
 	{
 		return idSWFScriptVar();
 	}
-	int value = idMath::Ftoi( parms[0].ToFloat() + 0.5f );
+	int value = idMath::Ftoi( parms[ 0 ].ToFloat() + 0.5f );
 	return value;
 }
 
@@ -781,9 +772,9 @@ idSWFScriptVar idSWF::idSWFScriptFunction_pow::Call( idSWFScriptObject* thisObje
 	{
 		return idSWFScriptVar();
 	}
-	
-	float value = parms[0].ToFloat();
-	float power = parms[1].ToFloat();
+
+	float value = parms[ 0 ].ToFloat();
+	float power = parms[ 1 ].ToFloat();
 	return ( idMath::Pow( value, power ) );
 }
 
@@ -798,8 +789,8 @@ idSWFScriptVar idSWF::idSWFScriptFunction_sqrt::Call( idSWFScriptObject* thisObj
 	{
 		return idSWFScriptVar();
 	}
-	
-	float value = parms[0].ToFloat();
+
+	float value = parms[ 0 ].ToFloat();
 	return ( idMath::Sqrt( value ) );
 }
 
@@ -814,8 +805,8 @@ idSWFScriptVar idSWF::idSWFScriptFunction_abs::Call( idSWFScriptObject* thisObje
 	{
 		return idSWFScriptVar();
 	}
-	
-	float value = idMath::Fabs( parms[0].ToFloat() );
+
+	float value = idMath::Fabs( parms[ 0 ].ToFloat() );
 	return value;
 }
 
@@ -833,11 +824,11 @@ idSWFScriptVar idSWF::idSWFScriptFunction_rand::Call( idSWFScriptObject* thisObj
 		case 0:
 			break;
 		case 1:
-			max = parms[0].ToFloat();
+			max = parms[ 0 ].ToFloat();
 			break;
 		default:
-			min = parms[0].ToFloat();
-			max = parms[1].ToFloat();
+			min = parms[ 0 ].ToFloat();
+			max = parms[ 1 ].ToFloat();
 			break;
 	}
 	return min + pThis->GetRandom().RandomFloat() * ( max - min );
@@ -850,14 +841,14 @@ idSWFScriptFunction_floor::Call
 */
 idSWFScriptVar idSWF::idSWFScriptFunction_floor::Call( idSWFScriptObject* thisObject, const idSWFParmList& parms )
 {
-	if( parms.Num() != 1 || !parms[0].IsNumeric() )
+	if( parms.Num() != 1 || !parms[ 0 ].IsNumeric() )
 	{
 		idLib::Warning( "Invalid parameters specified for floor" );
 		return idSWFScriptVar();
 	}
-	
-	float num = parms[0].ToFloat();
-	
+
+	float num = parms[ 0 ].ToFloat();
+
 	return idSWFScriptVar( idMath::Floor( num ) );
 }
 
@@ -868,14 +859,14 @@ idSWFScriptFunction_ceil::Call
 */
 idSWFScriptVar idSWF::idSWFScriptFunction_ceil::Call( idSWFScriptObject* thisObject, const idSWFParmList& parms )
 {
-	if( parms.Num() != 1 || !parms[0].IsNumeric() )
+	if( parms.Num() != 1 || !parms[ 0 ].IsNumeric() )
 	{
 		idLib::Warning( "Invalid parameters specified for ceil" );
 		return idSWFScriptVar();
 	}
-	
-	float num = parms[0].ToFloat();
-	
+
+	float num = parms[ 0 ].ToFloat();
+
 	return idSWFScriptVar( idMath::Ceil( num ) );
 }
 
@@ -886,13 +877,13 @@ idSWFScriptFunction_toUpper::Call
 */
 idSWFScriptVar idSWF::idSWFScriptFunction_toUpper::Call( idSWFScriptObject* thisObject, const idSWFParmList& parms )
 {
-	if( parms.Num() != 1 || !parms[0].IsString() )
+	if( parms.Num() != 1 || !parms[ 0 ].IsString() )
 	{
 		idLib::Warning( "Invalid parameters specified for toUpper" );
 		return idSWFScriptVar();
 	}
-	
-	idStr val = idLocalization::GetString( parms[0].ToString() );
+
+	idStr val = idLocalization::GetString( parms[ 0 ].ToString() );
 	val.ToUpper();
 	return val;
 }
@@ -930,15 +921,13 @@ idSWFScriptVar idSWF::idSWFScriptFunction_shortcutKeys_clear::Call( idSWFScriptO
 	object->Set( "MWHEELDOWN", "MWHEEL_DOWN" );
 	object->Set( "MWHEELUP", "MWHEEL_UP" );
 	object->Set( "K_TAB", "TAB" );
-	
-	
+
 	// FIXME: I'm an RTARD and didn't realize the keys all have "ARROW" after them
 	object->Set( "LEFTARROW", "LEFT" );
 	object->Set( "RIGHTARROW", "RIGHT" );
 	object->Set( "UPARROW", "UP" );
 	object->Set( "DOWNARROW", "DOWN" );
-	
-	
+
 	return idSWFScriptVar();
 }
 

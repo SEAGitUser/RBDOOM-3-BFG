@@ -106,15 +106,15 @@ public:
 	virtual	bool			InitFromMap( const char* mapName );
 	virtual void			ResetLocalRenderModels();				// Fixes a crash when switching between expansion packs in Doom3:BFG
 	
-	virtual	qhandle_t		AddEntityDef( const renderEntity_t* re );
-	virtual	void			UpdateEntityDef( qhandle_t entityHandle, const renderEntity_t* re );
+	virtual	qhandle_t		AddEntityDef( const renderEntityParms_t* re );
+	virtual	void			UpdateEntityDef( qhandle_t entityHandle, const renderEntityParms_t* re );
 	virtual	void			FreeEntityDef( qhandle_t entityHandle );
-	virtual const renderEntity_t* GetRenderEntity( qhandle_t entityHandle ) const;
+	virtual const renderEntityParms_t* GetRenderEntity( qhandle_t entityHandle ) const;
 	
-	virtual	qhandle_t		AddLightDef( const renderLight_t* rlight );
-	virtual	void			UpdateLightDef( qhandle_t lightHandle, const renderLight_t* rlight );
+	virtual	qhandle_t		AddLightDef( const renderLightParms_t* rlight );
+	virtual	void			UpdateLightDef( qhandle_t lightHandle, const renderLightParms_t* rlight );
 	virtual	void			FreeLightDef( qhandle_t lightHandle );
-	virtual const renderLight_t* GetRenderLight( qhandle_t lightHandle ) const;
+	virtual const renderLightParms_t* GetRenderLight( qhandle_t lightHandle ) const;
 	
 	virtual bool			CheckAreaForPortalSky( int areaNum );
 	
@@ -264,7 +264,7 @@ public:
 	void					WriteFreeEntity( qhandle_t handle );
 	void					WriteRenderDecal( idDemoFile* f, qhandle_t handle );
 	void					WriteRenderOverlay( idDemoFile* f, qhandle_t handle );
-	void					WriteRenderLight( idDemoFile* f, qhandle_t handle, const renderLight_t* light );
+	void					WriteRenderLight( idDemoFile* f, qhandle_t handle, const renderLightParms_t* light );
 	void					WriteRenderEntity( idDemoFile* f, idRenderEntityLocal* entity );
 	void					ReadRenderEntity();
 	void					ReadRenderLight();

@@ -153,7 +153,7 @@ public:
 	}
 	bool ReadToken( idToken* tok );
 	bool ExpectTokenString( const char* string );
-	bool ExpectTokenType( int type, int subtype, idToken* token );
+	bool ExpectTokenType( int type, int subtype, idToken & token );
 	bool ExpectAnyToken( idToken* token );
 	void SetMarker() {}
 	void UnreadToken( const idToken* token );

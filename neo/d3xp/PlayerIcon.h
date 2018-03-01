@@ -51,7 +51,7 @@ public:
 	
 public:
 	playerIconType_t	iconType;
-	renderEntity_t		renderEnt;
+	renderEntityParms_t		renderEnt;
 	qhandle_t			iconHandle;
 	
 public:

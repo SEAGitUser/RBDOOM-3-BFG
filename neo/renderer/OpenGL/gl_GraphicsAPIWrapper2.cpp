@@ -15,33 +15,22 @@ static ID_INLINE GLuint GetGLObject( void * apiObject )
 
 /*
 
-GL_UnbindVAO dummyVAO dummyVAOMain dummyVAORender
-GL_StartFrame  frame
-GL_EndFrame
-GL_WaitForEndFrame gpuFrameNanoseconds
-GL_GetLastFrameTime startGPUTimeMicroSec endGPUTimeMicroSec
-GL_State stateBits forceGlState
-GL_PolygonOffset scale bias fill //clamp
+GL_GetCurrentQueryNumber();
+GL_CacheOcclusionQueryBatches( uint32 upToIncludingBatchNum, uint32 & available );
+GL_BeginQueryBatch();
+GL_BeginQuery( uint32 queryNumber );
+GL_EndQuery();
+GL_GetDeferredQueryResult( uint32 queryNumber, uint32 & result );
 
-GL_GetCurrentQueryNumber
-GL_CacheOcclusionQueryBatches upToIncludingBatchNum available
-GL_BeginQueryBatch
-GL_BeginQuery queryNumber
-GL_EndQuery
-GL_GetDeferredQueryResult queryNumber  result
-GL_ResetProgramState
-GL_GetCurrentStats
-GL_ClearStats
-
-GL_BindProgram prog extraState triVertexMask blockParms
-GL_SetupSurfaceParms prog surf __glewBindBufferRange
-GL_ClearSurfaceParms prog surf
+GL_BindProgram( prog, extraState, triVertexMask, blockParms );
+GL_SetupSurfaceParms prog, idRenderModelSurface surf __glewBindBufferRange
+GL_ClearSurfaceParms prog, idRenderModelSurface surf
 
 GL_DeleteVertexBufferVAO apiObject
 GL_DeleteIndexBufferVAO apiObject
-GL_BuildVAO vertexBuffer indexBuffer morphMap stMap vertexMask vao
+GL_BuildVAO( vertexBuffer indexBuffer morphMap stMap vertexMask vao );
 
-GL_DrawElementsInternal tri vao progVertexMask skipDetailTriangles
+GL_DrawElementsInternal( tri, vao, progVertexMask, skipDetailTriangles );
 GL_DrawElements( idODSObject<idDeclRenderProg> prog, idODSObject<idRenderModelSurface> sur, extraState, skipDetailTriangles );
 GL_DrawElements( idODSObject<idDeclRenderProg> prog, idODSObject<idTriangles> tri, extraState, skipDetailTriangles );
 
@@ -530,6 +519,7 @@ uint32 GetCapacity( primitiveType_e primitiveType )
 		case PRIM_TYPE_TRIANGLE_STRIP_ADJACENCY:
 			return 3;
 	}
+	return 0;
 }
 
 
@@ -570,7 +560,7 @@ class idImmediateRenderOGL : public idImmediateRender
 	void *	   mappedVertexBuffer;
 	uint32		   vertexCapacity;
 
-	idBitFlags<vertexMask_t> vertexMask;
+	vertexMask_t vertexMask;
 	uint32		currentVertexNum = 0;
 	vertex_t	currentVertex;
 
@@ -651,33 +641,33 @@ void idImmediateRenderOGL::End()
 
 	{
 		struct MultiDrawElements {
-			GLenum	primType;
-			const GLint * first; 
-			const GLsizei * vertCount;
-			GLsizei drawCount;
+			GLenum			primType = GL_TRIANGLES;
+			const GLint *	first = nullptr; 
+			const GLsizei * vertCount = 0;
+			GLsizei			drawCount = 0;
 		} draw;
 
 		glMultiDrawArrays( draw.primType, draw.first, draw.vertCount, draw.drawCount );
 	}
 	{
 		struct MultiDrawElements {
-			GLenum	primType;
-			GLsizei primcount;
-			GLsizei * indexCount;
-			GLenum  indexType;
-			void ** indices;
+			GLenum		primType = GL_TRIANGLES;
+			GLsizei		primcount = 0;
+			GLsizei *	indexCount = nullptr;
+			GLenum		indexType = GL_INDEX_TYPE;
+			void **		indices = nullptr;
 		} draw;
 
 		glMultiDrawElements( draw.primType, draw.indexCount, draw.indexType, draw.indices, draw.primcount );
 	}
 	{
 		struct MultiDrawElementsBaseVertex {
-			GLenum	primType;
-			GLsizei primcount;
-			GLsizei * indexCount;
-			GLenum  indexType;
-			void ** indices;
-			int * baseVertex;
+			GLenum		primType = GL_TRIANGLES;
+			GLsizei		primcount = 0;
+			GLsizei *	indexCount = nullptr;
+			GLenum		indexType = GL_INDEX_TYPE;
+			void **		indices = nullptr;
+			int *		baseVertex = nullptr;
 		} draw;
 
 		glMultiDrawElementsBaseVertex( draw.primType, draw.indexCount, draw.indexType, draw.indices, draw.primcount, draw.baseVertex );

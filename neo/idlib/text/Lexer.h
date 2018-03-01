@@ -169,11 +169,11 @@ public:
 	// expect a certain token, reads the token when available
 	bool					ExpectTokenString( const char *string );
 	// expect a certain token type
-	bool					ExpectTokenType( int type, int subtype, idToken *token );
+	bool					ExpectTokenType( int type, int subtype, idToken & );
 	// expect a token
 	bool					ExpectAnyToken( idToken *token );
 	// returns true when the token is available
-	bool					CheckTokenString( const char *string );
+	bool					CheckTokenString( const char *string, idToken *token = nullptr );
 	// returns true an reads the token when a token with the given type is available
 	bool					CheckTokenType( int type, int subtype, idToken *token );
 	// returns true if the next token equals the given string but does not remove the token from the source
@@ -181,7 +181,7 @@ public:
 	// returns true if the next token equals the given type but does not remove the token from the source
 	bool					PeekTokenType( int type, int subtype, idToken* token );
 	// skip tokens until the given token string is read
-	bool					SkipUntilString( const char *string, idToken* token = NULL );
+	bool					SkipUntilString( const char *string, idToken* token = nullptr );
 	// skip the rest of the current line
 	bool					SkipRestOfLine();
 	// skip the braced section

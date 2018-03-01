@@ -6533,7 +6533,7 @@ void idPlayer::UpdateFocus()
 		if( pt.x != -1 )
 		{
 			// we have a hit
-			renderEntity_t* focusGUIrenderEntity = ent->GetRenderEntity();
+			renderEntityParms_t* focusGUIrenderEntity = ent->GetRenderEntity();
 			if( !focusGUIrenderEntity )
 			{
 				continue;
@@ -9035,7 +9035,7 @@ void idPlayer::Think()
 		}
 	}
 	
-	renderEntity_t* headRenderEnt = NULL;
+	renderEntityParms_t* headRenderEnt = NULL;
 	if( head.GetEntity() )
 	{
 		headRenderEnt = head.GetEntity()->GetRenderEntity();
@@ -11455,7 +11455,7 @@ void idPlayer::ClientThink( const int curTime, const float fraction, const bool 
 	
 	UpdateDeathSkin( false );
 	
-	renderEntity_t* headRenderEnt = NULL;
+	renderEntityParms_t* headRenderEnt = NULL;
 	if( head.GetEntity() )
 	{
 		headRenderEnt = head.GetEntity()->GetRenderEntity();

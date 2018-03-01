@@ -31,7 +31,7 @@ If you have questions concerning this license or the applicable additional terms
 
 /*
 
-Save game related helper classes.
+	Save game related helper classes.
 
 */
 
@@ -46,10 +46,7 @@ public:
 	void					WriteDecls();
 	
 	void					AddObject( const idClass* obj );
-	void					Resize( const int count )
-	{
-		objects.Resize( count );
-	}
+	void					Resize( const int count ) { objects.Resize( count ); }
 	void					WriteObjectList();
 	
 	void					Write( const void* buffer, int len );
@@ -80,8 +77,8 @@ public:
 	void					WriteModelDef( const class idDeclModelDef* modelDef );
 	void					WriteModel( const idRenderModel* model );
 	void					WriteUserInterface( const idUserInterface* ui, bool unique );
-	void					WriteRenderEntity( const renderEntity_t& renderEntity );
-	void					WriteRenderLight( const renderLight_t& renderLight );
+	void					WriteRenderEntity( const renderEntityParms_t& renderEntity );
+	void					WriteRenderLight( const renderLightParms_t& renderLight );
 	void					WriteRefSound( const refSound_t& refSound );
 	void					WriteRenderView( const renderViewParms_t& view );
 	void					WriteUsercmd( const usercmd_t& usercmd );
@@ -93,28 +90,21 @@ public:
 	
 	void					WriteBuildNumber( const int value );
 	
-	int						GetBuildNumber() const
-	{
-		return version;
-	}
+	int						GetBuildNumber() const { return version; }
 	
-	int						GetCurrentSaveSize() const
-	{
-		return file->Length();
-	}
+	int						GetCurrentSaveSize() const { return file->Length(); }
 	
 private:
-	idFile* 				file;
-	idFile* 				stringFile;
-	idCompressor* 			compressor;
+	idFile * 				file;
+	idFile * 				stringFile;
+	idCompressor * 			compressor;
 	
 	idList<const idClass*>	objects;
 	int						version;
 	
 	void					CallSave_r( const idTypeInfo* cls, const idClass* obj );
 	
-	struct stringTableIndex_s
-	{
+	struct stringTableIndex_s {
 		idStr		string;
 		int			offset;
 	};
@@ -167,8 +157,8 @@ public:
 	void					ReadModelDef( const idDeclModelDef*& modelDef );
 	void					ReadModel( idRenderModel*& model );
 	void					ReadUserInterface( idUserInterface*& ui );
-	void					ReadRenderEntity( renderEntity_t& renderEntity );
-	void					ReadRenderLight( renderLight_t& renderLight );
+	void					ReadRenderEntity( renderEntityParms_t& renderEntity );
+	void					ReadRenderLight( renderLightParms_t& renderLight );
 	void					ReadRefSound( refSound_t& refSound );
 	void					ReadRenderView( renderViewParms_t& view );
 	void					ReadUsercmd( usercmd_t& usercmd );
@@ -179,15 +169,12 @@ public:
 	void					ReadSoundCommands();
 	
 	//						Used to retrieve the saved game buildNumber from within class Restore methods
-	int						GetBuildNumber() const
-	{
-		return version;
-	}
+	int						GetBuildNumber() const { return version; }
 	
 private:
-	idFile* 		file;
-	idFile* 		stringFile;
-	idList<idClass*, TAG_SAVEGAMES>		objects;
+	idFile * 				file;
+	idFile * 				stringFile;
+	idList<idClass*, TAG_SAVEGAMES>	objects;
 	int						version;
 	int						stringTableOffset;
 	

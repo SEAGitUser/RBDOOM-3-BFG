@@ -316,7 +316,6 @@ const char* idAnim::AddFrameCommand( const idDeclModelDef* modelDef, int framenu
 	int					index;
 	idStr				text;
 	idStr				funcname;
-	frameCommand_t		fc;
 	idToken				token;
 	const jointInfo_t*	jointInfo;
 	
@@ -329,6 +328,7 @@ const char* idAnim::AddFrameCommand( const idDeclModelDef* modelDef, int framenu
 	// frame numbers are 1 based in .def files, but 0 based internally
 	framenum--;
 	
+	frameCommand_t fc;
 	memset( &fc, 0, sizeof( fc ) );
 	
 	if( !src.ReadTokenOnLine( &token ) )
@@ -906,7 +906,7 @@ const char* idAnim::AddFrameCommand( const idDeclModelDef* modelDef, int framenu
 		// we haven't, so allocate the table and initialize it
 		frameLookup.SetGranularity( 1 );
 		frameLookup.SetNum( anims[ 0 ]->NumFrames() );
-		for( i = 0; i < frameLookup.Num(); i++ )
+		for( i = 0; i < frameLookup.Num(); ++i )
 		{
 			frameLookup[ i ].num = 0;
 			frameLookup[ i ].firstCommand = 0;
@@ -1355,21 +1355,16 @@ idAnim::FindFrameForFrameCommand
 */
 int	idAnim::FindFrameForFrameCommand( frameCommandType_t framecommand, const frameCommand_t** command ) const
 {
-	int frame;
-	int index;
-	int numframes;
-	int end;
-	
 	if( !frameCommands.Num() )
 	{
 		return -1;
 	}
 	
-	numframes = anims[ 0 ]->NumFrames();
-	for( frame = 0; frame < numframes; frame++ )
+	int numframes = anims[ 0 ]->NumFrames();
+	for( int frame = 0; frame < numframes; ++frame )
 	{
-		end = frameLookup[ frame ].firstCommand + frameLookup[ frame ].num;
-		for( index = frameLookup[ frame ].firstCommand; index < end; index++ )
+		int end = frameLookup[ frame ].firstCommand + frameLookup[ frame ].num;
+		for( int index = frameLookup[ frame ].firstCommand; index < end; ++index )
 		{
 			if( frameCommands[ index ].type == framecommand )
 			{
@@ -1449,8 +1444,6 @@ archives object for save game file
 */
 void idAnimBlend::Save( idSaveGame* savefile ) const
 {
-	int i;
-	
 	savefile->WriteInt( starttime );
 	savefile->WriteInt( endtime );
 	savefile->WriteInt( timeOffset );
@@ -1461,7 +1454,7 @@ void idAnimBlend::Save( idSaveGame* savefile ) const
 	savefile->WriteFloat( blendStartValue );
 	savefile->WriteFloat( blendEndValue );
 	
-	for( i = 0; i < ANIM_MaxSyncedAnims; i++ )
+	for( int i = 0; i < ANIM_MaxSyncedAnims; i++ )
 	{
 		savefile->WriteFloat( animWeights[ i ] );
 	}
@@ -1481,8 +1474,6 @@ unarchives object from save game file
 */
 void idAnimBlend::Restore( idRestoreGame* savefile, const idDeclModelDef* modelDef )
 {
-	int	i;
-	
 	this->modelDef = modelDef;
 	
 	savefile->ReadInt( starttime );
@@ -1495,7 +1486,7 @@ void idAnimBlend::Restore( idRestoreGame* savefile, const idDeclModelDef* modelD
 	savefile->ReadFloat( blendStartValue );
 	savefile->ReadFloat( blendEndValue );
 	
-	for( i = 0; i < ANIM_MaxSyncedAnims; i++ )
+	for( int i = 0; i < ANIM_MaxSyncedAnims; i++ )
 	{
 		savefile->ReadFloat( animWeights[ i ] );
 	}
@@ -1612,11 +1603,9 @@ idAnimBlend::GetWeight
 */
 float idAnimBlend::GetWeight( int currentTime ) const
 {
-	int		timeDelta;
-	float	frac;
-	float	w;
+	float w;
 	
-	timeDelta = currentTime - blendStartTime;
+	int timeDelta = currentTime - blendStartTime;
 	if( timeDelta <= 0 )
 	{
 		w = blendStartValue;
@@ -1627,7 +1616,7 @@ float idAnimBlend::GetWeight( int currentTime ) const
 	}
 	else
 	{
-		frac = ( float )timeDelta / ( float )blendDuration;
+		float frac = ( float )timeDelta / ( float )blendDuration;
 		w = blendStartValue + ( blendEndValue - blendStartValue ) * frac;
 	}
 	
@@ -1983,14 +1972,12 @@ idAnimBlend::SetPlaybackRate
 */
 void idAnimBlend::SetPlaybackRate( int currentTime, float newRate )
 {
-	int animTime;
-	
 	if( rate == newRate )
 	{
 		return;
 	}
 	
-	animTime = AnimTime( currentTime );
+	int animTime = AnimTime( currentTime );
 	if( newRate == 1.0f )
 	{
 		timeOffset = animTime - ( currentTime - starttime );
@@ -2377,11 +2364,11 @@ bool idAnimBlend::BlendAnim( int currentTime, int channel, int numJoints, idJoin
 	{
 		if( allowMove )
 		{
-#ifdef VELOCITY_MOVE
+		#ifdef VELOCITY_MOVE
 			jointFrame[ 0 ].t.x = 0.0f;
-#else
+		#else
 			jointFrame[ 0 ].t.Zero();
-#endif
+		#endif
 		}
 		
 		if( anim->GetAnimFlags().anim_turn )
@@ -2497,11 +2484,6 @@ void idAnimBlend::BlendDelta( int fromtime, int totime, idVec3& blendDelta, floa
 	idVec3	pos2;
 	idVec3	animpos;
 	idVec3	delta;
-	int		time1;
-	int		time2;
-	float	lerp;
-	int		num;
-	int		i;
 	
 	if( frame || !allowMove || ( ( endtime > 0 ) && ( fromtime > endtime ) ) )
 	{
@@ -2520,18 +2502,18 @@ void idAnimBlend::BlendDelta( int fromtime, int totime, idVec3& blendDelta, floa
 		return;
 	}
 	
-	time1 = AnimTime( fromtime );
-	time2 = AnimTime( totime );
+	int time1 = AnimTime( fromtime );
+	int time2 = AnimTime( totime );
 	if( time2 < time1 )
 	{
 		time2 += anim->Length();
 	}
 	
-	num = anim->NumAnims();
+	int num = anim->NumAnims();
 	
 	pos1.Zero();
 	pos2.Zero();
-	for( i = 0; i < num; i++ )
+	for( int i = 0; i < num; i++ )
 	{
 		anim->GetOrigin( animpos, i, time1, cycle );
 		pos1 += animpos * animWeights[ i ];
@@ -2548,7 +2530,7 @@ void idAnimBlend::BlendDelta( int fromtime, int totime, idVec3& blendDelta, floa
 	}
 	else
 	{
-		lerp = weight / ( blendWeight + weight );
+		float lerp = weight / ( blendWeight + weight );
 		blendDelta += lerp * ( delta - blendDelta );
 		blendWeight += weight;
 	}
@@ -2736,8 +2718,6 @@ idDeclModelDef::CopyDecl
 */
 void idDeclModelDef::CopyDecl( const idDeclModelDef* decl )
 {
-	int i;
-	
 	FreeData();
 	
 	offset = decl->offset;
@@ -2745,7 +2725,7 @@ void idDeclModelDef::CopyDecl( const idDeclModelDef* decl )
 	skin = decl->skin;
 	
 	anims.SetNum( decl->anims.Num() );
-	for( i = 0; i < anims.Num(); i++ )
+	for( int i = 0; i < anims.Num(); ++i )
 	{
 		anims[ i ] = new( TAG_ANIM ) idAnim( this, decl->anims[ i ] );
 	}
@@ -2754,7 +2734,7 @@ void idDeclModelDef::CopyDecl( const idDeclModelDef* decl )
 	memcpy( joints.Ptr(), decl->joints.Ptr(), decl->joints.Num() * sizeof( joints[0] ) );
 	jointParents.SetNum( decl->jointParents.Num() );
 	memcpy( jointParents.Ptr(), decl->jointParents.Ptr(), decl->jointParents.Num() * sizeof( jointParents[0] ) );
-	for( i = 0; i < ANIM_NumAnimChannels; i++ )
+	for( int i = 0; i < ANIM_NumAnimChannels; i++ )
 	{
 		channelJoints[i] = decl->channelJoints[i];
 	}
@@ -2796,16 +2776,13 @@ idDeclModelDef::FindJoint
 */
 const jointInfo_t* idDeclModelDef::FindJoint( const char* name ) const
 {
-	int					i;
-	const idMD5Joint*	joint;
-	
 	if( !modelHandle )
 	{
 		return NULL;
 	}
 	
-	joint = modelHandle->GetJoints();
-	for( i = 0; i < joints.Num(); i++, joint++ )
+	auto joint = modelHandle->GetJoints();
+	for( int i = 0; i < joints.Num(); i++, joint++ )
 	{
 		if( !joint->name.Icmp( name ) )
 		{
@@ -3048,10 +3025,9 @@ bool idDeclModelDef::ParseAnim( idLexer& src, int numDefaultAnims )
 	idStr			alias;
 	idToken			realname;
 	idToken			token;
-	int				numAnims;
 	animFlags_t		flags;
 	
-	numAnims = 0;
+	int numAnims = 0;
 	memset( md5anims, 0, sizeof( md5anims ) );
 	
 	if( !src.ReadToken( &realname ) )
@@ -3064,7 +3040,7 @@ bool idDeclModelDef::ParseAnim( idLexer& src, int numDefaultAnims )
 	
 	for( i = 0; i < anims.Num(); i++ )
 	{
-		if( !strcmp( anims[ i ]->FullName(), realname ) )
+		if( !idStr::Cmp( anims[ i ]->FullName(), realname ) )
 		{
 			break;
 		}
@@ -3294,7 +3270,7 @@ bool idDeclModelDef::Parse( const char* text, const int textLength, bool allowBi
 				return false;
 			}
 			
-			const idDeclModelDef* copy = static_cast<const idDeclModelDef*>( declManager->FindType( DECL_MODELDEF, token2, false ) );
+			auto copy = declManager->FindType( DECL_MODELDEF, token2, false )->Cast<idDeclModelDef>();
 			if( !copy )
 			{
 				common->Warning( "Unknown model definition '%s'", token2.c_str() );
@@ -3540,12 +3516,10 @@ idDeclModelDef::HasAnim
 */
 bool idDeclModelDef::HasAnim( const char* name ) const
 {
-	int	i;
-	
 	// find any animations with same name
-	for( i = 0; i < anims.Num(); i++ )
+	for( int i = 0; i < anims.Num(); ++i )
 	{
-		if( !strcmp( anims[ i ]->Name(), name ) )
+		if( !idStr::Cmp( anims[ i ]->Name(), name ) )
 		{
 			return true;
 		}
@@ -3573,12 +3547,10 @@ Gets the exact anim for the name, without randomization.
 */
 int idDeclModelDef::GetSpecificAnim( const char* name ) const
 {
-	int	i;
-	
 	// find a specific animation
-	for( i = 0; i < anims.Num(); i++ )
+	for( int i = 0; i < anims.Num(); ++i )
 	{
-		if( !strcmp( anims[ i ]->FullName(), name ) )
+		if( !idStr::Cmp( anims[ i ]->FullName(), name ) )
 		{
 			return i + 1;
 		}
@@ -3610,14 +3582,10 @@ idDeclModelDef::GetAnim
 */
 int idDeclModelDef::GetAnim( const char* name ) const
 {
-	int				i;
-	int				which;
-	const int		MAX_ANIMS = 64;
-	int				animList[ MAX_ANIMS ];
-	int				numAnims;
-	int				len;
-	
-	len = strlen( name );
+	const int	MAX_ANIMS = 64;
+	int	 animList[ MAX_ANIMS ];
+
+	int len = idStr::Length( name );
 	if( len && idStr::CharIsNumeric( name[ len - 1 ] ) )
 	{
 		// find a specific animation
@@ -3625,10 +3593,10 @@ int idDeclModelDef::GetAnim( const char* name ) const
 	}
 	
 	// find all animations with same name
-	numAnims = 0;
-	for( i = 0; i < anims.Num(); i++ )
+	int numAnims = 0;
+	for( int i = 0; i < anims.Num(); ++i )
 	{
-		if( !strcmp( anims[ i ]->Name(), name ) )
+		if( !idStr::Cmp( anims[ i ]->Name(), name ) )
 		{
 			animList[ numAnims++ ] = i;
 			if( numAnims >= MAX_ANIMS )
@@ -3645,7 +3613,7 @@ int idDeclModelDef::GetAnim( const char* name ) const
 	
 	// get a random anim
 	//FIXME: don't access gameLocal here?
-	which = gameLocal.random.RandomInt( numAnims );
+	int which = gameLocal.random.RandomInt( numAnims );
 	return animList[ which ] + 1;
 }
 
@@ -3727,8 +3695,6 @@ idDeclModelDef::GetJointName
 */
 const char* idDeclModelDef::GetJointName( int jointHandle ) const
 {
-	const idMD5Joint* joint;
-	
 	if( !modelHandle )
 	{
 		return NULL;
@@ -3739,7 +3705,7 @@ const char* idDeclModelDef::GetJointName( int jointHandle ) const
 		gameLocal.Error( "idDeclModelDef::GetJointName : joint handle out of range" );
 	}
 	
-	joint = modelHandle->GetJoints();
+	auto joint = modelHandle->GetJoints();
 	return joint[ jointHandle ].name.c_str();
 }
 
@@ -3796,8 +3762,6 @@ idAnimator::idAnimator
 */
 idAnimator::idAnimator()
 {
-	int	i, j;
-	
 	modelDef				= NULL;
 	entity					= NULL;
 	numJoints				= 0;
@@ -3815,9 +3779,9 @@ idAnimator::idAnimator()
 	
 	ClearAFPose();
 	
-	for( i = ANIMCHANNEL_ALL; i < ANIM_NumAnimChannels; i++ )
+	for( int i = ANIMCHANNEL_ALL; i < ANIM_NumAnimChannels; i++ )
 	{
-		for( j = 0; j < ANIM_MaxAnimsPerChannel; j++ )
+		for( int j = 0; j < ANIM_MaxAnimsPerChannel; j++ )
 		{
 			channels[ i ][ j ].Reset( NULL );
 		}
@@ -3841,9 +3805,8 @@ idAnimator::Allocated
 */
 size_t idAnimator::Allocated() const
 {
-	size_t	size;
-	
-	size = jointMods.Allocated() + numJoints * sizeof( joints[0] ) + jointMods.Num() * sizeof( jointMods[ 0 ] ) + AFPoseJointMods.Allocated() + AFPoseJointFrame.Allocated() + AFPoseJoints.Allocated();
+	size_t size = jointMods.Allocated() + numJoints * sizeof( joints[0] ) + jointMods.Num() * sizeof( jointMods[ 0 ] ) 
+		+ AFPoseJointMods.Allocated() + AFPoseJointFrame.Allocated() + AFPoseJoints.Allocated();
 	
 	return size;
 }
@@ -4026,16 +3989,14 @@ idAnimator::FreeData
 */
 void idAnimator::FreeData()
 {
-	int	i, j;
-	
 	if( entity )
 	{
 		entity->BecomeInactive( TH_ANIMATE );
 	}
 	
-	for( i = ANIMCHANNEL_ALL; i < ANIM_NumAnimChannels; i++ )
+	for( int i = ANIMCHANNEL_ALL; i < ANIM_NumAnimChannels; i++ )
 	{
-		for( j = 0; j < ANIM_MaxAnimsPerChannel; j++ )
+		for( int j = 0; j < ANIM_MaxAnimsPerChannel; j++ )
 		{
 			channels[ i ][ j ].Reset( NULL );
 		}
@@ -4059,16 +4020,13 @@ idAnimator::PushAnims
 */
 void idAnimator::PushAnims( int channelNum, int currentTime, int blendTime )
 {
-	int			i;
-	idAnimBlend* channel;
-	
-	channel = channels[ channelNum ];
+	idAnimBlend * channel = channels[ channelNum ];
 	if( !channel[ 0 ].GetWeight( currentTime ) || ( channel[ 0 ].starttime == currentTime ) )
 	{
 		return;
 	}
 	
-	for( i = ANIM_MaxAnimsPerChannel - 1; i > 0; i-- )
+	for( int i = ANIM_MaxAnimsPerChannel - 1; i > 0; i-- )
 	{
 		channel[ i ] = channel[ i - 1 ];
 	}
@@ -4085,8 +4043,6 @@ idAnimator::SetModel
 */
 idRenderModel* idAnimator::SetModel( const char* modelname )
 {
-	int i, j;
-	
 	FreeData();
 	
 	// check if we're just clearing the model
@@ -4095,7 +4051,7 @@ idRenderModel* idAnimator::SetModel( const char* modelname )
 		return NULL;
 	}
 	
-	modelDef = static_cast<const idDeclModelDef*>( declManager->FindType( DECL_MODELDEF, modelname, false ) );
+	modelDef = declManager->FindType( DECL_MODELDEF, modelname, false )->Cast<idDeclModelDef>();
 	if( !modelDef )
 	{
 		return NULL;
@@ -4110,14 +4066,14 @@ idRenderModel* idAnimator::SetModel( const char* modelname )
 	
 	// make sure model hasn't been purged
 	modelDef->Touch();
-	
+
 	modelDef->SetupJoints( &numJoints, &joints, frameBounds, removeOriginOffset );
 	modelDef->ModelHandle()->Reset();
 	
 	// set the modelDef on all channels
-	for( i = ANIMCHANNEL_ALL; i < ANIM_NumAnimChannels; i++ )
+	for( int i = ANIMCHANNEL_ALL; i < ANIM_NumAnimChannels; i++ )
 	{
-		for( j = 0; j < ANIM_MaxAnimsPerChannel; j++ )
+		for( int j = 0; j < ANIM_MaxAnimsPerChannel; j++ )
 		{
 			channels[ i ][ j ].Reset( modelDef );
 		}
@@ -4307,17 +4263,14 @@ idAnimator::Clear
 */
 void idAnimator::Clear( int channelNum, int currentTime, int cleartime )
 {
-	int			i;
-	idAnimBlend*	blend;
-	
 	if( ( channelNum < 0 ) || ( channelNum >= ANIM_NumAnimChannels ) )
 	{
 		gameLocal.Error( "idAnimator::Clear : channel out of range" );
 		return;
 	}
 	
-	blend = channels[ channelNum ];
-	for( i = 0; i < ANIM_MaxAnimsPerChannel; i++, blend++ )
+	idAnimBlend * blend = channels[ channelNum ];
+	for( int i = 0; i < ANIM_MaxAnimsPerChannel; i++, blend++ )
 	{
 		blend->Clear( currentTime, cleartime );
 	}
@@ -4428,8 +4381,7 @@ void idAnimator::SyncAnimChannels( int channelNum, int fromChannelNum, int curre
 	// disable framecommands on the current channel so that commands aren't called twice
 	toBlend.AllowFrameCommands( false );
 	
-	if( entity )
-	{
+	if( entity ) {
 		entity->BecomeActive( TH_ANIMATE );
 	}
 }
@@ -4450,7 +4402,7 @@ void idAnimator::SetJointPos( jointHandle_t jointnum, jointModTransform_t transf
 	}
 	
 	jointMod = NULL;
-	for( i = 0; i < jointMods.Num(); i++ )
+	for( i = 0; i < jointMods.Num(); ++i )
 	{
 		if( jointMods[ i ]->jointnum == jointnum )
 		{
@@ -4498,7 +4450,7 @@ void idAnimator::SetJointAxis( jointHandle_t jointnum, jointModTransform_t trans
 	}
 	
 	jointMod = NULL;
-	for( i = 0; i < jointMods.Num(); i++ )
+	for( i = 0; i < jointMods.Num(); ++i )
 	{
 		if( jointMods[ i ]->jointnum == jointnum )
 		{
@@ -4537,14 +4489,12 @@ idAnimator::ClearJoint
 */
 void idAnimator::ClearJoint( jointHandle_t jointnum )
 {
-	int i;
-	
 	if( !modelDef || !modelDef->ModelHandle() || ( jointnum < 0 ) || ( jointnum >= numJoints ) )
 	{
 		return;
 	}
 	
-	for( i = 0; i < jointMods.Num(); i++ )
+	for( int i = 0; i < jointMods.Num(); ++i )
 	{
 		if( jointMods[ i ]->jointnum == jointnum )
 		{
@@ -4581,9 +4531,7 @@ idAnimator::ClearAllAnims
 */
 void idAnimator::ClearAllAnims( int currentTime, int cleartime )
 {
-	int	i;
-	
-	for( i = 0; i < ANIM_NumAnimChannels; i++ )
+	for( int i = 0; i < ANIM_NumAnimChannels; i++ )
 	{
 		Clear( i, currentTime, cleartime );
 	}
@@ -4599,10 +4547,6 @@ idAnimator::GetDelta
 */
 void idAnimator::GetDelta( int fromtime, int totime, idVec3& delta ) const
 {
-	int					i;
-	const idAnimBlend*	blend;
-	float				blendWeight;
-	
 	if( !modelDef || !modelDef->ModelHandle() || ( fromtime == totime ) )
 	{
 		delta.Zero();
@@ -4610,10 +4554,10 @@ void idAnimator::GetDelta( int fromtime, int totime, idVec3& delta ) const
 	}
 	
 	delta.Zero();
-	blendWeight = 0.0f;
+	float blendWeight = 0.0f;
 	
-	blend = channels[ ANIMCHANNEL_ALL ];
-	for( i = 0; i < ANIM_MaxAnimsPerChannel; i++, blend++ )
+	const idAnimBlend * blend = channels[ ANIMCHANNEL_ALL ];
+	for( int i = 0; i < ANIM_MaxAnimsPerChannel; i++, blend++ )
 	{
 		blend->BlendDelta( fromtime, totime, delta, blendWeight );
 	}
@@ -4621,7 +4565,7 @@ void idAnimator::GetDelta( int fromtime, int totime, idVec3& delta ) const
 	if( modelDef->Joints()[ 0 ].channel )
 	{
 		blend = channels[ modelDef->Joints()[ 0 ].channel ];
-		for( i = 0; i < ANIM_MaxAnimsPerChannel; i++, blend++ )
+		for( int i = 0; i < ANIM_MaxAnimsPerChannel; i++, blend++ )
 		{
 			blend->BlendDelta( fromtime, totime, delta, blendWeight );
 		}
@@ -4777,8 +4721,7 @@ bool idAnimator::GetBounds( int currentTime, idBounds& bounds )
 			{
 				gameLocal.Warning( "big frameBounds on entity '%s' with model '%s': %f,%f", entity->name.c_str(), modelDef->ModelHandle()->Name(), bounds[1][0] - bounds[0][0], bounds[1][1] - bounds[0][1] );
 			}
-			else
-			{
+			else {
 				gameLocal.Warning( "big frameBounds on model '%s': %f,%f", modelDef->ModelHandle()->Name(), bounds[1][0] - bounds[0][0], bounds[1][1] - bounds[0][1] );
 			}
 		}
@@ -4796,7 +4739,6 @@ idAnimator::InitAFPose
 */
 void idAnimator::InitAFPose()
 {
-
 	if( !modelDef )
 	{
 		return;
@@ -4871,11 +4813,11 @@ void idAnimator::FinishAFPose( int animNum, const idBounds& bounds, const int ti
 	
 	if( removeOriginOffset )
 	{
-#ifdef VELOCITY_MOVE
+	#ifdef VELOCITY_MOVE
 		jointFrame[ 0 ].t.x = 0.0f;
-#else
+	#else
 		jointFrame[ 0 ].t.Zero();
-#endif
+	#endif
 	}
 	
 	idJointMat* joints = ( idJointMat* )_alloca16( numJoints * sizeof( *joints ) );
@@ -5004,7 +4946,6 @@ idAnimator::BlendAFPose
 */
 bool idAnimator::BlendAFPose( idJointQuat* blendFrame ) const
 {
-
 	if( !AFPoseJoints.Num() )
 	{
 		return false;
@@ -5198,7 +5139,7 @@ bool idAnimator::CreateFrame( int currentTime, bool force )
 	if( entity && ( ( g_debugAnim.GetInteger() == entity->entityNumber ) || ( g_debugAnim.GetInteger() == -2 ) ) )
 	{
 		debugInfo = true;
-		gameLocal.Printf( "---------------\n%d: entity '%s':\n", gameLocal.time, entity->GetName() );
+		gameLocal.Printf( "---------------\n%d: entity '%s':\n", gameLocal.GetTime(), entity->GetName() );
 		gameLocal.Printf( "model '%s':\n", modelDef->GetModelName() );
 	}
 	else
@@ -5275,7 +5216,7 @@ bool idAnimator::CreateFrame( int currentTime, bool force )
 			
 			if( debugInfo && !AFPoseJoints.Num() && !blendWeight )
 			{
-				gameLocal.Printf( "%d: %s using default pose in model '%s'\n", gameLocal.time, channelNames[ i ], modelDef->GetModelName() );
+				gameLocal.Printf( "%d: %s using default pose in model '%s'\n", gameLocal.GetTime(), channelNames[ i ], modelDef->GetModelName() );
 			}
 		}
 	}
@@ -5759,10 +5700,8 @@ ANIM_GetModelDefFromEntityDef
 */
 const idDeclModelDef* ANIM_GetModelDefFromEntityDef( const idDict* args )
 {
-	const idDeclModelDef* modelDef;
-	
 	idStr name = args->GetString( "model" );
-	modelDef = static_cast<const idDeclModelDef*>( declManager->FindType( DECL_MODELDEF, name, false ) );
+	auto modelDef = declManager->FindType( DECL_MODELDEF, name, false )->Cast<idDeclModelDef>();
 	if( modelDef != NULL && modelDef->ModelHandle() )
 	{
 		return modelDef;
@@ -5778,13 +5717,10 @@ idGameEdit::ANIM_GetModelFromEntityDef
 */
 idRenderModel* idGameEdit::ANIM_GetModelFromEntityDef( const idDict* args )
 {
-	idRenderModel* model;
-	const idDeclModelDef* modelDef;
-	
-	model = NULL;
-	
+	idRenderModel* model = NULL;
+
 	idStr name = args->GetString( "model" );
-	modelDef = static_cast<const idDeclModelDef*>( declManager->FindType( DECL_MODELDEF, name, false ) );
+	auto modelDef =  declManager->FindType( DECL_MODELDEF, name, false )->Cast<idDeclModelDef>();
 	if( modelDef != NULL )
 	{
 		model = modelDef->ModelHandle();
@@ -5810,9 +5746,7 @@ idGameEdit::ANIM_GetModelFromEntityDef
 */
 idRenderModel* idGameEdit::ANIM_GetModelFromEntityDef( const char* classname )
 {
-	const idDict* args;
-	
-	args = gameLocal.FindEntityDefDict( classname, false );
+	auto args = gameLocal.FindEntityDefDict( classname, false );
 	if( !args )
 	{
 		return NULL;
@@ -5828,16 +5762,13 @@ idGameEdit::ANIM_GetModelOffsetFromEntityDef
 */
 const idVec3& idGameEdit::ANIM_GetModelOffsetFromEntityDef( const char* classname )
 {
-	const idDict* args;
-	const idDeclModelDef* modelDef;
-	
-	args = gameLocal.FindEntityDefDict( classname, false );
+	auto args = gameLocal.FindEntityDefDict( classname, false );
 	if( !args )
 	{
 		return vec3_origin;
 	}
 	
-	modelDef = ANIM_GetModelDefFromEntityDef( args );
+	auto modelDef = ANIM_GetModelDefFromEntityDef( args );
 	if( !modelDef )
 	{
 		return vec3_origin;
@@ -5853,11 +5784,9 @@ idGameEdit::ANIM_GetModelFromName
 */
 idRenderModel* idGameEdit::ANIM_GetModelFromName( const char* modelName )
 {
-	const idDeclModelDef* modelDef;
-	idRenderModel* model;
-	
-	model = NULL;
-	modelDef = static_cast<const idDeclModelDef*>( declManager->FindType( DECL_MODELDEF, modelName, false ) );
+	idRenderModel * model = NULL;
+
+	auto modelDef = declManager->FindType( DECL_MODELDEF, modelName, false )->Cast<idDeclModelDef>();
 	if( modelDef )
 	{
 		model = modelDef->ModelHandle();
@@ -5891,7 +5820,7 @@ const idMD5Anim* idGameEdit::ANIM_GetAnimFromEntityDef( const char* classname, c
 	
 	md5anim = NULL;
 	modelname = args->GetString( "model" );
-	modelDef = static_cast<const idDeclModelDef*>( declManager->FindType( DECL_MODELDEF, modelname, false ) );
+	modelDef = declManager->FindType( DECL_MODELDEF, modelname, false )->Cast<idDeclModelDef>();
 	if( modelDef )
 	{
 		animNum = modelDef->GetAnim( animname );
@@ -5918,7 +5847,7 @@ int idGameEdit::ANIM_GetNumAnimsFromEntityDef( const idDict* args )
 	const idDeclModelDef* modelDef;
 	
 	modelname = args->GetString( "model" );
-	modelDef = static_cast<const idDeclModelDef*>( declManager->FindType( DECL_MODELDEF, modelname, false ) );
+	modelDef = declManager->FindType( DECL_MODELDEF, modelname, false )->Cast<idDeclModelDef>();
 	if( modelDef )
 	{
 		return modelDef->NumAnims();
@@ -5937,7 +5866,7 @@ const char* idGameEdit::ANIM_GetAnimNameFromEntityDef( const idDict* args, int a
 	const idDeclModelDef* modelDef;
 	
 	modelname = args->GetString( "model" );
-	modelDef = static_cast<const idDeclModelDef*>( declManager->FindType( DECL_MODELDEF, modelname, false ) );
+	modelDef = declManager->FindType( DECL_MODELDEF, modelname, false )->Cast<idDeclModelDef>();
 	if( modelDef )
 	{
 		const idAnim* anim = modelDef->GetAnim( animNum );
@@ -6006,7 +5935,7 @@ void idGameEdit::ANIM_CreateAnimFrame( const idRenderModel* model, const idMD5An
 	
 	if( numJoints != model->NumJoints() )
 	{
-		gameLocal.Error( "ANIM_CreateAnimFrame: different # of joints in renderEntity_t than in model (%s)", model->Name() );
+		gameLocal.Error( "ANIM_CreateAnimFrame: different # of joints in renderEntityParms_t than in model (%s)", model->Name() );
 	}
 	
 	if( !model->NumJoints() )
@@ -6071,8 +6000,7 @@ idGameEdit::ANIM_CreateMeshForAnim
 */
 idRenderModel* idGameEdit::ANIM_CreateMeshForAnim( idRenderModel* model, const char* classname, const char* animname, int frame, bool remove_origin_offset )
 {
-	renderEntity_t			ent;
-	const idDict*			args;
+	renderEntityParms_t			ent;
 	const char*				temp;
 	idRenderModel*			newmodel;
 	const idMD5Anim*		 md5anim;
@@ -6088,13 +6016,13 @@ idRenderModel* idGameEdit::ANIM_CreateMeshForAnim( idRenderModel* model, const c
 		return NULL;
 	}
 	
-	args = gameLocal.FindEntityDefDict( classname, false );
+	auto args = gameLocal.FindEntityDefDict( classname, false );
 	if( !args )
 	{
 		return NULL;
 	}
 	
-	memset( &ent, 0, sizeof( ent ) );
+	ent.Clear();
 	
 	ent.bounds.Clear();
 	ent.suppressSurfaceInViewID = 0;

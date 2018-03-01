@@ -236,7 +236,7 @@ idMapPatch* idMapPatch::Parse( idLexer& src, const idVec3& origin, bool patchDef
 		if( token.type == TT_STRING )
 		{
 			idStr key = token;
-			src.ExpectTokenType( TT_STRING, 0, &token );
+			src.ExpectTokenType( TT_STRING, 0, token );
 			patch->epairs.Set( key, token );
 		}
 	}

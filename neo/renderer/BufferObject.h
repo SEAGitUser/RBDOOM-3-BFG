@@ -350,13 +350,27 @@ private:
 	DISALLOW_COPY_AND_ASSIGN( idUniformBuffer );
 };
 
-
-// idPixelPackBuffer
-// idPixelUnpackBuffer
 // idShaderStorageBuffer
 
+class idPixelPackBuffer {
+};
+
+class idPixelUnpackBuffer {
+};
 
 
+class idRenderBufferManager {
+public:
+
+	void	Init();
+	void	Shutdown();
+
+	void	BeginFrame();
+	void	FinishFrame();
+
+	void *	CreateBuffer();
+	void	DestroyBuffer();
+};
 
 
 

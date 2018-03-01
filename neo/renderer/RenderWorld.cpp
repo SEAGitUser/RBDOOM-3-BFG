@@ -138,7 +138,7 @@ void idRenderWorldLocal::ResizeInteractionTable()
 AddEntityDef
 ===================
 */
-qhandle_t idRenderWorldLocal::AddEntityDef( const renderEntity_t* re )
+qhandle_t idRenderWorldLocal::AddEntityDef( const renderEntityParms_t* re )
 {
 	// try and reuse a free spot
 	int entityHandle = entityDefs.FindNull();
@@ -167,7 +167,7 @@ visible entities
 */
 int c_callbackUpdate;
 
-void idRenderWorldLocal::UpdateEntityDef( qhandle_t entityHandle, const renderEntity_t* re )
+void idRenderWorldLocal::UpdateEntityDef( qhandle_t entityHandle, const renderEntityParms_t* re )
 {
 	if( r_skipUpdates.GetBool() )
 	{
@@ -314,7 +314,7 @@ void idRenderWorldLocal::FreeEntityDef( qhandle_t entityHandle )
 GetRenderEntity
 ==================
 */
-const renderEntity_t* idRenderWorldLocal::GetRenderEntity( qhandle_t entityHandle ) const
+const renderEntityParms_t* idRenderWorldLocal::GetRenderEntity( qhandle_t entityHandle ) const
 {
 	if( entityHandle < 0 || entityHandle >= entityDefs.Num() )
 	{
@@ -337,7 +337,7 @@ const renderEntity_t* idRenderWorldLocal::GetRenderEntity( qhandle_t entityHandl
 AddLightDef
 ==================
 */
-qhandle_t idRenderWorldLocal::AddLightDef( const renderLight_t* rlight )
+qhandle_t idRenderWorldLocal::AddLightDef( const renderLightParms_t* rlight )
 {
 	// try and reuse a free spot
 	int lightHandle = lightDefs.FindNull();	
@@ -363,7 +363,7 @@ usually be deferred until it is visible in a scene
 Does not write to the demo file, which will only be done for visible lights
 =================
 */
-void idRenderWorldLocal::UpdateLightDef( qhandle_t lightHandle, const renderLight_t* rlight )
+void idRenderWorldLocal::UpdateLightDef( qhandle_t lightHandle, const renderLightParms_t* rlight )
 {
 	if( r_skipUpdates.GetBool() )
 	{
@@ -487,7 +487,7 @@ void idRenderWorldLocal::FreeLightDef( qhandle_t lightHandle )
 GetRenderLight
 ==================
 */
-const renderLight_t* idRenderWorldLocal::GetRenderLight( qhandle_t lightHandle ) const
+const renderLightParms_t* idRenderWorldLocal::GetRenderLight( qhandle_t lightHandle ) const
 {
 	if( lightHandle < 0 || lightHandle >= lightDefs.Num() )
 	{

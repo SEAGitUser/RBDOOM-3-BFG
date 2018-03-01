@@ -35,8 +35,7 @@ static const char* VAR_GUIPREFIX = "gui::";
 static const int VAR_GUIPREFIX_LEN = idStr::Length( VAR_GUIPREFIX );
 
 class idWindow;
-class idWinVar
-{
+class idWinVar {
 public:
 	idWinVar();
 	virtual ~idWinVar();
@@ -104,11 +103,14 @@ public:
 	{
 		return eval;
 	}
+
+	template< typename Type >
+	Type * Cast() { return dynamic_cast< Type* >( this ); }
 	
 protected:
-	idDict* guiDict;
-	char* name;
-	bool eval;
+	idDict * guiDict;
+	char *		name;
+	bool		eval;
 };
 
 class idWinBool : public idWinVar

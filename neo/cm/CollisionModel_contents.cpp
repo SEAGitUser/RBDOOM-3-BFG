@@ -522,10 +522,8 @@ idCollisionModelManagerLocal::TransformedPointContents
 */
 int	idCollisionModelManagerLocal::TransformedPointContents( const idVec3& p, cmHandle_t model, const idVec3& origin, const idMat3& modelAxis )
 {
-	idVec3 p_l;
-	
 	// subtract origin offset
-	p_l = p - origin;
+	idVec3 p_l = p - origin;
 	if( modelAxis.IsRotated() )
 	{
 		p_l *= modelAxis;
@@ -553,8 +551,7 @@ int idCollisionModelManagerLocal::ContentsTrm( trace_t* results, const idVec3& s
 	if( !trm || ( trm->bounds[1][0] - trm->bounds[0][0] <= 0.0f &&
 				  trm->bounds[1][1] - trm->bounds[0][1] <= 0.0f &&
 				  trm->bounds[1][2] - trm->bounds[0][2] <= 0.0f ) )
-	{
-	
+	{	
 		results->c.contents = idCollisionModelManagerLocal::TransformedPointContents( start, model, modelOrigin, modelAxis );
 		results->fraction = ( results->c.contents == 0 );
 		results->endpos = start;

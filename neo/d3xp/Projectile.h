@@ -129,7 +129,7 @@ protected:
 	int						thrust_end;
 	float					damagePower;
 	
-	renderLight_t			renderLight;
+	renderLightParms_t			renderLight;
 	qhandle_t				lightDefHandle;				// handle to renderer light def
 	idVec3					lightOffset;
 	int						lightStartTime;
@@ -242,7 +242,7 @@ private:
 struct beamTarget_t
 {
 	idEntityPtr<idEntity>	target;
-	renderEntity_t			renderEntity;
+	renderEntityParms_t			renderEntity;
 	qhandle_t				modelDefHandle;
 };
 
@@ -264,7 +264,7 @@ public :
 	
 private:
 	idList<beamTarget_t, TAG_PROJECTILE>	beamTargets;
-	renderEntity_t			secondModel;
+	renderEntityParms_t			secondModel;
 	qhandle_t				secondModelDefHandle;
 	int						nextDamageTime;
 	idStr					damageFreq;

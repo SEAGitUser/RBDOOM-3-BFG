@@ -155,7 +155,7 @@ void			GL_SetWrapperConfig( const wrapperConfig_t& config );
 void			GL_SetTimeDelta( uint64 delta );	// delta from GPU to CPU microseconds
 void			GL_StartFrame( int frame );			// inserts a timing mark for the start of the GPU frame
 void			GL_EndFrame();						// inserts a timing mark for the end of the GPU frame
-void			GL_WaitForEndFrame();				// wait for the GPU to reach the last end frame marker
+void			GL_WaitForEndFrame( uint64 gpuFrameNanoseconds );	// wait for the GPU to reach the last end frame marker
 void			GL_GetLastFrameTime( uint64& startGPUTimeMicroSec, uint64& endGPUTimeMicroSec );	// GPU time between GL_StartFrame() and GL_EndFrame()
 void			GL_StartDepthPass( const idScreenRect& rect );
 void			GL_FinishDepthPass();
@@ -193,7 +193,7 @@ void			GL_Clear( bool color, bool depth, bool stencil, byte stencilValue, float 
 void			GL_ClearDepth( const float value = 1.0f );
 void			GL_ClearColor( const float r = 0.0f, const float g = 0.0f, const float b = 0.0f, const float a = 1.0f, const int iColorBuffer = 0 );
 
-void			GL_PolygonOffset( float scale, float bias );
+void			GL_PolygonOffset( float scale, float bias ); // scale bias fill //clamp
 void			GL_DepthBoundsTest( const float zmin, const float zmax );
 //void			GL_Color( float* color );
 void			GL_Color( const idVec3& color );

@@ -234,8 +234,8 @@ void idGrabber::StartDrag( idEntity* grabEnt, int id )
 	idPlayer* thePlayer = owner.GetEntity();
 	
 	holdingAF = false;
-	dragFailTime = gameLocal.slow.time;
-	startDragTime = gameLocal.slow.time;
+	dragFailTime = gameLocal.GetTimeGroupTime( TIME_GROUP1 );
+	startDragTime = gameLocal.GetTimeGroupTime( TIME_GROUP1 );
 	
 	oldImpulseSequence = thePlayer->usercmd.impulseSequence;
 	
@@ -383,7 +383,7 @@ void idGrabber::StopDrag( bool dropOnly )
 			af_Phys->PutToRest();
 			af_Phys->Activate();
 			
-			af_Phys->SetTimeScaleRamp( MS2SEC( gameLocal.slow.time ) - 1.5f, MS2SEC( gameLocal.slow.time ) + 1.0f );
+			af_Phys->SetTimeScaleRamp( MS2SEC( gameLocal.GetTimeGroupTime( TIME_GROUP1 ) ) - 1.5f, MS2SEC( gameLocal.GetTimeGroupTime( TIME_GROUP1 ) ) + 1.0f );
 		}
 		
 		// If the object isn't near its goal, just drop it in place.
@@ -400,8 +400,7 @@ void idGrabber::StopDrag( bool dropOnly )
 				ebarrel->StopBurning();
 			}
 		}
-		else
-		{
+		else {
 			// Shoot the object forward
 			ent->ApplyImpulse( thePlayer, 0, ent->GetPhysics()->GetOrigin(), thePlayer->firstPersonViewAxis[0] * THROW_SCALE * ent->GetPhysics()->GetMass() );
 			thePlayer->StartSoundShader( declManager->FindSound( "grabber_release" ), SND_CHANNEL_WEAPON, 0, false, NULL );
@@ -457,7 +456,7 @@ void idGrabber::StopDrag( bool dropOnly )
 		warpId = -1;
 	}
 	
-	lastFiredTime = gameLocal.time;
+	lastFiredTime = gameLocal.GetTime();
 	dragEnt = NULL;
 	endTime = 0;
 }
@@ -473,7 +472,7 @@ int idGrabber::Update( idPlayer* player, bool hide )
 	idEntity* newEnt;
 	
 	// pause before allowing refire
-	if( lastFiredTime + FIRING_DELAY > gameLocal.time )
+	if( lastFiredTime + FIRING_DELAY > gameLocal.GetTime() )
 	{
 		return 3;
 	}
@@ -484,13 +483,13 @@ int idGrabber::Update( idPlayer* player, bool hide )
 		StopDrag( true );
 		if( hide )
 		{
-			lastFiredTime = gameLocal.time - FIRING_DELAY + 250;
+			lastFiredTime = gameLocal.GetTime() - FIRING_DELAY + 250;
 		}
 		return 3;
 	}
 	
 	// Check if object being held has been removed (dead demon, projectile, etc.)
-	if( endTime > gameLocal.time )
+	if( endTime > gameLocal.GetTime() )
 	{
 		bool abort = !dragEnt.IsValid();
 		
@@ -593,9 +592,8 @@ int idGrabber::Update( idPlayer* player, bool hide )
 	
 	if( common->IsMultiplayer() )
 	{
-	
 		// if we've marched backwards
-		if( gameLocal.slow.time < startDragTime )
+		if( gameLocal.GetTimeGroupTime( TIME_GROUP1 ) < startDragTime )
 		{
 			allow = false;
 		}
@@ -614,7 +612,7 @@ int idGrabber::Update( idPlayer* player, bool hide )
 			StopDrag( false );
 			return 3;
 		}
-		if( gameLocal.time > endTime )
+		if( gameLocal.GetTime() > endTime )
 		{
 			StopDrag( true );
 			return 3;
@@ -652,7 +650,7 @@ int idGrabber::Update( idPlayer* player, bool hide )
 		goalPos = player->firstPersonViewOrigin + localPlayerPoint * player->firstPersonViewAxis;
 		
 		drag.SetGoalPosition( goalPos );
-		drag.Evaluate( gameLocal.time );
+		drag.Evaluate( gameLocal.GetTime() );
 		
 		// If an object is flying too fast toward the player, stop it hard
 		if( g_grabberHardStop.GetBool() )
@@ -711,15 +709,14 @@ int idGrabber::Update( idPlayer* player, bool hide )
 		// If the object is stuck away from its intended position for more than 500ms, let it go.
 		if( drag.GetDistanceToGoal() > DRAG_FAIL_LEN )
 		{
-			if( dragFailTime < ( gameLocal.slow.time - 500 ) )
+			if( dragFailTime < ( gameLocal.GetTimeGroupTime( TIME_GROUP1 ) - 500 ) )
 			{
 				StopDrag( true );
 				return 3;
 			}
 		}
-		else
-		{
-			dragFailTime = gameLocal.slow.time;
+		else {
+			dragFailTime = gameLocal.GetTimeGroupTime( TIME_GROUP1 );
 		}
 		
 		// Currently holding an object
@@ -740,7 +737,7 @@ void idGrabber::UpdateBeams()
 	jointHandle_t	muzzle_joint;
 	idVec3	muzzle_origin;
 	idMat3	muzzle_axis;
-	renderEntity_t* re;
+	renderEntityParms_t* re;
 	
 	if( !beam )
 	{
@@ -759,7 +756,7 @@ void idGrabber::UpdateBeams()
 		muzzle_joint = thePlayer->weapon.GetEntity()->GetAnimator()->GetJointHandle( "particle_upper" );
 		if( muzzle_joint != INVALID_JOINT )
 		{
-			thePlayer->weapon.GetEntity()->GetJointWorldTransform( muzzle_joint, gameLocal.time, muzzle_origin, muzzle_axis );
+			thePlayer->weapon.GetEntity()->GetJointWorldTransform( muzzle_joint, gameLocal.GetTime(), muzzle_origin, muzzle_axis );
 		}
 		else
 		{

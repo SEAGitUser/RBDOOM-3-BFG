@@ -58,50 +58,50 @@ class idEntity;
 class idSaveGame;
 class idRestoreGame;
 
-typedef struct
+struct frameBlend_t
 {
 	int		cycleCount;	// how many times the anim has wrapped to the begining (0 for clamped anims)
 	int		frame1;
 	int		frame2;
 	float	frontlerp;
 	float	backlerp;
-} frameBlend_t;
+};
 
-typedef struct
+struct jointAnimInfo_t
 {
 	int						nameIndex;
 	int						parentNum;
 	int						animBits;
 	int						firstComponent;
-} jointAnimInfo_t;
+};
 
-typedef struct
+struct jointInfo_t
 {
 	jointHandle_t			num;
 	jointHandle_t			parentNum;
 	int						channel;
-} jointInfo_t;
+};
 
 //
 // joint modifier modes.  make sure to change script/doom_defs.script if you add any, or change their order.
 //
-typedef enum
+enum jointModTransform_t
 {
 	JOINTMOD_NONE,				// no modification
 	JOINTMOD_LOCAL,				// modifies the joint's position or orientation in joint local space
 	JOINTMOD_LOCAL_OVERRIDE,	// sets the joint's position or orientation in joint local space
 	JOINTMOD_WORLD,				// modifies joint's position or orientation in model space
 	JOINTMOD_WORLD_OVERRIDE		// sets the joint's position or orientation in model space
-} jointModTransform_t;
+};
 
-typedef struct
+struct jointMod_t
 {
 	jointHandle_t			jointnum;
 	idMat3					mat;
 	idVec3					pos;
 	jointModTransform_t		transform_pos;
 	jointModTransform_t		transform_axis;
-} jointMod_t;
+};
 
 #define	ANIM_BIT_TX			0
 #define	ANIM_BIT_TY			1
@@ -117,7 +117,7 @@ typedef struct
 #define	ANIM_QY				BIT( ANIM_BIT_QY )
 #define	ANIM_QZ				BIT( ANIM_BIT_QZ )
 
-typedef enum
+enum frameCommandType_t
 {
 	FC_SCRIPTFUNCTION,
 	FC_SCRIPTFUNCTIONOBJECT,
@@ -159,40 +159,39 @@ typedef enum
 	FC_ENABLE_LEG_IK,
 	FC_DISABLE_LEG_IK,
 	FC_RECORDDEMO,
-	FC_AVIGAME
-	, FC_LAUNCH_PROJECTILE,
+	FC_AVIGAME,
+	FC_LAUNCH_PROJECTILE,
 	FC_TRIGGER_FX,
 	FC_START_EMITTER,
 	FC_STOP_EMITTER,
-} frameCommandType_t;
+};
 
-typedef struct
+struct frameLookup_t
 {
 	int						num;
 	int						firstCommand;
-} frameLookup_t;
+};
 
-typedef struct
+struct frameCommand_t
 {
 	frameCommandType_t		type;
 	idStr*					string;
 	
-	union
-	{
+	union {
 		const idSoundShader*	soundShader;
 		const function_t*	function;
 		const idDeclSkin*	skin;
 		int					index;
 	};
-} frameCommand_t;
+};
 
-typedef struct
+struct animFlags_t
 {
 	bool					prevent_idle_override		: 1;
 	bool					random_cycle_start			: 1;
 	bool					ai_no_turn					: 1;
 	bool					anim_turn					: 1;
-} animFlags_t;
+};
 
 /*
 ==============================================================================================
@@ -202,8 +201,7 @@ typedef struct
 ==============================================================================================
 */
 
-class idMD5Anim
-{
+class idMD5Anim {
 private:
 	int						numFrames;
 	int						frameRate;
@@ -225,10 +223,7 @@ public:
 	void					Free();
 	bool					Reload();
 	size_t					Allocated() const;
-	size_t					Size() const
-	{
-		return sizeof( *this ) + Allocated();
-	};
+	size_t					Size() const { return sizeof( *this ) + Allocated(); };
 	bool					LoadAnim( const char* filename );
 	bool					LoadBinary( idFile* file, ID_TIME_T sourceTimeStamp );
 	void					WriteBinary( idFile* file, ID_TIME_T sourceTimeStamp );
@@ -262,8 +257,7 @@ public:
 ==============================================================================================
 */
 
-class idAnim
-{
+class idAnim {
 private:
 	const class idDeclModelDef*	modelDef;
 	const idMD5Anim*				anims[ ANIM_MaxSyncedAnims ];
@@ -309,8 +303,7 @@ public:
 ==============================================================================================
 */
 
-class idDeclModelDef : public idDecl
-{
+class idDeclModelDef : public idDecl {
 public:
 	idDeclModelDef();
 	~idDeclModelDef();
@@ -368,8 +361,7 @@ private:
 ==============================================================================================
 */
 
-class idAnimBlend
-{
+class idAnimBlend {
 private:
 	const class idDeclModelDef*	modelDef;
 	int							starttime;
@@ -442,15 +434,14 @@ public:
 ==============================================================================================
 */
 
-typedef enum
+enum AFJointModType_t
 {
 	AF_JOINTMOD_AXIS,
 	AF_JOINTMOD_ORIGIN,
 	AF_JOINTMOD_BOTH
-} AFJointModType_t;
+};
 
-class idAFPoseJointMod
-{
+class idAFPoseJointMod {
 public:
 	idAFPoseJointMod();
 	
@@ -474,8 +465,7 @@ ID_INLINE idAFPoseJointMod::idAFPoseJointMod()
 ==============================================================================================
 */
 
-class idAnimator
-{
+class idAnimator {
 public:
 	idAnimator();
 	~idAnimator();
@@ -593,8 +583,7 @@ private:
 ==============================================================================================
 */
 
-class idAnimManager
-{
+class idAnimManager {
 public:
 	idAnimManager();
 	~idAnimManager();

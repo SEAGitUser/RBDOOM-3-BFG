@@ -229,7 +229,7 @@ public:
 	
 	bool					noGrab;
 	
-	renderEntity_t			xrayEntity;
+	renderEntityParms_t			xrayEntity;
 	qhandle_t				xrayEntityHandle;
 	const idDeclSkin* 		xraySkin;
 	
@@ -275,7 +275,7 @@ public:
 	
 	// visuals
 	virtual void			Present();
-	virtual renderEntity_t* GetRenderEntity();
+	virtual renderEntityParms_t* GetRenderEntity();
 	virtual int				GetModelDefHandle();
 	virtual void			SetModel( const char* modelname );
 	void					SetSkin( const idDeclSkin* skin );
@@ -302,8 +302,8 @@ public:
 	
 	// animation
 	virtual bool			UpdateAnimationControllers();
-	bool					UpdateRenderEntity( renderEntity_s* renderEntity, const renderViewParms_t* renderView );
-	static bool				ModelCallback( renderEntity_s* renderEntity, const renderViewParms_t* renderView );
+	bool					UpdateRenderEntity( renderEntityParms_t* renderEntity, const renderViewParms_t* renderView );
+	static bool				ModelCallback( renderEntityParms_t* renderEntity, const renderViewParms_t* renderView );
 	virtual idAnimator* 	GetAnimator();	// returns animator object used by this entity
 	
 	// sound
@@ -510,7 +510,7 @@ public:
 	}
 	
 protected:
-	renderEntity_t			renderEntity;						// used to present a model to the renderer
+	renderEntityParms_t			renderEntity;						// used to present a model to the renderer
 	int						modelDefHandle;						// handle to static renderer model
 	refSound_t				refSound;							// used to present sound to the audio engine
 	

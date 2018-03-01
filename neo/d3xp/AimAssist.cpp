@@ -120,8 +120,7 @@ void idAimAssist::UpdateNewAimAssist()
 	}
 	
 	if( entity != NULL )
-	{
-	
+	{	
 		UpdateFriction( entity, targetPos );
 		
 		// by default we don't allow adhesion when we are standing still
@@ -279,7 +278,6 @@ idAimAssist::ComputeEntityAimAssistScore
 */
 float idAimAssist::ComputeEntityAimAssistScore( const idVec3& targetPos, const idVec3& cameraPos, const idMat3& cameraAxis )
 {
-
 	float score = 0.0f;
 	
 	idVec3 dirToTarget = targetPos - cameraPos;
@@ -315,7 +313,6 @@ idAimAssist::UpdateAdhesion
 */
 void idAimAssist::UpdateAdhesion( idEntity* pTarget, const idVec3& targetPos )
 {
-
 	if( !aa_targetAdhesionEnable.GetBool() )
 	{
 		return;
@@ -369,7 +366,6 @@ idAimAssist::ComputeFrictionRadius
 */
 float idAimAssist::ComputeFrictionRadius( float distanceToTarget )
 {
-
 	if( ( distanceToTarget <= idMath::FLT_SMALLEST_NON_DENORMAL ) || distanceToTarget > aa_targetFrictionMaxDistance.GetFloat() )
 	{
 		return aa_targetFrictionRadius.GetFloat();
@@ -396,7 +392,6 @@ idAimAssist::UpdateFriction
 */
 void idAimAssist::UpdateFriction( idEntity* pTarget, const idVec3& targetPos )
 {
-
 	if( !aa_targetFrictionEnable.GetBool() )
 	{
 		return;
@@ -435,7 +430,6 @@ idAimAssist::ComputeTargetPos
 */
 bool idAimAssist::ComputeTargetPos( idEntity* entity, idVec3& primaryTargetPos, idVec3& secondaryTargetPos )
 {
-
 	primaryTargetPos = vec3_zero;
 	secondaryTargetPos = vec3_zero;
 	

@@ -67,7 +67,7 @@ bool idRenderModelBeam::IsLoaded() const
 idRenderModelBeam::InstantiateDynamicModel
 ===============
 */
-idRenderModel* idRenderModelBeam::InstantiateDynamicModel( const struct renderEntity_s* renderEntity, const idRenderView* viewDef, idRenderModel* cachedModel )
+idRenderModel* idRenderModelBeam::InstantiateDynamicModel( const struct renderEntityParms_t* renderEntity, const idRenderView* viewDef, idRenderModel* cachedModel )
 {
 	idRenderModelStatic* staticModel;
 	idTriangles* tri;
@@ -197,7 +197,7 @@ idRenderModel* idRenderModelBeam::InstantiateDynamicModel( const struct renderEn
 idRenderModelBeam::Bounds
 ===============
 */
-idBounds idRenderModelBeam::Bounds( const struct renderEntity_s* renderEntity ) const
+idBounds idRenderModelBeam::Bounds( const struct renderEntityParms_t* renderEntity ) const
 {
 	idBounds b;
 	

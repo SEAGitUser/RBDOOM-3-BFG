@@ -274,7 +274,7 @@ void R_ModulateLights_f( const idCmdArgs& args )
 			count++;
 			for( int j = 0; j < 3; j++ )
 			{
-				auto parms = const_cast<renderLight_t*>( &light->GetParms() );
+				auto parms = const_cast<renderLightParms_t*>( &light->GetParms() );
 				parms->shaderParms[ j ] *= modulate[ j ];
 			}
 		}

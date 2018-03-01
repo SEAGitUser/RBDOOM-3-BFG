@@ -113,7 +113,7 @@ static void * GL_CreateBuffer( const char *class_name, const void *class_ptr, GL
 	if( GLEW_KHR_debug )
 	{
 		idStrStatic<128> name;
-		name.Format<128>( "%s(%p.%u)", class_name, class_ptr, bufferObject );
+		name.Format( "%s(%p.%u)", class_name, class_ptr, bufferObject );
 		glObjectLabel( GL_BUFFER, bufferObject, name.Length(), name.c_str() );
 	}
 

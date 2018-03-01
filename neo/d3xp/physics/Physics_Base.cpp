@@ -859,12 +859,9 @@ idPhysics_Base::ActivateContactEntities
 */
 void idPhysics_Base::ActivateContactEntities()
 {
-	int i;
-	idEntity* ent;
-	
-	for( i = 0; i < contactEntities.Num(); i++ )
+	for( int i = 0; i < contactEntities.Num(); ++i )
 	{
-		ent = contactEntities[i].GetEntity();
+		auto ent = contactEntities[i].GetEntity();
 		if( ent )
 		{
 			ent->ActivatePhysics( self );

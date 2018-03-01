@@ -977,7 +977,7 @@ void idWeapon::InitWorldModel( const idDeclEntityDef* def )
 		ent->SetUseClientInterpolation( false );
 		
 		// supress model in player views, but allow it in mirrors and remote views
-		renderEntity_t* worldModelRenderEntity = ent->GetRenderEntity();
+		renderEntityParms_t* worldModelRenderEntity = ent->GetRenderEntity();
 		if( worldModelRenderEntity )
 		{
 			worldModelRenderEntity->suppressSurfaceInViewID = owner->entityNumber + 1;
@@ -2772,7 +2772,7 @@ void idWeapon::PresentWeapon( bool showViewModel )
 					if( part->emitter != NULL )
 					{
 						//Manually update the position of the emitter so it follows the weapon
-						renderEntity_t* rendEnt = part->emitter->GetRenderEntity();
+						renderEntityParms_t* rendEnt = part->emitter->GetRenderEntity();
 						GetGlobalJointTransform( true, part->joint, rendEnt->origin, rendEnt->axis );
 						
 						if( part->emitter->GetModelDefHandle() != -1 )

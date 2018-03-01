@@ -298,7 +298,7 @@ public:
 #include "text/WStr.h"
 #include "text/StrStatic.h"
 //#include "text/StrSimple.h"
-//#include "text/StrBuilder.h"
+#include "text/StrBuilder.h"
 //#include "Lexer.h"
 //#include "Parser.h"
 #include "text/Base64.h"
@@ -356,6 +356,7 @@ public:
 #include "AutoPtr.h"
 #include "Swap.h"
 #include "Callback.h"
+#include "Color.h"
 #include "ParallelJobList.h"
 #include "TextUtilities.h"
 

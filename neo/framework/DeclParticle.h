@@ -39,8 +39,7 @@ If you have questions concerning this license or the applicable additional terms
 
 static const int MAX_PARTICLE_STAGES	= 32;
 
-class idParticleParm
-{
+class idParticleParm {
 public:
 	idParticleParm()
 	{
@@ -52,69 +51,63 @@ public:
 	float					from;
 	float					to;
 	
-	float					Eval( float frac, idRandom& rand ) const;
-	float					Integrate( float frac, idRandom& rand ) const;
+	float					Eval( float frac, idRandom& ) const;
+	float					Integrate( float frac, idRandom& ) const;
 };
 
 
-typedef enum
+enum prtDistribution_t
 {
 	PDIST_RECT,				// ( sizeX sizeY sizeZ )
 	PDIST_CYLINDER,			// ( sizeX sizeY sizeZ )
 	PDIST_SPHERE			// ( sizeX sizeY sizeZ ringFraction )
 	// a ringFraction of zero allows the entire sphere, 0.9 would only
 	// allow the outer 10% of the sphere
-} prtDistribution_t;
+};
 
-typedef enum
+enum prtDirection_t
 {
 	PDIR_CONE,				// parm0 is the solid cone angle
 	PDIR_OUTWARD			// direction is relative to offset from origin, parm0 is an upward bias
-} prtDirection_t;
+};
 
-typedef enum
+enum prtCustomPth_t
 {
 	PPATH_STANDARD,
 	PPATH_HELIX,			// ( sizeX sizeY sizeZ radialSpeed climbSpeed )
 	PPATH_FLIES,
 	PPATH_ORBIT,
 	PPATH_DRIP
-} prtCustomPth_t;
+};
 
-typedef enum
+enum prtOrientation_t
 {
 	POR_VIEW,
 	POR_AIMED,				// angle and aspect are disregarded
 	POR_X,
 	POR_Y,
 	POR_Z
-} prtOrientation_t;
+};
 
-typedef struct renderEntity_s renderEntity_t;
-typedef struct renderView_s renderViewParms_t;
-
-typedef struct
+struct particleGen_t
 {
-	const renderEntity_t* 	renderEnt;			// for shaderParms, etc
-	const renderViewParms_t* 	renderView;
+	const struct renderEntityParms_t * renderEnt;			// for shaderParms, etc
+	const struct renderViewParms_t * renderView;
 	int						index;				// particle number in the system
 	float					frac;				// 0.0 to 1.0
 	idRandom				random;
 	idVec3					origin;				// dynamic smoke particles can have individual origins and axis
 	idMat3					axis;
-	
-	
+		
 	float					age;				// in seconds, calculated as fraction * stage->particleLife
 	idRandom				originalRandom;		// needed so aimed particles can reset the random for another origin calculation
 	float					animationFrameFrac;	// set by ParticleTexCoords, used to make the cross faded version
-} particleGen_t;
-
+};
 
 //
 // single particle stage
 //
-class idParticleStage
-{
+class idParticleStage {
 public:
 	idParticleStage();
 	~idParticleStage() {}
@@ -122,12 +115,12 @@ public:
 	void					Default();
 	int						NumQuadsPerParticle() const;	// includes trails and cross faded animations
 	// returns the number of verts created, which will range from 0 to 4*NumQuadsPerParticle()
-	int						CreateParticle( particleGen_t* g, idDrawVert* verts ) const;
+	int						CreateParticle( particleGen_t*, idDrawVert* verts ) const;
 	
-	void					ParticleOrigin( particleGen_t* g, idVec3& origin ) const;
-	int						ParticleVerts( particleGen_t* g, const idVec3 origin, idDrawVert* verts ) const;
-	void					ParticleTexCoords( particleGen_t* g, idDrawVert* verts ) const;
-	void					ParticleColors( particleGen_t* g, idDrawVert* verts ) const;
+	void					ParticleOrigin( particleGen_t*, idVec3& origin ) const;
+	int						ParticleVerts( particleGen_t*, const idVec3 origin, idDrawVert* verts ) const;
+	void					ParticleTexCoords( particleGen_t*, idDrawVert* verts ) const;
+	void					ParticleColors( particleGen_t*, idDrawVert* verts ) const;
 	
 	const char* 			GetCustomPathName();
 	const char* 			GetCustomPathDesc();
@@ -216,8 +209,8 @@ public:
 	bool					Save( const char* fileName = NULL );
 	
 	// Loaded instead of re-parsing, written if MD5 hash different
-	bool					LoadBinary( idFile* file, unsigned int checksum );
-	void					WriteBinary( idFile* file, unsigned int checksum );
+	bool					LoadBinary( idFile*, unsigned int checksum );
+	void					WriteBinary( idFile*, unsigned int checksum );
 	
 	idList<idParticleStage*, TAG_IDLIB_LIST_DECL>stages;
 	idBounds				bounds;
@@ -225,12 +218,12 @@ public:
 	
 private:
 	bool					RebuildTextSource();
-	void					GetStageBounds( idParticleStage* stage );
+	void					GetStageBounds( idParticleStage* );
 	idParticleStage* 		ParseParticleStage( idLexer& src );
 	void					ParseParms( idLexer& src, float* parms, int maxParms );
-	void					ParseParametric( idLexer& src, idParticleParm* parm );
-	void					WriteStage( idFile* f, idParticleStage* stage );
-	void					WriteParticleParm( idFile* f, idParticleParm* parm, const char* name );
+	void					ParseParametric( idLexer& src, idParticleParm* );
+	void					WriteStage( idFile* f, idParticleStage* );
+	void					WriteParticleParm( idFile*, idParticleParm*, const char* name );
 };
 
 #endif /* !__DECLPARTICLE_H__ */

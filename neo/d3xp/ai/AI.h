@@ -405,7 +405,7 @@ protected:
 	bool					useBoneAxis;				// use the bone vs the model axis
 	idList<particleEmitter_t, TAG_AI> particles;				// particle data
 	
-	renderLight_t			worldMuzzleFlash;			// positioned on world weapon bone
+	renderLightParms_t			worldMuzzleFlash;			// positioned on world weapon bone
 	int						worldMuzzleFlashHandle;
 	jointHandle_t			flashJointWorld;
 	int						muzzleFlashEnd;

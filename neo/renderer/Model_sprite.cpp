@@ -66,7 +66,7 @@ bool idRenderModelSprite::IsLoaded() const
 idRenderModelSprite::InstantiateDynamicModel
 ===============
 */
-idRenderModel* 	idRenderModelSprite::InstantiateDynamicModel( const struct renderEntity_s* renderEntity, const idRenderView* viewDef, idRenderModel* cachedModel )
+idRenderModel* 	idRenderModelSprite::InstantiateDynamicModel( const struct renderEntityParms_t* renderEntity, const idRenderView* viewDef, idRenderModel* cachedModel )
 {
 	idRenderModelStatic* staticModel;
 	idTriangles* tri;
@@ -186,7 +186,7 @@ idRenderModel* 	idRenderModelSprite::InstantiateDynamicModel( const struct rende
 idRenderModelSprite::Bounds
 ===============
 */
-idBounds idRenderModelSprite::Bounds( const struct renderEntity_s* renderEntity ) const
+idBounds idRenderModelSprite::Bounds( const struct renderEntityParms_t* renderEntity ) const
 {
 	idBounds b;
 	

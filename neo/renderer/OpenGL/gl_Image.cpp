@@ -578,8 +578,8 @@ void idImage::AllocImage()
 
 	if( GLEW_KHR_debug )
 	{
-		idStrStatic<128> name;
-		name.Format<128>( "idImage(%p.%u)", this, tex.texnum );
+		idStrStatic<MAX_IMAGE_NAME/2> name;
+		name.Format( "idImage(%p.%u)", this, tex.texnum );
 		glObjectLabel( GL_TEXTURE, tex.texnum, name.Length(), name.c_str() );
 	}
 

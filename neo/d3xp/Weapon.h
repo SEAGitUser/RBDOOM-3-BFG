@@ -80,7 +80,7 @@ typedef struct
 	int				startTime;
 	jointHandle_t	joint;
 	int				lightHandle;
-	renderLight_t	light;
+	renderLightParms_t	light;
 } WeaponLight_t;
 
 class idWeapon : public idAnimatedEntity
@@ -290,14 +290,14 @@ private:
 	idStr					itemDesc;
 	
 	// view weapon gui light
-	renderLight_t			guiLight;
+	renderLightParms_t			guiLight;
 	int						guiLightHandle;
 	
 	// muzzle flash
-	renderLight_t			muzzleFlash;		// positioned on view weapon bone
+	renderLightParms_t			muzzleFlash;		// positioned on view weapon bone
 	int						muzzleFlashHandle;
 	
-	renderLight_t			worldMuzzleFlash;	// positioned on world weapon bone
+	renderLightParms_t			worldMuzzleFlash;	// positioned on world weapon bone
 	int						worldMuzzleFlashHandle;
 	
 	float					fraccos;
@@ -368,7 +368,7 @@ private:
 	// this also assumes a nozzle light atm
 	int						nozzleFxFade;		// time it takes to fade between the effects
 	int						lastAttack;			// last time an attack occured
-	renderLight_t			nozzleGlow;			// nozzle light
+	renderLightParms_t			nozzleGlow;			// nozzle light
 	int						nozzleGlowHandle;	// handle for nozzle light
 	
 	idVec3					nozzleGlowColor;	// color of the nozzle glow

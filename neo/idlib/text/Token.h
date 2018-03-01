@@ -91,7 +91,7 @@ public:
 	void			operator=( const char* text );
 	//idToken&		operator=( const idToken& rhs );
 
-	ID_INLINE bool	Is( const char *text, const bool caseSensitive = false ) const {
+	ID_INLINE bool	is( const char *text, const bool caseSensitive = false ) const {
 		return caseSensitive ? !Cmp( text ) : !Icmp( text );
 	}
 
@@ -196,7 +196,7 @@ ID_INLINE int idToken::WhiteSpaceBeforeToken() const
 ID_INLINE void idToken::AppendDirty( const char a )
 {
 	EnsureAlloced( len + 2, true );
-	data[len++] = a;
+	data[ len++ ] = a;
 }
 
 ID_INLINE void idToken::SetIntValue( unsigned int intvalue ) 

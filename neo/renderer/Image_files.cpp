@@ -275,6 +275,7 @@ static void LoadTGA( const char* name, byte** pic, int* width, int* height, ID_T
 						*pixbuf++ = blue;
 						*pixbuf++ = 255;
 						break;
+
 					case 32:
 						blue = *buf_p++;
 						green = *buf_p++;
@@ -285,6 +286,7 @@ static void LoadTGA( const char* name, byte** pic, int* width, int* height, ID_T
 						*pixbuf++ = blue;
 						*pixbuf++ = alphabyte;
 						break;
+
 					default:
 						common->Error( "LoadTGA( %s ): illegal pixel_size '%d'\n", name, targa_header.pixel_size );
 						break;
@@ -318,12 +320,14 @@ static void LoadTGA( const char* name, byte** pic, int* width, int* height, ID_T
 							red = *buf_p++;
 							alphabyte = 255;
 							break;
+
 						case 32:
 							blue = *buf_p++;
 							green = *buf_p++;
 							red = *buf_p++;
 							alphabyte = *buf_p++;
 							break;
+
 						default:
 							common->Error( "LoadTGA( %s ): illegal pixel_size '%d'\n", name, targa_header.pixel_size );
 							break;
@@ -366,6 +370,7 @@ static void LoadTGA( const char* name, byte** pic, int* width, int* height, ID_T
 								*pixbuf++ = blue;
 								*pixbuf++ = 255;
 								break;
+
 							case 32:
 								blue = *buf_p++;
 								green = *buf_p++;
@@ -376,6 +381,7 @@ static void LoadTGA( const char* name, byte** pic, int* width, int* height, ID_T
 								*pixbuf++ = blue;
 								*pixbuf++ = alphabyte;
 								break;
+
 							default:
 								common->Error( "LoadTGA( %s ): illegal pixel_size '%d'\n", name, targa_header.pixel_size );
 								break;
@@ -841,17 +847,15 @@ void R_WritePNG( const char* filename, const byte* data, int bytesPerPixel, int 
 //===================================================================
 
 
-typedef struct
-{
+struct imageExtToLoader_t {
 	const char*	ext;
-	void	( *ImageLoader )( const char* filename, unsigned char** pic, int* width, int* height, ID_TIME_T* timestamp );
-} imageExtToLoader_t;
-
-static imageExtToLoader_t imageLoaders[] =
+	void ( *ImageLoader )( const char* filename, unsigned char** pic, int* width, int* height, ID_TIME_T* timestamp );
+}
+	imageLoaders[] =
 {
-	{"png", LoadPNG},
-	{"tga", LoadTGA},
-	{"jpg", LoadJPG},
+	{ "png", LoadPNG },
+	{ "tga", LoadTGA },
+	{ "jpg", LoadJPG },
 };
 
 static const int numImageLoaders = sizeof( imageLoaders ) / sizeof( imageLoaders[0] );
@@ -959,29 +963,30 @@ void R_LoadImage( const char* cname, byte** pic, int* width, int* height, ID_TIM
 	//
 	// convert to exact power of 2 sizes
 	//
-	/*
-	if ( pic && *pic && makePowerOf2 ) {
+	
+	/*if( pic && *pic && makePowerOf2 )
+	{
 		int		w, h;
 		int		scaled_width, scaled_height;
-		byte	*resampledBuffer;
-	
+		byte *	resampledBuffer;
+
 		w = *width;
 		h = *height;
-	
-		for (scaled_width = 1 ; scaled_width < w ; scaled_width<<=1)
-			;
-		for (scaled_height = 1 ; scaled_height < h ; scaled_height<<=1)
-			;
-	
-		if ( scaled_width != w || scaled_height != h ) {
+
+		for( scaled_width = 1; scaled_width < w; scaled_width <<= 1 );
+		for( scaled_height = 1; scaled_height < h; scaled_height <<= 1 );
+
+		if( scaled_width != w || scaled_height != h )
+		{
 			resampledBuffer = R_ResampleTexture( *pic, w, h, scaled_width, scaled_height );
+			
 			allocManager.StaticFree( *pic );
+			
 			*pic = resampledBuffer;
 			*width = scaled_width;
 			*height = scaled_height;
 		}
-	}
-	*/
+	}*/
 }
 
 
@@ -1025,15 +1030,14 @@ bool R_LoadCubeImages( const char* imgName, textureLayout_t extensions, byte* pi
 		idStr::snPrintf( fullName, sizeof( fullName ), "%s%s", imgName, sides[i] );
 		
 		ID_TIME_T thisTime;
-		if( !pics )
-		{
+		if( !pics ) {
 			// just checking timestamps
 			R_LoadImageProgram( fullName, NULL, &width, &height, &thisTime );
 		}
-		else
-		{
+		else {
 			R_LoadImageProgram( fullName, &pics[i], &width, &height, &thisTime );
 		}
+
 		if( thisTime == FILE_NOT_FOUND_TIMESTAMP )
 		{
 			break;

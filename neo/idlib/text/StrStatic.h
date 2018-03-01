@@ -34,8 +34,7 @@ idStrStatic
 ================================================
 */
 template< int _size_ >
-class idStrStatic : public idStr
-{
+class idStrStatic : public idStr {
 public:
 	ID_INLINE void operator=( const idStrStatic& text )
 	{
@@ -130,6 +129,30 @@ public:
 		buffer[ 0 ] = '\0';
 		SetStaticBuffer( buffer, _size_ );
 		idStr::operator=( idStr( f ) );
+	}
+
+	/*
+	========================
+	perform a threadsafe sprintf to the string
+	========================
+	*/
+	auto & Format( VERIFY_FORMAT_STRING const char* fmt, ... )
+	{
+		va_list argptr;
+		char text[ _size_ ]; // default MAX_PRINT_MSG
+
+		va_start( argptr, fmt );
+		int len = idStr::vsnPrintf( text, sizeof( text ) - 1, fmt, argptr );
+		va_end( argptr );
+		text[ sizeof( text ) - 1 ] = '\0';
+
+		if( ( size_t )len >= sizeof( text ) - 1 )
+		{
+			idLib::FatalError( "idStrStatic() Tried to set a large buffer using %s", fmt );
+		}
+		*this = text;
+
+		return *this;
 	}
 	
 private:

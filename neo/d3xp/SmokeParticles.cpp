@@ -325,7 +325,7 @@ bool idSmokeParticles::EmitSmoke( const idDeclParticle* smoke, const int systemS
 idSmokeParticles::UpdateRenderEntity
 ================
 */
-bool idSmokeParticles::UpdateRenderEntity( renderEntity_s* renderEntity, const renderViewParms_t* renderView )
+bool idSmokeParticles::UpdateRenderEntity( renderEntityParms_t* renderEntity, const renderViewParms_t* renderView )
 {
 	// this may be triggered by a model trace or other non-view related source,
 	// to which we should look like an empty model
@@ -452,7 +452,7 @@ bool idSmokeParticles::UpdateRenderEntity( renderEntity_s* renderEntity, const r
 idSmokeParticles::ModelCallback
 ================
 */
-bool idSmokeParticles::ModelCallback( renderEntity_s* renderEntity, const renderViewParms_t* renderView )
+bool idSmokeParticles::ModelCallback( renderEntityParms_t* renderEntity, const renderViewParms_t* renderView )
 {
 	// update the particles
 	if( gameLocal.smokeParticles )

@@ -32,8 +32,6 @@ If you have questions concerning this license or the applicable additional terms
 
 #include "tr_local.h"
 
-
-
 idRenderProgManager renderProgManager;
 
 /*
@@ -72,7 +70,7 @@ idRenderProgManager::Init()
 */
 void idRenderProgManager::Init()
 {
-	common->Printf( "----- Initializing Render Shaders -----\n" );
+	common->Printf( "----- Initializing Render Programs -----\n" );
 		
 	for( int i = 0; i < MAX_BUILTINS; i++ )
 	{
@@ -87,7 +85,8 @@ void idRenderProgManager::Init()
 		const char* nameOutSuffix;
 		uint32		shaderFeatures;
 		bool		requireGPUSkinningSupport;
-	} builtins[] =
+	} 
+	builtins[] =
 	{
 		{ BUILTIN_GUI, "gui.vfp", "", 0, false },
 		{ BUILTIN_COLOR, "color.vfp", "", 0, false },
@@ -242,6 +241,73 @@ void idRenderProgManager::Init()
 	}
 	
 	cmdSystem->AddCommand( "reloadShaders", R_ReloadShaders, CMD_FL_RENDERER, "reloads shaders" );
+
+	/////////////////////////////////////////////////////////////////////////////////////////////////
+#if 1
+
+	for( int index = 0; index < declManager->GetNumDecls( DECL_RENDERPARM ); ++index )
+	{
+		auto decl = declManager->DeclByIndex( DECL_RENDERPARM, index, true )->Cast<idDeclRenderParm>();
+		decl->Print();
+	}
+
+	extern idCVar r_useProgUBO;
+
+/*#ifdef ID_PC
+	idParser::AddGlobalDefine( "PC" );
+
+	if( glConfig.driverType == GLDRV_OPENGL_ES3 ) {
+		idParser::AddGlobalDefine( "GLES" );
+	} else {
+		idParser::AddGlobalDefine( "GLSL" );
+	}
+
+	if( glConfig.vendor == VENDOR_NVIDIA ) {
+		idParser::AddGlobalDefine( "_NVIDIA_" );
+	}
+	else if( glConfig.vendor == VENDOR_AMD ) {
+		idParser::AddGlobalDefine( "_AMD_" );
+	}
+	else if( glConfig.vendor == VENDOR_INTEL ) {
+		idParser::AddGlobalDefine( "_INTEL_" );
+	}
+
+	if( r_useProgUBO.GetBool() ) {
+		idParser::AddGlobalDefine( "USE_UBO_PARMS" );
+	}
+
+	if( r_useHalfLambertLighting.GetBool() ) {
+		idParser::AddGlobalDefine( "USE_HALF_LAMBERT" );
+	}
+	if( r_useHDR.GetBool() ) {
+		idParser::AddGlobalDefine( "USE_LINEAR_RGB" );
+	}
+
+	if( GLEW_ARB_gpu_shader5 ) {
+		idParser::AddGlobalDefine( "GS_INSTANCED" );
+		idParser::AddGlobalDefine( "TEXTURE_GATHER" );
+	}
+	if( GLEW_ARB_cull_distance ) {
+		idParser::AddGlobalDefine( "CULL_DISTANCE" );
+	}
+
+	// SMAA configuration
+	idParser::AddGlobalDefine( "SMAA_GLSL_3" );
+	idParser::AddGlobalDefine( "SMAA_RT_METRICS $rpScreenCorrectionFactor" );
+	idParser::AddGlobalDefine( "SMAA_PRESET_HIGH" );
+#else
+	#error Non PC world. Implement Me!
+#endif*/
+
+	for( int index = 0; index < declManager->GetNumDecls( DECL_RENDERPROG ); ++index )
+	{
+		auto decl = declManager->DeclByIndex( DECL_RENDERPROG, index, true )->Cast<idDeclRenderProg>();
+		decl->Print();
+	}
+	//TestParseProg();
+
+	//idParser::RemoveAllGlobalDefines();
+#endif
 }
 
 /*
@@ -249,8 +315,9 @@ void idRenderProgManager::Init()
 idRenderProgManager::LoadAllShaders()
 ================================================================================================
 */
-void idRenderProgManager::LoadAllShaders()
+void idRenderProgManager::LoadAllShaders() 
 {
+#if 1
 	for( int i = 0; i < vertShaders.Num(); ++i )
 	{
 		LoadShader( i, SHT_VERTEX );
@@ -272,6 +339,17 @@ void idRenderProgManager::LoadAllShaders()
 		}	
 		LoadGLSLProgram( i, glslPrograms[i].vertShaderIndex, glslPrograms[ i ].geomShaderIndex, glslPrograms[i].fragShaderIndex );
 	}
+#else
+
+	for( int sht = 0; sht < SHT_MAX; sht++ )
+	{
+		for( int i = 0; i < shaders[ sht ].Num(); ++i )
+		{
+			LoadShader( i, sht );
+		}
+	}
+
+#endif
 }
 
 /*
@@ -282,10 +360,10 @@ idRenderProgManager::KillAllShaders()
 void idRenderProgManager::KillAllShaders()
 {
 	Unbind();
+#if 1
 	for( int i = 0; i < glslPrograms.Num(); ++i )
 	{
-		if( glslPrograms[ i ].progId != INVALID_PROGID )
-		{
+		if( glslPrograms[ i ].progId != INVALID_PROGID ) {
 			glDeleteProgram( glslPrograms[ i ].progId );
 			glslPrograms[ i ].progId = INVALID_PROGID;
 		}
@@ -293,28 +371,39 @@ void idRenderProgManager::KillAllShaders()
 
 	for( int i = 0; i < vertShaders.Num(); ++i )
 	{
-		if( vertShaders[i].progId != INVALID_PROGID )
-		{
+		if( vertShaders[i].progId != INVALID_PROGID ) {
 			glDeleteShader( vertShaders[i].progId );
 			vertShaders[i].progId = INVALID_PROGID;
 		}
 	}
 	for( int i = 0; i < geomShaders.Num(); ++i )
 	{
-		if( geomShaders[ i ].progId != INVALID_PROGID )
-		{
+		if( geomShaders[ i ].progId != INVALID_PROGID ) {
 			glDeleteShader( geomShaders[ i ].progId );
 			geomShaders[ i ].progId = INVALID_PROGID;
 		}
 	}
 	for( int i = 0; i < fragShaders.Num(); ++i )
 	{
-		if( fragShaders[i].progId != INVALID_PROGID )
-		{
+		if( fragShaders[i].progId != INVALID_PROGID ) {
 			glDeleteShader( fragShaders[i].progId );
 			fragShaders[i].progId = INVALID_PROGID;
 		}
 	}
+#else
+
+	for( int sht = 0; sht < SHT_MAX; sht++ )
+	{
+		for( int i = 0; i < shaders[ sht ].Num(); ++i )
+		{
+			if( shaders[ sht ][ i ].objectID != INVALID_PROGID ) {
+				glDeleteShader( shaders[ sht ][ i ].objectID );
+				shaders[ sht ][ i ].objectID = INVALID_PROGID;
+			}
+		}
+	}
+
+#endif
 }
 
 /*
@@ -325,13 +414,20 @@ idRenderProgManager::Shutdown()
 void idRenderProgManager::Shutdown()
 {
 	KillAllShaders();
+
+	/*for( int index = 0; index < declManager->GetNumDecls( DECL_RENDERPROG ); ++index ) 
+	{
+		auto prog = declManager->DeclByIndex( DECL_RENDERPROG, index, false )->Cast<idDeclRenderProg>();
+		const_cast<idDeclRenderProg*>( prog )->FreeData();
+	}*/
 }
 
 /*
 ================================================================================================
-idRenderProgManager::FindVertexShader
+idRenderProgManager::FindShader
 ================================================================================================
 */
+
 int idRenderProgManager::FindVertexShader( const char* name )
 {
 	for( int i = 0; i < vertShaders.Num(); ++i )
@@ -350,24 +446,18 @@ int idRenderProgManager::FindVertexShader( const char* name )
 	
 	// RB: removed idStr::Icmp( name, "heatHaze.vfp" ) == 0  hack
 	// this requires r_useUniformArrays 1
-	for( int i = 0; i < vertShaders[index].uniforms.Num(); i++ )
+	for( int i = 0; i < vertShaders[ index ].uniforms.Num(); i++ )
 	{
-		if( vertShaders[index].uniforms[i] == RENDERPARM_ENABLE_SKINNING )
+		if( vertShaders[ index ].uniforms[ i ] == RENDERPARM_ENABLE_SKINNING )
 		{
-			vertShaders[index].usesJoints = true;
-			vertShaders[index].optionalSkinning = true;
+			vertShaders[ index ].usesJoints = true;
+			vertShaders[ index ].optionalSkinning = true;
 		}
 	}
 	// RB end
 	
 	return index;
 }
-
-/*
-================================================================================================
-idRenderProgManager::FindGeometryShader
-================================================================================================
-*/
 int idRenderProgManager::FindGeometryShader( const char* name )
 {
 	for( int i = 0; i < geomShaders.Num(); ++i )
@@ -385,12 +475,6 @@ int idRenderProgManager::FindGeometryShader( const char* name )
 	currentGeomShader = index;
 	return index;
 }
-
-/*
-================================================================================================
-idRenderProgManager::FindFragmentShader
-================================================================================================
-*/
 int idRenderProgManager::FindFragmentShader( const char* name )
 {
 	for( int i = 0; i < fragShaders.Num(); ++i )
@@ -409,6 +493,46 @@ int idRenderProgManager::FindFragmentShader( const char* name )
 	return index;
 }
 
+int idRenderProgManager::FindShader( const char* name, shaderType_e shaderType )
+{
+#if 1
+	/*/*/if( shaderType == shaderType_e::SHT_VERTEX )
+	{
+		return FindVertexShader( name );
+	}
+	else if( shaderType == shaderType_e::SHT_GEOMETRY )
+	{
+		return FindGeometryShader( name );
+	}
+	else if( shaderType == shaderType_e::SHT_FRAGMENT )
+	{
+		return FindFragmentShader( name );
+	}
+
+#else
+
+	for( int i = 0; i < shaders[ shaderType ].Num(); ++i )
+	{
+		if( shaders[ shaderType ][ i ].name.Icmp( name ) == 0 )
+		{
+			LoadShader( i, shaderType );
+			return i;
+		}
+	}
+
+	glslShader_t shader;
+	shader.name = name;
+	int index = shaders[ shaderType ].Append( shader );
+	LoadShader( index, shaderType );
+	currentShaders[ shaderType ] = index;
+
+	return index;
+
+#endif
+
+	return 0;
+}
+
 /*
 ================================================================================================
 idRenderProgManager::LoadShader
@@ -416,13 +540,14 @@ idRenderProgManager::LoadShader
 */
 void idRenderProgManager::LoadShader( int index, shaderType_e shaderType )
 {
+#if 1
 	/*/*/if( shaderType == shaderType_e::SHT_VERTEX )/////////////////////////////////////////////////////////////
 	{
 		if( vertShaders[ index ].progId != INVALID_PROGID ) {
 			return; // Already loaded
 		}
 		vertShader_t& vs = vertShaders[ index ];
-		vertShaders[ index ].progId = ( GLuint )LoadGLSLShader( GL_VERTEX_SHADER, vs.name, vs.nameOutSuffix, vs.shaderFeatures, vs.builtin, vs.uniforms );
+		vs.progId = LoadGLSLShader( shaderType_e::SHT_VERTEX, vs.name, vs.nameOutSuffix, vs.shaderFeatures, vs.builtin, vs.uniforms );
 		return;
 	} 
 	else if( shaderType == shaderType_e::SHT_TESS_CTRL )//////////////////////////////////////////////////////////
@@ -441,7 +566,7 @@ void idRenderProgManager::LoadShader( int index, shaderType_e shaderType )
 			return; // Already loaded
 		}
 		geomShader_t& gs = geomShaders[ index ];
-		geomShaders[ index ].progId = ( GLuint )LoadGLSLShader( GL_GEOMETRY_SHADER, gs.name, gs.nameOutSuffix, gs.shaderFeatures, gs.builtin, gs.uniforms );
+		gs.progId = LoadGLSLShader( shaderType_e::SHT_GEOMETRY, gs.name, gs.nameOutSuffix, gs.shaderFeatures, gs.builtin, gs.uniforms );
 		return;
 	}
 	else if( shaderType == shaderType_e::SHT_FRAGMENT )///////////////////////////////////////////////////////////
@@ -450,7 +575,7 @@ void idRenderProgManager::LoadShader( int index, shaderType_e shaderType )
 			return; // Already loaded
 		}
 		fragShader_t& fs = fragShaders[ index ];
-		fragShaders[ index ].progId = ( GLuint )LoadGLSLShader( GL_FRAGMENT_SHADER, fs.name, fs.nameOutSuffix, fs.shaderFeatures, fs.builtin, fs.uniforms );
+		fs.progId = LoadGLSLShader( shaderType_e::SHT_FRAGMENT, fs.name, fs.nameOutSuffix, fs.shaderFeatures, fs.builtin, fs.uniforms );
 		return;
 	}
 	else if( shaderType == shaderType_e::SHT_COMPUTE )////////////////////////////////////////////////////////////
@@ -460,6 +585,16 @@ void idRenderProgManager::LoadShader( int index, shaderType_e shaderType )
 	}
 
 	release_assert("Unknown ShaderType Loading");
+#else
+
+	if( shaders[ shaderType ][ index ].objectID != INVALID_PROGID ) {
+		return; // Already loaded
+	}
+
+	auto & sho = shaders[ shaderType ][ index ];
+	sho.objectID = LoadGLSLShader( shaderType, sho.name, sho.nameOutSuffix, sho.flags, sho.builtin, sho.uniforms );
+
+#endif
 }
 
 /*
@@ -529,13 +664,18 @@ void idRenderProgManager::Unbind()
 	currentVertShader = -1;
 	currentGeomShader = -1;
 	currentFragShader = -1;
-	
+
+	for( int i = 0; i < m_currentShaders.Num(); i++ ) {
+		m_currentShaders[ i ] = -1;
+	}
+	currentRenderProgram = -1;
 	glUseProgram( GL_NONE );
 }
 
 // RB begin
 bool idRenderProgManager::IsShaderBound() const
 {
+	//return( currentShaders[ SHT_VERTEX ] != -1 );
 	return( currentVertShader != -1 );
 }
 // RB end

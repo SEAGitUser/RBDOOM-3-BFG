@@ -519,8 +519,7 @@ ID_INLINE void idList<_type_, _tag_>::AssureSize( int newSize )
 	int newNum = newSize;
 	
 	if( newSize > size )
-	{
-	
+	{	
 		if( granularity == 0 )  	// this is a hack to fix our memset classes
 		{
 			granularity = 16;
@@ -547,8 +546,7 @@ ID_INLINE void idList<_type_, _tag_>::AssureSize( int newSize, const _type_ &ini
 	int newNum = newSize;
 	
 	if( newSize > size )
-	{
-	
+	{	
 		if( granularity == 0 )  	// this is a hack to fix our memset classes
 		{
 			granularity = 16;
@@ -559,9 +557,9 @@ ID_INLINE void idList<_type_, _tag_>::AssureSize( int newSize, const _type_ &ini
 		num = size;
 		Resize( newSize );
 		
-		for( int i = num; i < newSize; i++ )
+		for( int i = num; i < newSize; ++i )
 		{
-			list[i] = initValue;
+			list[ i ] = initValue;
 		}
 	}
 	
@@ -584,8 +582,7 @@ ID_INLINE void idList<_type_, _tag_>::AssureSizeAlloc( int newSize, new_t* alloc
 	int newNum = newSize;
 	
 	if( newSize > size )
-	{
-	
+	{	
 		if( granularity == 0 )  	// this is a hack to fix our memset classes
 		{
 			granularity = 16;
@@ -615,8 +612,6 @@ Copies the contents and size attributes of another list.
 template< typename _type_, memTag_t _tag_ >
 ID_INLINE idList<_type_, _tag_>& idList<_type_, _tag_>::operator=( const idList<_type_, _tag_>& other )
 {
-	int	i;
-	
 	Clear();
 	
 	num			= other.num;
@@ -627,7 +622,7 @@ ID_INLINE idList<_type_, _tag_>& idList<_type_, _tag_>::operator=( const idList<
 	if( size )
 	{
 		list = ( _type_* )idListArrayNew< _type_, _tag_ >( size, false );
-		for( i = 0; i < num; i++ )
+		for( int i = 0; i < num; ++i )
 		{
 			list[ i ] = other.list[ i ];
 		}
@@ -803,10 +798,10 @@ ID_INLINE int idList<_type_, _tag_>::Insert( _type_ const& obj, int index )
 	}
 	for( int i = num; i > index; --i )
 	{
-		list[i] = list[i - 1];
+		list[ i ] = list[ i - 1 ];
 	}
 	num++;
-	list[index] = obj;
+	list[ index ] = obj;
 	return index;
 }
 
@@ -850,14 +845,11 @@ Adds the data to the list if it doesn't already exist.  Returns the index of the
 template< typename _type_, memTag_t _tag_ >
 ID_INLINE int idList<_type_, _tag_>::AddUnique( _type_ const& obj )
 {
-	int index;
-	
-	index = FindIndex( obj );
+	int index = FindIndex( obj );
 	if( index < 0 )
 	{
 		index = Append( obj );
-	}
-	
+	}	
 	return index;
 }
 
@@ -871,9 +863,7 @@ Searches for the specified data in the list and returns it's index.  Returns -1 
 template< typename _type_, memTag_t _tag_ >
 ID_INLINE int idList<_type_, _tag_>::FindIndex( _type_ const& obj ) const
 {
-	int i;
-	
-	for( i = 0; i < num; i++ )
+	for( int i = 0; i < num; ++i )
 	{
 		if( list[ i ] == obj )
 		{
@@ -895,14 +885,11 @@ Searches for the specified data in the list and returns it's address. Returns NU
 template< typename _type_, memTag_t _tag_ >
 ID_INLINE _type_* idList<_type_, _tag_>::Find( _type_ const& obj ) const
 {
-	int i;
-	
-	i = FindIndex( obj );
+	int i = FindIndex( obj );
 	if( i >= 0 )
 	{
 		return &list[ i ];
-	}
-	
+	}	
 	return NULL;
 }
 
@@ -919,9 +906,7 @@ on non-pointer lists will cause a compiler error.
 template< typename _type_, memTag_t _tag_ >
 ID_INLINE int idList<_type_, _tag_>::FindNull() const
 {
-	int i;
-	
-	for( i = 0; i < num; i++ )
+	for( int i = 0; i < num; ++i )
 	{
 		if( list[ i ] == NULL )
 		{
@@ -946,9 +931,7 @@ but remains silent in release builds.
 template< typename _type_, memTag_t _tag_ >
 ID_INLINE int idList<_type_, _tag_>::IndexOf( _type_ const* objptr ) const
 {
-	int index;
-	
-	index = objptr - list;
+	int index = objptr - list;
 	
 	assert( index >= 0 );
 	assert( index < num );
@@ -968,8 +951,6 @@ Note that the element is not destroyed, so any memory used by it may not be free
 template< typename _type_, memTag_t _tag_ >
 ID_INLINE bool idList<_type_, _tag_>::RemoveIndex( int index )
 {
-	int i;
-	
 	assert( list != NULL );
 	assert( index >= 0 );
 	assert( index < num );
@@ -980,7 +961,7 @@ ID_INLINE bool idList<_type_, _tag_>::RemoveIndex( int index )
 	}
 	
 	num--;
-	for( i = index; i < num; i++ )
+	for( int i = index; i < num; ++i )
 	{
 		list[ i ] = list[ i + 1 ];
 	}
@@ -1005,7 +986,6 @@ NOTE:	The element is not destroyed, so any memory used by it may not be freed un
 template< typename _type_, memTag_t _tag_ >
 ID_INLINE bool idList<_type_, _tag_>::RemoveIndexFast( int index )
 {
-
 	if( ( index < 0 ) || ( index >= num ) )
 	{
 		return false;
@@ -1032,14 +1012,11 @@ the element is not destroyed, so any memory used by it may not be freed until th
 template< typename _type_, memTag_t _tag_ >
 ID_INLINE bool idList<_type_, _tag_>::Remove( _type_ const& obj )
 {
-	int index;
-	
-	index = FindIndex( obj );
+	int index = FindIndex( obj );
 	if( index >= 0 )
 	{
 		return RemoveIndex( index );
-	}
-	
+	}	
 	return false;
 }
 //

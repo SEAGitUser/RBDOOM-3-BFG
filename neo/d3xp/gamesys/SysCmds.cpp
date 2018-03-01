@@ -2409,7 +2409,7 @@ has any valid gui surfaces.
 */
 bool FindEntityGUIs( idEntity* ent, const modelSurface_t** surfaces,  int maxSurfs, int& guiSurfaces )
 {
-	renderEntity_t*			renderEnt;
+	renderEntityParms_t*			renderEnt;
 	idRenderModel*			renderModel;
 	const modelSurface_t*	surf;
 	const idMaterial*		shader;
@@ -2462,7 +2462,7 @@ void Cmd_NextGUI_f( const idCmdArgs& args )
 	idEntity*				ent;
 	int						guiSurfaces;
 	bool					newEnt;
-	renderEntity_t*			renderEnt;
+	renderEntityParms_t*			renderEnt;
 	int						surfIndex;
 	idTriangles*			geom;
 	idVec3					normal;

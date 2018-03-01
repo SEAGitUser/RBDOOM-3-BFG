@@ -62,7 +62,7 @@ public:
 		this->x += x;
 		this->y += y;
 	}
-	bool Contains( float xt, float yt )
+	bool Contains( float xt, float yt ) const
 	{
 		if( w == 0.0 && h == 0.0 )
 		{

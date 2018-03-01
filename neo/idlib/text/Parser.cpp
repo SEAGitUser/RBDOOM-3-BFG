@@ -32,11 +32,12 @@ If you have questions concerning this license or the applicable additional terms
 
 //#define DEBUG_EVAL
 #define MAX_DEFINEPARMS				128
-#define DEFINEHASHSIZE				2048
+#define DEFINEHASHSIZE				1024 //2048
 
 #define TOKEN_FL_RECURSIVE_DEFINE	1
 
-idParser::defineList_t idParser::globalDefines;
+//idParser::defineList_t idParser::globalDefines;
+define_t * idParser::globaldefines;
 
 /*
 ================
@@ -60,7 +61,11 @@ bool idParser::AddGlobalDefine( const char *string )
 		return false;
 	}
 
-	globalDefines.AddToFront( define );
+	define->next = globaldefines;
+	globaldefines = define;
+
+	//globalDefines.AddToFront( define );
+	//globalDefines.AddToEnd( define );
 	return true;
 }
 
@@ -71,16 +76,25 @@ idParser::RemoveGlobalDefine
 */
 bool idParser::RemoveGlobalDefine( const char *name )
 {
-	define_t *def = nullptr;
-	for( def = globalDefines.GetFirst(); def != NULL; def = globalDefines.GetNext( def ) )
+	define_t *def, *prev;
+	for( prev = NULL, def = globaldefines; def != NULL; prev = def, def = def->next )
+	//define_t *def = nullptr;
+	//for( def = globalDefines.GetFirst(); def != NULL; def = globalDefines.GetNext( def ) )
 	{
 		if( !idStr::Cmp( def->name, name ) ) {
 			break;
 		}
 	}
-	if( def != nullptr )
+	if( def != NULL )
 	{
-		globalDefines.Remove( def );
+		if( prev != NULL ) {
+			prev->next = def->next;
+		} 
+		else {
+			globaldefines = def->next;
+		}
+		//globalDefines.Remove( def );
+		
 		FreeDefine( def );
 		return true;
 	}
@@ -95,9 +109,12 @@ idParser::RemoveAllGlobalDefines
 */
 void idParser::RemoveAllGlobalDefines( void )
 {
-	for( auto def = globalDefines.GetFirst(); def != NULL; def = globalDefines.GetNext( def ) )
+	for( define_t *def = globaldefines; def != NULL; def = globaldefines )
+	//for( auto def = globalDefines.GetFirst(); def != NULL; def = globalDefines.GetNext( def ) )
 	{
-		globalDefines.Remove( def );
+		globaldefines = globaldefines->next;
+		//globalDefines.Remove( def );
+		
 		FreeDefine( def );
 	}
 }
@@ -235,12 +252,16 @@ define_t *idParser::CopyDefine( define_t *define )
 	// copy the define name
 	newdefine->name = ( char * )newdefine + sizeof( define_t );
 	idStr::Copynz( newdefine->name, define->name, nameLength );
+
 	newdefine->flags = define->flags;
 	newdefine->builtin = define->builtin;
-	newdefine->numparms = define->numparms;
+	newdefine->numparms = define->numparms;	
+	newdefine->scope = define->scope; //SEA
+
 	// the define is not linked
 	newdefine->next = NULL;
 	newdefine->hashnext = NULL;
+
 	// copy the define tokens
 	newdefine->tokens = NULL;
 	for( lasttoken = NULL, token = define->tokens; token != NULL; token = token->next )
@@ -256,6 +277,7 @@ define_t *idParser::CopyDefine( define_t *define )
 		}
 		lasttoken = newtoken;
 	}
+
 	// copy the define parameters
 	newdefine->parms = NULL;
 	for( lasttoken = NULL, token = define->parms; token; token = token->next )
@@ -271,6 +293,7 @@ define_t *idParser::CopyDefine( define_t *define )
 		}
 		lasttoken = newtoken;
 	}
+
 	return newdefine;
 }
 
@@ -374,6 +397,7 @@ void idParser::PushIndent( int type, int skip, int skipElse )
 	indent->skip = ( skip != 0 );
 	indent->skipElse = ( skipElse != 0 );
 	this->skip += indent->skip;
+
 	indent->next = this->indentstack;
 	this->indentstack = indent;
 }
@@ -446,6 +470,15 @@ bool idParser::PushScript( idLexer *script )
 	return true;
 }
 
+void idParser::PushDefineScope( const char* scopeName )
+{
+	defineScope = idStr::Hash( scopeName );
+}
+void idParser::PopDefineScope()
+{
+	defineScope = 0;
+}
+
 /*
 ============
 idParser::PushDependencies
@@ -503,8 +536,6 @@ idParser::ReadSourceToken
 */
 bool idParser::ReadSourceToken( idToken* token )
 {
-	idToken* t;
-	idLexer* script;
 	int type, skip, skipElse, changedScript;
 
 	if( !scriptstack )
@@ -545,17 +576,20 @@ bool idParser::ReadSourceToken( idToken* token )
 			return false;
 		}
 		// remove the script and return to the previous one
-		script = scriptstack;
+		idLexer* script = scriptstack;
 		scriptstack = scriptstack->next;
 		delete script;
 	}
+	
 	// copy the already available token
 	*token = *tokens; //SEA *?
+	
 	// remove the token from the source
-	t = tokens;
+	idToken* t = tokens;
 	assert( tokens != NULL );
 	tokens = tokens->next;
 	delete t;
+
 	return true;
 }
 
@@ -767,6 +801,7 @@ void idParser::AddBuiltinDefines()
 		auto define = idMem::Alloc<define_t, TAG_IDLIB_PARSER>( sizeof( define_t ) + idStr::Length( builtin[ i ].string ) + 1 );
 		define->name = ( char* )define + sizeof( define_t );
 		strcpy( define->name, builtin[ i ].string );
+		define->scope = 0;
 		define->flags = DEFINE_FIXED;
 		define->builtin = builtin[ i ].id;
 		define->numparms = 0;
@@ -1131,8 +1166,7 @@ bool idParser::ReadLine( idToken *token, bool multiline )
 	}
 
 	crossline = 0;
-	do
-	{
+	do {
 		if( !ReadSourceToken( token ) )
 		{
 			return false;
@@ -1144,7 +1178,8 @@ bool idParser::ReadLine( idToken *token, bool multiline )
 			return false;
 		}
 		crossline = 1;
-	} while( ( *token ) == "\\" );
+	} 
+	while( ( *token ) == "\\" );
 	
 	return true;
 }
@@ -1156,13 +1191,14 @@ idParser::AddDefine
 */
 bool idParser::AddDefine( const char *string )
 {
-	if( definehash == NULL ) {
+	if( !definehash ) {
 		definehash = idMem::ClearedAlloc<define_t*, TAG_IDLIB_PARSER>( DEFINEHASHSIZE * sizeof( define_t* ) );
 	}
 	auto define = DefineFromString( string );
-	if( define == NULL ) {
+	if( !define ) {
 		return false;
 	}
+	define->scope = defineScope;//SEA
 	AddDefineToHash( define, definehash );
 	return true;
 }
@@ -1172,7 +1208,7 @@ bool idParser::AddDefine( const char *string )
 idParser::RemoveDefine
 ================
 */
-bool idParser::RemoveDefine( const char* string )
+void idParser::RemoveDefine( const char* string )
 {
 	define_t *define, *lastdefine;
 	int hash = PC_NameHash( string );
@@ -1182,8 +1218,7 @@ bool idParser::RemoveDefine( const char* string )
 		{
 			if( define->flags & DEFINE_FIXED )
 			{
-				idParser::Warning( "RemoveDefine( %s ) can't undef", string );
-				return false;
+				Warning( "RemoveDefine( %s ) can't undef", string );
 			}
 			else {
 				if( lastdefine )
@@ -1194,14 +1229,38 @@ bool idParser::RemoveDefine( const char* string )
 					definehash[ hash ] = define->hashnext;
 				}
 				FreeDefine( define );
-				return true;
 			}
 			break;
 		}
 		lastdefine = define;
 	}
-	return false;	
 }
+
+/*
+void idParser::RemoveDefines( bool freeDefineHashTable )
+{
+	if( definehash != NULL )
+	{
+		// free defines
+		for( int i = 0; i < DEFINEHASHSIZE; ++i )
+		{
+			while( definehash[ i ] != NULL )
+			{
+				auto define = definehash[ i ];
+				definehash[ i ] = definehash[ i ]->hashnext;
+				FreeDefine( define );
+			}
+		}
+		defines = NULL;
+
+		// free hash table
+		if( freeDefineHashTable ) {
+			idMem::Free( definehash );
+			definehash = NULL;
+		}
+	}
+}
+*/
 
 /*
 ================
@@ -1210,7 +1269,8 @@ idParser::AddGlobalDefinesToSource
 */
 void idParser::AddGlobalDefinesToSource()
 {
-	for( auto def = globalDefines.GetFirst(); def != NULL; def = globalDefines.GetNext( def ) )
+	for( define_t *def = globaldefines; def != NULL; def = def->next )
+	//for( auto def = globalDefines.GetFirst(); def; def = globalDefines.GetNext( def ) )
 	{
 		auto newDef = CopyDefine( def );
 		AddDefineToHash( newDef, definehash );
@@ -1224,8 +1284,9 @@ idParser::AddInclude
 */
 bool idParser::AddInclude( const char *string )
 {
-	idStr str = va( "#include <%s>", string );
-	idLexer src( str, str.Length(), "AddInclude", LEXFL_ALLOWPATHNAMES );
+	idStrStatic<MAX_OSPATH> str;
+	str.Format( "#include <%s>", string );
+	idLexer src( str.c_str(), str.Length(), "AddInclude", LEXFL_ALLOWPATHNAMES, GetLineNum() );
 	idToken token1, token2, token3, token4, token5;
 	src.ReadToken( &token1 );
 	src.ReadToken( &token2 );
@@ -2074,13 +2135,14 @@ bool idParser::Evaluate( signed int* intvalue, double* floatvalue, int integer )
 			Error( "can't Evaluate '%s'", token.c_str() );
 			return false;
 		}
-	} while( ReadLine( &token, false ) );
-	//
+	} 
+	while( ReadLine( &token, false ) );
+
 	if( !EvaluateTokens( firsttoken, intvalue, floatvalue, integer ) )
 	{
 		return false;
 	}
-	//
+
 #ifdef DEBUG_EVAL
 	Log_Write( "eval:" );
 #endif //DEBUG_EVAL
@@ -2136,8 +2198,7 @@ bool idParser::DollarEvaluate( signed int *intvalue, double *floatvalue, int int
 	indent = 1;
 	firsttoken = NULL;
 	lasttoken = NULL;
-	do
-	{
+	do {
 		//if the token is a name
 		if( token.type == TT_NAME )
 		{
@@ -2170,8 +2231,7 @@ bool idParser::DollarEvaluate( signed int *intvalue, double *floatvalue, int int
 				}
 				lasttoken = t;
 			}
-			else
-			{
+			else {
 				//then it must be a define
 				define = FindHashedDefine( definehash, token.c_str() );
 				if( !define )
@@ -2216,7 +2276,8 @@ bool idParser::DollarEvaluate( signed int *intvalue, double *floatvalue, int int
 			Error( "can't Evaluate '%s'", token.c_str() );
 			return false;
 		}
-	} while( ReadSourceToken( &token ) );
+	}
+	while( ReadSourceToken( &token ) );
 
 	if( !EvaluateTokens( firsttoken, intvalue, floatvalue, integer ) )
 	{
@@ -2241,111 +2302,6 @@ bool idParser::DollarEvaluate( signed int *intvalue, double *floatvalue, int int
 
 	return true;
 }
-
-/*
-================
-idParser::Directive_include
-================
-*/
-// RB: added token as parameter
-bool idParser::Directive_include( idToken* token, bool supressWarning )
-{
-	idLexer* script;
-	idStr path;
-
-	if( !ReadSourceToken( token ) )
-	{
-		Error( "#include without file name" );
-		return false;
-	}
-	if( token->linesCrossed > 0 )
-	{
-		Error( "#include without file name" );
-		return false;
-	}
-
-	if( token->type == TT_STRING )
-	{
-		script = new( TAG_IDLIB_PARSER ) idLexer( flags );
-		script->SetPunctuations( punctuations );
-		// try relative to the current file
-		path = scriptstack->GetFileName();
-		path.StripFilename();
-		path += "/";
-		path += *token;
-		if( !script->LoadFile( path, OSPath, startLine ) )
-		{
-			// try absolute path
-			path = *token;
-			if( !script->LoadFile( path, OSPath, startLine ) )
-			{
-				// try from the include path
-				path = includepath + *token;
-				if( !script->LoadFile( path, OSPath, startLine ) )
-				{
-					delete script;
-					script = NULL;
-				}
-			}
-		}
-	}
-	else if( token->type == TT_PUNCTUATION && *token == "<" )
-	{
-		path = includepath;
-		while( ReadSourceToken( token ) )
-		{
-			if( token->linesCrossed > 0 )
-			{
-				UnreadSourceToken( token );
-				break;
-			}
-			if( token->type == TT_PUNCTUATION && *token == ">" )
-			{
-				break;
-			}
-			path += *token;
-		}
-		if( *token != ">" )
-		{
-			Warning( "#include missing trailing >" );
-		}
-
-		if( !path.Length() )
-		{
-			Error( "#include without file name between < >" );
-			return false;
-		}
-		if( flags & LEXFL_NOBASEINCLUDES )
-		{
-			return true;
-		}
-
-		script = new( TAG_IDLIB_PARSER ) idLexer( flags );
-		script->SetPunctuations( punctuations );
-		if( !script->LoadFile( includepath + path, OSPath, startLine ) )
-		{
-			delete script;
-			script = NULL;
-		}
-	}
-	else {
-		Error( "#include without file name" );
-		return false;
-	}
-
-	if( !script )
-	{
-		if( !supressWarning )
-		{
-			Error( "file '%s' not found", path.c_str() );
-		}
-		return false;
-	}
-
-	PushScript( script );
-	return true;
-}
-// RB end
 
 /*
 ================
@@ -2427,7 +2383,7 @@ bool idParser::Directive_include()
 
 		script = new( TAG_IDLIB_PARSER ) idLexer( flags );
 		script->SetPunctuations( punctuations );
-		if( !script->LoadFile( includepath + path, OSPath, startLine ) )
+		if( !script->LoadFile( path, OSPath, startLine ) )
 		{
 			delete script;
 			script = NULL;
@@ -2481,11 +2437,15 @@ bool idParser::Directive_define( bool isTemplate )
 	{
 		if( define->flags & DEFINE_FIXED )
 		{
-			Error( "can't redefine '%s'", token.c_str() );
+			Error( "can't redefine '%s'", token.c_str() );		
 			return false;
 		}
 
-		Warning( "redefinition of '%s'", token.c_str() );
+		if( define->scope == defineScope ) 
+		{
+			//SEA: ignore warning if different scope
+			Warning( "redefinition of '%s'", token.c_str() );
+		}
 		// unread the define name before executing the #undef directive
 		UnreadSourceToken( token );
 		if( !Directive_undef() )
@@ -2501,8 +2461,10 @@ bool idParser::Directive_define( bool isTemplate )
 	define = idMem::ClearedAlloc<define_t, TAG_IDLIB_PARSER >( sizeof( define_t ) + token.Length() + 1 );
 	define->name = ( char* )define + sizeof( define_t );
 	strcpy( define->name, token.c_str() );
+	define->scope = defineScope; //SEA
 	// add the define to the source
 	AddDefineToHash( define, definehash );
+
 	// if nothing is defined, just return
 	if( !ReadLine( &token, isTemplate ) )
 	{
@@ -2538,18 +2500,18 @@ bool idParser::Directive_define( bool isTemplate )
 
 				// add the define parm
 				t = new( TAG_IDLIB_PARSER ) idToken( token );
+				
 				t->ClearTokenWhiteSpace();
+
 				t->next = NULL;
-				if( last )
-				{
+				if( last ) {
 					last->next = t;
-				}
-				else
-				{
+				} else {
 					define->parms = t;
-				}
-				last = t;
+				} last = t;
+
 				define->numparms++;
+
 				// read next token
 				if( !ReadLine( &token, isTemplate ) )
 				{
@@ -2578,7 +2540,7 @@ bool idParser::Directive_define( bool isTemplate )
 	// read the defined stuff
 	last = NULL;
 	do {
-		if( isTemplate && token.type == TT_PUNCTUATION && token == "$" )
+		if( isTemplate && token.type == TT_PUNCTUATION && ( token == "$" || token == "#" ) )
 		{
 			idToken end;
 			ReadLine( &end, isTemplate );
@@ -2588,24 +2550,24 @@ bool idParser::Directive_define( bool isTemplate )
 			}
 			UnreadSourceToken( end );
 		}
+
 		t = new( TAG_IDLIB_PARSER ) idToken( token );
 		if( t->type == TT_NAME && !idStr::Cmp( t->c_str(), define->name ) )
 		{
 			t->flags |= TOKEN_FL_RECURSIVE_DEFINE;
 			Warning( "recursive define of '%s' (removed recursion)", define->name );
 		}
+		// clear token white space
 		t->whiteSpaceStart_p = t->whiteSpaceEnd_p = NULL;
+
 		t->next = NULL;
-		if( last != NULL )
-		{
+		if( last != NULL ) {
 			last->next = t;
-		}
-		else
-		{
+		} else {
 			define->tokens = t;
-		}
-		last = t;
-	} while( ReadLine( &token, isTemplate ) );
+		} last = t;
+	}
+	while( ReadLine( &token, isTemplate ) );
 
 	if( last != NULL )
 	{
@@ -2641,7 +2603,7 @@ bool idParser::Directive_undef()
 		return false;
 	}
 
-	define_t *define, *lastdefine;
+	/*define_t *define, *lastdefine;
 	int hash = PC_NameHash( token.c_str() );
 	for( lastdefine = NULL, define = definehash[ hash ]; define; define = define->hashnext )
 	{
@@ -2649,7 +2611,7 @@ bool idParser::Directive_undef()
 		{
 			if( define->flags & DEFINE_FIXED )
 			{
-				idParser::Warning( "can't undef '%s'", token.c_str() );
+				Warning( "can't undef '%s'", token.c_str() );
 			}
 			else
 			{
@@ -2657,8 +2619,7 @@ bool idParser::Directive_undef()
 				{
 					lastdefine->hashnext = define->hashnext;
 				}
-				else
-				{
+				else {
 					definehash[ hash ] = define->hashnext;
 				}
 				FreeDefine( define );
@@ -2666,7 +2627,8 @@ bool idParser::Directive_undef()
 			break;
 		}
 		lastdefine = define;
-	}
+	}*/
+	RemoveDefine( token.c_str() );
 
 	return true;
 }
@@ -2994,7 +2956,7 @@ bool idParser::ReadDirective()
 		return false;
 	}
 
-	//if if is a name
+	//if it is a name
 	if( token.type == TT_NAME )
 	{
 		if( token == "if" )
@@ -3066,6 +3028,10 @@ bool idParser::ReadDirective()
 		else if( token == "evalfloat" )
 		{
 			return Directive_evalfloat();
+		}
+		else if( token == "template" )
+		{
+			return Directive_define( true );
 		}
 	}
 	Error( "unknown precompiler directive '%s'", token.c_str() );
@@ -3493,17 +3459,17 @@ bool idParser::ExpectTokenString( const char* string, idToken* other )
 idParser::ExpectTokenType
 ================
 */
-bool idParser::ExpectTokenType( int type, int subtype, idToken* token )
+bool idParser::ExpectTokenType( int type, int subtype, idToken & token )
 {
 	idStr str;
 
-	if( !ReadToken( token ) )
+	if( !ReadToken( &token ) )
 	{
 		Error( "couldn't read expected token" );
 		return false;
 	}
 
-	if( token->type != type )
+	if( token.type != type )
 	{
 		switch( type )
 		{
@@ -3514,12 +3480,12 @@ bool idParser::ExpectTokenType( int type, int subtype, idToken* token )
 			case TT_PUNCTUATION: str = "punctuation"; break;
 			default: str = "unknown type"; break;
 		}
-		Error( "expected a %s but found '%s'", str.c_str(), token->c_str() );
+		Error( "expected a %s but found '%s'", str.c_str(), token.c_str() );
 		return false;
 	}
-	if( token->type == TT_NUMBER )
+	if( token.type == TT_NUMBER )
 	{
-		if( ( token->subtype & subtype ) != subtype )
+		if( ( token.subtype & subtype ) != subtype )
 		{
 			str.Clear();
 			if( subtype & TT_DECIMAL ) str = "decimal ";
@@ -3531,20 +3497,20 @@ bool idParser::ExpectTokenType( int type, int subtype, idToken* token )
 			if( subtype & TT_FLOAT ) str += "float ";
 			if( subtype & TT_INTEGER ) str += "integer ";
 			str.StripTrailing( ' ' );
-			Error( "expected %s but found '%s'", str.c_str(), token->c_str() );
+			Error( "expected %s but found '%s'", str.c_str(), token.c_str() );
 			return false;
 		}
 	}
-	else if( token->type == TT_PUNCTUATION )
+	else if( token.type == TT_PUNCTUATION )
 	{
 		if( subtype < 0 )
 		{
 			Error( "BUG: wrong punctuation subtype" );
 			return false;
 		}
-		if( token->subtype != subtype )
+		if( token.subtype != subtype )
 		{
-			Error( "expected '%s' but found '%s'", scriptstack->GetPunctuationFromId( subtype ), token->c_str() );
+			Error( "expected '%s' but found '%s'", scriptstack->GetPunctuationFromId( subtype ), token.c_str() );
 			return false;
 		}
 	}
@@ -3673,6 +3639,12 @@ idParser::SkipUntilString
 */
 bool idParser::SkipUntilString( const char *string, idToken* token )
 {
+	idToken _token;
+	if( !token )
+	{
+		token = &_token;
+	}
+
 	while( ReadToken( token ) )
 	{
 		if( *token == string )
@@ -3733,7 +3705,8 @@ bool idParser::SkipBracedSection( bool parseFirstBrace )
 				depth--;
 			}
 		}
-	} while( depth );
+	} 
+	while( depth );
 
 	return true;
 }
@@ -3765,11 +3738,9 @@ idParser::ParseBracedSection
 */
 const char* idParser::ParseBracedSection( idStr& out, int tabs, bool parseFirstBrace, char intro, char outro )
 {
-	idToken token;
-	int i, depth;
-	bool doTabs;
+	idStringBuilder_Heap builder;
 
-	char temp[ 2 ] = { 0, 0 };
+	char temp[ 2 ] = { '\0', '\0' };
 	*temp = intro;
 
 	out.Empty();
@@ -3779,22 +3750,25 @@ const char* idParser::ParseBracedSection( idStr& out, int tabs, bool parseFirstB
 		{
 			return out.c_str();
 		}
-		out = temp;
+		builder = temp;
 	}
-	depth = 1;
-	doTabs = ( tabs >= 0 );
-	do
-	{
+
+	idToken token;
+	int i, depth = 1;
+	bool doTabs = ( tabs >= 0 );
+
+	do {
 		if( !ReadToken( &token ) )
 		{
 			Error( "missing closing brace" );
+			builder.ToString( out );
 			return out.c_str();
 		}
 
 		// if the token is on a new line
 		for( i = 0; i < token.linesCrossed; i++ )
 		{
-			out += "\r\n";
+			builder += "\r\n";
 		}
 
 		if( doTabs && token.linesCrossed )
@@ -3806,16 +3780,25 @@ const char* idParser::ParseBracedSection( idStr& out, int tabs, bool parseFirstB
 			}
 			while( i-- > 0 )
 			{
-				out += "\t";
+				builder += "\t";
 			}
 		}
+
 		if( token.type == TT_STRING )
 		{
-			out += "\"" + token + "\"";
+			if( builder.Length() /*&& token.WhiteSpaceBeforeToken()*/ )
+			{
+				builder += " ";
+			}
+			builder += "\"" + token + "\"";
 		}
 		else if( token.type == TT_LITERAL )
 		{
-			out += "\'" + token + "\'";
+			if( builder.Length() /*&& token.WhiteSpaceBeforeToken()*/ )
+			{
+				builder += " ";
+			}
+			builder += "\'" + token + "\'";
 		}
 		else
 		{
@@ -3835,11 +3818,19 @@ const char* idParser::ParseBracedSection( idStr& out, int tabs, bool parseFirstB
 					tabs--;
 				}
 			}
-			out += token;
-		}
-		out += " ";
-	} while( depth );
 
+			if( builder.Length() /*&& token.WhiteSpaceBeforeToken()*/ )
+			{
+				builder += " ";
+			}
+			builder += token;
+		}
+
+		//out += " ";
+	}
+	while( depth );
+
+	builder.ToString( out );
 	return out.c_str();
 }
 
@@ -3922,7 +3913,7 @@ int idParser::ParseInt()
 	}
 	if( token.type == TT_PUNCTUATION && token == "-" )
 	{
-		ExpectTokenType( TT_NUMBER, TT_INTEGER, &token );
+		ExpectTokenType( TT_NUMBER, TT_INTEGER, token );
 		return -( ( signed int )token.GetIntValue() );
 	}
 	else if( token.type != TT_NUMBER || token.subtype == TT_FLOAT )
@@ -3941,7 +3932,7 @@ bool idParser::ParseBool()
 {
 	idToken token;
 
-	if( !ExpectTokenType( TT_NUMBER, 0, &token ) )
+	if( !ExpectTokenType( TT_NUMBER, 0, token ) )
 	{
 		Error( "couldn't read expected boolean" );
 		return false;
@@ -3974,7 +3965,7 @@ float idParser::ParseFloat( bool* hadError )
 	}
 	if( token.type == TT_PUNCTUATION && token == "-" )
 	{
-		ExpectTokenType( TT_NUMBER, 0, &token );
+		ExpectTokenType( TT_NUMBER, 0, token );
 		return -token.GetFloatValue();
 	}
 	else if( token.type != TT_NUMBER )
@@ -4145,7 +4136,7 @@ void idParser::GetStringFromMarker( idStr& out, bool clean )
 	// If cleaning then reparse
 	if( clean )
 	{
-		idParser temp( marker_p, strlen( marker_p ), "temp", flags );
+		idParser temp( marker_p, idStr::Length( marker_p ), "temp", flags );
 		idToken token;
 		while( temp.ReadToken( &token ) )
 		{
@@ -4398,50 +4389,46 @@ idParser::FreeSource
 */
 void idParser::FreeSource( bool keepDefines )
 {
-	idLexer* script;
-	idToken* token;
-	define_t* define;
-	indent_t* indent;
-	int i;
 	dependencies.Clear();
 
 	// free all the scripts
 	while( scriptstack != NULL )
 	{
-		script = scriptstack;
+		idLexer* script = scriptstack;
 		scriptstack = scriptstack->next;
 		delete script;
 	}
 	// free all the tokens
 	while( tokens != NULL )
 	{
-		token = tokens;
+		idToken* token = tokens;
 		tokens = tokens->next;
 		delete token;
 	}
 	// free all indents
 	while( indentstack != NULL )
 	{
-		indent = indentstack;
+		indent_t* indent = indentstack;
 		indentstack = indentstack->next;
 		idMem::Free( indent );
 	}
 	if( !keepDefines )
 	{
-		// free hash table
 		if( definehash != NULL )
 		{
 			// free defines
-			for( i = 0; i < DEFINEHASHSIZE; ++i )
+			for( int i = 0; i < DEFINEHASHSIZE; ++i )
 			{
 				while( definehash[ i ] != NULL )
 				{
-					define = definehash[ i ];
+					auto define = definehash[ i ];
 					definehash[ i ] = definehash[ i ]->hashnext;
 					FreeDefine( define );
 				}
 			}
 			defines = NULL;
+
+			// free hash table
 			idMem::Free( definehash );
 			definehash = NULL;
 		}
@@ -4469,6 +4456,7 @@ idParser::idParser()
 	pragmaData = NULL;
 	startLine = 1;
 	skip = 0;
+	defineScope = 0;
 }
 
 /*
@@ -4491,6 +4479,7 @@ idParser::idParser( int flags )
 	pragmaData = NULL;
 	startLine = 1;
 	skip = 0;
+	defineScope = 0;
 }
 
 /*
@@ -4513,6 +4502,7 @@ idParser::idParser( const char *filename, int _flags, bool _OSPath )
 	pragmaData = NULL;
 	startLine = 1;
 	skip = 0;
+	defineScope = 0;
 	LoadFile( filename, OSPath );
 }
 
@@ -4536,6 +4526,7 @@ idParser::idParser( const char *ptr, int length, const char *name, int flags )
 	pragmaData = NULL;
 	startLine = 1;
 	skip = 0;
+	defineScope = 0;
 	LoadMemory( ptr, length, name, startLine );
 }
 
