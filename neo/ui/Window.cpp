@@ -761,7 +761,7 @@ void idWindow::AddCommand( const char* _cmd )
 idWindow::HandleEvent
 ================
 */
-const char* idWindow::HandleEvent( const sysEvent_t* event, bool* updateVisuals )
+const char* idWindow::HandleEvent( const idSysEvent* event, bool* updateVisuals )
 {
 	static bool actionDownRun;
 	static bool actionUpRun;
@@ -791,7 +791,7 @@ const char* idWindow::HandleEvent( const sysEvent_t* event, bool* updateVisuals 
 
 	if( visible && !noEvents )
 	{
-		if( event->evType == SE_KEY )
+		if( event->IsKeyEvent() )
 		{
 			EvalRegs( -1, true );
 			if( updateVisuals )
@@ -799,9 +799,9 @@ const char* idWindow::HandleEvent( const sysEvent_t* event, bool* updateVisuals 
 				*updateVisuals = true;
 			}
 
-			if( event->evValue == K_MOUSE1 )
+			if( event->GetKey() == K_MOUSE1 )
 			{
-				if( !event->evValue2 && GetCaptureChild() )
+				if( event->IsKeyUp() && GetCaptureChild() )
 				{
 					GetCaptureChild()->LoseCapture();
 					gui->GetDesktop()->captureChild = NULL;
@@ -814,7 +814,7 @@ const char* idWindow::HandleEvent( const sysEvent_t* event, bool* updateVisuals 
 					if( children[ c ]->visible && children[ c ]->Contains( children[ c ]->drawRect, gui->CursorX(), gui->CursorY() ) && !( children[ c ]->noEvents ) )
 					{
 						idWindow* child = children[ c ];
-						if( event->evValue2 )
+						if( event->IsKeyDown() )
 						{
 							BringToTop( child );
 							SetFocus( child );
@@ -839,9 +839,8 @@ const char* idWindow::HandleEvent( const sysEvent_t* event, bool* updateVisuals 
 								return "";
 							}
 						}
-						else
-						{
-							if( event->evValue2 )
+						else {
+							if( event->IsKeyDown() )
 							{
 								SetFocus( child );
 								bool capture = true;
@@ -851,13 +850,12 @@ const char* idWindow::HandleEvent( const sysEvent_t* event, bool* updateVisuals 
 								}
 								return "";
 							}
-							else
-							{
+							else {
 							}
 						}
 					}
 				}
-				if( event->evValue2 && !actionDownRun )
+				if( event->IsKeyDown() && !actionDownRun )
 				{
 					actionDownRun = RunScript( ON_ACTION );
 				}
@@ -866,9 +864,9 @@ const char* idWindow::HandleEvent( const sysEvent_t* event, bool* updateVisuals 
 					actionUpRun = RunScript( ON_ACTIONRELEASE );
 				}
 			}
-			else if( event->evValue == K_MOUSE2 )
+			else if( event->GetKey() == K_MOUSE2 )
 			{
-				if( !event->evValue2 && GetCaptureChild() )
+				if( event->IsKeyUp() && GetCaptureChild() )
 				{
 					GetCaptureChild()->LoseCapture();
 					gui->GetDesktop()->captureChild = NULL;
@@ -881,7 +879,7 @@ const char* idWindow::HandleEvent( const sysEvent_t* event, bool* updateVisuals 
 					if( children[ c ]->visible && children[ c ]->Contains( children[ c ]->drawRect, gui->CursorX(), gui->CursorY() ) && !( children[ c ]->noEvents ) )
 					{
 						idWindow* child = children[ c ];
-						if( event->evValue2 )
+						if( event->IsKeyDown() )
 						{
 							BringToTop( child );
 							SetFocus( child );
@@ -905,7 +903,7 @@ const char* idWindow::HandleEvent( const sysEvent_t* event, bool* updateVisuals 
 					}
 				}
 			}
-			else if( event->evValue == K_MOUSE3 )
+			else if( event->GetKey() == K_MOUSE3 )
 			{
 				if( gui_edit.GetBool() )
 				{
@@ -914,7 +912,7 @@ const char* idWindow::HandleEvent( const sysEvent_t* event, bool* updateVisuals 
 					{
 						if( children[ i ]->drawRect.Contains( gui->CursorX(), gui->CursorY() ) )
 						{
-							if( event->evValue2 )
+							if( event->IsKeyDown() )
 							{
 								children[ i ]->flags ^= WIN_SELECTED;
 								if( children[ i ]->flags & WIN_SELECTED )
@@ -927,7 +925,7 @@ const char* idWindow::HandleEvent( const sysEvent_t* event, bool* updateVisuals 
 					}
 				}
 			}
-			else if( event->evValue == K_TAB && event->evValue2 )
+			else if( event->GetKey() == K_TAB && event->IsKeyDown() )
 			{
 				if( GetFocusedChild() )
 				{
@@ -999,8 +997,7 @@ const char* idWindow::HandleEvent( const sysEvent_t* event, bool* updateVisuals 
 							// We found a child with children
 							continue;
 						}
-						else
-						{
+						else {
 							// We didn't find anything, so go back up to our parent
 							child = parent;
 							parent = child->GetParent();
@@ -1014,7 +1011,7 @@ const char* idWindow::HandleEvent( const sysEvent_t* event, bool* updateVisuals 
 					}
 				}
 			}
-			else if( ( event->evValue == K_ESCAPE || event->evValue == K_JOY9 ) && event->evValue2 )
+			else if( ( event->GetKey() == K_ESCAPE || event->GetKey() == K_JOY9 ) && event->IsKeyDown() )
 			{
 				if( GetFocusedChild() )
 				{
@@ -1026,7 +1023,7 @@ const char* idWindow::HandleEvent( const sysEvent_t* event, bool* updateVisuals 
 				}
 				RunScript( ON_ESC );
 			}
-			else if( event->evValue == K_ENTER )
+			else if( event->GetKey() == K_ENTER )
 			{
 				if( GetFocusedChild() )
 				{
@@ -1038,18 +1035,16 @@ const char* idWindow::HandleEvent( const sysEvent_t* event, bool* updateVisuals 
 				}
 				if( flags & WIN_WANTENTER )
 				{
-					if( event->evValue2 )
+					if( event->IsKeyDown() )
 					{
 						RunScript( ON_ACTION );
 					}
-					else
-					{
+					else {
 						RunScript( ON_ACTIONRELEASE );
 					}
 				}
 			}
-			else
-			{
+			else {
 				if( GetFocusedChild() )
 				{
 					const char* childRet = GetFocusedChild()->HandleEvent( event, updateVisuals );
@@ -1060,22 +1055,22 @@ const char* idWindow::HandleEvent( const sysEvent_t* event, bool* updateVisuals 
 				}
 			}
 		}
-		else if( event->evType == SE_MOUSE )
+		else if( event->IsRelativeXYMouseCoords() )
 		{
 			if( updateVisuals )
 			{
 				*updateVisuals = true;
 			}
-			const char* mouseRet = RouteMouseCoords( event->evValue, event->evValue2 );
+			const char* mouseRet = RouteMouseCoords( event->GetXCoord(), event->GetYCoord() );
 			if( mouseRet != NULL && *mouseRet != '\0' )
 			{
 				return mouseRet;
 			}
 		}
-		else if( event->evType == SE_NONE )
+		else if( event->IsEmptyEvent() )
 		{
 		}
-		else if( event->evType == SE_CHAR )
+		else if( event->IsCharEvent() )
 		{
 			if( GetFocusedChild() )
 			{

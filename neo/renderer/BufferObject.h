@@ -51,7 +51,7 @@ enum bufferUsageType_t
 	BU_DEFAULT,			// mappable, no dinamic update, draw
 	BU_STATIC,			// no map, no dinamic update, draw
 	BU_DYNAMIC,			// no map, dinamic update, draw
-	BU_STAGING			// internal
+	BU_STAGING			// internal copy
 };
 
 // Returns all targets to virtual memory use instead of buffer object use.
@@ -298,11 +298,9 @@ private:
 	DISALLOW_COPY_AND_ASSIGN( idJointBuffer );
 };
 
-
-
 /*
 =====================================================================================================
-	idUniformBuffer	idUniformBuffer
+	idUniformBuffer
 =====================================================================================================
 */
 class idUniformBuffer {
@@ -321,7 +319,7 @@ public:
 	// Copies data to the buffer. 'size' may be less than the originally allocated size.
 	void				Update( int updateSize, const void* data ) const;
 
-	void * 				MapBuffer( bufferMapType_t mapType ) const;
+	void * 				MapBuffer( bufferMapType_t mapType = BM_WRITE ) const;
 	///void * TryMapBuffer( bufferMapType_t mapType );
 	void				UnmapBuffer() const;
 	ID_INLINE bool		IsMapped() const { return ( size & MAPPED_FLAG ) != 0; }
@@ -332,10 +330,9 @@ public:
 	ID_INLINE int		GetOffset() const { return ( offsetInOtherBuffer & ~OWNS_BUFFER_FLAG ); }
 
 private:
+	void * 				apiObject;
 	int					size;					// size in bytes
 	int					offsetInOtherBuffer;	// offset in bytes
-	void * 				apiObject;
-
 	bufferUsageType_t	usage;
 
 	static const int	MAPPED_FLAG			= MIN_TYPE( int );
@@ -349,6 +346,60 @@ private:
 
 	DISALLOW_COPY_AND_ASSIGN( idUniformBuffer );
 };
+
+/*
+=====================================================================================================
+	idTextureBuffer
+=====================================================================================================
+*/
+class idTextureBuffer {
+public:
+	idTextureBuffer();
+	~idTextureBuffer();
+
+	// Allocate or free the buffer.
+	bool				AllocBufferObject( int allocSize, bufferUsageType_t allocUsage, const void* data = nullptr );
+	void				FreeBufferObject();
+
+	void				Bind();
+
+	// Make this buffer a reference to another buffer.
+	void				Reference( const idTextureBuffer& other );
+	void				Reference( const idTextureBuffer& other, int refOffset, int refSize );
+
+	// Copies data to the buffer. 'size' may be less than the originally allocated size.
+	void				Update( int updateSize, const void* data ) const;
+
+	void * 				MapBuffer( bufferMapType_t = BM_WRITE, bool bInvalidateRange = false ) const;
+	void				UnmapBuffer() const;
+	ID_INLINE bool		IsMapped() const { return ( size & MAPPED_FLAG ) != 0; }
+
+	ID_INLINE int		GetSize() const { return ( size & ~MAPPED_FLAG ); }
+	ID_INLINE int		GetAllocedSize() const { return ALIGN( GetSize(), 16 ); }
+	ID_INLINE void * 	GetAPIObject() const { return apiObject; }
+	ID_INLINE int		GetOffset() const { return ( offsetInOtherBuffer & ~OWNS_BUFFER_FLAG ); }
+
+private:
+	void * 				apiObject;
+	int					size;					// size in bytes
+	int					offsetInOtherBuffer;	// offset in bytes
+	bufferUsageType_t	usage;
+
+	GLuint				m_tbo_tex;
+	GLenum				m_internalFormat;
+
+	static const int	MAPPED_FLAG = MIN_TYPE( int );
+	static const int	OWNS_BUFFER_FLAG = MIN_TYPE( int );
+
+private:
+	void				ClearWithoutFreeing();
+	ID_INLINE void		SetMapped() const { const_cast< int& >( size ) |= MAPPED_FLAG; }
+	ID_INLINE void		SetUnmapped() const { const_cast< int& >( size ) &= ~MAPPED_FLAG; }
+	ID_INLINE bool		OwnsBuffer() const { return ( ( offsetInOtherBuffer & OWNS_BUFFER_FLAG ) != 0 ); }
+
+	DISALLOW_COPY_AND_ASSIGN( idTextureBuffer );
+};
+
 
 // idShaderStorageBuffer
 

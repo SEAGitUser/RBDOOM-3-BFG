@@ -35,7 +35,7 @@ public:
 	idBindWindow( idUserInterfaceLocal* gui );
 	virtual ~idBindWindow();
 	
-	virtual const char* HandleEvent( const sysEvent_t* event, bool* updateVisuals );
+	virtual const char* HandleEvent( const idSysEvent* event, bool* updateVisuals );
 	virtual void PostParse();
 	virtual void Draw( int time, float x, float y );
 	virtual size_t Allocated()

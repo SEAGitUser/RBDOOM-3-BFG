@@ -267,7 +267,7 @@ public:
 	const char* GetName() const { return name; };
 	
 	virtual bool Parse( idTokenParser* src, bool rebuild = true );
-	virtual const char* HandleEvent( const sysEvent_t* event, bool* updateVisuals );
+	virtual const char* HandleEvent( const idSysEvent* event, bool* updateVisuals );
 	void	CalcRects( float x, float y );
 	virtual void Redraw( float x, float y, bool hud );
 	

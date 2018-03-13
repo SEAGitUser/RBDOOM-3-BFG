@@ -455,21 +455,18 @@ void idGameBearShootWindow::CommonInit()
 idGameBearShootWindow::HandleEvent
 =============================
 */
-const char* idGameBearShootWindow::HandleEvent( const sysEvent_t* event, bool* updateVisuals )
+const char* idGameBearShootWindow::HandleEvent( const idSysEvent* event, bool* updateVisuals )
 {
-	int key = event->evValue;
-	
 	// need to call this to allow proper focus and capturing on embedded children
 	const char* ret = idWindow::HandleEvent( event, updateVisuals );
 	
-	if( event->evType == SE_KEY )
-	{
-	
-		if( !event->evValue2 )
+	if( event->IsKeyEvent() )
+	{	
+		if( event->IsKeyUp() )
 		{
 			return ret;
 		}
-		if( key == K_MOUSE1 )
+		if( event->GetKey() == K_MOUSE1 )
 		{
 			// Mouse was clicked
 		}

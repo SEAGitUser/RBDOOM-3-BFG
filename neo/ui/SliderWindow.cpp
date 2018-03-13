@@ -112,7 +112,6 @@ bool idSliderWindow::ParseInternalVar( const char* _name, idTokenParser* src )
 
 idWinVar* idSliderWindow::GetWinVarByName( const char* _name, bool fixup, drawWin_t** owner )
 {
-
 	if( idStr::Icmp( _name, "value" ) == 0 )
 	{
 		return &value;
@@ -133,17 +132,16 @@ idWinVar* idSliderWindow::GetWinVarByName( const char* _name, bool fixup, drawWi
 	return idWindow::GetWinVarByName( _name, fixup, owner );
 }
 
-const char* idSliderWindow::HandleEvent( const sysEvent_t* event, bool* updateVisuals )
+const char* idSliderWindow::HandleEvent( const idSysEvent* event, bool* updateVisuals )
 {
-
-	if( !( event->evType == SE_KEY && event->evValue2 ) )
+	if( !( event->IsKeyEvent() && event->IsKeyDown() ) )
 	{
 		return "";
 	}
 	
-	int key = event->evValue;
+	int key = event->GetKey();
 	
-	if( event->evValue2 && key == K_MOUSE1 )
+	if( event->IsKeyDown() && key == K_MOUSE1 )
 	{
 		SetCapture( this );
 		RouteMouseCoords( 0.0f, 0.0f );
@@ -164,8 +162,7 @@ const char* idSliderWindow::HandleEvent( const sysEvent_t* event, bool* updateVi
 	{
 		buddyWin->HandleBuddyUpdate( this );
 	}
-	else
-	{
+	else {
 		gui->SetStateFloat( cvarStr, value );
 		UpdateCvar( false );
 	}

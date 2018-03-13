@@ -161,7 +161,7 @@ void idCommonLocal::StopPlayingRenderDemo()
 	}
 	
 	// Record the stop time before doing anything that could be time consuming
-	int timeDemoStopTime = Sys_Milliseconds();
+	int timeDemoStopTime = sys->Milliseconds();
 	
 	EndAVICapture();
 	
@@ -281,7 +281,7 @@ void idCommonLocal::StartPlayingRenderDemo( idStr demoName )
 	
 	numDemoFrames = 1;
 	
-	timeDemoStartTime = Sys_Milliseconds();
+	timeDemoStartTime = sys->Milliseconds();
 }
 
 /*

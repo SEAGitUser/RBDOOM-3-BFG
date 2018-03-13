@@ -75,8 +75,6 @@ idPVS::idPVS
 */
 idPVS::idPVS()
 {
-	int i;
-	
 	numAreas = 0;
 	numPortals = 0;
 	
@@ -84,7 +82,7 @@ idPVS::idPVS()
 	areaQueue = NULL;
 	areaPVS = NULL;
 	
-	for( i = 0; i < MAX_CURRENT_PVS; i++ )
+	for( int i = 0; i < MAX_CURRENT_PVS; i++ )
 	{
 		currentPVS[i].handle.i = -1;
 		currentPVS[i].handle.h = 0;
@@ -192,8 +190,6 @@ idPVS::DestroyPVSData
 */
 void idPVS::DestroyPVSData()
 {
-	int i;
-	
 	if( !pvsAreas )
 	{
 		return;
@@ -207,7 +203,7 @@ void idPVS::DestroyPVSData()
 	pvsAreas = NULL;
 	
 	// delete portal data
-	for( i = 0; i < numPortals; i++ )
+	for( int i = 0; i < numPortals; ++i )
 	{
 		delete[] pvsPortals[i].vis;
 		delete[] pvsPortals[i].mightSee;
@@ -232,7 +228,7 @@ void idPVS::FloodFrontPortalPVS_r( pvsPortal_t* portal, int areaNum ) const
 	
 	area = &pvsAreas[ areaNum ];
 	
-	for( i = 0; i < area->numPortals; i++ )
+	for( i = 0; i < area->numPortals; ++i )
 	{
 		p = area->portals[i];
 		n = p - pvsPortals;
@@ -264,11 +260,11 @@ void idPVS::FrontPortalPVS() const
 	pvsPortal_t* p1, *p2;
 	pvsArea_t* area;
 	
-	for( i = 0; i < numPortals; i++ )
+	for( i = 0; i < numPortals; ++i )
 	{
 		p1 = &pvsPortals[i];
 		
-		for( j = 0; j < numAreas; j++ )
+		for( j = 0; j < numAreas; ++j )
 		{
 		
 			area = &pvsAreas[j];
@@ -281,7 +277,7 @@ void idPVS::FrontPortalPVS() const
 				continue;
 			}
 			
-			for( p = 0; p < area->numPortals; p++ )
+			for( p = 0; p < area->numPortals; ++p )
 			{
 			
 				p2 = area->portals[p];
@@ -513,19 +509,17 @@ void idPVS::AddPassageBoundaries( const idWinding& source, const idWinding& pass
 	float		d, dist;
 	bool		flipTest, front;
 	idPlane		plane;
-	
-	
+		
 	// check all combinations
-	for( i = 0; i < source.GetNumPoints(); i++ )
-	{
-	
+	for( i = 0; i < source.GetNumPoints(); ++i )
+	{	
 		l = ( i + 1 ) % source.GetNumPoints();
 		v1 = source[l].ToVec3() - source[i].ToVec3();
 		
 		// find a vertex of pass that makes a plane that puts all of the
 		// vertices of pass on the front side and all of the vertices of
 		// source on the back side
-		for( j = 0; j < pass.GetNumPoints(); j++ )
+		for( j = 0; j < pass.GetNumPoints(); ++j )
 		{
 		
 			v2 = pass[j].ToVec3() - source[i].ToVec3();
@@ -542,7 +536,7 @@ void idPVS::AddPassageBoundaries( const idWinding& source, const idWinding& pass
 			// source portal
 			//
 			flipTest = false;
-			for( k = 0; k < source.GetNumPoints(); k++ )
+			for( k = 0; k < source.GetNumPoints(); ++k )
 			{
 				if( k == i || k == l )
 				{
@@ -579,7 +573,7 @@ void idPVS::AddPassageBoundaries( const idWinding& source, const idWinding& pass
 			// if all of the pass portal points are now on the positive side,
 			// this is the seperating plane
 			front = false;
-			for( k = 0; k < pass.GetNumPoints(); k++ )
+			for( k = 0; k < pass.GetNumPoints(); ++k )
 			{
 				if( k == j )
 				{
@@ -617,7 +611,7 @@ void idPVS::AddPassageBoundaries( const idWinding& source, const idWinding& pass
 			}
 			
 			// check if the plane is already a passage boundary
-			for( k = 0; k < numBounds; k++ )
+			for( k = 0; k < numBounds; ++k )
 			{
 				if( plane.Compare( bounds[k], 0.001f, 0.01f ) )
 				{
@@ -660,14 +654,14 @@ void idPVS::CreatePassages() const
 	byte canSee, mightSee, bit;
 	
 	passageMemory = 0;
-	for( i = 0; i < numPortals; i++ )
+	for( i = 0; i < numPortals; ++i )
 	{
 		source = &pvsPortals[i];
 		area = &pvsAreas[source->areaNum];
 		
 		source->passages = new( TAG_PVS ) pvsPassage_t[area->numPortals];
 		
-		for( j = 0; j < area->numPortals; j++ )
+		for( j = 0; j < area->numPortals; ++j )
 		{
 			target = area->portals[j];
 			n = target - pvsPortals;
@@ -716,7 +710,7 @@ void idPVS::CreatePassages() const
 						continue;
 					}
 					
-					for( front = 0, l = 0; l < numBounds; l++ )
+					for( front = 0, l = 0; l < numBounds; ++l )
 					{
 						sides[l] = p->bounds.PlaneSide( passageBounds[l] );
 						// if completely at the back of the passage bounding plane
@@ -742,7 +736,7 @@ void idPVS::CreatePassages() const
 					
 						winding = *p->w;
 						
-						for( l = 0; l < numBounds; l++ )
+						for( l = 0; l < numBounds; ++l )
 						{
 							// only clip if the winding possibly crosses this plane
 							if( sides[l] != PLANESIDE_CROSS )
@@ -796,11 +790,11 @@ void idPVS::DestroyPassages() const
 	pvsPortal_t* p;
 	pvsArea_t* area;
 	
-	for( i = 0; i < numPortals; i++ )
+	for( i = 0; i < numPortals; ++i )
 	{
 		p = &pvsPortals[i];
 		area = &pvsAreas[p->areaNum];
-		for( j = 0; j < area->numPortals; j++ )
+		for( j = 0; j < area->numPortals; ++j )
 		{
 			if( p->passages[j].canSee )
 			{
@@ -818,12 +812,9 @@ idPVS::CopyPortalPVSToMightSee
 */
 void idPVS::CopyPortalPVSToMightSee() const
 {
-	int i;
-	pvsPortal_t* p;
-	
-	for( i = 0; i < numPortals; i++ )
+	for( int i = 0; i < numPortals; ++i )
 	{
-		p = &pvsPortals[i];
+		auto p = &pvsPortals[i];
 		memcpy( p->mightSee, p->vis, portalVisBytes );
 	}
 }
@@ -851,7 +842,7 @@ int idPVS::AreaPVSFromPortalPVS() const
 	
 	memset( areaPVS, 0, numAreas * areaVisBytes );
 	
-	for( i = 0; i < numAreas; i++ )
+	for( i = 0; i < numAreas; ++i )
 	{
 		area = &pvsAreas[i];
 		pvs = areaPVS + i * areaVisBytes;
@@ -865,21 +856,21 @@ int idPVS::AreaPVSFromPortalPVS() const
 		}
 		
 		// store the PVS of all portals in this area at the first portal
-		for( j = 1; j < area->numPortals; j++ )
+		for( j = 1; j < area->numPortals; ++j )
 		{
 			// RB: 64 bit fixes, changed long to int
 			p1 = reinterpret_cast<int*>( area->portals[0]->vis );
 			p2 = reinterpret_cast<int*>( area->portals[j]->vis );
 			// RB end
 			
-			for( k = 0; k < portalVisLongs; k++ )
+			for( k = 0; k < portalVisLongs; ++k )
 			{
 				*p1++ |= *p2++;
 			}
 		}
 		
 		// the portals of this area are always visible
-		for( j = 0; j < area->numPortals; j++ )
+		for( j = 0; j < area->numPortals; ++j )
 		{
 			k = area->portals[j] - pvsPortals;
 			area->portals[0]->vis[ k >> 3 ] |= 1 << ( k & 7 );
@@ -887,7 +878,7 @@ int idPVS::AreaPVSFromPortalPVS() const
 		
 		// set all areas to visible that can be seen from the portals of this area
 		portalPVS = area->portals[0]->vis;
-		for( j = 0; j < numPortals; j++ )
+		for( j = 0; j < numPortals; ++j )
 		{
 			// if this portal is visible
 			if( portalPVS[j >> 3] & ( 1 << ( j & 7 ) ) )
@@ -898,7 +889,7 @@ int idPVS::AreaPVSFromPortalPVS() const
 		}
 		
 		// count the number of visible areas
-		for( j = 0; j < numAreas; j++ )
+		for( j = 0; j < numAreas; ++j )
 		{
 			if( pvs[j >> 3] & ( 1 << ( j & 7 ) ) )
 			{
@@ -916,8 +907,6 @@ idPVS::Init
 */
 void idPVS::Init()
 {
-	int totalVisibleAreas;
-	
 	Shutdown();
 	
 	numAreas = gameRenderWorld->NumAreas();
@@ -963,7 +952,7 @@ void idPVS::Init()
 	
 	PassagePVS();
 	
-	totalVisibleAreas = AreaPVSFromPortalPVS();
+	int totalVisibleAreas = AreaPVSFromPortalPVS();
 	
 	DestroyPVSData();
 	
@@ -1031,8 +1020,7 @@ void idPVS::GetConnectedAreas( int srcArea, bool* areas ) const
 	areas[srcArea] = true;
 	
 	for( curArea = srcArea; queueStart < queueEnd; curArea = areaQueue[++queueStart] )
-	{
-	
+	{	
 		n = gameRenderWorld->NumPortalsInArea( curArea );
 		
 		for( i = 0; i < n; i++ )
@@ -1087,9 +1075,7 @@ idPVS::SetupCurrentPVS
 */
 pvsHandle_t idPVS::SetupCurrentPVS( const idVec3& source, const pvsType_t type ) const
 {
-	int sourceArea;
-	
-	sourceArea = gameRenderWorld->PointInArea( source );
+	int sourceArea = gameRenderWorld->PointInArea( source );
 	
 	return SetupCurrentPVS( sourceArea, type );
 }
@@ -1101,9 +1087,9 @@ idPVS::SetupCurrentPVS
 */
 pvsHandle_t idPVS::SetupCurrentPVS( const idBounds& source, const pvsType_t type ) const
 {
-	int numSourceAreas, sourceAreas[MAX_BOUNDS_AREAS];
+	int sourceAreas[MAX_BOUNDS_AREAS];
 	
-	numSourceAreas = gameRenderWorld->BoundsInAreas( source, sourceAreas, MAX_BOUNDS_AREAS );
+	int numSourceAreas = gameRenderWorld->BoundsInAreas( source, sourceAreas, MAX_BOUNDS_AREAS );
 	
 	return SetupCurrentPVS( sourceAreas, numSourceAreas, type );
 }
@@ -1187,8 +1173,7 @@ pvsHandle_t idPVS::SetupCurrentPVS( const int* sourceAreas, const int numSourceA
 		// merge PVS of all areas the source is in
 		memcpy( currentPVS[handle.i].pvs, areaPVS + sourceAreas[0] * areaVisBytes, areaVisBytes );
 		for( i = 1; i < numSourceAreas; i++ )
-		{
-		
+		{		
 			assert( sourceAreas[i] >= 0 && sourceAreas[i] < numAreas );
 			
 			// RB: 64 bit fixes, changed long to int
@@ -1248,7 +1233,7 @@ pvsHandle_t idPVS::MergeCurrentPVS( pvsHandle_t pvs1, pvsHandle_t pvs2 ) const
 	pvsHandle_t handle = { 0 };
 	
 	if( pvs1.i < 0 || pvs1.i >= MAX_CURRENT_PVS || pvs1.h != currentPVS[pvs1.i].handle.h ||
-			pvs2.i < 0 || pvs2.i >= MAX_CURRENT_PVS || pvs2.h != currentPVS[pvs2.i].handle.h )
+		pvs2.i < 0 || pvs2.i >= MAX_CURRENT_PVS || pvs2.h != currentPVS[pvs2.i].handle.h )
 	{
 		gameLocal.Error( "idPVS::MergeCurrentPVS: invalid handle" );
 		return handle;
@@ -1277,10 +1262,9 @@ idPVS::AllocCurrentPVS
 */
 pvsHandle_t idPVS::AllocCurrentPVS( unsigned int h ) const
 {
-	int i;
 	pvsHandle_t handle;
 	
-	for( i = 0; i < MAX_CURRENT_PVS; i++ )
+	for( int i = 0; i < MAX_CURRENT_PVS; i++ )
 	{
 		if( currentPVS[i].handle.i == -1 )
 		{
@@ -1344,21 +1328,20 @@ idPVS::InCurrentPVS
 ================
 */
 bool idPVS::InCurrentPVS( const pvsHandle_t handle, const idBounds& target ) const
-{
-	int i, numTargetAreas, targetAreas[MAX_BOUNDS_AREAS];
-	
+{	
 	if( handle.i < 0 || handle.i >= MAX_CURRENT_PVS ||
-			handle.h != currentPVS[handle.i].handle.h )
+		handle.h != currentPVS[handle.i].handle.h )
 	{
 		gameLocal.Warning( "idPVS::InCurrentPVS: invalid handle" );
 		return false;
 	}
+
+	int targetAreas[ MAX_BOUNDS_AREAS ];
+	int numTargetAreas = gameRenderWorld->BoundsInAreas( target, targetAreas, MAX_BOUNDS_AREAS );
 	
-	numTargetAreas = gameRenderWorld->BoundsInAreas( target, targetAreas, MAX_BOUNDS_AREAS );
-	
-	for( i = 0; i < numTargetAreas; i++ )
+	for( int i = 0; i < numTargetAreas; ++i )
 	{
-		if( currentPVS[handle.i].pvs[targetAreas[i] >> 3] & ( 1 << ( targetAreas[i] & 7 ) ) )
+		if( currentPVS[ handle.i ].pvs[ targetAreas[ i ] >> 3 ] & ( 1 << ( targetAreas[ i ] & 7 ) ) )
 		{
 			return true;
 		}
@@ -1373,9 +1356,8 @@ idPVS::InCurrentPVS
 */
 bool idPVS::InCurrentPVS( const pvsHandle_t handle, const int targetArea ) const
 {
-
 	if( handle.i < 0 || handle.i >= MAX_CURRENT_PVS ||
-			handle.h != currentPVS[handle.i].handle.h )
+		handle.h != currentPVS[handle.i].handle.h )
 	{
 		gameLocal.Warning( "idPVS::InCurrentPVS: invalid handle" );
 		return false;
@@ -1386,7 +1368,7 @@ bool idPVS::InCurrentPVS( const pvsHandle_t handle, const int targetArea ) const
 		return false;
 	}
 	
-	return ( ( currentPVS[handle.i].pvs[targetArea >> 3] & ( 1 << ( targetArea & 7 ) ) ) != 0 );
+	return ( ( currentPVS[ handle.i ].pvs[ targetArea >> 3 ] & ( 1 << ( targetArea & 7 ) ) ) != 0 );
 }
 
 /*
@@ -1396,22 +1378,20 @@ idPVS::InCurrentPVS
 */
 bool idPVS::InCurrentPVS( const pvsHandle_t handle, const int* targetAreas, int numTargetAreas ) const
 {
-	int i;
-	
 	if( handle.i < 0 || handle.i >= MAX_CURRENT_PVS ||
-			handle.h != currentPVS[handle.i].handle.h )
+		handle.h != currentPVS[handle.i].handle.h )
 	{
 		gameLocal.Warning( "idPVS::InCurrentPVS: invalid handle" );
 		return false;
 	}
 	
-	for( i = 0; i < numTargetAreas; i++ )
+	for( int i = 0; i < numTargetAreas; i++ )
 	{
 		if( targetAreas[i] < 0 || targetAreas[i] >= numAreas )
 		{
 			continue;
 		}
-		if( currentPVS[handle.i].pvs[targetAreas[i] >> 3] & ( 1 << ( targetAreas[i] & 7 ) ) )
+		if( currentPVS[ handle.i ].pvs[ targetAreas[ i ] >> 3 ] & ( 1 << ( targetAreas[ i ] & 7 ) ) )
 		{
 			return true;
 		}
@@ -1426,38 +1406,28 @@ idPVS::DrawPVS
 */
 void idPVS::DrawPVS( const idVec3& source, const pvsType_t type ) const
 {
-	int i, j, k, numPoints, n, sourceArea;
+	int i, j, k, numPoints, n;
 	exitPortal_t portal;
 	idPlane plane;
 	idVec3 offset;
 	idVec4* color;
-	pvsHandle_t handle;
 	
-	sourceArea = gameRenderWorld->PointInArea( source );
-	
+	int sourceArea = gameRenderWorld->PointInArea( source );	
 	if( sourceArea == -1 )
 	{
 		return;
 	}
 	
-	handle = SetupCurrentPVS( source, type );
+	pvsHandle_t handle = SetupCurrentPVS( source, type );
 	
-	for( j = 0; j < numAreas; j++ )
-	{
-	
+	for( j = 0; j < numAreas; ++j )
+	{	
 		if( !( currentPVS[handle.i].pvs[j >> 3] & ( 1 << ( j & 7 ) ) ) )
 		{
 			continue;
 		}
 		
-		if( j == sourceArea )
-		{
-			color = &colorRed;
-		}
-		else
-		{
-			color = &colorCyan;
-		}
+		color = ( j == sourceArea )? &colorRed : &colorCyan;;
 		
 		n = gameRenderWorld->NumPortalsInArea( j );
 		
@@ -1487,50 +1457,41 @@ idPVS::DrawPVS
 */
 void idPVS::DrawPVS( const idBounds& source, const pvsType_t type ) const
 {
-	int i, j, k, numPoints, n, num, areas[MAX_BOUNDS_AREAS];
+	int i, j, k, numPoints, n, areas[MAX_BOUNDS_AREAS];
 	exitPortal_t portal;
 	idPlane plane;
 	idVec3 offset;
 	idVec4* color;
-	pvsHandle_t handle;
 	
-	num = gameRenderWorld->BoundsInAreas( source, areas, MAX_BOUNDS_AREAS );
-	
+	int num = gameRenderWorld->BoundsInAreas( source, areas, MAX_BOUNDS_AREAS );
 	if( !num )
 	{
 		return;
 	}
 	
-	handle = SetupCurrentPVS( source, type );
+	pvsHandle_t handle = SetupCurrentPVS( source, type );
 	
-	for( j = 0; j < numAreas; j++ )
-	{
-	
+	for( j = 0; j < numAreas; ++j )
+	{	
 		if( !( currentPVS[handle.i].pvs[j >> 3] & ( 1 << ( j & 7 ) ) ) )
 		{
 			continue;
 		}
 		
-		for( i = 0; i < num; i++ )
+		for( i = 0; i < num; ++i )
 		{
 			if( j == areas[i] )
 			{
 				break;
 			}
 		}
-		if( i < num )
-		{
-			color = &colorRed;
-		}
-		else
-		{
-			color = &colorCyan;
-		}
+
+		color = ( i < num )? &colorRed : &colorCyan;;
 		
 		n = gameRenderWorld->NumPortalsInArea( j );
 		
 		// draw all the portals of the area
-		for( i = 0; i < n; i++ )
+		for( i = 0; i < n; ++i )
 		{
 			portal = gameRenderWorld->GetPortal( j, i );
 			
@@ -1555,42 +1516,33 @@ idPVS::DrawPVS
 */
 void idPVS::DrawCurrentPVS( const pvsHandle_t handle, const idVec3& source ) const
 {
-	int i, j, k, numPoints, n, sourceArea;
+	int i, j, k, numPoints, n;
 	exitPortal_t portal;
 	idPlane plane;
 	idVec3 offset;
 	idVec4* color;
 	
 	if( handle.i < 0 || handle.i >= MAX_CURRENT_PVS ||
-			handle.h != currentPVS[handle.i].handle.h )
+		handle.h != currentPVS[handle.i].handle.h )
 	{
 		gameLocal.Error( "idPVS::DrawCurrentPVS: invalid handle" );
 		return;
 	}
 	
-	sourceArea = gameRenderWorld->PointInArea( source );
-	
+	int sourceArea = gameRenderWorld->PointInArea( source );
 	if( sourceArea == -1 )
 	{
 		return;
 	}
 	
-	for( j = 0; j < numAreas; j++ )
-	{
-	
+	for( j = 0; j < numAreas; ++j )
+	{	
 		if( !( currentPVS[handle.i].pvs[j >> 3] & ( 1 << ( j & 7 ) ) ) )
 		{
 			continue;
 		}
 		
-		if( j == sourceArea )
-		{
-			color = &colorRed;
-		}
-		else
-		{
-			color = &colorCyan;
-		}
+		color = ( j == sourceArea )? &colorRed : &colorCyan;;
 		
 		n = gameRenderWorld->NumPortalsInArea( j );
 		
@@ -1618,24 +1570,21 @@ idPVS::CheckAreasForPortalSky
 */
 bool idPVS::CheckAreasForPortalSky( const pvsHandle_t handle, const idVec3& origin )
 {
-	int j, sourceArea;
-	
 	if( handle.i < 0 || handle.i >= MAX_CURRENT_PVS || handle.h != currentPVS[handle.i].handle.h )
 	{
 		return false;
 	}
 	
-	sourceArea = gameRenderWorld->PointInArea( origin );
-	
+	int sourceArea = gameRenderWorld->PointInArea( origin );	
 	if( sourceArea == -1 )
 	{
 		return false;
 	}
 	
-	for( j = 0; j < numAreas; j++ )
+	for( int j = 0; j < numAreas; j++ )
 	{
 	
-		if( !( currentPVS[handle.i].pvs[j >> 3] & ( 1 << ( j & 7 ) ) ) )
+		if( !( currentPVS[ handle.i ].pvs[ j >> 3 ] & ( 1 << ( j & 7 ) ) ) )
 		{
 			continue;
 		}

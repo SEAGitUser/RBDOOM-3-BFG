@@ -37,7 +37,7 @@ Contains the AimAssist implementation.
 ================================================================================================
 */
 
-idCVar aa_targetAimAssistEnable(	"aa_targetAimAssistEnable",						"0",		CVAR_BOOL | CVAR_ARCHIVE,	"Enables/Disables the entire Aim Assist system" );
+idCVar aa_targetAimAssistEnable( "aa_targetAimAssistEnable",					"0",		CVAR_BOOL | CVAR_ARCHIVE,	"Enables/Disables the entire Aim Assist system" );
 
 idCVar aa_targetAdhesionEnable(	"aa_targetAdhesionEnable",						"1",		CVAR_BOOL,	"Enables Target Adhesion" );
 idCVar aa_targetFrictionEnable(	"aa_targetFrictionEnable",						"1",		CVAR_BOOL,	"Enables Target Friction" );
@@ -93,7 +93,6 @@ idAimAssist::UpdateNewAimAssist
 */
 void idAimAssist::UpdateNewAimAssist()
 {
-
 	angleCorrection = ang_zero;
 	frictionScalar = 1.0f;
 	idEntity* lastTarget = targetEntity;

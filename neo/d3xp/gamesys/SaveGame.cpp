@@ -1495,7 +1495,7 @@ void idRestoreGame::ReadUserInterface( idUserInterface*& ui )
 			}
 			else
 			{
-				ui->StateChanged( gameLocal.time );
+				ui->StateChanged( gameLocal.GetGameTimeMs() );
 			}
 		}
 	}

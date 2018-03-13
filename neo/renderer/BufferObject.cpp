@@ -117,7 +117,7 @@ static void * GL_CreateBuffer( const char *class_name, const void *class_ptr, GL
 		glObjectLabel( GL_BUFFER, bufferObject, name.Length(), name.c_str() );
 	}
 
-	if( GLEW_ARB_buffer_storage )
+	if( glConfig.ARB_buffer_storage )
 	{
 		if( allocUsage == BU_STATIC )
 		{
@@ -125,31 +125,45 @@ static void * GL_CreateBuffer( const char *class_name, const void *class_ptr, GL
 		}
 		else if( allocUsage == BU_DYNAMIC )
 		{
+			// The contents of the data store may be updated after creation through calls to glBufferSubData.
+			// If this bit is not set, the buffer content may not be directly updated by the client.
+			// The data argument may be used to specify the initial content of the buffer's data store regardless of the 
+			// presence of the GL_DYNAMIC_STORAGE_BIT. Regardless of the presence of this bit, buffers may always be updated 
+			// with server-side calls such as 
+			// glCopyBufferSubData and glClearBufferSubData.
 			glBufferStorage( target, numBytes, GL_NONE, GL_DYNAMIC_STORAGE_BIT );
 		}
 		else if( allocUsage == BU_STAGING )
 		{
 			glBufferStorage( target, numBytes, GL_NONE, 0 );
 		}
-		// BU_DEFAULT
-		glBufferStorage( target, numBytes, GL_NONE, GL_MAP_WRITE_BIT );
+		else // BU_DEFAULT
+		{ 
+			glBufferStorage( target, numBytes, GL_NONE, GL_MAP_WRITE_BIT );
+		}
 	}
-	else
-	{
+	else {
 		if( allocUsage == BU_STATIC )
 		{
+			// The data store contents will be modified once and used many times.
 			glBufferData( target, numBytes, data, GL_STATIC_DRAW );
 		}
 		else if( allocUsage == BU_DYNAMIC )
 		{
-			glBufferData( target, numBytes, GL_NONE, GL_STREAM_DRAW );
+			// The data store contents will be modified repeatedly and used many times.
+			glBufferData( target, numBytes, GL_NONE, GL_DYNAMIC_DRAW );
 		}
 		else if( allocUsage == BU_STAGING )
 		{
+			// The data store contents are modified by reading data from the GL, 
+			// and used as the source for GL drawing and image specification commands.
 			glBufferData( target, numBytes, GL_NONE, GL_DYNAMIC_COPY ); // GL_STREAM_COPY // ???
 		}
-		// BU_DEFAULT
-		glBufferData( target, numBytes, GL_NONE, GL_DYNAMIC_DRAW );
+		else // BU_DEFAULT
+		{ 
+			// The data store contents will be modified once and used at most a few times.
+			glBufferData( target, numBytes, GL_NONE, GL_STREAM_DRAW );
+		}
 	}
 
 	GLenum err = glGetError();
@@ -190,7 +204,7 @@ static GLbitfield GetMapFlags( bufferMapType_t mapType, bool bInvalidateRange )
 
 static void * GL_TryMapBufferRange( GLenum target, GLintptr bufferObject, GLintptr offset, GLsizeiptr size, GLbitfield flags )
 {
-	if( GLEW_EXT_direct_state_access )
+	if( glConfig.directStateAccess )
 	{
 		return glMapNamedBufferRangeEXT( bufferObject, offset, size, flags );
 	}
@@ -201,7 +215,7 @@ static void * GL_TryMapBufferRange( GLenum target, GLintptr bufferObject, GLintp
 
 static bool GL_TryUnmap( GLenum target, GLintptr bufferObject )
 {
-	if( GLEW_EXT_direct_state_access )
+	if( glConfig.directStateAccess )
 	{
 		return glUnmapNamedBufferEXT( bufferObject );
 	}
@@ -214,14 +228,14 @@ static void GL_UpdateSubData( GLenum target, GLintptr bufferObject, GLintptr off
 {
 	const GLsizeiptr numBytes = ALIGN( updateSize, 16 ); // common minimal alignment
 
-	if( GLEW_EXT_direct_state_access )
+	if( glConfig.directStateAccess )
 	{
 		glNamedBufferSubDataEXT( bufferObject, offset, numBytes, data );
+		return;
 	}
-	else {
-		glBindBuffer( target, bufferObject );
-		glBufferSubData( target, offset, numBytes, data );
-	}
+
+	glBindBuffer( target, bufferObject );
+	glBufferSubData( target, offset, numBytes, data );
 }
 
 class idBuffer {
@@ -516,12 +530,11 @@ void idVertexBuffer::Update( const void* data, int updateSize ) const
 	// RB end
 	
 	GL_UpdateSubData( GL_ARRAY_BUFFER, reinterpret_cast< GLintptr >( apiObject ), GetOffset(), numBytes, data );
-
-	
+/*	
 	void * buffer = MapBuffer( BM_WRITE );
 	CopyBuffer( (byte *)buffer + GetOffset(), (byte *)data, numBytes );
 	UnmapBuffer();
-	
+*/
 }
 
 /*
@@ -743,11 +756,11 @@ void idIndexBuffer::Update( const void* data, int updateSize ) const
 	int numBytes = ALIGN( updateSize, 16 );
 
 	GL_UpdateSubData( GL_ELEMENT_ARRAY_BUFFER, reinterpret_cast< GLintptr >( apiObject ), GetOffset(), numBytes, data );
-	/*
-		void * buffer = MapBuffer( BM_WRITE );
-		CopyBuffer( (byte *)buffer + GetOffset(), (byte *)data, numBytes );
-		UnmapBuffer();
-	*/
+/*
+	void * buffer = MapBuffer( BM_WRITE );
+	CopyBuffer( (byte *)buffer + GetOffset(), (byte *)data, numBytes );
+	UnmapBuffer();
+*/
 }
 
 /*
@@ -967,16 +980,14 @@ void idJointBuffer::Update( const float* joints, int numUpdateJoints ) const
 
 	GLintptr bufferObject = reinterpret_cast< GLintptr >( apiObject );
 
-	if( GLEW_EXT_direct_state_access )
+	if( glConfig.directStateAccess )
 	{
 		glNamedBufferSubDataEXT( bufferObject, GetOffset(), numBytes, joints );
+		return;
 	}
-	else {
-		// RB: 64 bit fixes, changed GLuint to GLintptrARB
-		glBindBuffer( GL_UNIFORM_BUFFER, bufferObject );
-		// RB end
-		glBufferSubData( GL_UNIFORM_BUFFER, GetOffset(), numBytes, joints );
-	}
+
+	glBindBuffer( GL_UNIFORM_BUFFER, bufferObject );
+	glBufferSubData( GL_UNIFORM_BUFFER, GetOffset(), numBytes, joints );
 }
 
 /*
@@ -1175,10 +1186,11 @@ void idUniformBuffer::Update( int updateSize, const void* data ) const
 	//glConfig.uniformBufferOffsetAlignment
 
 	GL_UpdateSubData( GL_UNIFORM_BUFFER, reinterpret_cast< GLintptr >( apiObject ), GetOffset(), updateSize, data );
-
-	///void * buffer = MapBuffer( BM_WRITE );
-	///CopyBuffer( (byte *)buffer + GetOffset(), (byte *)data, numBytes );
-	///UnmapBuffer();
+/*
+	void * buffer = MapBuffer( BM_WRITE );
+	CopyBuffer( (byte *)buffer + GetOffset(), (byte *)data, numBytes );
+	UnmapBuffer();
+*/
 }
 
 /*
@@ -1261,5 +1273,316 @@ void idUniformBuffer::Reference( const idUniformBuffer& other, int refOffset, in
 	assert( OwnsBuffer() == false );
 }
 
+
+/*
+=====================================================================================================
+	idTextureBuffer  TODO !!!
+
+	Can store flot4, float4x4
+
+	uniform samplerBuffer matrixBuffer;
+	uniform int MatrixBufferOffset;
+
+	mat4 GetMatrix( int offset ) {
+		return mat4( 
+			texelFetch( matrixBuffer, offset + 0 ), 
+			texelFetch( matrixBuffer, offset + 1 ), 
+			texelFetch( matrixBuffer, offset + 2 ),
+			texelFetch( matrixBuffer, offset + 3 ) 
+		);
+	}
+
+	mat4 ProjMatrix  = GetMatrix( MatrixBufferOffset + 0 );
+	mat4 ViewMatrix  = GetMatrix( MatrixBufferOffset + 4 );
+	mat4 ModelMatrix = GetMatrix( MatrixBufferOffset + 8 );
+
+	// -------------------------------------------------------------
+	p = ( float4 * )glMapBuffer( GL_TEXTURE_BUFFER, GL_WRITE_ONLY );
+	for( int u = 0; u < texture_height; ++u ) {
+		for( int v = 0; v < texture_width; ++v ) 
+		{
+			float d =f;
+			//printf("P[%i][%i] = %f\n ",u,v,f);
+			if( u == 125 && v == 125 ) {
+				d= 0.325;
+			}
+			p[ u + ( v * texture_width ) ][0] = ((float) d);
+			p[ u + ( v * texture_width ) ][1] = ((float) v / texture_width) * 2 - (1.0);
+			p[ u + ( v * texture_width ) ][2] = 0.0f;
+			p[ u + ( v * texture_width ) ][3] = 1.0f;
+		}
+	}
+
+=====================================================================================================
+*/
+
+enum texBufferFormat_t {
+
+};
+
+/*
+========================
+idTextureBuffer::idTextureBuffer
+========================
+*/
+idTextureBuffer::idTextureBuffer()
+{
+	apiObject = NULL;
+	size = 0;
+	offsetInOtherBuffer = OWNS_BUFFER_FLAG;
+	usage = BU_DEFAULT;
+	SetUnmapped();
+}
+
+/*
+========================
+idTextureBuffer::~idTextureBuffer
+========================
+*/
+idTextureBuffer::~idTextureBuffer()
+{
+	FreeBufferObject();
+}
+
+/*
+========================
+idTextureBuffer::AllocBufferObject
+========================
+*/
+bool idTextureBuffer::AllocBufferObject( int allocSize, bufferUsageType_t allocUsage, const void* data )
+{
+	assert( apiObject == NULL );
+	assert_16_byte_aligned( data );
+
+	if( allocSize <= 0 )
+	{
+		idLib::Error( "idTextureBuffer::AllocBufferObject: allocSize = %i", allocSize );
+	}
+
+	size = allocSize;
+	usage = allocUsage;
+
+	int numBytes = GetAllocedSize();
+
+	// clear out any previous error
+	glGetError();
+
+	// these are rewritten every frame
+	apiObject = GL_CreateBuffer( "idTextureBuffer", this, GL_TEXTURE_BUFFER, usage, numBytes, NULL );
+	{
+		// initialize buffer object
+		//unsigned int size = texture_width * texture_height * ( 4 * sizeof( float ));
+		// -----------------------------------------------------
+
+		m_internalFormat = GL_RGBA32F;
+
+		m_tbo_tex = GL_NONE;
+		glGenTextures( 1, &m_tbo_tex );
+		glBindTexture( GL_TEXTURE_BUFFER, m_tbo_tex );
+
+		// attach a buffer object's data store to a buffer texture object
+		glTexBuffer( GL_TEXTURE_BUFFER, m_internalFormat, m_tbo_tex );
+
+		glBindTexture( GL_TEXTURE_BUFFER, 0 );
+		glBindBuffer( GL_TEXTURE_BUFFER, 0 );
+	}
+
+	if( r_showBuffers.GetBool() )
+	{
+		idLib::Printf( "texture buffer alloc %p, api %p (%i bytes)\n", this, GetAPIObject(), GetSize() );
+	}
+
+	// copy the data
+	if( data != NULL )
+	{
+		Update( allocSize, data );
+	}
+
+	return( apiObject != nullptr );
+}
+
+/*
+========================
+idTextureBuffer::FreeBufferObject
+========================
+*/
+void idTextureBuffer::FreeBufferObject()
+{
+	if( IsMapped() )
+	{
+		UnmapBuffer();
+	}
+
+	// if this is a sub-allocation inside a larger buffer, don't actually free anything.
+	if( OwnsBuffer() == false )
+	{
+		ClearWithoutFreeing();
+		return;
+	}
+
+	if( apiObject == NULL )
+	{
+		return;
+	}
+
+	if( r_showBuffers.GetBool() )
+	{
+		idLib::Printf( "texture buffer free %p, api %p (%i bytes)\n", this, GetAPIObject(), GetSize() );
+	}
+
+	glDeleteTextures( 1, &m_tbo_tex );
+
+	GLintptr bufferObject = reinterpret_cast< GLintptr >( apiObject );
+	glDeleteBuffers( 1, ( const unsigned int* )& bufferObject );
+
+	ClearWithoutFreeing();
+}
+
+/*
+========================
+idTextureBuffer::ClearWithoutFreeing
+========================
+*/
+void idTextureBuffer::ClearWithoutFreeing()
+{
+	size = 0;
+	offsetInOtherBuffer = OWNS_BUFFER_FLAG;
+	apiObject = nullptr;
+	m_tbo_tex = GL_NONE;
+}
+
+/*
+========================
+idTextureBuffer::Reference
+========================
+*/
+void idTextureBuffer::Reference( const idTextureBuffer& other )
+{
+	assert( IsMapped() == false );
+	//assert( other.IsMapped() == false );	// this happens when building idTriangles while at the same time setting up triIndex_t
+	assert( other.GetAPIObject() != NULL );
+	assert( other.GetSize() > 0 );
+
+	FreeBufferObject();
+	size = other.GetSize();						// this strips the MAPPED_FLAG
+	offsetInOtherBuffer = other.GetOffset();	// this strips the OWNS_BUFFER_FLAG
+	apiObject = other.apiObject;
+	m_tbo_tex = other.m_tbo_tex;
+	assert( OwnsBuffer() == false );
+}
+
+/*
+========================
+idTextureBuffer::Reference
+========================
+*/
+void idTextureBuffer::Reference( const idTextureBuffer& other, int refOffset, int refSize )
+{
+	assert( IsMapped() == false );
+	//assert( other.IsMapped() == false );	// this happens when building idTriangles while at the same time setting up triIndex_t
+	assert( other.GetAPIObject() != NULL );
+	assert( refOffset >= 0 );
+	assert( refSize >= 0 );
+	assert( refOffset + refSize <= other.GetSize() );
+
+	FreeBufferObject();
+	size = refSize;
+	offsetInOtherBuffer = other.GetOffset() + refOffset;
+	apiObject = other.apiObject;
+	m_tbo_tex = other.m_tbo_tex;
+	assert( OwnsBuffer() == false );
+}
+
+/*
+========================
+idTextureBuffer::Update
+========================
+*/
+void idTextureBuffer::Update( int updateSize, const void* data ) const
+{
+	assert( apiObject != NULL );
+	assert( IsMapped() == false );
+	assert_16_byte_aligned( data );
+	assert( ( GetOffset() & 15 ) == 0 );
+
+	/*if( numUpdateJoints > numJoints )
+	{
+		idLib::FatalError( "idJointBuffer::Update: size overrun, %i > %i\n", numUpdateJoints, numJoints );
+	}*/
+
+	//const GLsizeiptr numBytes = numUpdateJoints * 3 * ( 4 * sizeof( float ));
+	GLsizeiptr numBytes = ALIGN( updateSize, 16 );
+
+	GLintptr bufferObject = reinterpret_cast< GLintptr >( apiObject );
+
+	if( glConfig.directStateAccess )
+	{
+		glNamedBufferSubDataEXT( bufferObject, GetOffset(), numBytes, data );
+		return;
+	}
+
+	glBindBuffer( GL_TEXTURE_BUFFER, bufferObject );
+	glBufferSubData( GL_TEXTURE_BUFFER, GetOffset(), numBytes, data );
+}
+
+/*
+========================
+idTextureBuffer::MapBuffer
+========================
+*/
+void * idTextureBuffer::MapBuffer( bufferMapType_t mapType, bool bInvalidateRange ) const
+{
+	assert( IsMapped() == false );
+	assert( mapType == BM_WRITE || mapType == BM_WRITE_NOSYNC );
+	assert( apiObject != NULL );
+
+	void* buffer = NULL;
+	buffer = GL_TryMapBufferRange( GL_TEXTURE_BUFFER, reinterpret_cast< GLintptr >( apiObject ), GetOffset(), GetAllocedSize(), GetMapFlags( mapType, bInvalidateRange ) );
+	if( buffer == NULL )
+	{
+		idLib::FatalError( "idTextureBuffer::MapBuffer: failed" );
+	}
+	assert( GetOffset() == 0 );
+
+	SetMapped();
+
+	return buffer;
+}
+
+/*
+========================
+idJointBuffer::UnmapBuffer
+========================
+*/
+void idTextureBuffer::UnmapBuffer() const
+{
+	assert( apiObject != NULL );
+	assert( IsMapped() );
+
+	if( !GL_TryUnmap( GL_TEXTURE_BUFFER, reinterpret_cast< GLintptr >( apiObject ) ) )
+	{
+		idLib::Printf( "idTextureBuffer::UnmapBuffer failed\n" );
+	}
+
+	SetUnmapped();
+}
+
+/*
+========================
+idTextureBuffer::Bind
+========================
+*/
+void idTextureBuffer::Bind()
+{
+	glActiveTexture( GL_TEXTURE0 );
+	glBindTexture( GL_TEXTURE_BUFFER, m_tbo_tex );
+
+	GLuint bufferObject;
+	GLintptr offset​;
+	GLsizeiptr buffSize;
+	glTexBufferRange( GL_TEXTURE_BUFFER, m_internalFormat, bufferObject, offset​, buffSize );
+
+	glTextureBufferRangeEXT( m_tbo_tex, GL_TEXTURE_BUFFER, m_internalFormat, bufferObject, offset​, buffSize );
+}
 
 

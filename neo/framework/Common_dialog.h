@@ -300,7 +300,7 @@ public:
 	
 	void	ClearAllDialogHack();
 	idStr	GetDialogMsg( gameDialogMessages_t msg, idStr& message, idStr& title );
-	bool	HandleDialogEvent( const sysEvent_t* sev );
+	bool	HandleDialogEvent( const idSysEvent* sev );
 	
 protected:
 	void	RemoveWaitDialogs();

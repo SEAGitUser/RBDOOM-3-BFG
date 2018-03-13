@@ -239,7 +239,6 @@ struct glTextureObject_t
 			default:
 				idLib::Error( "Unhandled image format %d in %s\n", img->GetOpts().format, img->GetName() );
 		}
-
 	}
 };
 
@@ -357,40 +356,7 @@ void idImage::SetTexParameters()
 {
 	glTextureObject_t tex;
 	tex.DeriveTargetInfo( this );
-	
-	// ALPHA, LUMINANCE, LUMINANCE_ALPHA, and INTENSITY have been removed
-	// in OpenGL 3.2. In order to mimic those modes, we use the swizzle operators
-
-	if( opts.colorFormat == CFM_GREEN_ALPHA )
-	{
-		GLint swizzleMask[] = { GL_ONE, GL_ONE, GL_ONE, GL_GREEN };
-		glTexParameteriv( tex.target, GL_TEXTURE_SWIZZLE_RGBA, swizzleMask );
-	}
-	else if( opts.format == FMT_LUM8 )
-	{
-		GLint swizzleMask[] = { GL_RED, GL_RED, GL_RED, GL_ONE };
-		glTexParameteriv( tex.target, GL_TEXTURE_SWIZZLE_RGBA, swizzleMask );
-	}
-	else if( opts.format == FMT_L8A8 )
-	{
-		GLint swizzleMask[] = { GL_RED, GL_RED, GL_RED, GL_GREEN };
-		glTexParameteriv( tex.target, GL_TEXTURE_SWIZZLE_RGBA, swizzleMask );
-	}
-	else if( opts.format == FMT_ALPHA )
-	{
-		GLint swizzleMask[] = { GL_ONE, GL_ONE, GL_ONE, GL_RED };
-		glTexParameteriv( tex.target, GL_TEXTURE_SWIZZLE_RGBA, swizzleMask );
-	}
-	else if( opts.format == FMT_INT8 )
-	{
-		GLint swizzleMask[] = { GL_RED, GL_RED, GL_RED, GL_RED };
-		glTexParameteriv( tex.target, GL_TEXTURE_SWIZZLE_RGBA, swizzleMask );
-	}
-	else {
-		GLint swizzleMask[] = { GL_RED, GL_GREEN, GL_BLUE, GL_ALPHA };
-		glTexParameteriv( tex.target, GL_TEXTURE_SWIZZLE_RGBA, swizzleMask );
-	}
-	
+		
 	switch( filter )
 	{
 		case TF_DEFAULT:
@@ -593,8 +559,7 @@ void idImage::AllocImage()
 	const GLint numLevels = idMath::Max( opts.numLevels, 1 );
 	const GLint numSamples = idMath::Max( opts.numSamples, 1 );
 
-	if( GLEW_ARB_texture_storage )
-	//if( 0 )
+	if( glConfig.ARB_texture_storage )
 	{
 		if( tex.target == GL_TEXTURE_2D || tex.target == GL_TEXTURE_CUBE_MAP )
 		{
@@ -692,14 +657,51 @@ void idImage::AllocImage()
 		}
 
 		GL_CheckErrors();
+	}
 
-		glTexParameteri( tex.target, GL_TEXTURE_BASE_LEVEL, 0 );
-		glTexParameteri( tex.target, GL_TEXTURE_MAX_LEVEL, numLevels - 1 );
+	// Non sampler parameters
+
+	glTexParameteri( tex.target, GL_TEXTURE_BASE_LEVEL, 0 );
+	glTexParameteri( tex.target, GL_TEXTURE_MAX_LEVEL, numLevels - 1 );
+
+	// ALPHA, LUMINANCE, LUMINANCE_ALPHA, and INTENSITY have been removed
+	// in OpenGL 3.2. In order to mimic those modes, we use the swizzle operators
+
+	if( GetOpts().colorFormat == CFM_GREEN_ALPHA )
+	{
+		GLint swizzleMask[] = { GL_ONE, GL_ONE, GL_ONE, GL_GREEN };
+		glTexParameteriv( tex.target, GL_TEXTURE_SWIZZLE_RGBA, swizzleMask );
+	}
+	else if( GetOpts().format == FMT_LUM8 )
+	{
+		GLint swizzleMask[] = { GL_RED, GL_RED, GL_RED, GL_ONE };
+		glTexParameteriv( tex.target, GL_TEXTURE_SWIZZLE_RGBA, swizzleMask );
+	}
+	else if( GetOpts().format == FMT_L8A8 )
+	{
+		GLint swizzleMask[] = { GL_RED, GL_RED, GL_RED, GL_GREEN };
+		glTexParameteriv( tex.target, GL_TEXTURE_SWIZZLE_RGBA, swizzleMask );
+	}
+	else if( GetOpts().format == FMT_ALPHA )
+	{
+		GLint swizzleMask[] = { GL_ONE, GL_ONE, GL_ONE, GL_RED };
+		glTexParameteriv( tex.target, GL_TEXTURE_SWIZZLE_RGBA, swizzleMask );
+	}
+	else if( GetOpts().format == FMT_INT8 )
+	{
+		GLint swizzleMask[] = { GL_RED, GL_RED, GL_RED, GL_RED };
+		glTexParameteriv( tex.target, GL_TEXTURE_SWIZZLE_RGBA, swizzleMask );
+	}
+	else {
+		GLint swizzleMask[] = { GL_RED, GL_GREEN, GL_BLUE, GL_ALPHA };
+		glTexParameteriv( tex.target, GL_TEXTURE_SWIZZLE_RGBA, swizzleMask );
 	}
 	
 	// see if we messed anything up
 	GL_CheckErrors();
 	
+	// Sampler parameters 
+	//SEA: TODO real sampler
 	SetTexParameters();
 	
 	GL_CheckErrors();

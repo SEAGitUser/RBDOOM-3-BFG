@@ -42,8 +42,7 @@ simple interface for zipping up a folder of files
 by default, the source folder files are added recursively
 ================================================
 */
-class idZipBuilder
-{
+class idZipBuilder {
 public:
 	idZipBuilder() {}
 	~idZipBuilder() {}

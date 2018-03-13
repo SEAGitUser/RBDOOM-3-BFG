@@ -352,12 +352,12 @@ void idTrigger_Multi::Restore( idRestoreGame* savefile )
 ================
 idTrigger_Multi::Spawn
 
-"wait" : Seconds between triggerings, 0.5 default, -1 = one time only.
-"call" : Script function to call when triggered
-"random"	wait variance, default is 0
-Variable sized repeatable trigger.  Must be targeted at one or more entities.
-so, the basic time between firing is a random time between
-(wait - random) and (wait + random)
+	"wait" : Seconds between triggerings, 0.5 default, -1 = one time only.
+	"call" : Script function to call when triggered
+	"random"	wait variance, default is 0
+	Variable sized repeatable trigger.  Must be targeted at one or more entities.
+	so, the basic time between firing is a random time between
+	(wait - random) and (wait + random)
 ================
 */
 void idTrigger_Multi::Spawn()
@@ -454,7 +454,7 @@ void idTrigger_Multi::TriggerAction( idEntity* activator )
 	
 	if( wait >= 0 )
 	{
-		nextTriggerTime = gameLocal.time + SEC2MS( wait + random * gameLocal.random.CRandomFloat() );
+		nextTriggerTime = gameLocal.GetGameTimeMs() + SEC2MS( wait + random * gameLocal.random.CRandomFloat() );
 	}
 	else
 	{
@@ -462,7 +462,7 @@ void idTrigger_Multi::TriggerAction( idEntity* activator )
 		// called while looping through area links...
 		// If the player spawned inside the trigger, the player Spawn function called Think directly,
 		// allowing for multiple triggers on a trigger_once.  Increasing the nextTriggerTime prevents it.
-		nextTriggerTime = gameLocal.time + 99999;
+		nextTriggerTime = gameLocal.GetGameTimeMs() + 99999;
 		PostEventMS( &EV_Remove, 0 );
 	}
 }
@@ -489,7 +489,7 @@ so wait for the delay time before firing
 */
 void idTrigger_Multi::Event_Trigger( idEntity* activator )
 {
-	if( nextTriggerTime > gameLocal.time )
+	if( nextTriggerTime > gameLocal.GetGameTimeMs() )
 	{
 		// can't retrigger until the wait is over
 		return;
@@ -513,7 +513,7 @@ void idTrigger_Multi::Event_Trigger( idEntity* activator )
 	}
 	
 	// don't allow it to trigger twice in a single frame
-	nextTriggerTime = gameLocal.time + 1;
+	nextTriggerTime = gameLocal.GetGameTimeMs() + 1;
 	
 	if( delay > 0 )
 	{
@@ -561,7 +561,7 @@ void idTrigger_Multi::Event_Touch( idEntity* other, trace_t* trace )
 		return;
 	}
 	
-	if( nextTriggerTime > gameLocal.time )
+	if( nextTriggerTime > gameLocal.GetGameTimeMs() )
 	{
 		// can't retrigger until the wait is over
 		return;
@@ -583,7 +583,7 @@ void idTrigger_Multi::Event_Touch( idEntity* other, trace_t* trace )
 		triggerFirst = true;
 	}
 	
-	nextTriggerTime = gameLocal.time + 1;
+	nextTriggerTime = gameLocal.GetGameTimeMs() + 1;
 	if( delay > 0 )
 	{
 		// don't allow it to trigger again until our delay has passed
@@ -714,13 +714,12 @@ void idTrigger_EntityName::TriggerAction( idEntity* activator )
 	
 	if( wait >= 0 )
 	{
-		nextTriggerTime = gameLocal.time + SEC2MS( wait + random * gameLocal.random.CRandomFloat() );
+		nextTriggerTime = gameLocal.GetGameTimeMs() + SEC2MS( wait + random * gameLocal.random.CRandomFloat() );
 	}
-	else
-	{
+	else {
 		// we can't just remove (this) here, because this is a touch function
 		// called while looping through area links...
-		nextTriggerTime = gameLocal.time + 1;
+		nextTriggerTime = gameLocal.GetGameTimeMs() + 1;
 		PostEventMS( &EV_Remove, 0 );
 	}
 }
@@ -747,7 +746,7 @@ so wait for the delay time before firing
 */
 void idTrigger_EntityName::Event_Trigger( idEntity* activator )
 {
-	if( nextTriggerTime > gameLocal.time )
+	if( nextTriggerTime > gameLocal.GetGameTimeMs() )
 	{
 		// can't retrigger until the wait is over
 		return;
@@ -781,7 +780,7 @@ void idTrigger_EntityName::Event_Trigger( idEntity* activator )
 	}
 	
 	// don't allow it to trigger twice in a single frame
-	nextTriggerTime = gameLocal.time + 1;
+	nextTriggerTime = gameLocal.GetGameTimeMs() + 1;
 	
 	if( delay > 0 )
 	{
@@ -812,7 +811,7 @@ void idTrigger_EntityName::Event_Touch( idEntity* other, trace_t* trace )
 		return;
 	}
 	
-	if( nextTriggerTime > gameLocal.time )
+	if( nextTriggerTime > gameLocal.GetGameTimeMs() )
 	{
 		// can't retrigger until the wait is over
 		return;
@@ -839,7 +838,7 @@ void idTrigger_EntityName::Event_Touch( idEntity* other, trace_t* trace )
 		return;
 	}
 	
-	nextTriggerTime = gameLocal.time + 1;
+	nextTriggerTime = gameLocal.GetGameTimeMs() + 1;
 	if( delay > 0 )
 	{
 		// don't allow it to trigger again until our delay has passed
@@ -1178,7 +1177,7 @@ void idTrigger_Hurt::Spawn()
 {
 	spawnArgs.GetBool( "on", "1", on );
 	spawnArgs.GetFloat( "delay", "1.0", delay );
-	nextTime = gameLocal.time;
+	nextTime = gameLocal.GetGameTimeMs();
 	Enable();
 }
 
@@ -1189,14 +1188,12 @@ idTrigger_Hurt::Event_Touch
 */
 void idTrigger_Hurt::Event_Touch( idEntity* other, trace_t* trace )
 {
-	const char* damage;
-	
 	if( common->IsClient() )
 	{
 		return;
 	}
 	
-	if( on && other && gameLocal.time >= nextTime )
+	if( on && other && gameLocal.GetGameTimeMs() >= nextTime )
 	{
 		bool playerOnly = spawnArgs.GetBool( "playerOnly" );
 		if( playerOnly )
@@ -1206,7 +1203,7 @@ void idTrigger_Hurt::Event_Touch( idEntity* other, trace_t* trace )
 				return;
 			}
 		}
-		damage = spawnArgs.GetString( "def_damage", "damage_painTrigger" );
+		auto damage = spawnArgs.GetString( "def_damage", "damage_painTrigger" );
 		
 		idVec3 dir = vec3_origin;
 		if( spawnArgs.GetBool( "kick_from_center", "0" ) )
@@ -1219,7 +1216,7 @@ void idTrigger_Hurt::Event_Touch( idEntity* other, trace_t* trace )
 		ActivateTargets( other );
 		CallScript();
 		
-		nextTime = gameLocal.time + SEC2MS( delay );
+		nextTime = gameLocal.GetGameTimeMs() + SEC2MS( delay );
 	}
 }
 
@@ -1253,15 +1250,11 @@ idTrigger_Fade::Event_Trigger
 */
 void idTrigger_Fade::Event_Trigger( idEntity* activator )
 {
-	idVec4		fadeColor;
-	int			fadeTime;
-	idPlayer*	player;
-	
-	player = gameLocal.GetLocalPlayer();
+	auto player = gameLocal.GetLocalPlayer();
 	if( player )
 	{
-		fadeColor = spawnArgs.GetVec4( "fadeColor", "0, 0, 0, 1" );
-		fadeTime = SEC2MS( spawnArgs.GetFloat( "fadeTime", "0.5" ) );
+		auto fadeColor = spawnArgs.GetVec4( "fadeColor", "0, 0, 0, 1" );
+		int fadeTime = SEC2MS( spawnArgs.GetFloat( "fadeTime", "0.5" ) );
 		player->playerView.Fade( fadeColor, fadeTime );
 		PostEventMS( &EV_ActivateTargets, fadeTime, activator );
 	}
@@ -1364,8 +1357,7 @@ void idTrigger_Touch::TouchEntities()
 			continue;
 		}
 		
-		if( !gameLocal.clip.ContentsModel( cm->GetOrigin(), cm, cm->GetAxis(), -1,
-										   clipModel->Handle(), clipModel->GetOrigin(), clipModel->GetAxis() ) )
+		if( !gameLocal.clip.ContentsModel( cm->GetOrigin(), cm, cm->GetAxis(), -1, clipModel->Handle(), clipModel->GetOrigin(), clipModel->GetAxis() ) )
 		{
 			continue;
 		}
@@ -1497,7 +1489,7 @@ void idTrigger_Flag::Event_Touch( idEntity* other, trace_t* trace )
 		flags[1] = gameLocal.mpGame.GetTeamFlag( 1 );
 		
 		int iFriend = 1 - player->team;			// index to the flag player team wants
-		int iOpp	= player->team;				// index to the flag opp team wants
+		int iOpp = player->team;				// index to the flag opp team wants
 		
 		// flag is captured if :
 		// 1)flag is truely bound to the player

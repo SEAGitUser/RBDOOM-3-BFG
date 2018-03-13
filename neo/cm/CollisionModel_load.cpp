@@ -4266,7 +4266,7 @@ void idCollisionModelManagerLocal::Preload( const char* mapName )
 	if( manifest.NumResources() >= 0 )
 	{
 		common->Printf( "Preloading collision models...\n" );
-		int	start = Sys_Milliseconds();
+		int	start = sys->Milliseconds();
 		int numLoaded = 0;
 		for( int i = 0; i < manifest.NumResources(); i++ )
 		{
@@ -4277,7 +4277,7 @@ void idCollisionModelManagerLocal::Preload( const char* mapName )
 				numLoaded++;
 			}
 		}
-		int	end = Sys_Milliseconds();
+		int	end = sys->Milliseconds();
 		common->Printf( "%05d collision models preloaded ( or were already loaded ) in %5.1f seconds\n", numLoaded, ( end - start ) * 0.001 );
 		common->Printf( "----------------------------------------\n" );
 	}

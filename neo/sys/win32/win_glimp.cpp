@@ -89,7 +89,7 @@ void GLimp_TestSwapBuffers( const idCmdArgs& args )
 			glClear( GL_COLOR_BUFFER_BIT );
 			SwapBuffers( win32.hDC );
 			glFinish();
-			timestamps[i] = Sys_Microseconds();
+			timestamps[i] = sys->Microseconds();
 		}
 		
 		idLib::Printf( "\nswapinterval %i\n", swapInterval );

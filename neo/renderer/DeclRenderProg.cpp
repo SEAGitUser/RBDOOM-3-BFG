@@ -37,7 +37,7 @@ If you have questions concerning this license or the applicable additional terms
 // DeclRenderProgGenerator.cpp
 
 idCVar r_skipStripDeadProgCode( "r_skipStripDeadProgCode", "0", CVAR_BOOL, "Skip stripping dead code" );
-idCVar r_useProgUBO( "r_useProgUBO", "0", CVAR_BOOL, "use uniform buffers for sending parms to programs" );
+idCVar r_useProgUBO( "r_useProgUBO", "1", CVAR_BOOL, "use uniform buffer for sending parms to programs" );
 
 typedef idHandle<GLuint, GL_ZERO> glslShaderObject_t;
 GLuint GL_CreateGLSLShaderObject( shaderType_e, const char * sourceGLSL, const char * fileName );
@@ -53,7 +53,7 @@ typedef idStringBuilder< idStr, idCharAllocator_Heap< 2048, char > > idShaderStr
 #define GEOMETRY_UNIFORM_ARRAY_NAME			"_ga"
 #define FRAGMENT_UNIFORM_ARRAY_NAME			"_fa"
 #define COMPUTE_UNIFORM_ARRAY_NAME			"_ca"
-#define COMMON_PARMBLOCK_NAME	"_rp"
+#define COMMON_PARMBLOCK_NAME				"_rp"
 
 struct attribInfo_t {
 	const char * 	type;
@@ -313,6 +313,7 @@ const char *_types[] = {
 	"uint",
 	"float",
 	"double",
+	"matrix",
 	"half",
 	"fixed",
 	"bool",
@@ -629,13 +630,18 @@ static void SetupLayouts( idShaderStringBuilder & shaderText, progParseData_t & 
 
 	if( shaderType == shaderType_e::SHT_FRAGMENT )
 	{
-		if( parseData.data.hasDepthOutput || parseData.data.hasFragClip ) // || parseData.data.hasImageStore
+		/*if( parseData.data.hasDepthOutput || parseData.data.hasFragClip ) // || parseData.data.hasImageStore
 		{
 			if( GLEW_ARB_shader_image_load_store ) // Early Per-Fragment Tests
 			{
 				shaderText += "\n";
 				shaderText += "layout( early_fragment_tests ) in;\n";
 			}
+		}*/
+		if( parseData.data.hasForcedEarlyFragTests )
+		{
+			shaderText += "\n";
+			shaderText += "layout( early_fragment_tests ) in;\n";
 		}
 
 		// GL_ARB_conservative_depth
@@ -733,7 +739,7 @@ static bool CheckBuiltins( idStr & shaderText, const idToken & token, const idTo
 	};
 	////////////////////////////////////////////////////////
 	const glslInOut_t csInputs[] = {
-		//{ "numWorkGroups",			"gl_NumWorkGroups" }, //? to func 
+		{ "numWorkGroups",		"",			"gl_NumWorkGroups" }, //? to func 
 		{ "groupID",			"",			"gl_WorkGroupID" },
 		{ "groupThreadID",		"",			"gl_LocalInvocationID" },
 		{ "dispatchThreadID",	"",			"gl_GlobalInvocationID" },
@@ -1224,7 +1230,11 @@ static bool ParseParms( idLexer & lex, idStr & shaderText, const idToken & token
 				if( parm->IsVector() )
 				{
 					//shaderText += idStrStatic<128>().Format( "%s[ %i /* %s */]",  _glslShaderInfo[ shaderType ].uniformArrayName, index, parm->GetName() );
-					shaderText += idStrStatic<128>().Format( COMMON_PARMBLOCK_NAME".%s", parm->GetName() );
+					if( r_useProgUBO.GetBool() ) {
+						shaderText += idStrStatic<128>().Format( COMMON_PARMBLOCK_NAME".%s", parm->GetName() );
+					} else {
+						shaderText += idStrStatic<128>().Format( COMMON_PARMBLOCK_NAME"[%i/*%s*/]", index, parm->GetName() );
+					}
 					return true;
 				}
 				else if( parm->IsTexture() )
@@ -1676,20 +1686,20 @@ static void BuiltHeader( idShaderStringBuilder & out, shaderType_e shaderType )
 		"vec4 texCUBElod( samplerCube img, const in vec4 tc ) { return textureLod( img, tc.xyz, tc.w ); }\n"
 		"vec4 texCUBEARRAYlod( samplerCubeArray img, const in vec4 tc, const in float lod ) { return textureLod( img, tc.xyzw, lod ); }\n"
 		"\n"
-		"vec4 tex2DGatherRed( sampler2D img, const in vec2 tc ) { return textureGather( img, tc, 0 ); }\n"
-		"vec4 tex2DGatherGreen( sampler2D img, const in vec2 tc ) { return textureGather( img, tc, 1 ); }\n"
-		"vec4 tex2DGatherBlue( sampler2D img, const in vec2 tc ) { return textureGather( img, tc, 2 ); }\n"
-		"vec4 tex2DGatherAlpha( sampler2D img, const in vec2 tc ) { return textureGather( img, tc, 3 ); }\n"
+		"vec4 tex2DGatherR( sampler2D img, const in vec2 tc ) { return textureGather( img, tc, 0 ); }\n"
+		"vec4 tex2DGatherG( sampler2D img, const in vec2 tc ) { return textureGather( img, tc, 1 ); }\n"
+		"vec4 tex2DGatherB( sampler2D img, const in vec2 tc ) { return textureGather( img, tc, 2 ); }\n"
+		"vec4 tex2DGatherA( sampler2D img, const in vec2 tc ) { return textureGather( img, tc, 3 ); }\n"
 		"\n"
-		"vec4 tex2DGatherOffsetRed( sampler2D img, const in vec2 tc, const in ivec2 v0 ) { return textureGatherOffset( img, tc, v0, 0 ); }\n"
-		"vec4 tex2DGatherOffsetGreen( sampler2D img, const in vec2 tc, const in ivec2 v0 ) { return textureGatherOffset( img, tc, v0, 1 ); }\n"
-		"vec4 tex2DGatherOffsetBlue( sampler2D img, const in vec2 tc, const in ivec2 v0 ) { return textureGatherOffset( img, tc, v0, 2 ); }\n"
-		"vec4 tex2DGatherOffsetAlpha( sampler2D img, const in vec2 tc, const in ivec2 v0 ) { return textureGatherOffset( img, tc, v0, 3 ); }\n"
+		"vec4 tex2DGatherOffsetR( sampler2D img, const in vec2 tc, const in ivec2 v0 ) { return textureGatherOffset( img, tc, v0, 0 ); }\n"
+		"vec4 tex2DGatherOffsetG( sampler2D img, const in vec2 tc, const in ivec2 v0 ) { return textureGatherOffset( img, tc, v0, 1 ); }\n"
+		"vec4 tex2DGatherOffsetB( sampler2D img, const in vec2 tc, const in ivec2 v0 ) { return textureGatherOffset( img, tc, v0, 2 ); }\n"
+		"vec4 tex2DGatherOffsetA( sampler2D img, const in vec2 tc, const in ivec2 v0 ) { return textureGatherOffset( img, tc, v0, 3 ); }\n"
 		"\n"
-		"#define tex2DGatherOffsetsRed( img, tc, v0, v1, v2, v3 ) textureGatherOffsets( img, tc, ivec2[]( v0, v1, v2, v3 ), 0 )\n"
-		"#define tex2DGatherOffsetsGreen( img, tc, v0, v1, v2, v3 ) textureGatherOffsets( img, tc, ivec2[]( v0, v1, v2, v3 ), 1 )\n"
-		"#define tex2DGatherOffsetsBlue( img, tc, v0, v1, v2, v3 ) textureGatherOffsets( img, tc, ivec2[]( v0, v1, v2, v3 ), 2 )\n"
-		"#define tex2DGatherOffsetsAlpha( img, tc, v0, v1, v2, v3 ) textureGatherOffsets( img, tc, ivec2[]( v0, v1, v2, v3 ), 3 )\n"
+		"#define tex2DGatherOffsetsR( img, tc, v0, v1, v2, v3 ) textureGatherOffsets( img, tc, ivec2[]( v0, v1, v2, v3 ), 0 )\n"
+		"#define tex2DGatherOffsetsG( img, tc, v0, v1, v2, v3 ) textureGatherOffsets( img, tc, ivec2[]( v0, v1, v2, v3 ), 1 )\n"
+		"#define tex2DGatherOffsetsB( img, tc, v0, v1, v2, v3 ) textureGatherOffsets( img, tc, ivec2[]( v0, v1, v2, v3 ), 2 )\n"
+		"#define tex2DGatherOffsetsA( img, tc, v0, v1, v2, v3 ) textureGatherOffsets( img, tc, ivec2[]( v0, v1, v2, v3 ), 3 )\n"
 		"\n"
 		"void clip( const in float v ) { if ( v < 0.0 ) { discard; } }\n"
 		"void clip( const in vec2 v ) { if ( any( lessThan( v, vec2( 0.0 ) ) ) ) { discard; } }\n"
@@ -1712,6 +1722,13 @@ static void BuiltHeader( idShaderStringBuilder & out, shaderType_e shaderType )
 		"float dot4( const in vec4 a, const in vec4 b ) { return dot( a, b ); }\n"
 		"float dot4( const in vec3 a, const in vec4 b ) { return dot( vec4( a, 1.0f ), b ); }\n"
 		"float dot4( const in vec2 a, const in vec4 b ) { return dot( vec4( a, 0.0f, 1.0f ), b ); }\n"
+		"\n"
+		"vec4 tex2Dfetch( sampler2D img, const in ivec4 tc ) { return texelFetch( img, tc.st, tc.q ); }\n"
+		"vec4 tex2DARRAYfetch( sampler2DArray img, const in ivec4 tc ) { return texelFetch( img, tc.stp, tc.q ); }\n"
+		"vec4 tex2DMSfetch( sampler2DMS img, const in ivec4 tc ) { return texelFetch( img, tc.st, tc.p ); }\n"
+		"vec4 tex2DMSARRAYfetch( sampler2DMSArray img, const in ivec4 tc ) { return texelFetch( img, tc.stp, tc.p ); }\n"
+		"vec4 tex3Dfetch( sampler3D img, const in ivec4 tc ) { return texelFetch( img, tc.stp, tc.q ); }\n"
+		"\n"
 	};
 
 	//"#pragma debug(on)\n";
@@ -1833,11 +1850,15 @@ const char* GetHLSLTextureType( const idDeclRenderParm * decl )
 
 static void SetupParms( idShaderStringBuilder & out, progParseData_t & parseData, shaderType_e shaderType )
 {
+	//SEA: only arrays[] of basic types can be updated with single call :(
+
 	// Setup uniforms
 	int vecCount = parseData.GetVecParmCount();
 	if( vecCount && parseData.vecParmsUsed[ shaderType ].Num() )
 	{
+		//out += "\n//Used:\n";
 		out += "\n";
+	#if 0
 		if( r_useProgUBO.GetBool() ) // cbuffer 'Name' : register( b0 )
 		{
 			if( parseData.shading_language_420pack ) {
@@ -1859,6 +1880,39 @@ static void SetupParms( idShaderStringBuilder & out, progParseData_t & parseData
 			out += idStrStatic<96>().Format( "\tvec4 %s;\n", parm->GetName() );
 		}
 		out += idStrStatic<24>().Format( "} " COMMON_PARMBLOCK_NAME ";\n" );
+	#else
+		if( r_useProgUBO.GetBool() ) // cbuffer 'Name' : register( b0 )
+		{
+			if( parseData.shading_language_420pack ) {
+				out += idStrStatic<128>().Format( "layout( binding = %i ) uniform parms_ubo {\n", BINDING_PROG_PARMS_UBO );
+			} else {
+				out += "uniform parms_ubo {\n";
+			}
+			for( int i = 0; i < vecCount; ++i )
+			{
+				auto parm = parseData.GetVecParm( i );
+				out += idStrStatic<96>().Format( "\tvec4 %s;\n", parm->GetName() );
+			}
+			out += idStrStatic<24>().Format( "} " COMMON_PARMBLOCK_NAME ";\n" );
+		}
+		else {
+			/*int usedCount = parseData.vecParmsUsed[ shaderType ].Num();
+			for( int i = 0; i < usedCount; ++i )
+			{
+				int index = parseData.vecParmsUsed[ shaderType ][ i ];
+				auto parm = parseData.GetVecParm( index );
+
+				out += idStrStatic<96>().Format( "// %i.%s\n", index, parm->GetName() );
+			}*/
+			if( parseData.explicit_uniform_location )
+			{
+				out += idStrStatic<128>().Format( "layout( location = 0 ) uniform vec4 " COMMON_PARMBLOCK_NAME "[%i];\n", vecCount );
+			}
+			else {
+				out += idStrStatic<128>().Format( "uniform vec4 " COMMON_PARMBLOCK_NAME "[%i];\n", vecCount );
+			}
+		}
+	#endif
 	}
 
 	// Setup samplers
@@ -2051,6 +2105,12 @@ static void ConvertCG2GLSL( const idStr & in, const char* name, progParseData_t 
 		{ 
 			if( token == "clip" || token == "discard" ) {
 				parseData.data.hasFragClip = true;
+			}
+
+			if( !inMain ) {
+				if( token == "EARLY_FRAG_TESTS" ) {
+					parseData.data.hasForcedEarlyFragTests = true;
+				}
 			}
 		}
 		if( shaderType == SHT_VERTEX )
@@ -2265,7 +2325,7 @@ static void StripDeadCode( const char* in, const char* name, idStr & out, int ba
 			block.postfix = idStr( ';' );
 		}
 		else {
-			src.Warning( "Could not strip dead code -- unknown token %s\n", token.c_str() );
+			src.Warning( "Could not strip dead code: unknown token '%s'\n", token.c_str() );
 			out = in;
 			return;
 		}
@@ -2359,7 +2419,7 @@ static bool ParseShaderBlock( idParser & src, progParseData_t & parseData, const
 	if( com_developer.GetBool() )
 	{
 		idStrStatic<MAX_OSPATH> outFilePass;
-		outFilePass.Format( "renderprogs/progs/debug_parsed_hlsl/%s%s.hlsl", progName, _glslShaderInfo[ shaderType ].shaderTypeName );
+		outFilePass.Format( "renderprogs/debug/parsed_hlsl/%s%s.hlsl", progName, _glslShaderInfo[ shaderType ].shaderTypeName );
 		fileSystem->WriteFile( outFilePass, block.c_str(), block.Length(), "fs_basepath" );
 	}
 
@@ -2372,7 +2432,7 @@ static bool ParseShaderBlock( idParser & src, progParseData_t & parseData, const
 		if( com_developer.GetBool() )
 		{
 			idStrStatic<MAX_OSPATH> outFilePass;
-			outFilePass.Format( "renderprogs/progs/debug_parsed_hlsl/%s_striped%s.hlsl", progName, _glslShaderInfo[ shaderType ].shaderTypeName );
+			outFilePass.Format( "renderprogs/debug/parsed_hlsl/%s_striped%s.hlsl", progName, _glslShaderInfo[ shaderType ].shaderTypeName );
 			fileSystem->WriteFile( outFilePass, shaderHLSL.c_str(), shaderHLSL.Length(), "fs_basepath" );
 		}
 
@@ -2442,7 +2502,7 @@ bool idDeclRenderProg::Parse( const char* text, const int textLength, bool allow
 	src.SkipUntilString( "{" );
 	/////////////////////////////////////////////////////////////
 
-	src.SetIncludePath( "renderprogs/progs/include" );
+	src.SetIncludePath( "renderprogs/include" );
 
 #ifdef ID_PC //SEA: TODO fix global define code!
 	src.AddDefine( "PC" );
@@ -2473,6 +2533,7 @@ bool idDeclRenderProg::Parse( const char* text, const int textLength, bool allow
 	if( r_useHDR.GetBool() ) {
 		src.AddDefine( "USE_LINEAR_RGB" );
 	}
+	src.AddDefine( "USE_YCOCG" );
 
 	if( GLEW_ARB_gpu_shader5 ) {
 		src.AddDefine( "GS_INSTANCED" );
@@ -2499,6 +2560,14 @@ bool idDeclRenderProg::Parse( const char* text, const int textLength, bool allow
 	parseData.shading_language_420pack = GLEW_ARB_shading_language_420pack;
 	parseData.cull_distance = GLEW_ARB_cull_distance;
 	parseData.shader_image_load_store = GLEW_ARB_shader_image_load_store;
+
+	/*if( parseData.explicit_uniform_location ) {
+		src.AddDefine( "EXPLICIT_LOCATIONS" );
+	}
+	if( parseData.shading_language_420pack ) {
+		src.AddDefine( "EXPLICIT_BINDINGS" );
+	}*/
+
 	//try
 	{		
 		if( src.CheckTokenString( "parms" ) )
@@ -2565,17 +2634,11 @@ bool idDeclRenderProg::Parse( const char* text, const int textLength, bool allow
 		if( src.CheckTokenString( "tessCtrlShader" ) )
 		{
 			src.SkipBracedSection();
-			//src.AddDefine( "_TCS_" );
-			//ParseShader( parseData );
-			//src.RemoveDefine( "_TCS_" );
 		}
 		
 		if( src.CheckTokenString( "tessEvalShader" ) )
 		{
 			src.SkipBracedSection();
-			//src.AddDefine( "_TES_" );
-			//ParseShader( parseData );
-			//src.RemoveDefine( "_TES_" );
 		}
 		
 		if( src.CheckTokenString( "geometryShader" ) )
@@ -2650,14 +2713,15 @@ bool idDeclRenderProg::Parse( const char* text, const int textLength, bool allow
 		if( com_developer.GetBool() )
 		{
 			idStrStatic<MAX_OSPATH> outFilePass;
-			outFilePass.Format( "renderprogs/progs/debug_parsed_glsl/%s%s.glsl", GetName(), _glslShaderInfo[ i ].shaderTypeName );
+			outFilePass.Format( "renderprogs/debug/parsed_glsl/%s%s.glsl", GetName(), _glslShaderInfo[ i ].shaderTypeName );
 			fileSystem->WriteFile( outFilePass.c_str(), shaderGLSL.c_str(), shaderGLSL.Length(), "fs_basepath" );
 		}
 
 		///uint32 checksum = idHashing::MD5_BlockChecksum( shaderGLSL.c_str(), shaderGLSL.Length() );
 
 		parseData.glslProgram.shaderObjects[ i ] = GL_CreateGLSLShaderObject( ( shaderType_e )i, shaderGLSL.c_str(), GetName() );
-		if( parseData.glslProgram.shaderObjects[ i ] == GL_ZERO ) {
+		if( parseData.glslProgram.shaderObjects[ i ] == GL_ZERO ) 
+		{
 			idLib::Error( "GLSL %s compile error in '%s'", _glslShaderInfo[ i ].shaderTypeDeclName, GetName() );
 			return false;
 		}
@@ -2780,6 +2844,9 @@ void idDeclRenderProg::Print() const
 	}
 	if( data.hasDepthOutput ) {
 		common->Printf("\thasDepthOutput\n");
+	}
+	if( data.hasForcedEarlyFragTests ) {
+		common->Printf("\thasForcedEarlyFragmentTests\n");
 	}
 
 	for( int i = 0; i < _countof( _vertexAttribsPC ); i++ ) {
@@ -2962,8 +3029,8 @@ void GL_CreateGLSLProgram( progParseData_t & parseData, const char * progName, b
 
 		// bind transform feedback attributes
 		/*for( size_t i = 0; i < 0; i++ ) {
-		const char* varyings[ 3 ] = { "streamVar0", "streamVar1", "streamVar2" }; // gl_NextBuffer gl_SkipComponents#(1 2 3 4)
-		glTransformFeedbackVaryings( program, _countof( varyings ), varyings, GL_INTERLEAVED_ATTRIBS ); // GL_SEPARATE_ATTRIBS
+			const char* varyings[ 3 ] = { "streamVar0", "streamVar1", "streamVar2" }; // gl_NextBuffer gl_SkipComponents#(1 2 3 4)
+			glTransformFeedbackVaryings( program, _countof( varyings ), varyings, GL_INTERLEAVED_ATTRIBS ); // GL_SEPARATE_ATTRIBS
 		}*/
 	}
 
@@ -3040,7 +3107,7 @@ void GL_CreateGLSLProgram( progParseData_t & parseData, const char * progName, b
 			glGetProgramBinary( program, binaryLength, NULL, &binaryFormat, binaryData );
 
 			idStrStatic<MAX_OSPATH> outFilePass;
-			outFilePass.Format( "renderprogs/progs/debug_parsed_glsl_bin/%s.glsl_bin", progName );
+			outFilePass.Format( "renderprogs/debug/parsed_glsl_bin/%s.glsl_bin", progName );
 			fileSystem->WriteFile( outFilePass.c_str(), binaryData, binaryLength, "fs_basepath" );
 
 			parseData.glslProgram.binaryLength = binaryLength;
@@ -3061,16 +3128,30 @@ void GL_CreateGLSLProgram( progParseData_t & parseData, const char * progName, b
 
 	////////////////////////////////////////////////////////////////////////////////////////////////////
 
-	if( !r_useProgUBO.GetBool() && parseData.GetVecParmCount() )
-	{
-		idStrStatic<128> name;
-		name.Format( COMMON_PARMBLOCK_NAME ".%s", parseData.GetVecParm( 0 )->GetName() );
-		parseData.glslProgram.parmBlockIndex = glGetUniformLocation( program, name.c_str() );
-	}
-
 	// !parseData.shading_language_420pack
 	extern void BindUniformBuffers( GLuint );
 	BindUniformBuffers( program );
+
+	if( parseData.GetVecParmCount() )
+	{
+		if( r_useProgUBO.GetBool() )
+		{
+			if( !parseData.shading_language_420pack )
+			{
+				// get the uniform buffer binding for prog parameters
+				GLint blockIndex = glGetUniformBlockIndex( program, "parms_ubo" );
+				if( blockIndex != -1 ) {
+					glUniformBlockBinding( program, blockIndex, BINDING_PROG_PARMS_UBO );
+				}
+			}
+		}
+		else {
+			//idStrStatic<128> name;
+			//name.Format( COMMON_PARMBLOCK_NAME ".%s", parseData.GetVecParm( 0 )->GetName() );
+			//parseData.glslProgram.parmBlockIndex = glGetUniformLocation( program, name.c_str() );
+			parseData.glslProgram.parmBlockIndex = glGetUniformLocation( program, COMMON_PARMBLOCK_NAME );
+		}
+	}
 	
 	// set the texture unit locations once for the render program. 
 	// We only need to do this once since we only link the program once.
@@ -3093,32 +3174,39 @@ void GL_CreateGLSLProgram( progParseData_t & parseData, const char * progName, b
 
 /*
 ===========================================
- GL_CommitUniforms
+ idDeclRenderProg::CommitUniforms
 ===========================================
 */
-void GL_CommitUniforms( const idDeclRenderProg * decl )
+void idDeclRenderProg::CommitUniforms() const
 {
 	///const char * SHT[ SHT_MAX ] = { "VS", "TCS", "TES", "GS", "FS" };
 
-	auto prog = ( const glslProgram_t * )decl->GetAPIObject();
+	auto prog = ( const glslProgram_t * )GetAPIObject();
 
+	/*{
+		auto & parms = GetSmpParms();
+		for( int i = 0; i < parms.Num(); ++i )
+		{
+			GLuint sampler;
+			glBindSampler( i, sampler );
+		}
+	}*/
 	{
-		auto & parms = decl->GetTexParms();
+		auto & parms = GetTexParms();
 		for( int i = 0; i < parms.Num(); ++i )
 		{
 			GL_BindTexture( i, parms[ i ]->GetImage() );
 		}
 	}
 
-	if( r_useProgUBO.GetBool() )
+	if( r_useProgUBO.GetBool() && GetVecParms().Num() )
 	{
-		auto & ubo = decl->GetParmsUBO();
+		auto & ubo = backEnd.progParmsUniformBuffer; //GetParmsUBO();
 		const GLuint bo = reinterpret_cast<GLuint>( ubo.GetAPIObject() );
 		const GLuint bindIndex = BINDING_PROG_PARMS_UBO;
 
 		idRenderVector localVectors[ 128 ];
-
-		auto & parms = decl->GetVecParms();
+		auto & parms = GetVecParms();
 		for( int i = 0; i < parms.Num(); ++i )
 		{
 		#if defined( USE_INTRINSICS )
@@ -3127,33 +3215,35 @@ void GL_CommitUniforms( const idDeclRenderProg * decl )
 			localVectors[ i ] = parms[ i ]->GetVec4();
 		#endif
 		}
-
 		const int updateSize = parms.Num() * sizeof( idRenderVector );
-		ubo.Update( updateSize, localVectors );
+		ubo.Update( updateSize, localVectors->ToFloatPtr() );
 
-		glBindBufferRange( GL_UNIFORM_BUFFER, bindIndex, bo, ubo.GetOffset(), ubo.GetSize() );
-
-		/*auto bufPtr = ( idRenderVector *)ubo.MapBuffer( BM_WRITE );
+		/*auto bufPtr = ( idRenderVector * )ubo.MapBuffer( BM_WRITE );
 		for( int i = 0; i < parms.Num(); ++i )
-		{ 
+		{
 		#if defined( USE_INTRINSICS )
-			_mm_stream_ps(  bufPtr[ i ].ToFloatPtr(), _mm_load_ps( parms[ i ]->GetVecPtr() ) );
+			_mm_stream_ps( bufPtr[ i ].ToFloatPtr(), _mm_load_ps( parms[ i ]->GetVecPtr() ) );
 		#else
 			bufPtr[ i ] = parms[ i ]->GetVec4();
 		#endif
 		}
 		ubo.UnmapBuffer();*/
 
+		// When you use glBindBufferRange on uniform buffers, the `offset` parameter must be aligned to an implementation-dependent 
+		// value: GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT.
+		glBindBufferRange( GL_UNIFORM_BUFFER, bindIndex, bo, ubo.GetOffset(), updateSize );
+		///glBindBufferBase( GL_UNIFORM_BUFFER, bindIndex, bo );
+
 		RENDERLOG_PRINT( "UBO( binding:%u, count:%i, size:%i, offset:%i, bsize:%i )\n", bindIndex, parms.Num(), updateSize, ubo.GetOffset(), ubo.GetSize() );
 	} 
 	else // Uniform Arrays
 	{
-		idRenderVector localVectors[ 128 ];
-
 		const GLint uniformArray = prog->parmBlockIndex;
 		if( uniformArray != -1 )
 		{
-			auto & parms = decl->GetVecParms();
+			idRenderVector localVectors[ 128 ];
+
+			auto & parms = GetVecParms();
 			for( int i = 0; i < parms.Num(); ++i )
 			{
 			#if defined( USE_INTRINSICS )
@@ -3171,18 +3261,11 @@ void GL_CommitUniforms( const idDeclRenderProg * decl )
 
 /*
 ===========================================
- GL_BindProgram
+ idDeclRenderProg::Bind
 ===========================================
 */
-void GL_BindProgram( const idDeclRenderProg * decl )
+void idDeclRenderProg::Bind() const
 {
-	auto prog = ( const glslProgram_t * )decl->GetAPIObject();
-
-	if( backEnd.glState.currentProgramObject != prog->programObject )
-	{
-		backEnd.glState.currentProgramObject = prog->programObject;		
-		RENDERLOG_PRINT( "Binding GLSL Program %s\n", decl->GetName() );
-		
-		glUseProgram( prog->programObject );
-	}
+	auto prog = ( const glslProgram_t * )GetAPIObject();
+	glUseProgram( prog->programObject );
 }

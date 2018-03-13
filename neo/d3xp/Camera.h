@@ -90,12 +90,12 @@ A camera which follows a path defined by an animation.
 ===============================================================================
 */
 
-typedef struct
+struct cameraFrame_t
 {
 	idCQuat				q;
 	idVec3				t;
 	float				fov;
-} cameraFrame_t;
+};
 
 class idCameraAnim : public idCamera
 {

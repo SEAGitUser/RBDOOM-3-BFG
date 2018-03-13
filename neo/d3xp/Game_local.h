@@ -405,7 +405,7 @@ public:
 	void					RunSingleUserCmd( usercmd_t& cmd, idPlayer& player );
 	void					RunEntityThink( idEntity& ent, idUserCmdMgr& userCmdMgr );
 	virtual bool			Draw( int clientNum );
-	virtual bool			HandlePlayerGuiEvent( const sysEvent_t* ev );
+	virtual bool			HandlePlayerGuiEvent( const idSysEvent* ev );
 	virtual void			ServerWriteSnapshot( idSnapShot& ss );
 	virtual void			ProcessReliableMessage( int clientNum, int type, const idBitMsg& msg );
 	virtual void			ClientReadSnapshot( const idSnapShot& ss );
@@ -505,7 +505,7 @@ public:
 	
 	// added the following to assist licensees with merge issues
 	auto					GetFrameNum() const { return framenum; };
-	auto					GetTime() const { return time; };
+	auto					GetGameTimeMs() const { return time; };
 	auto					GetPreviousGameTimeMs() const { return previousTime; }
 	
 	int						GetNextClientNum( int current ) const;
@@ -563,7 +563,7 @@ public:
 	virtual void					Shell_ClosePause();
 	virtual void					Shell_CreateMenu( bool inGame );
 	virtual bool					Shell_IsActive() const;
-	virtual bool					Shell_HandleGuiEvent( const sysEvent_t* sev );
+	virtual bool					Shell_HandleGuiEvent( const idSysEvent* sev );
 	virtual void					Shell_Render();
 	virtual void					Shell_ResetMenu();
 	virtual void					Shell_SyncWithSession() ;

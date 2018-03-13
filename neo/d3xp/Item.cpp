@@ -245,13 +245,13 @@ void idItem::Think()
 			idVec3		org;
 			
 			ang.pitch = ang.roll = 0.0f;
-			ang.yaw = ( gameLocal.GetTime() & 4095 ) * 360.0f / -4096.0f;
+			ang.yaw = ( gameLocal.GetGameTimeMs() & 4095 ) * 360.0f / -4096.0f;
 			SetAngles( ang );
 			
 			float scale = 0.005f + entityNumber * 0.00001f;
 			
 			org = orgOrigin;
-			org.z += 4.0f + cos( ( gameLocal.GetTime() + 2000 ) * scale ) * 4.0f;
+			org.z += 4.0f + cos( ( gameLocal.GetGameTimeMs() + 2000 ) * scale ) * 4.0f;
 			SetOrigin( org );
 		}
 	}
@@ -412,7 +412,7 @@ bool idItem::Pickup( idPlayer* player )
 	// Store the time so clients know when to stop predicting and let snapshots overwrite.
 	if( player->IsLocallyControlled() )
 	{
-		clientPredictPickupMilliseconds = gameLocal.GetTime();
+		clientPredictPickupMilliseconds = gameLocal.GetGameTimeMs();
 	}
 	else
 	{
@@ -918,15 +918,15 @@ void idItemTeam::Think()
 	
 #if 1
 	// should only the server do this?
-	if( common->IsServer() && nuggetName && carried && ( !lastNuggetDrop || ( gameLocal.GetTime() - lastNuggetDrop ) >  spawnArgs.GetInt( "nugget_frequency" ) ) )
+	if( common->IsServer() && nuggetName && carried && ( !lastNuggetDrop || ( gameLocal.GetGameTimeMs() - lastNuggetDrop ) >  spawnArgs.GetInt( "nugget_frequency" ) ) )
 	{	
 		SpawnNugget( GetPhysics()->GetOrigin() );
-		lastNuggetDrop = gameLocal.GetTime();
+		lastNuggetDrop = gameLocal.GetGameTimeMs();
 	}
 #endif
 	
 	// return dropped flag after si_flagDropTimeLimit seconds
-	if( dropped && !carried && lastDrop != 0 && ( gameLocal.GetTime() - lastDrop ) > ( si_flagDropTimeLimit.GetInteger() * 1000 ) )
+	if( dropped && !carried && lastDrop != 0 && ( gameLocal.GetGameTimeMs() - lastDrop ) > ( si_flagDropTimeLimit.GetInteger() * 1000 ) )
 	{
 	
 		Return();	// return flag after 30 seconds on ground
@@ -949,7 +949,7 @@ bool idItemTeam::Pickup( idPlayer* player )
 		return false;
 		
 	// wait 2 seconds after drop before beeing picked up again
-	if( lastDrop != 0 && ( gameLocal.GetTime() - lastDrop ) < spawnArgs.GetInt( "pickupDelay", "500" ) )
+	if( lastDrop != 0 && ( gameLocal.GetGameTimeMs() - lastDrop ) < spawnArgs.GetInt( "pickupDelay", "500" ) )
 		return false;
 		
 	if( carried == false && player->team != this->team )
@@ -1147,7 +1147,7 @@ void idItemTeam::Event_TakeFlag( idPlayer* player )
 		gameLocal.mpGame.PrintMessageEvent( idMultiplayerGame::MSG_FLAGTAKEN, team, player->entityNumber );
 		
 		// dont drop a nugget RIGHT away
-		lastNuggetDrop = gameLocal.GetTime() - gameLocal.random.RandomInt( 1000 );
+		lastNuggetDrop = gameLocal.GetGameTimeMs() - gameLocal.random.RandomInt( 1000 );
 		
 	}
 	
@@ -1219,7 +1219,7 @@ void idItemTeam::Event_DropFlag( bool death )
 		}
 	}
 	
-	lastDrop = gameLocal.GetTime();
+	lastDrop = gameLocal.GetGameTimeMs();
 	
 	BecomeActive( TH_THINK );
 	Show();
@@ -1871,7 +1871,7 @@ void idMoveableItem::Spawn()
 	if( *smokeName != '\0' )
 	{
 		smoke = static_cast<const idDeclParticle*>( declManager->FindType( DECL_PARTICLE, smokeName ) );
-		smokeTime = gameLocal.GetTime();
+		smokeTime = gameLocal.GetGameTimeMs();
 		BecomeActive( TH_UPDATEPARTICLES );
 	}
 	
@@ -1921,7 +1921,7 @@ void idMoveableItem::Think()
 				BecomeInactive( TH_UPDATEPARTICLES );
 			}
 			else {
-				smokeTime = gameLocal.GetTime();
+				smokeTime = gameLocal.GetGameTimeMs();
 			}
 		}
 	}
@@ -1937,7 +1937,7 @@ idMoveableItem::Collide
 bool idMoveableItem::Collide( const trace_t& collision, const idVec3& velocity )
 {
 	float v = -( velocity * collision.c.normal );
-	if( v > 80 && gameLocal.GetTime() > nextSoundTime )
+	if( v > 80 && gameLocal.GetGameTimeMs() > nextSoundTime )
 	{
 		float f = v > 200 ? 1.0f : idMath::Sqrt( v - 80 ) * 0.091f;
 		if( StartSound( "snd_bounce", SND_CHANNEL_ANY, 0, false, NULL ) )
@@ -1946,7 +1946,7 @@ bool idMoveableItem::Collide( const trace_t& collision, const idVec3& velocity )
 			// which causes footsteps on ai's to not honor their shader parms
 			SetSoundVolume( f );
 		}
-		nextSoundTime = gameLocal.GetTime() + 500;
+		nextSoundTime = gameLocal.GetGameTimeMs() + 500;
 	}
 	
 	return false;
@@ -2054,7 +2054,7 @@ void idMoveableItem::DropItems( idAnimatedEntity*  ent, const char* type, idList
 			key2 += "Offset";
 			jointName = ent->spawnArgs.GetString( key );
 			joint = ent->GetAnimator()->GetJointHandle( jointName );
-			if( !ent->GetJointWorldTransform( joint, gameLocal.GetTime(), origin, axis ) )
+			if( !ent->GetJointWorldTransform( joint, gameLocal.GetGameTimeMs(), origin, axis ) )
 			{
 				gameLocal.Warning( "%s refers to invalid joint '%s' on entity '%s'\n", key.c_str(), jointName, ent->name.c_str() );
 				origin = ent->GetPhysics()->GetOrigin();
@@ -2148,7 +2148,7 @@ void idMoveableItem::Gib( const idVec3& dir, const char* damageDefName )
 	if( *smokeName != '\0' )
 	{
 		const idDeclParticle* smoke = static_cast<const idDeclParticle*>( declManager->FindType( DECL_PARTICLE, smokeName ) );
-		gameLocal.smokeParticles->EmitSmoke( smoke, gameLocal.GetTime(), gameLocal.random.CRandomFloat(), renderEntity.origin, renderEntity.axis, timeGroup /*_D3XP*/ );
+		gameLocal.smokeParticles->EmitSmoke( smoke, gameLocal.GetGameTimeMs(), gameLocal.random.CRandomFloat(), renderEntity.origin, renderEntity.axis, timeGroup /*_D3XP*/ );
 	}
 	// remove the entity
 	PostEventMS( &EV_Remove, 0 );

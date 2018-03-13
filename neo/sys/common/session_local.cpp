@@ -76,7 +76,7 @@ public:
 	virtual void			UpdateRichPresence() {}
 	virtual void			CheckVoicePrivileges() {}
 	
-	virtual bool			ProcessInputEvent( const sysEvent_t* ev );
+	virtual bool			ProcessInputEvent( const idSysEvent* ev );
 	
 	// System UI
 	virtual bool			IsSystemUIShowing() const;
@@ -447,7 +447,7 @@ void idSessionLocalWin::ShowLobbyUserGamerCardUI( lobbyUserID_t lobbyUserID )
 idSessionLocalWin::ProcessInputEvent
 ========================
 */
-bool idSessionLocalWin::ProcessInputEvent( const sysEvent_t* ev )
+bool idSessionLocalWin::ProcessInputEvent( const idSysEvent* ev )
 {
 	if( GetSignInManager().ProcessInputEvent( ev ) )
 	{

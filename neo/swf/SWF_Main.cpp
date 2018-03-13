@@ -58,7 +58,7 @@ idSWF::idSWF( const char* filename_, idSoundWorld* soundWorld_ )
 	swfScale = 1.0f;
 	scaleToVirtual.Set( 1.0f, 1.0f );
 
-	random.SetSeed( Sys_Milliseconds() );
+	random.SetSeed( sys->Milliseconds() );
 
 	guiSolid = declManager->FindMaterial( "guiSolid" );
 	guiCursor_arrow = declManager->FindMaterial( "ui/assets/guicursor_arrow" );
@@ -447,7 +447,7 @@ void idSWF::Activate( bool b )
 	if( !isActive && b )
 	{
 		inhibitControl = false;
-		lastRenderTime = Sys_Milliseconds();
+		lastRenderTime = sys->Milliseconds();
 
 		mainspriteInstance->FreeDisplayList();
 		mainspriteInstance->Play();

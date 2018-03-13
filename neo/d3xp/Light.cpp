@@ -155,7 +155,7 @@ void idGameEdit::ParseSpawnArgsToRenderLight( const idDict* args, renderLightPar
 	if( !args->GetFloat( "shaderParm4", "0", renderLight->shaderParms[ SHADERPARM_TIMEOFFSET ] ) )
 	{
 		// offset the start time of the shader to sync it to the game time
-		renderLight->shaderParms[ SHADERPARM_TIMEOFFSET ] = -MS2SEC( gameLocal.GetTime() );
+		renderLight->shaderParms[ SHADERPARM_TIMEOFFSET ] = -MS2SEC( gameLocal.GetGameTimeMs() );
 	}
 	
 	args->GetFloat( "shaderParm5", "0", renderLight->shaderParms[5] );
@@ -626,7 +626,7 @@ void idLight::On()
 {
 	currentLevel = levels;
 	// offset the start time of the shader to sync it to the game time
-	renderLight.shaderParms[ SHADERPARM_TIMEOFFSET ] = -MS2SEC( gameLocal.GetTime() );
+	renderLight.shaderParms[ SHADERPARM_TIMEOFFSET ] = -MS2SEC( gameLocal.GetGameTimeMs() );
 	if( ( soundWasPlaying || refSound.waitfortrigger ) && refSound.shader )
 	{
 		StartSoundShader( refSound.shader, SND_CHANNEL_ANY, 0, false, NULL );
@@ -663,8 +663,8 @@ void idLight::Fade( const idVec4& to, float fadeTime )
 {
 	GetColor( fadeFrom );
 	fadeTo = to;
-	fadeStart = gameLocal.GetTime();
-	fadeEnd = gameLocal.GetTime() + SEC2MS( fadeTime );
+	fadeStart = gameLocal.GetGameTimeMs();
+	fadeEnd = gameLocal.GetGameTimeMs() + SEC2MS( fadeTime );
 	BecomeActive( TH_THINK );
 }
 
@@ -746,8 +746,8 @@ void idLight::BecomeBroken( idEntity* activator )
 	ActivateTargets( activator );
 	
 	// offset the start time of the shader to sync it to the game time
-	renderEntity.shaderParms[ SHADERPARM_TIMEOFFSET ] = -MS2SEC( gameLocal.GetTime() );
-	renderLight.shaderParms[ SHADERPARM_TIMEOFFSET ] = -MS2SEC( gameLocal.GetTime() );
+	renderEntity.shaderParms[ SHADERPARM_TIMEOFFSET ] = -MS2SEC( gameLocal.GetGameTimeMs() );
+	renderLight.shaderParms[ SHADERPARM_TIMEOFFSET ] = -MS2SEC( gameLocal.GetGameTimeMs() );
 	
 	// set the state parm
 	renderEntity.shaderParms[ SHADERPARM_MODE ] = 1;
@@ -866,9 +866,9 @@ void idLight::Think()
 	{
 		if( fadeEnd > 0 )
 		{
-			if( gameLocal.GetTime() < fadeEnd )
+			if( gameLocal.GetGameTimeMs() < fadeEnd )
 			{
-				color.Lerp( fadeFrom, fadeTo, ( float )( gameLocal.GetTime() - fadeStart ) / ( float )( fadeEnd - fadeStart ) );
+				color.Lerp( fadeFrom, fadeTo, ( float )( gameLocal.GetGameTimeMs() - fadeStart ) / ( float )( fadeEnd - fadeStart ) );
 			}
 			else {
 				color = fadeTo;

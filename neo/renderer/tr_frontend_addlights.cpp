@@ -87,9 +87,9 @@ static void R_AddSingleLight( viewLight_t* vLight )
 	vLight->preLightShadowVolumes = NULL;
 	
 	// globals we really should pass in...
-	const idRenderView* viewDef = tr.viewDef;	
-	const idRenderLightLocal* light = vLight->lightDef;
-	const idMaterial* lightShader = light->lightShader;
+	const idRenderView * const viewDef = tr.viewDef;	
+	const idRenderLightLocal * const light = vLight->lightDef;
+	const idMaterial * const lightShader = light->lightShader;
 	if( lightShader == NULL )
 	{
 		common->Error( "R_AddSingleLight: NULL lightShader" );
@@ -308,9 +308,9 @@ static void R_AddSingleLight( viewLight_t* vLight )
 	
 	idInteraction** const interactionTableRow = world->interactionTable + light->GetIndex() * world->interactionTableWidth;
 	
-	for( areaReference_t* lref = light->references; lref != NULL; lref = lref->ownerNext )
+	for( auto lref = light->references; lref != NULL; lref = lref->ownerNext )
 	{
-		portalArea_t* area = lref->area;
+		auto area = lref->area;
 		
 		// some lights have their center of projection outside the world, but otherwise
 		// we want to ignore areas that are not connected to the light center due to a closed door
@@ -324,7 +324,7 @@ static void R_AddSingleLight( viewLight_t* vLight )
 		}
 		
 		// check all the models in this area
-		for( areaReference_t* eref = area->entityRefs.areaNext; eref != &area->entityRefs; eref = eref->areaNext )
+		for( auto eref = area->entityRefs.areaNext; eref != &area->entityRefs; eref = eref->areaNext )
 		{
 			idRenderEntityLocal* edef = eref->entity;
 			
@@ -613,7 +613,7 @@ void R_AddLights( idRenderView * const view )
 		}
 	}
 	else {
-		int start = Sys_Microseconds();
+		int start = sys->Microseconds();
 		
 		for( viewLight_t* vLight = view->viewLights; vLight != NULL; vLight = vLight->next )
 		{
@@ -624,7 +624,7 @@ void R_AddLights( idRenderView * const view )
 			vLight->preLightShadowVolumes = NULL;
 		}
 		
-		int end = Sys_Microseconds();
+		int end = sys->Microseconds();
 		backEnd.pc.shadowMicroSec += end - start;
 	}
 }

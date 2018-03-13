@@ -184,21 +184,6 @@ enum stageVertexColor_t
 	SVC_INVERSE_MODULATE
 };
 
-static const int	MAX_FRAGMENT_IMAGES = 8;
-static const int	MAX_VERTEX_PARMS = 4;
-
-struct newShaderStage_t
-{
-	int					vertexProgram;
-	int					numVertexParms;
-	int					vertexParms[MAX_VERTEX_PARMS][4];	// evaluated register indexes
-	
-	int					fragmentProgram;
-	int					glslProgram;
-	int					numFragmentProgramImages;
-	idImage* 			fragmentProgramImages[MAX_FRAGMENT_IMAGES];
-};
-
 /*
 =====================================================================
 =====================================================================
@@ -238,6 +223,27 @@ struct stageParseData_t {
 	stageTextureMatrix_t	textureMatrices[ MAX_STAGE_TEXTUREMATRICES ];
 };
 
+struct newShaderStage_t 
+{
+	stageVector_t *			vectors;
+	stageTexture_t *		textures;
+	//stageTextureMatrix_t *	textureMatrices;
+
+	int32		program;
+	uint16		numVectors;
+	uint16		numTextures;
+	//uint16		numTextureMatrices;
+
+	//int16				numVertexParms;
+	//int16				numFragmentProgramImages;
+
+	//int					vertexParms[ MAX_VERTEX_PARMS ][ 4 ];	// evaluated register indexes	
+	//idImage * 			fragmentProgramImages[ MAX_FRAGMENT_IMAGES ];
+
+	void Clear();
+};
+static const uint32 newShaderStageSize = sizeof( newShaderStage_t );
+
 /*
 =====================================================================
 	idMaterialStage
@@ -257,7 +263,7 @@ typedef struct materialStage_t
 											// if the surface is alpha tested
 	float				privatePolygonOffset;	// a per-stage polygon offset
 	
-	newShaderStage_t*	newStage;			// vertex / fragment program based stage
+	newShaderStage_t *	newStage;			// vertex / fragment program based stage
 
 	// ------------------------------------
 #if 0
@@ -278,18 +284,6 @@ typedef struct materialStage_t
 	bool						hasAlphaTest;
 #endif
 	// ------------------------------------
-#if 0
-	const idDeclRenderProg	*	renderProgram;
-
-	int							numVectors;
-	stageVector_t*				vectors;
-
-	int							numTextures;
-	stageTexture_t*				textures;
-
-	int							numTextureMatrices;
-	stageTextureMatrix_t*		textureMatrices;
-#endif
 
 	bool SkipStage( const float * registers ) const
 	{
@@ -307,8 +301,13 @@ typedef struct materialStage_t
 	{
 		return registers[ color.registers[ 3/*SHADERPARM_ALPHA*/ ] ];
 	}
+	float GetAlphaTestValue( const float * registers ) const
+	{
+		return registers[ alphaTestRegister ];
+	}
 
 } idMaterialStage;
+static const uint32 idMaterialStageSize = sizeof( idMaterialStage );
 
 enum materialCoverage_t
 {
@@ -707,15 +706,10 @@ public:
 	// returns the length, in milliseconds, of the videoMap on this material,
 	// or zero if it doesn't have one
 	int					CinematicLength() const;
-	
 	void				CloseCinematic() const;
-	
 	void				ResetCinematicTime( int time ) const;
-	
-	int					GetCinematicStartTime() const;
-	
-	void				UpdateCinematic( int time ) const;
-	
+	int					GetCinematicStartTime() const;	
+	void				UpdateCinematic( int time ) const;	
 	// RB: added because we can't rely on the FFmpeg feedback how long a video really is
 	bool                CinematicIsPlaying() const;
 	// RB end
@@ -776,9 +770,9 @@ private:
 	void				ParseSort( idLexer& src );
 	void				ParseStereoEye( idLexer& src );
 	void				ParseBlend( idLexer& src, materialStage_t* stage );
-	void				ParseVertexParm( idLexer& src, newShaderStage_t* newStage );
-	void				ParseVertexParm2( idLexer& src, newShaderStage_t* newStage );
-	void				ParseFragmentMap( idLexer& src, newShaderStage_t* newStage );
+	void				ParseVertexParm( idLexer& src, stageParseData_t* newStage );
+	void				ParseVertexParm2( idLexer& src, stageParseData_t* newStage );
+	void				ParseFragmentMap( idLexer& src, stageParseData_t* newStage );
 	void				ParseStage( idLexer& src, const textureRepeat_t trpDefault ); // TR_REPEAT
 	void				ParseDeform( idLexer& src );
 	void				ParseDecalInfo( idLexer& src );
@@ -859,7 +853,7 @@ private:
 	
 	materialStage_t * 	stages;
 	
-	struct mtrParsingData_s * pd;			// only used during parsing
+	struct mtrParsingData_t * pd;			// only used during parsing
 	
 	float				surfaceArea;		// only for listSurfaceAreas
 	

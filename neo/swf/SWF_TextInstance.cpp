@@ -1271,10 +1271,10 @@ SWF_TEXT_NATIVE_VAR_DEFINE_SET( scroll )
 {
 	SWF_TEXT_PTHIS_SET( "scroll" );
 	
-	int time = Sys_Milliseconds();
+	int time = sys->Milliseconds();
 	if( time >= pThis->scrollTime )
 	{
-		pThis->scrollTime = Sys_Milliseconds() + swf_textScrollSpeed.GetInteger();
+		pThis->scrollTime = sys->Milliseconds() + swf_textScrollSpeed.GetInteger();
 		pThis->scroll = value.ToInteger();
 	}
 }

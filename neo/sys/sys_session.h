@@ -515,7 +515,7 @@ public:
 	
 	virtual idPlayerProfile* 	GetProfileFromMasterLocalUser() = 0;
 	
-	virtual bool			ProcessInputEvent( const sysEvent_t* ev ) = 0;
+	virtual bool			ProcessInputEvent( const idSysEvent* ev ) = 0;
 	virtual float			GetUpstreamDropRate() = 0;
 	virtual float			GetUpstreamQueueRate() = 0;
 	virtual int				GetQueuedBytes() = 0;

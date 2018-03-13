@@ -105,7 +105,6 @@ void idUserInterfaceManagerLocal::Touch( const char* name )
 
 void idUserInterfaceManagerLocal::WritePrecacheCommands( idFile* f )
 {
-
 	int c = guis.Num();
 	for( int i = 0; i < c; i++ )
 	{
@@ -374,7 +373,6 @@ bool idUserInterfaceLocal::IsInteractive() const
 
 bool idUserInterfaceLocal::InitFromFile( const char* qpath, bool rebuild, bool cache )
 {
-
 	if( !( qpath && *qpath ) )
 	{
 		// FIXME: Memory leak!!
@@ -446,8 +444,7 @@ bool idUserInterfaceLocal::InitFromFile( const char* qpath, bool rebuild, bool c
 		state.Set( "name", qpath );	// don't use localized name
 		bsrc.DoneParsing();
 	}
-	else
-	{
+	else {
 		desktop->SetFlag( WIN_DESKTOP );
 		desktop->name = "Desktop";
 		desktop->text = va( "Invalid GUI: %s", qpath );
@@ -467,22 +464,21 @@ bool idUserInterfaceLocal::InitFromFile( const char* qpath, bool rebuild, bool c
 	return true;
 }
 
-const char* idUserInterfaceLocal::HandleEvent( const sysEvent_t* event, int _time, bool* updateVisuals )
+const char* idUserInterfaceLocal::HandleEvent( const idSysEvent* event, int _time, bool* updateVisuals )
 {
-
 	time = _time;
 	
-	if( bindHandler && event->evType == SE_KEY && event->evValue2 == 1 )
+	if( bindHandler && event->IsKeyEvent() && event->IsKeyDown() )
 	{
 		const char* ret = bindHandler->HandleEvent( event, updateVisuals );
 		bindHandler = NULL;
 		return ret;
 	}
 	
-	if( event->evType == SE_MOUSE )
+	if( event->IsRelativeXYMouseCoords() )
 	{
-		cursorX += event->evValue;
-		cursorY += event->evValue2;
+		cursorX += static_cast<float>( event->GetXCoord() );
+		cursorY += static_cast<float>( event->GetYCoord() );
 		
 		if( cursorX < 0 )
 		{

@@ -728,7 +728,7 @@ void idAI::Event_LaunchMissile( const idVec3& org, const idAngles& ang )
 	
 	TriggerWeaponEffects( tr.endpos );
 	
-	lastAttackTime = gameLocal.time;
+	lastAttackTime = gameLocal.GetGameTimeMs();
 }
 
 
@@ -839,7 +839,7 @@ void idAI::Event_RadiusDamageFromJoint( const char* jointname, const char* damag
 		{
 			gameLocal.Error( "Unknown joint '%s' on %s", jointname, GetEntityDefName() );
 		}
-		GetJointWorldTransform( joint, gameLocal.time, org, axis );
+		GetJointWorldTransform( joint, gameLocal.GetGameTimeMs(), org, axis );
 	}
 	
 	gameLocal.RadiusDamage( org, this, this, this, this, damageDefName );
@@ -897,7 +897,7 @@ void idAI::Event_MeleeAttackToJoint( const char* jointname, const char* meleeDef
 	{
 		gameLocal.Error( "Unknown joint '%s' on %s", jointname, GetEntityDefName() );
 	}
-	animator.GetJointTransform( joint, gameLocal.time, end, axis );
+	animator.GetJointTransform( joint, gameLocal.GetGameTimeMs(), end, axis );
 	end = physicsObj.GetOrigin() + ( end + modelOffset ) * viewAxis * physicsObj.GetGravityAxis();
 	start = GetEyePosition();
 	
@@ -1743,13 +1743,13 @@ void idAI::Event_CanHitEnemy()
 	}
 	
 	// don't check twice per frame
-	if( gameLocal.time == lastHitCheckTime )
+	if( gameLocal.GetGameTimeMs() == lastHitCheckTime )
 	{
 		idThread::ReturnInt( lastHitCheckResult );
 		return;
 	}
 	
-	lastHitCheckTime = gameLocal.time;
+	lastHitCheckTime = gameLocal.GetGameTimeMs();
 	
 	idVec3 toPos = enemyEnt->GetEyePosition();
 	idVec3 eye = GetEyePosition();
@@ -1885,13 +1885,13 @@ void idAI::Event_CanHitEnemyFromJoint( const char* jointname )
 	}
 	
 	// don't check twice per frame
-	if( gameLocal.time == lastHitCheckTime )
+	if( gameLocal.GetGameTimeMs() == lastHitCheckTime )
 	{
 		idThread::ReturnInt( lastHitCheckResult );
 		return;
 	}
 	
-	lastHitCheckTime = gameLocal.time;
+	lastHitCheckTime = gameLocal.GetGameTimeMs();
 	
 	const idVec3& org = physicsObj.GetOrigin();
 	idVec3 toPos = enemyEnt->GetEyePosition();
@@ -1900,7 +1900,7 @@ void idAI::Event_CanHitEnemyFromJoint( const char* jointname )
 	{
 		gameLocal.Error( "Unknown joint '%s' on %s", jointname, GetEntityDefName() );
 	}
-	animator.GetJointTransform( joint, gameLocal.time, muzzle, axis );
+	animator.GetJointTransform( joint, gameLocal.GetGameTimeMs(), muzzle, axis );
 	muzzle = org + ( muzzle + modelOffset ) * viewAxis * physicsObj.GetGravityAxis();
 	
 	if( projectileClipModel == NULL )
@@ -2193,7 +2193,7 @@ idAI::Event_Burn
 */
 void idAI::Event_Burn()
 {
-	renderEntity.shaderParms[ SHADERPARM_TIME_OF_DEATH ] = gameLocal.time * 0.001f;
+	renderEntity.shaderParms[ SHADERPARM_TIME_OF_DEATH ] = gameLocal.GetGameTimeMs() * 0.001f;
 	SpawnParticles( "smoke_burnParticleSystem" );
 	UpdateVisuals();
 }
@@ -2228,7 +2228,7 @@ void idAI::Event_SetSmokeVisibility( int num, int on )
 	
 	if( on != 0 )
 	{
-		time = gameLocal.time;
+		time = gameLocal.GetGameTimeMs();
 		BecomeActive( TH_UPDATEPARTICLES );
 	}
 	else
@@ -2688,15 +2688,15 @@ void idAI::Event_LookAtEntity( idEntity* ent, float duration )
 		ent = NULL;
 	}
 	
-	if( ( ent != focusEntity.GetEntity() ) || ( focusTime < gameLocal.time ) )
+	if( ( ent != focusEntity.GetEntity() ) || ( focusTime < gameLocal.GetGameTimeMs() ) )
 	{
 		focusEntity	= ent;
-		alignHeadTime = gameLocal.time;
-		forceAlignHeadTime = gameLocal.time + SEC2MS( 1 );
+		alignHeadTime = gameLocal.GetGameTimeMs();
+		forceAlignHeadTime = gameLocal.GetGameTimeMs() + SEC2MS( 1 );
 		blink_time = 0;
 	}
 	
-	focusTime = gameLocal.time + SEC2MS( duration );
+	focusTime = gameLocal.GetGameTimeMs() + SEC2MS( duration );
 }
 
 /*
@@ -2709,15 +2709,15 @@ void idAI::Event_LookAtEnemy( float duration )
 	idActor* enemyEnt;
 	
 	enemyEnt = enemy.GetEntity();
-	if( ( enemyEnt != focusEntity.GetEntity() ) || ( focusTime < gameLocal.time ) )
+	if( ( enemyEnt != focusEntity.GetEntity() ) || ( focusTime < gameLocal.GetGameTimeMs() ) )
 	{
 		focusEntity	= enemyEnt;
-		alignHeadTime = gameLocal.time;
-		forceAlignHeadTime = gameLocal.time + SEC2MS( 1 );
+		alignHeadTime = gameLocal.GetGameTimeMs();
+		forceAlignHeadTime = gameLocal.GetGameTimeMs() + SEC2MS( 1 );
 		blink_time = 0;
 	}
 	
-	focusTime = gameLocal.time + SEC2MS( duration );
+	focusTime = gameLocal.GetGameTimeMs() + SEC2MS( duration );
 }
 
 /*
@@ -3382,7 +3382,7 @@ void idAI::Event_LaunchHomingMissile()
 	
 	TriggerWeaponEffects( tr.endpos );
 	
-	lastAttackTime = gameLocal.time;
+	lastAttackTime = gameLocal.GetGameTimeMs();
 }
 
 /*

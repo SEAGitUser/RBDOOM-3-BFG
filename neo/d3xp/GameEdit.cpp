@@ -100,7 +100,7 @@ void idCursor3D::Think()
 {
 	if( thinkFlags & TH_THINK )
 	{
-		drag.Evaluate( gameLocal.GetTime() );
+		drag.Evaluate( gameLocal.GetGameTimeMs() );
 	}
 	Present();
 }
@@ -304,7 +304,7 @@ void idDragEntity::Update( idPlayer* player )
 		
 		if( joint != INVALID_JOINT && renderEntity != NULL && dragAnimator != NULL )
 		{
-			dragAnimator->GetJointTransform( joint, gameLocal.GetTime(), cursor->draggedPosition, axis );
+			dragAnimator->GetJointTransform( joint, gameLocal.GetGameTimeMs(), cursor->draggedPosition, axis );
 			cursor->draggedPosition = renderEntity->origin + cursor->draggedPosition * renderEntity->axis;
 			gameRenderWorld->DrawText( va( "%s\n%s\n%s, %s", drag->GetName(), drag->GetType()->classname, dragAnimator->GetJointName( joint ), bodyName.c_str() ), cursor->GetPhysics()->GetOrigin(), 0.1f, colorWhite, viewAxis, 1 );
 		}
@@ -481,11 +481,11 @@ bool idEditEntities::SelectEntity( const idVec3& origin, const idVec3& dir, cons
 		return false;
 	}
 	
-	if( gameLocal.GetTime() < nextSelectTime )
+	if( gameLocal.GetGameTimeMs() < nextSelectTime )
 	{
 		return true;
 	}
-	nextSelectTime = gameLocal.GetTime() + 300;
+	nextSelectTime = gameLocal.GetGameTimeMs() + 300;
 	
 	end = origin + dir * 4096.0f;
 	

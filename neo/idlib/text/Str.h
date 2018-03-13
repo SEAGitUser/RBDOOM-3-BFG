@@ -287,7 +287,7 @@ public:
 	idStr					Right( int len ) const;							// return the rightmost 'len' characters
 	idStr					Mid( int start, int len ) const;				// return 'len' characters starting at 'start'
 	// perform a threadsafe sprintf to the string
-	template< size_t _size_ = MAX_STRING_CHARS > idStr & Format( VERIFY_FORMAT_STRING const char* fmt, ... ); // MAX_PRINT_MSG
+	template< uint32 _size_ = MAX_STRING_CHARS > idStr & Format( VERIFY_FORMAT_STRING const char* fmt, ... ); // MAX_PRINT_MSG
 	static idStr			FormatInt( const int num, bool isCash = false );			// formats an integer as a value with commas
 	static idStr			FormatCash( const int num ) { return FormatInt( num, true ); }
 	
@@ -503,7 +503,7 @@ idStr::Format
 perform a threadsafe sprintf to the string
 ========================
 */
-template< size_t _size_ >
+template< uint32 _size_ >
 idStr & idStr::Format( const char* fmt, ... )
 {
 	va_list argptr;

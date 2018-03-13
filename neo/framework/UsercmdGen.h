@@ -125,13 +125,13 @@ public:
 	bool		operator==( const usercmd_t& rhs ) const;
 };
 
-typedef enum
+enum inhibit_t
 {
 	INHIBIT_SESSION = 0,
 	INHIBIT_ASYNC
-} inhibit_t;
+};
 
-typedef enum
+enum usercmdButton_t
 {
 	UB_NONE,
 	
@@ -186,16 +186,15 @@ typedef enum
 	UB_IMPULSE31,
 	
 	UB_MAX_BUTTONS
-} usercmdButton_t;
+};
 
-typedef struct
+struct userCmdString_t
 {
-	const char* string;
+	const char *	string;
 	usercmdButton_t	button;
-} userCmdString_t;
+};
 
-class idUsercmdGen
-{
+class idUsercmdGen {
 public:
 	virtual				~idUsercmdGen() {}
 	
@@ -245,8 +244,7 @@ extern userCmdString_t	userCmdStrings[];
 idUserCmdMgr
 ================================================
 */
-class idUserCmdMgr
-{
+class idUserCmdMgr {
 public:
 	idUserCmdMgr()
 	{

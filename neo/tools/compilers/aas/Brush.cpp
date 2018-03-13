@@ -51,7 +51,7 @@ void DisplayRealTimeString( const char* string, ... )
 	static int lastUpdateTime;
 	int time;
 	
-	time = Sys_Milliseconds();
+	time = sys->Milliseconds();
 	if( time > lastUpdateTime + OUTPUT_UPDATE_TIME )
 	{
 		va_start( argPtr, string );

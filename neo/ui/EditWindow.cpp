@@ -213,8 +213,9 @@ void idEditWindow::Draw( int time, float x, float y )
 idEditWindow::HandleEvent
 =============
 */
-const char* idEditWindow::HandleEvent( const sysEvent_t* event, bool* updateVisuals )
+const char* idEditWindow::HandleEvent( const idSysEvent* event, bool* updateVisuals )
 {
+	assert( event!= nullptr );
 	static char buffer[ MAX_EDITFIELD ];
 	
 	if( wrap )
@@ -227,18 +228,17 @@ const char* idEditWindow::HandleEvent( const sysEvent_t* event, bool* updateVisu
 		}
 	}
 	
-	if( ( event->evType != SE_CHAR && event->evType != SE_KEY ) )
+	if( !event->IsCharEvent() && !event->IsKeyEvent() )
 	{
 		return "";
 	}
 	
 	idStr::Copynz( buffer, text.c_str(), sizeof( buffer ) );
-	int key = event->evValue;
 	int len = text.Length();
 	
-	if( event->evType == SE_CHAR )
+	if( event->IsCharEvent() )
 	{
-		if( key == '`' )
+		if( event->GetChar() == '`' )
 		{
 			return "";
 		}
@@ -261,17 +261,17 @@ const char* idEditWindow::HandleEvent( const sysEvent_t* event, bool* updateVisu
 		//
 		// ignore any non printable chars (except enter when wrap is enabled)
 		//
-		if( wrap && ( key == K_ENTER || key == K_KP_ENTER ) )
+		if( wrap && ( event->GetKey() == K_ENTER || event->GetKey() == K_KP_ENTER ) )
 		{
 		}
-		else if( !idStr::CharIsPrintable( key ) )
+		else if( !idStr::CharIsPrintable( event->GetChar() ) )
 		{
 			return "";
 		}
 		
 		if( numeric )
 		{
-			if( ( key < '0' || key > '9' ) && key != '.' )
+			if( ( event->GetChar() < '0' || event->GetChar() > '9' ) && event->GetChar() != '.' )
 			{
 				return "";
 			}
@@ -293,7 +293,7 @@ const char* idEditWindow::HandleEvent( const sysEvent_t* event, bool* updateVisu
 			memmove( &buffer[ cursorPos + 1 ], &buffer[ cursorPos ], len + 1 - cursorPos );
 		}
 		
-		buffer[ cursorPos ] = key;
+		buffer[ cursorPos ] = event->GetChar();
 		
 		text = buffer;
 		UpdateCvar( false );
@@ -306,15 +306,14 @@ const char* idEditWindow::HandleEvent( const sysEvent_t* event, bool* updateVisu
 		EnsureCursorVisible();
 		
 	}
-	else if( event->evType == SE_KEY && event->evValue2 )
-	{
-	
+	else if( event->IsKeyEvent() && event->IsKeyDown() )
+	{	
 		if( updateVisuals )
 		{
 			*updateVisuals = true;
 		}
 		
-		if( key == K_DEL )
+		if( event->GetKey() == K_DEL )
 		{
 			if( readonly )
 			{
@@ -330,7 +329,7 @@ const char* idEditWindow::HandleEvent( const sysEvent_t* event, bool* updateVisu
 			return "";
 		}
 		
-		if( key == K_BACKSPACE )  	// ctrl-h is backspace
+		if( event->GetKey() == K_BACKSPACE )  	// ctrl-h is backspace
 		{
 			if( readonly )
 			{
@@ -356,11 +355,11 @@ const char* idEditWindow::HandleEvent( const sysEvent_t* event, bool* updateVisu
 			
 			return "";
 		}
-		if( key == K_RIGHTARROW )
+		if( event->GetKey() == K_RIGHTARROW )
 		{
 			if( cursorPos < len )
 			{
-				if( ( idKeyInput::IsDown( K_LCTRL ) || idKeyInput::IsDown( K_RCTRL ) ) )
+				if( idKeyInput::IsDown( K_LCTRL ) || idKeyInput::IsDown( K_RCTRL ) )
 				{
 					// skip to next word
 					while( ( cursorPos < len ) && ( buffer[ cursorPos ] != ' ' ) )
@@ -387,9 +386,9 @@ const char* idEditWindow::HandleEvent( const sysEvent_t* event, bool* updateVisu
 			return "";
 		}
 		
-		if( key == K_LEFTARROW )
+		if( event->GetKey() == K_LEFTARROW )
 		{
-			if( ( idKeyInput::IsDown( K_LCTRL ) || idKeyInput::IsDown( K_RCTRL ) ) )
+			if( idKeyInput::IsDown( K_LCTRL ) || idKeyInput::IsDown( K_RCTRL ) )
 			{
 				// skip to previous word
 				while( ( cursorPos > 0 ) && ( buffer[ cursorPos - 1 ] == ' ' ) )
@@ -415,7 +414,7 @@ const char* idEditWindow::HandleEvent( const sysEvent_t* event, bool* updateVisu
 			return "";
 		}
 		
-		if( key == K_HOME )
+		if( event->GetKey() == K_HOME )
 		{
 			if( ( idKeyInput::IsDown( K_LCTRL ) || idKeyInput::IsDown( K_RCTRL ) ) || cursorLine <= 0 || ( cursorLine >= breaks.Num() ) )
 			{
@@ -429,7 +428,7 @@ const char* idEditWindow::HandleEvent( const sysEvent_t* event, bool* updateVisu
 			return "";
 		}
 		
-		if( key == K_END )
+		if( event->GetKey() == K_END )
 		{
 			if( ( idKeyInput::IsDown( K_LCTRL ) || idKeyInput::IsDown( K_RCTRL ) ) || ( cursorLine < -1 ) || ( cursorLine >= breaks.Num() - 1 ) )
 			{
@@ -443,7 +442,7 @@ const char* idEditWindow::HandleEvent( const sysEvent_t* event, bool* updateVisu
 			return "";
 		}
 		
-		if( key == K_INS )
+		if( event->GetKey() == K_INS )
 		{
 			if( !readonly )
 			{
@@ -452,9 +451,9 @@ const char* idEditWindow::HandleEvent( const sysEvent_t* event, bool* updateVisu
 			return "";
 		}
 		
-		if( key == K_DOWNARROW )
+		if( event->GetKey() == K_DOWNARROW )
 		{
-			if( ( idKeyInput::IsDown( K_LCTRL ) || idKeyInput::IsDown( K_RCTRL ) ) )
+			if( idKeyInput::IsDown( K_LCTRL ) || idKeyInput::IsDown( K_RCTRL ) )
 			{
 				scroller->SetValue( scroller->GetValue() + 1.0f );
 			}
@@ -469,9 +468,9 @@ const char* idEditWindow::HandleEvent( const sysEvent_t* event, bool* updateVisu
 			}
 		}
 		
-		if( key == K_UPARROW )
+		if( event->GetKey() == K_UPARROW )
 		{
-			if( ( idKeyInput::IsDown( K_LCTRL ) || idKeyInput::IsDown( K_RCTRL ) ) )
+			if( idKeyInput::IsDown( K_LCTRL ) || idKeyInput::IsDown( K_RCTRL ) )
 			{
 				scroller->SetValue( scroller->GetValue() - 1.0f );
 			}
@@ -486,23 +485,23 @@ const char* idEditWindow::HandleEvent( const sysEvent_t* event, bool* updateVisu
 			}
 		}
 		
-		if( key == K_ENTER || key == K_KP_ENTER )
+		if( event->GetKey() == K_ENTER || event->GetKey() == K_KP_ENTER )
 		{
 			RunScript( ON_ACTION );
 			RunScript( ON_ENTER );
 			return cmd;
 		}
 		
-		if( key == K_ESCAPE )
+		if( event->GetKey() == K_ESCAPE )
 		{
 			RunScript( ON_ESC );
 			return cmd;
 		}
 		
 	}
-	else if( event->evType == SE_KEY && !event->evValue2 )
+	else if( event->IsKeyEvent() && event->IsKeyUp() )
 	{
-		if( key == K_ENTER || key == K_KP_ENTER )
+		if( event->GetKey() == K_ENTER || event->GetKey() == K_KP_ENTER )
 		{
 			RunScript( ON_ENTERRELEASE );
 			return cmd;

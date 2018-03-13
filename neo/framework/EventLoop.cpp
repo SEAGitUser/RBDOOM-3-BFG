@@ -61,46 +61,27 @@ idEventLoop::~idEventLoop()
 idEventLoop::GetRealEvent
 =================
 */
-sysEvent_t	idEventLoop::GetRealEvent()
+idSysEvent	idEventLoop::GetRealEvent()
 {
-	sysEvent_t	ev;
+	idSysEvent	ev;
 	
 	// either get an event from the system or the journal file
 	if( com_journal.GetInteger() == 2 )
 	{
-		int r = com_journalFile->Read( &ev, sizeof( ev ) );
-		if( r != sizeof( ev ) )
+		if( !ev.Read( com_journalFile ) )
 		{
 			common->FatalError( "Error reading from journal file" );
 		}
-		if( ev.evPtrLength )
-		{
-			ev.evPtr = Mem_ClearedAlloc( ev.evPtrLength, TAG_EVENTS );
-			r = com_journalFile->Read( ev.evPtr, ev.evPtrLength );
-			if( r != ev.evPtrLength )
-			{
-				common->FatalError( "Error reading from journal file" );
-			}
-		}
 	}
 	else {
-		ev = Sys_GetEvent();
+		ev = sys->GetEvent();
 		
 		// write the journal value out if needed
 		if( com_journal.GetInteger() == 1 )
 		{
-			int r = com_journalFile->Write( &ev, sizeof( ev ) );
-			if( r != sizeof( ev ) )
+			if( !ev.Write( com_journalFile ) )
 			{
 				common->FatalError( "Error writing to journal file" );
-			}
-			if( ev.evPtrLength )
-			{
-				r = com_journalFile->Write( ev.evPtr, ev.evPtrLength );
-				if( r != ev.evPtrLength )
-				{
-					common->FatalError( "Error writing to journal file" );
-				}
 			}
 		}
 	}
@@ -113,7 +94,7 @@ sysEvent_t	idEventLoop::GetRealEvent()
 idEventLoop::PushEvent
 =================
 */
-void idEventLoop::PushEvent( sysEvent_t* event )
+void idEventLoop::PushEvent( idSysEvent* event )
 {
 	static bool printedWarning;
 	
@@ -127,11 +108,8 @@ void idEventLoop::PushEvent( sysEvent_t* event )
 			printedWarning = true;
 			common->Printf( "WARNING: Com_PushEvent overflow\n" );
 		}
-		
-		if( ev->evPtr )
-		{
-			Mem_Free( ev->evPtr );
-		}
+		ev->FreeData();
+
 		com_pushedEventsTail++;
 	}
 	else {
@@ -147,7 +125,7 @@ void idEventLoop::PushEvent( sysEvent_t* event )
 idEventLoop::GetEvent
 =================
 */
-sysEvent_t idEventLoop::GetEvent()
+idSysEvent idEventLoop::GetEvent()
 {
 	if( com_pushedEventsHead > com_pushedEventsTail )
 	{
@@ -162,29 +140,25 @@ sysEvent_t idEventLoop::GetEvent()
 idEventLoop::ProcessEvent
 =================
 */
-void idEventLoop::ProcessEvent( sysEvent_t ev )
+void idEventLoop::ProcessEvent( idSysEvent & ev )
 {
 	// track key up / down states
-	if( ev.evType == SE_KEY )
+	if( ev.IsKeyEvent() )
 	{
-		idKeyInput::PreliminaryKeyEvent( ev.evValue, ( ev.evValue2 != 0 ) );
+		idKeyInput::PreliminaryKeyEvent( ev.GetKey(), ev.IsKeyDown() );
 	}
 	
-	if( ev.evType == SE_CONSOLE )
+	if( ev.IsConsoleEvent() )
 	{
 		// from a text console outside the game window
-		cmdSystem->BufferCommandText( CMD_EXEC_APPEND, ( char* )ev.evPtr );
+		cmdSystem->BufferCommandText( CMD_EXEC_APPEND, ev.GetCommand() );
 		cmdSystem->BufferCommandText( CMD_EXEC_APPEND, "\n" );
 	}
 	else {
 		common->ProcessEvent( &ev );
 	}
 	
-	// free any block data
-	if( ev.evPtr )
-	{
-		Mem_Free( ev.evPtr );
-	}
+	ev.FreeData();
 }
 
 /*
@@ -194,7 +168,7 @@ idEventLoop::RunEventLoop
 */
 int idEventLoop::RunEventLoop( bool commandExecution )
 {
-	sysEvent_t	ev;
+	idSysEvent	ev;
 	
 	while( 1 )
 	{	
@@ -207,10 +181,11 @@ int idEventLoop::RunEventLoop( bool commandExecution )
 		ev = GetEvent();
 		
 		// if no more events are available
-		if( ev.evType == SE_NONE )
+		if( ev.IsEmptyEvent() )
 		{
 			return 0;
 		}
+
 		ProcessEvent( ev );
 	}
 	
@@ -224,7 +199,7 @@ idEventLoop::Init
 */
 void idEventLoop::Init()
 {
-	initialTimeOffset = Sys_Milliseconds();
+	initialTimeOffset = sys->Milliseconds();
 	
 	common->StartupVariable( "journal" );
 	
@@ -279,9 +254,9 @@ Can be used for profiling, but will be journaled accurately
 int idEventLoop::Milliseconds()
 {
 #if 1	// FIXME!
-	return Sys_Milliseconds() - initialTimeOffset;
+	return sys->Milliseconds() - initialTimeOffset;
 #else
-	sysEvent_t	ev;
+	idSysEvent	ev;
 	
 	// get events and push them until we get a null event with the current time
 	do {	

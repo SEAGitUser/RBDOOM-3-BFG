@@ -195,8 +195,8 @@ void idAutoRender::RenderLoadingIcon( float fracX, float fracY, float size, floa
 	float c = 1.0f;
 
 	if ( autoRenderIcon != AUTORENDER_HELLICON ) {
-		if ( Sys_Milliseconds() >= nextRotateTime ) {
-			nextRotateTime = Sys_Milliseconds() + 100;
+		if ( sys->Milliseconds() >= nextRotateTime ) {
+			nextRotateTime = sys->Milliseconds() + 100;
 			currentRotation -= 90.0f;
 		}
 		float angle = DEG2RAD( currentRotation );
@@ -244,7 +244,7 @@ void idAutoRender::RenderLoadingIcon( float fracX, float fracY, float size, floa
 
 	float a = 1.0f;
 	if ( autoRenderIcon == AUTORENDER_HELLICON ) {
-		float alpha = DEG2RAD( Sys_Milliseconds() * speed );
+		float alpha = DEG2RAD( sys->Milliseconds() * speed );
 		a = idMath::Sin( alpha );
 		a = 0.35f + ( 0.65f * idMath::Fabs( a ) );
 	}

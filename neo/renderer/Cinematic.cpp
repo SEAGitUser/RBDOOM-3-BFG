@@ -561,7 +561,7 @@ bool idCinematicLocal::InitFromFFMPEGFile( const char* qpath, bool amilooping )
 	ImageForTime( 0 );
 	status = ( looping ) ? FMV_PLAY : FMV_IDLE;
 
-	//startTime = Sys_Milliseconds();
+	//startTime = sys->Milliseconds();
 
 	return true;
 }
@@ -651,7 +651,7 @@ bool idCinematicLocal::InitFromFile( const char* qpath, bool amilooping )
 	CIN_HEIGHT = DEFAULT_CIN_HEIGHT;
 	CIN_WIDTH = DEFAULT_CIN_WIDTH;
 	samplesPerPixel = 4;
-	startTime = 0;	//Sys_Milliseconds();
+	startTime = 0;	//sys->Milliseconds();
 	buf = NULL;
 
 	iFile->Read( file, 16 );
@@ -766,7 +766,7 @@ cinData_t idCinematicLocal::ImageForTime( int thisTime )
 
 	if( thisTime == 0 )
 	{
-		thisTime = Sys_Milliseconds();
+		thisTime = sys->Milliseconds();
 	}
 
 	if( thisTime < 0 )
@@ -885,7 +885,7 @@ cinData_t idCinematicLocal::ImageForTimeFFMPEG( int thisTime )
 
 	if( thisTime <= 0 )
 	{
-		thisTime = Sys_Milliseconds();
+		thisTime = sys->Milliseconds();
 	}
 
 	memset( &cinData, 0, sizeof( cinData ) );

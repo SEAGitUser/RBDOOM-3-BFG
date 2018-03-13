@@ -205,7 +205,7 @@ void UpdateGuiParms( idUserInterface* gui, const idDict* args )
 		kv = args->MatchPrefix( "gui_parm", kv );
 	}
 	gui->SetStateBool( "noninteractive",  args->GetBool( "gui_noninteractive" ) ) ;
-	gui->StateChanged( gameLocal.GetTime() );
+	gui->StateChanged( gameLocal.GetGameTimeMs() );
 }
 
 /*
@@ -537,7 +537,7 @@ void idEntity::Spawn()
 	}
 	
 	// go dormant within 100ms so that when the map starts most monsters are dormant
-	dormantStart = gameLocal.GetTime() - DELAY_DORMANT_TIME + 100;
+	dormantStart = gameLocal.GetGameTimeMs() - DELAY_DORMANT_TIME + 100;
 	
 	origin = renderEntity.origin;
 	axis = renderEntity.axis;
@@ -962,31 +962,30 @@ bool idEntity::DoDormantTests()
 	{
 		if( dormantStart == 0 )
 		{
-			dormantStart = gameLocal.GetTime();
+			dormantStart = gameLocal.GetGameTimeMs();
 		}
-		if( gameLocal.GetTime() - dormantStart < DELAY_DORMANT_TIME )
+		if( gameLocal.GetGameTimeMs() - dormantStart < DELAY_DORMANT_TIME )
 		{
 			// just got closed off, don't go dormant yet
 			return false;
 		}
 		return true;
 	}
-	else {
-		// the monster area is topologically connected to a player, but if
-		// the monster hasn't been woken up before, do the more precise PVS check
-		if( !fl.hasAwakened )
+
+	// the monster area is topologically connected to a player, but if
+	// the monster hasn't been woken up before, do the more precise PVS check
+	if( !fl.hasAwakened )
+	{
+		if( !gameLocal.InPlayerPVS( this ) )
 		{
-			if( !gameLocal.InPlayerPVS( this ) )
-			{
-				return true; // stay dormant
-			}
+			return true; // stay dormant
 		}
-		
-		// wake up
-		dormantStart = 0;
-		fl.hasAwakened = true;		// only go dormant when area closed off now, not just out of PVS
-		return false;
 	}
+		
+	// wake up
+	dormantStart = 0;
+	fl.hasAwakened = true;		// only go dormant when area closed off now, not just out of PVS
+	return false;
 }
 
 /*
@@ -1179,7 +1178,7 @@ idEntity::SetColor
 void idEntity::SetColor( const idVec3& color )
 {
 	SetColor( color[ 0 ], color[ 1 ], color[ 2 ] );
-	UpdateVisuals();
+	//UpdateVisuals(); //SEA called twise
 }
 
 /*
@@ -1362,8 +1361,7 @@ void idEntity::UpdateModelTransform()
 		renderEntity.axis = axis * GetPhysics()->GetAxis();
 		renderEntity.origin = GetPhysics()->GetOrigin() + origin * renderEntity.axis;
 	}
-	else
-	{
+	else {
 		// Add the deltas here, used for projectiles in MP. These deltas should only affect the visuals.
 		renderEntity.axis = GetPhysics()->GetAxis() * axisDelta;
 		renderEntity.origin = GetPhysics()->GetOrigin() + originDelta;
@@ -1406,8 +1404,7 @@ void idEntity::UpdateModel()
 		{
 			xrayEntityHandle = gameRenderWorld->AddEntityDef( &xrayEntity );
 		}
-		else
-		{
+		else {
 			gameRenderWorld->UpdateEntityDef( xrayEntityHandle, &xrayEntity );
 		}
 	}
@@ -1683,7 +1680,7 @@ bool idEntity::UpdateRenderEntity( renderEntityParms_t* renderEntity, const rend
 	if( animator != NULL )
 	{
 		SetTimeState ts( timeGroup );
-		int currentTime = gameLocal.GetTime();
+		int currentTime = gameLocal.GetGameTimeMs();
 		if( renderEntity != NULL )
 		{
 			currentTime = gameLocal.GetTimeGroupTime( renderEntity->timeGroup );
@@ -1753,8 +1750,8 @@ renderViewParms_t* idEntity::GetRenderView()
 	
 	renderView->globalMaterial = gameLocal.GetGlobalMaterial();
 	
-	renderView->time[ 0 ] = gameLocal.GetTimeGroupTime( 0 );
-	renderView->time[ 1 ] = gameLocal.GetTimeGroupTime( 1 );
+	renderView->time[ TIME_GROUP1 ] = gameLocal.GetTimeGroupTime( TIME_GROUP1 );
+	renderView->time[ TIME_GROUP2 ] = gameLocal.GetTimeGroupTime( TIME_GROUP2 );
 	
 	return renderView;
 }
@@ -2447,13 +2444,12 @@ convert coordinates.
 */
 idVec3 idEntity::GetLocalVector( const idVec3& vec ) const
 {
-	idVec3	pos;
-	
 	if( !bindMaster )
 	{
 		return vec;
 	}
 	
+	idVec3	pos;
 	idVec3	masterOrigin;
 	idMat3	masterAxis;
 	
@@ -2473,13 +2469,12 @@ object's local coordinates.
 */
 idVec3 idEntity::GetLocalCoordinates( const idVec3& vec ) const
 {
-	idVec3	pos;
-	
 	if( !bindMaster )
 	{
 		return vec;
 	}
 	
+	idVec3	pos;
 	idVec3	masterOrigin;
 	idMat3	masterAxis;
 	
@@ -2502,13 +2497,12 @@ convert coordinates.
 */
 idVec3 idEntity::GetWorldVector( const idVec3& vec ) const
 {
-	idVec3	pos;
-	
 	if( !bindMaster )
 	{
 		return vec;
 	}
-	
+
+	idVec3	pos;
 	idVec3	masterOrigin;
 	idMat3	masterAxis;
 	
@@ -2528,13 +2522,12 @@ it into world coordinates.
 */
 idVec3 idEntity::GetWorldCoordinates( const idVec3& vec ) const
 {
-	idVec3	pos;
-	
 	if( !bindMaster )
 	{
 		return vec;
 	}
 	
+	idVec3	pos;
 	idVec3	masterOrigin;
 	idMat3	masterAxis;
 	
@@ -2552,25 +2545,20 @@ idEntity::GetMasterPosition
 */
 bool idEntity::GetMasterPosition( idVec3& masterOrigin, idMat3& masterAxis ) const
 {
-	idVec3		localOrigin;
-	idMat3		localAxis;
-	idAnimator*	masterAnimator;
-	
 	if( bindMaster )
 	{
 		// if bound to a joint of an animated model
 		if( bindJoint != INVALID_JOINT )
 		{
-			masterAnimator = bindMaster->GetAnimator();
+			auto masterAnimator = bindMaster->GetAnimator();
 			if( !masterAnimator )
 			{
 				masterOrigin.Zero();
 				masterAxis.Identity();
 				return false;
 			}
-			else
-			{
-				masterAnimator->GetJointTransform( bindJoint, gameLocal.GetTime(), masterOrigin, masterAxis );
+			else {
+				masterAnimator->GetJointTransform( bindJoint, gameLocal.GetGameTimeMs(), masterOrigin, masterAxis );
 				masterAxis *= bindMaster->renderEntity.axis;
 				masterOrigin = bindMaster->renderEntity.origin + masterOrigin * bindMaster->renderEntity.axis;
 			}
@@ -2580,19 +2568,17 @@ bool idEntity::GetMasterPosition( idVec3& masterOrigin, idMat3& masterAxis ) con
 			masterOrigin = bindMaster->GetPhysics()->GetOrigin( bindBody );
 			masterAxis = bindMaster->GetPhysics()->GetAxis( bindBody );
 		}
-		else
-		{
+		else {
 			masterOrigin = bindMaster->renderEntity.origin;
 			masterAxis = bindMaster->renderEntity.axis;
 		}
+
 		return true;
 	}
-	else
-	{
-		masterOrigin.Zero();
-		masterAxis.Identity();
-		return false;
-	}
+
+	masterOrigin.Zero();
+	masterAxis.Identity();
+	return false;
 }
 
 /*
@@ -2617,8 +2603,7 @@ void idEntity::GetWorldVelocities( idVec3& linearVelocity, idVec3& angularVeloci
 		bindMaster->GetWorldVelocities( masterLinearVelocity, masterAngularVelocity );
 		
 		// linear velocity relative to master plus master linear and angular velocity
-		linearVelocity = linearVelocity * masterAxis + masterLinearVelocity +
-						 masterAngularVelocity.Cross( GetPhysics()->GetOrigin() - masterOrigin );
+		linearVelocity = linearVelocity * masterAxis + masterLinearVelocity + masterAngularVelocity.Cross( GetPhysics()->GetOrigin() - masterOrigin );
 	}
 }
 
@@ -2663,8 +2648,7 @@ void idEntity::JoinTeam( idEntity* teammember )
 			ent->teamMaster = master;
 		}
 	}
-	else
-	{
+	else {
 		// skip past the chain members bound to the entity we're teaming up with
 		prev = teammember;
 		next = teammember->teamChain;
@@ -2678,8 +2662,7 @@ void idEntity::JoinTeam( idEntity* teammember )
 				next = next->teamChain;
 			}
 		}
-		else
-		{
+		else {
 			// if we're not bound to someone, then put us at the end of the team
 			while( next )
 			{
@@ -2885,7 +2868,7 @@ void idEntity::SetPhysics( idPhysics* phys )
 	{
 		physics = &defaultPhysicsObj;
 	}
-	physics->UpdateTime( gameLocal.GetTime() );
+	physics->UpdateTime( gameLocal.GetGameTimeMs() );
 	physics->SetMaster( bindMaster, fl.bindOrientated );
 }
 
@@ -2941,7 +2924,7 @@ bool idEntity::RunPhysics()
 	}
 	
 	const int startTime = gameLocal.GetPreviousGameTimeMs();
-	const int endTime = gameLocal.GetTime();
+	const int endTime = gameLocal.GetGameTimeMs();
 	
 	gameLocal.push.InitSavingPushedEntityPositions();
 	blockedPart = NULL;
@@ -3144,7 +3127,7 @@ void idEntity::InterpolatePhysics( const float fraction )
 	}
 	
 	//const int startTime = gameLocal.GetPreviousGameTimeMs();
-	const int endTime = gameLocal.GetTime();
+	const int endTime = gameLocal.GetGameTimeMs();
 	
 	gameLocal.push.InitSavingPushedEntityPositions();
 	blockedPart = NULL;
@@ -3164,11 +3147,9 @@ void idEntity::InterpolatePhysics( const float fraction )
 	
 	// move the whole team
 	for( part = this; part != NULL; part = part->teamChain )
-	{
-	
+	{	
 		if( part->physics )
-		{
-		
+		{	
 			// run physics
 			moved = part->physics->Evaluate( GetPhysicsTimeStep(), endTime );
 			
@@ -3270,15 +3251,13 @@ void idEntity::InterpolatePhysicsOnly( const float fraction, bool updateTeam )
 	
 	if( updateTeam )
 	{
-		int endTime = gameLocal.GetTime();
+		int endTime = gameLocal.GetGameTimeMs();
 		
 		// move the whole team
 		for( idEntity* part = this; part != NULL; part = part->teamChain )
-		{
-		
+		{	
 			if( part->physics && part != this )
-			{
-			
+			{		
 				// run physics
 				bool moved = part->physics->Evaluate( GetPhysicsTimeStep(), endTime );
 				
@@ -3336,7 +3315,7 @@ idEntity::GetPhysicsTimeStep
 */
 int idEntity::GetPhysicsTimeStep() const
 {
-	return gameLocal.GetTime() - gameLocal.GetPreviousGameTimeMs();
+	return gameLocal.GetGameTimeMs() - gameLocal.GetPreviousGameTimeMs();
 }
 
 /*
@@ -4063,7 +4042,7 @@ void idEntity::TriggerGuis()
 	{
 		if( renderEntity.gui[ i ] )
 		{
-			renderEntity.gui[ i ]->Trigger( gameLocal.time );
+			renderEntity.gui[ i ]->Trigger( gameLocal.GetGameTimeMs() );
 		}
 	}
 }
@@ -4362,7 +4341,7 @@ void idEntity::ActivateTargets( idEntity* activator ) const
 		{
 			if( ent->renderEntity.gui[ j ] )
 			{
-				ent->renderEntity.gui[ j ]->Trigger( gameLocal.time );
+				ent->renderEntity.gui[ j ]->Trigger( gameLocal.GetGameTimeMs() );
 			}
 		}
 	}
@@ -4753,7 +4732,7 @@ void idEntity::Event_SpawnBind()
 					parent->UpdateModelTransform();
 					
 					//FIXME: need a BindToJoint that accepts a joint position
-					parentAnimator->CreateFrame( gameLocal.GetTime(), true );
+					parentAnimator->CreateFrame( gameLocal.GetGameTimeMs(), true );
 					idJointMat* frame = parent->renderEntity.joints;
 					gameEdit->ANIM_CreateAnimFrame( parentAnimator->ModelHandle(), anim->MD5Anim( 0 ), parent->renderEntity.numJoints, frame, 0, parentAnimator->ModelDef()->GetVisualOffset(), parentAnimator->RemoveOrigin() );
 					BindToJoint( parent, joint, bindOrientated );
@@ -5154,7 +5133,7 @@ void idEntity::Event_SetGuiParm( const char* key, const char* val )
 				spawnArgs.Set( key, val );
 			}
 			renderEntity.gui[ i ]->SetStateString( key, val );
-			renderEntity.gui[ i ]->StateChanged( gameLocal.GetTime() );
+			renderEntity.gui[ i ]->StateChanged( gameLocal.GetGameTimeMs() );
 		}
 	}
 }
@@ -5171,7 +5150,7 @@ void idEntity::Event_SetGuiFloat( const char* key, float f )
 		if( renderEntity.gui[ i ] )
 		{
 			renderEntity.gui[ i ]->SetStateString( key, va( "%f", f ) );
-			renderEntity.gui[ i ]->StateChanged( gameLocal.GetTime() );
+			renderEntity.gui[ i ]->StateChanged( gameLocal.GetGameTimeMs() );
 		}
 	}
 }
@@ -5851,7 +5830,7 @@ void idEntity::ServerSendEvent( int eventId, const idBitMsg* msg, bool saveEvent
 	outMsg.BeginWriting();
 	outMsg.WriteBits( gameLocal.GetSpawnId( this ), 32 );
 	outMsg.WriteByte( eventId );
-	outMsg.WriteLong( gameLocal.GetTime() );
+	outMsg.WriteLong( gameLocal.GetGameTimeMs() );
 	if( msg )
 	{
 		outMsg.WriteBits( msg->GetSize(), idMath::BitsForInteger( MAX_EVENT_PARAM_SIZE ) );
@@ -6150,7 +6129,7 @@ void idAnimatedEntity::Restore( idRestoreGame* savefile )
 		// set the callback to update the joints
 		renderEntity.callback = idEntity::ModelCallback;
 		animator.GetJoints( &renderEntity.numJoints, &renderEntity.joints );
-		animator.GetBounds( gameLocal.GetTime(), renderEntity.bounds );
+		animator.GetBounds( gameLocal.GetGameTimeMs(), renderEntity.bounds );
 		if( modelDefHandle != -1 )
 		{
 			gameRenderWorld->UpdateEntityDef( modelDefHandle, &renderEntity );
@@ -6218,21 +6197,21 @@ void idAnimatedEntity::UpdateAnimation()
 	// call any frame commands that have happened in the past frame
 	if( !fl.hidden )
 	{
-		animator.ServiceAnims( gameLocal.GetPreviousGameTimeMs(), gameLocal.GetTime() );
+		animator.ServiceAnims( gameLocal.GetPreviousGameTimeMs(), gameLocal.GetGameTimeMs() );
 	}
 	
 	// if the model is animating then we have to update it
-	if( !animator.FrameHasChanged( gameLocal.GetTime() ) )
+	if( !animator.FrameHasChanged( gameLocal.GetGameTimeMs() ) )
 	{
 		// still fine the way it was
 		return;
 	}
 	
 	// get the latest frame bounds
-	animator.GetBounds( gameLocal.GetTime(), renderEntity.bounds );
+	animator.GetBounds( gameLocal.GetGameTimeMs(), renderEntity.bounds );
 	if( renderEntity.bounds.IsCleared() && !fl.hidden )
 	{
-		gameLocal.DPrintf( "%d: inside out bounds\n", gameLocal.GetTime() );
+		gameLocal.DPrintf( "%d: inside out bounds\n", gameLocal.GetGameTimeMs() );
 	}
 	
 	// update the renderEntity
@@ -6276,7 +6255,7 @@ void idAnimatedEntity::SetModel( const char* modelname )
 	// set the callback to update the joints
 	renderEntity.callback = idEntity::ModelCallback;
 	animator.GetJoints( &renderEntity.numJoints, &renderEntity.joints );
-	animator.GetBounds( gameLocal.GetTime(), renderEntity.bounds );
+	animator.GetBounds( gameLocal.GetGameTimeMs(), renderEntity.bounds );
 	
 	UpdateVisuals();
 }
@@ -6469,7 +6448,7 @@ void idAnimatedEntity::AddLocalDamageEffect( jointHandle_t jointNum, const idVec
 		de->localOrigin = localOrigin;
 		de->localNormal = localNormal;
 		de->type = static_cast<const idDeclParticle*>( declManager->FindType( DECL_PARTICLE, bleed ) );
-		de->time = gameLocal.GetTime();
+		de->time = gameLocal.GetGameTimeMs();
 	}
 }
 
@@ -6509,7 +6488,7 @@ void idAnimatedEntity::UpdateDamageEffects()
 		idVec3 origin, start;
 		idMat3 axis;
 		
-		animator.GetJointTransform( de->jointNum, gameLocal.GetTime(), origin, axis );
+		animator.GetJointTransform( de->jointNum, gameLocal.GetGameTimeMs(), origin, axis );
 		axis *= renderEntity.axis;
 		origin = renderEntity.origin + origin * renderEntity.axis;
 		start = origin + de->localOrigin * axis;
@@ -6630,7 +6609,7 @@ void idAnimatedEntity::Event_GetJointPos( jointHandle_t jointnum )
 	idVec3 offset;
 	idMat3 axis;
 	
-	if( !GetJointWorldTransform( jointnum, gameLocal.GetTime(), offset, axis ) )
+	if( !GetJointWorldTransform( jointnum, gameLocal.GetGameTimeMs(), offset, axis ) )
 	{
 		gameLocal.Warning( "Joint # %d out of range on entity '%s'",  jointnum, name.c_str() );
 	}
@@ -6650,7 +6629,7 @@ void idAnimatedEntity::Event_GetJointAngle( jointHandle_t jointnum )
 	idVec3 offset;
 	idMat3 axis;
 	
-	if( !GetJointWorldTransform( jointnum, gameLocal.GetTime(), offset, axis ) )
+	if( !GetJointWorldTransform( jointnum, gameLocal.GetGameTimeMs(), offset, axis ) )
 	{
 		gameLocal.Warning( "Joint # %d out of range on entity '%s'",  jointnum, name.c_str() );
 	}

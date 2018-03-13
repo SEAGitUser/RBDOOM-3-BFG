@@ -497,8 +497,7 @@ struct frustum_t {
 
 =================================================================
 */
-struct idRenderView
-{
+struct idRenderView {
 private: // derived data is private ( its all should be private! )
 
 	//idRenderMatrix			viewMatrix;
@@ -541,10 +540,13 @@ public:
 	bool					isEditor;
 	bool					is2Dgui;
 	
-	int						numClipPlanes;			// mirrors will often use a single clip plane
-	idRenderPlane			clipPlanes[MAX_CLIP_PLANES];		// in world space, the positive side
-	// of the plane is the visible side
-	idScreenRect			viewport;				// in real pixels and proper Y flip
+	// mirrors will often use a single clip plane
+	int						numClipPlanes;
+	// in world space, the positive side of the plane is the visible side.
+	idRenderPlane			clipPlanes[MAX_CLIP_PLANES];	
+
+	// in real pixels and proper Y flip	
+	idScreenRect			viewport;
 	
 	// for scissor clipping, local inside renderView viewport
 	// subviews may only be rendering part of the main view
@@ -926,6 +928,8 @@ struct backEndState_t
 	idRenderMatrix		shadowVP[ 6 ];
 
 	idUniformBuffer		viewUniformBuffer;
+	idUniformBuffer		shadowUniformBuffer;
+	idUniformBuffer		progParmsUniformBuffer;
 	
 	float				hdrAverageLuminance;
 	float				hdrMaxLuminance;
@@ -1063,7 +1067,7 @@ public:
 	idList<idRenderWorldLocal*>worlds;
 	
 	idRenderWorldLocal* 	primaryWorld;
-	renderViewParms_t			primaryRenderView;
+	renderViewParms_t		primaryRenderView;
 	idRenderView* 			primaryView;
 	// many console commands need to know which world they should operate on
 	
@@ -1171,6 +1175,7 @@ extern idCVar r_useShadowMapping;			// use shadow mapping instead of stencil sha
 extern idCVar r_useHalfLambertLighting;		// use Half-Lambert lighting instead of classic Lambert
 extern idCVar r_useHDR;
 extern idCVar r_useSRGB;
+extern idCVar r_useProgUBO;
 // RB end
 
 extern idCVar r_skipStaticInteractions;		// skip interactions created at level load
@@ -1477,8 +1482,8 @@ public:
 };
 extern idRenderAllocManager allocManager;
 
-template  idTriangles* idRenderAllocManager::FrameAlloc<idTriangles>( uint32 count );
-template  drawSurf_t* idRenderAllocManager::FrameAlloc<drawSurf_t>( uint32 count );
+template idTriangles* idRenderAllocManager::FrameAlloc<idTriangles>( uint32 count );
+template drawSurf_t* idRenderAllocManager::FrameAlloc<drawSurf_t>( uint32 count );
 
 /*
 ============================================================

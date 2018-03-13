@@ -693,12 +693,12 @@ void idInterpreter::EnterFunction( const function_t* func, bool clearStack )
 	{
 		if( currentFunction )
 		{
-			gameLocal.Printf( "%d: call '%s' from '%s'(line %d)%s\n", gameLocal.time, func->Name(), currentFunction->Name(),
+			gameLocal.Printf( "%d: call '%s' from '%s'(line %d)%s\n", gameLocal.GetGameTimeMs(), func->Name(), currentFunction->Name(),
 							  gameLocal.program.GetStatement( instructionPointer ).linenumber, clearStack ? " clear stack" : "" );
 		}
 		else
 		{
-			gameLocal.Printf( "%d: call '%s'%s\n", gameLocal.time, func->Name(), clearStack ? " clear stack" : "" );
+			gameLocal.Printf( "%d: call '%s'%s\n", gameLocal.GetGameTimeMs(), func->Name(), clearStack ? " clear stack" : "" );
 		}
 	}
 	
@@ -770,7 +770,7 @@ void idInterpreter::LeaveFunction( idVarDef* returnDef )
 	if( debug )
 	{
 		statement_t& line = gameLocal.program.GetStatement( instructionPointer );
-		gameLocal.Printf( "%d: %s(%d): exit %s", gameLocal.time, gameLocal.program.GetFilename( line.file ), line.linenumber, currentFunction->Name() );
+		gameLocal.Printf( "%d: %s(%d): exit %s", gameLocal.GetGameTimeMs(), gameLocal.program.GetFilename( line.file ), line.linenumber, currentFunction->Name() );
 		if( callStackDepth > 1 )
 		{
 			gameLocal.Printf( " return to %s(line %d)\n", callStack[ callStackDepth - 1 ].f->Name(), gameLocal.program.GetStatement( callStack[ callStackDepth - 1 ].s ).linenumber );

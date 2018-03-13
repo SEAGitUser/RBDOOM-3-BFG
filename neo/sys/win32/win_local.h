@@ -42,7 +42,7 @@ If you have questions concerning this license or the applicable additional terms
 
 #define	WINDOW_STYLE	(WS_OVERLAPPED|WS_BORDER|WS_CAPTION|WS_VISIBLE | WS_THICKFRAME)
 
-void	Sys_QueEvent( sysEventType_t type, int value, int value2, int ptrLength, void* ptr, int inputDeviceNum );
+///void	Sys_QueEvent( sysEventType_t type, int value, int value2, int ptrLength, void* ptr, int inputDeviceNum );
 
 void	Sys_CreateConsole();
 void	Sys_DestroyConsole();
@@ -67,8 +67,6 @@ void	IN_ActivateMouse();
 void	IN_Frame();
 
 void	DisableTaskKeys( BOOL bDisable, BOOL bBeep, BOOL bTaskMgr );
-
-uint64 Sys_Microseconds();
 
 // window procedure
 LONG WINAPI MainWndProc( HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam );

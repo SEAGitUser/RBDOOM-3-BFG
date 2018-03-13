@@ -201,7 +201,7 @@ void idRenderEntityLocal::FreeOverlay()
 
 /*
 ===============
- R_CreateEntityRefs		SEA: this shuold be part of renderworld probably ?
+ R_CreateEntityRefs		SEA: this shuold be part of the renderworld probably ?
 
 	Creates all needed model references in portal areas,
 	chaining them to both the area and the entityDef.
@@ -224,8 +224,7 @@ void idRenderEntityLocal::CreateReferences()
 	{
 		entity->localReferenceBounds = entity->parms.bounds;
 	}
-	else
-	{
+	else {
 		entity->localReferenceBounds = entity->parms.hModel->Bounds( &entity->parms );
 	}
 
@@ -239,7 +238,8 @@ void idRenderEntityLocal::CreateReferences()
 		( entity->localReferenceBounds[ 1 ][ 0 ] - entity->localReferenceBounds[ 0 ][ 0 ] > 1024.0f ||
 		  entity->localReferenceBounds[ 1 ][ 1 ] - entity->localReferenceBounds[ 0 ][ 1 ] > 1024.0f ) )
 	{
-		common->Printf( "big entityRef: %f,%f\n", entity->localReferenceBounds[ 1 ][ 0 ] - entity->localReferenceBounds[ 0 ][ 0 ],
+		common->Printf( "big entityRef: %f,%f\n", 
+			entity->localReferenceBounds[ 1 ][ 0 ] - entity->localReferenceBounds[ 0 ][ 0 ],
 			entity->localReferenceBounds[ 1 ][ 1 ] - entity->localReferenceBounds[ 0 ][ 1 ] );
 	}
 
@@ -400,6 +400,7 @@ idRenderModel* idRenderEntityLocal::EmitDynamicModel()
 	}
 
 	// set model depth hack value
+	this->parms.modelDepthHack = 0.0f;
 	if( this->dynamicModel != NULL && model->DepthHack() != 0.0f && tr.viewDef != NULL )
 	{
 		idVec3 ndc;
@@ -409,10 +410,6 @@ idRenderModel* idRenderEntityLocal::EmitDynamicModel()
 		idRenderMatrix::TransformClipToDevice( clip, ndc );
 
 		this->parms.modelDepthHack = model->DepthHack() * ( 1.0f - ndc.z );
-	}
-	else
-	{
-		this->parms.modelDepthHack = 0.0f;
 	}
 
 	return this->dynamicModel;
@@ -840,8 +837,7 @@ void idRenderLightLocal::DeriveData()
 		{
 			light->lightShader = tr.defaultPointLight;
 		}
-		else
-		{
+		else {
 			light->lightShader = tr.defaultProjectedLight;
 		}
 	}
@@ -888,8 +884,7 @@ void idRenderLightLocal::DeriveData()
 	{
 		zScale = R_ComputePointLightProjectionMatrix( light->parms, localProject );
 	}
-	else
-	{
+	else {
 		zScale = R_ComputeSpotLightProjectionMatrix( light->parms, localProject );
 	}
 
@@ -921,7 +916,7 @@ void idRenderLightLocal::DeriveData()
 		idRenderMatrix::CreateFromOriginAxis( light->parms.origin, light->parms.axis, lightTransform );
 		for( int i = 0; i < 4; i++ )
 		{
-			ALIGNTYPE16 idPlane temp = light->lightProject[ i ];
+			idRenderPlane temp = light->lightProject[ i ];
 			//lightTransform.TransformPlane( temp, light->lightProject[ i ] );
 			LocalPlaneToGlobal( lightTransform, temp, light->lightProject[ i ] );
 		}
@@ -1058,8 +1053,7 @@ void idRenderLightLocal::CreateReferences()
 	{
 		light->world->FlowLightThroughPortals( light );
 	}
-	else
-	{
+	else {
 		// push the light frustum down the BSP tree into areas
 		light->world->PushFrustumIntoTree( nullptr, light, light->inverseBaseLightProject, bounds_zeroOneCube );
 	}
@@ -1103,6 +1097,7 @@ void idRenderLightLocal::CreateReferences()
 				if( WindingCompletelyInsideLight( prt->w, light ) )
 				{
 					dp->fogLight = light;
+
 					dp->nextFoggedPortal = light->foggedPortals;
 					light->foggedPortals = dp;
 				}

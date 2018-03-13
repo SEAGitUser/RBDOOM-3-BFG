@@ -73,7 +73,7 @@ void RB_StencilShadowPass( const drawSurf_t* const drawSurfs, const viewLight_t*
 
 
 	// process the chain of shadows with the current rendering state
-	backEnd.currentSpace = NULL;
+	backEnd.ClearCurrentSpace();
 
 	for( const drawSurf_t* drawSurf = drawSurfs; drawSurf != NULL; drawSurf = drawSurf->nextOnLight )
 	{
@@ -88,12 +88,12 @@ void RB_StencilShadowPass( const drawSurf_t* const drawSurfs, const viewLight_t*
 		{
 			assert( drawSurf->shadowVolumeState == SHADOWVOLUME_UNFINISHED || drawSurf->shadowVolumeState == SHADOWVOLUME_DONE );
 
-			uint64 start = Sys_Microseconds();
+			uint64 start = sys->Microseconds();
 			while( drawSurf->shadowVolumeState == SHADOWVOLUME_UNFINISHED )
 			{
 				Sys_Yield();
 			}
-			uint64 end = Sys_Microseconds();
+			uint64 end = sys->Microseconds();
 
 			backEnd.pc.shadowMicroSec += end - start;
 		}
@@ -170,14 +170,14 @@ void RB_StencilShadowPass( const drawSurf_t* const drawSurfs, const viewLight_t*
 		// get vertex buffer -------------------------------------------------------
 
 		idVertexBuffer vertexBuffer;
-		vertexCache.GetVertexBuffer( drawSurf->shadowCache, &vertexBuffer );
+		vertexCache.GetVertexBuffer( drawSurf->shadowCache, vertexBuffer );
 		const GLint vertOffset = vertexBuffer.GetOffset();
 		const GLuint vbo = reinterpret_cast<GLuint>( vertexBuffer.GetAPIObject() );
 
 		// get index buffer --------------------------------------------------------
 
 		idIndexBuffer indexBuffer;
-		vertexCache.GetIndexBuffer( drawSurf->indexCache, &indexBuffer );
+		vertexCache.GetIndexBuffer( drawSurf->indexCache, indexBuffer );
 		const GLintptr indexOffset = indexBuffer.GetOffset();
 		const GLuint ibo = reinterpret_cast<GLuint>( indexBuffer.GetAPIObject() );
 
@@ -193,7 +193,7 @@ void RB_StencilShadowPass( const drawSurf_t* const drawSurfs, const viewLight_t*
 			assert( renderProgManager.ShaderUsesJoints() );
 
 			idJointBuffer jointBuffer;
-			if( !vertexCache.GetJointBuffer( drawSurf->jointCache, &jointBuffer ) )
+			if( !vertexCache.GetJointBuffer( drawSurf->jointCache, jointBuffer ) )
 			{
 				idLib::Warning( "GL_DrawIndexed, jointBuffer == NULL" );
 				continue;
@@ -204,7 +204,7 @@ void RB_StencilShadowPass( const drawSurf_t* const drawSurfs, const viewLight_t*
 			glBindBufferRange( GL_UNIFORM_BUFFER, BINDING_MATRICES_UBO, ubo, jointBuffer.GetOffset(), jointBuffer.GetNumJoints() * sizeof( idJointMat ) );
 		}
 
-		renderProgManager.CommitUniforms();
+		renderProgManager.GetCurrentRenderProgram()->CommitUniforms();
 
 		// RB: 64 bit fixes, changed GLuint to GLintptr
 		if( backEnd.glState.currentIndexBuffer != ( GLintptr )ibo || !r_useStateCaching.GetBool() )

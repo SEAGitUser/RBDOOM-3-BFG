@@ -195,11 +195,11 @@ void idBrittleFracture::Restore( idRestoreGame* savefile )
 		
 		if( restoredEvent.eventType == EVENT_PROJECT_DECAL )
 		{
-			ProjectDecal( restoredEvent.point, restoredEvent.vector, gameLocal.GetTime(), NULL );
+			ProjectDecal( restoredEvent.point, restoredEvent.vector, gameLocal.GetGameTimeMs(), NULL );
 		}
 		else
 		{
-			Shatter( restoredEvent.point, restoredEvent.vector, gameLocal.GetTime() );
+			Shatter( restoredEvent.point, restoredEvent.vector, gameLocal.GetGameTimeMs() );
 		}
 		resolveBreaks = true;
 	}
@@ -355,12 +355,12 @@ bool idBrittleFracture::UpdateRenderEntity( renderEntityParms_t* renderEntity, c
 	}
 	
 	// don't regenerate it if it is current
-	if( lastRenderEntityUpdate == gameLocal.GetTime() || !changed )
+	if( lastRenderEntityUpdate == gameLocal.GetGameTimeMs() || !changed )
 	{
 		return false;
 	}
 	
-	lastRenderEntityUpdate = gameLocal.GetTime();
+	lastRenderEntityUpdate = gameLocal.GetGameTimeMs();
 	changed = false;
 	
 	numTris = 0;
@@ -397,7 +397,7 @@ bool idBrittleFracture::UpdateRenderEntity( renderEntityParms_t* renderEntity, c
 		fade = 1.0f;
 		if( shards[i]->droppedTime >= 0 )
 		{
-			msec = gameLocal.GetTime() - shards[i]->droppedTime - SHARD_FADE_START;
+			msec = gameLocal.GetGameTimeMs() - shards[i]->droppedTime - SHARD_FADE_START;
 			if( msec > 0 )
 			{
 				fade = 1.0f - ( float ) msec / ( SHARD_ALIVE_TIME - SHARD_FADE_START );
@@ -582,17 +582,16 @@ idBrittleFracture::Think
 */
 void idBrittleFracture::Think()
 {
-	int i, startTime, endTime, droppedTime;
 	shard_t* shard;
 	bool atRest = true, fading = false;
 	
 	// remove overdue shards
-	for( i = 0; i < shards.Num(); ++i )
+	for( int i = 0; i < shards.Num(); ++i )
 	{
-		droppedTime = shards[i]->droppedTime;
+		int droppedTime = shards[i]->droppedTime;
 		if( droppedTime != -1 )
 		{
-			if( gameLocal.GetTime() - droppedTime > SHARD_ALIVE_TIME )
+			if( gameLocal.GetGameTimeMs() - droppedTime > SHARD_ALIVE_TIME )
 			{
 				RemoveShard( i );
 				--i;
@@ -610,11 +609,11 @@ void idBrittleFracture::Think()
 	
 	if( thinkFlags & TH_PHYSICS )
 	{
-		startTime = gameLocal.GetPreviousGameTimeMs();
-		endTime = gameLocal.GetTime();
+		int startTime = gameLocal.GetPreviousGameTimeMs();
+		int endTime = gameLocal.GetGameTimeMs();
 		
 		// run physics on shards
-		for( i = 0; i < shards.Num(); ++i )
+		for( int i = 0; i < shards.Num(); ++i )
 		{
 			shard = shards[i];
 			
@@ -644,7 +643,7 @@ void idBrittleFracture::Think()
 	if( !atRest || bounds.IsCleared() )
 	{
 		bounds.Clear();
-		for( i = 0; i < shards.Num(); i++ )
+		for( int i = 0; i < shards.Num(); i++ )
 		{
 			bounds.AddBounds( shards[i]->clipModel->GetAbsBounds() );
 		}
@@ -679,7 +678,7 @@ void idBrittleFracture::ApplyImpulse( idEntity* ent, int id, const idVec3& point
 	}
 	else if( health <= 0 && !disableFracture )
 	{
-		Shatter( point, impulse, gameLocal.GetTime() );
+		Shatter( point, impulse, gameLocal.GetGameTimeMs() );
 	}
 }
 
@@ -701,7 +700,7 @@ void idBrittleFracture::AddForce( idEntity* ent, int id, const idVec3& point, co
 	}
 	else if( health <= 0 && !disableFracture )
 	{
-		Shatter( point, force, gameLocal.GetTime() );
+		Shatter( point, force, gameLocal.GetGameTimeMs() );
 	}
 }
 
@@ -741,7 +740,7 @@ void idBrittleFracture::ProjectDecal( const idVec3& point, const idVec3& dir, co
 	fractureEvent.vector = dir;
 	storedEvents.Append( fractureEvent );
 	
-	if( time >= gameLocal.GetTime() )
+	if( time >= gameLocal.GetGameTimeMs() )
 	{
 		// try to get the sound from the damage def
 		const idSoundShader* sndShader = NULL;
@@ -915,7 +914,7 @@ void idBrittleFracture::Shatter( const idVec3& point, const idVec3& impulse, con
 	fractureEvent.vector = impulse;
 	storedEvents.Append( fractureEvent );
 	
-	if( time > ( gameLocal.GetTime() - SHARD_ALIVE_TIME ) )
+	if( time > ( gameLocal.GetGameTimeMs() - SHARD_ALIVE_TIME ) )
 	{
 		StartSound( "snd_shatter", SND_CHANNEL_ANY, 0, false, NULL );
 	}
@@ -1075,11 +1074,11 @@ void idBrittleFracture::AddDamageEffect( const trace_t& collision, const idVec3&
 {
 	if( !disableFracture )
 	{
-		ProjectDecal( collision.c.point, collision.c.normal, gameLocal.GetTime(), damageDefName );
+		ProjectDecal( collision.c.point, collision.c.normal, gameLocal.GetGameTimeMs(), damageDefName );
 	}
 }
 
-static float fractureSplitTable[] = { 1365.123f, 5.324f, 1125.34f, 50.34f, 555.252f, 100.12f, 230.53f, 10000.87f, 10000.87f  };
+///static float fractureSplitTable[] = { 1365.123f, 5.324f, 1125.34f, 50.34f, 555.252f, 100.12f, 230.53f, 10000.87f, 10000.87f  };
 
 /*
 ================
@@ -1434,7 +1433,7 @@ void idBrittleFracture::Event_Touch( idEntity* other, trace_t* trace )
 	point = shards[trace->c.id]->clipModel->GetOrigin();
 	impulse = other->GetPhysics()->GetLinearVelocity() * other->GetPhysics()->GetMass();
 	
-	Shatter( point, impulse, gameLocal.GetTime() );
+	Shatter( point, impulse, gameLocal.GetGameTimeMs() );
 }
 
 /*
@@ -1502,9 +1501,7 @@ bool idBrittleFracture::ClientReceiveEvent( int event, int time, const idBitMsg&
 			Shatter( point, dir, time );
 			return true;
 		}
-		default:
-		{
-			return idEntity::ClientReceiveEvent( event, time, msg );
-		}
 	}
+
+	return idEntity::ClientReceiveEvent( event, time, msg );
 }

@@ -676,7 +676,7 @@ void idRenderModelManagerLocal::Preload( const idPreloadManifest& manifest )
 	if( preload_MapModels.GetBool() )
 	{
 		// preload this levels images
-		int	start = Sys_Milliseconds();
+		int	start = sys->Milliseconds();
 		int numLoaded = 0;
 		idList< preloadSort_t > preloadSort;
 		preloadSort.Resize( manifest.NumResources() );
@@ -732,7 +732,7 @@ void idRenderModelManagerLocal::Preload( const idPreloadManifest& manifest )
 			numLoaded++;
 		}
 		
-		int	end = Sys_Milliseconds();
+		int	end = sys->Milliseconds();
 		common->Printf( "%05d models preloaded ( or were already loaded ) in %5.1f seconds\n", numLoaded, ( end - start ) * 0.001 );
 		common->Printf( "----------------------------------------\n" );
 	}
@@ -749,7 +749,7 @@ void idRenderModelManagerLocal::EndLevelLoad()
 {
 	common->Printf( "----- idRenderModelManagerLocal::EndLevelLoad -----\n" );
 	
-	int start = Sys_Milliseconds();
+	int start = sys->Milliseconds();
 	
 	insideLevelLoad = false;
 	int	purgeCount = 0;
@@ -815,7 +815,7 @@ void idRenderModelManagerLocal::EndLevelLoad()
 	}
 	
 	// _D3XP added this
-	int	end = Sys_Milliseconds();
+	int	end = sys->Milliseconds();
 	common->Printf( "%5i models purged from previous level, ", purgeCount );
 	common->Printf( "%5i models kept.\n", keepCount );
 	if( loadCount )

@@ -459,7 +459,8 @@ public:
 	static const float			FLT_EPSILON;				// smallest positive number such that 1.0+FLT_EPSILON != 1.0
 	static const float			FLT_SMALLEST_NON_DENORMAL;	// smallest non-denormal 32-bit floating point value
 	
-#if defined(USE_INTRINSICS)
+#if defined( USE_INTRINSICS )
+	static const __m128				SIMD_SP_one;
 	static const __m128				SIMD_SP_zero;
 	static const __m128				SIMD_SP_255;
 	static const __m128				SIMD_SP_min_char;

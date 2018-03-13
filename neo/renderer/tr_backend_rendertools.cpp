@@ -191,7 +191,7 @@ static void RB_SimpleWorldSetup()
 {
 	backEnd.currentSpace = &backEnd.viewDef->GetWorldSpace();
 	
-	renderProgManager.SetRenderParms( RENDERPARM_PROJMATRIX_X, backEnd.viewDef->GetProjectionMatrix().Ptr(), 4 );
+	//renderProgManager.SetRenderParms( RENDERPARM_PROJMATRIX_X, backEnd.viewDef->GetProjectionMatrix().Ptr(), 4 );
 
 	//qglLoadMatrixf( backEnd.viewDef->worldSpace.modelViewMatrix );
 	RB_SetMVP( backEnd.viewDef->GetMVPMatrix() );
@@ -561,13 +561,13 @@ static void RB_ShowLightCount()
 	{
 		GL_State( GLS_DEPTHFUNC_EQUAL | GLS_STENCIL_OP_FAIL_KEEP | GLS_STENCIL_OP_ZFAIL_INCR | GLS_STENCIL_OP_PASS_INCR );
 	}
-	else
-	{
+	else {
 		GL_State( GLS_DEPTHFUNC_EQUAL | GLS_STENCIL_OP_FAIL_KEEP | GLS_STENCIL_OP_ZFAIL_KEEP | GLS_STENCIL_OP_PASS_INCR );
 	}
 	
 	///renderImageManager->defaultImage->Bind();
-	GL_BindTexture( 0, renderImageManager->defaultImage );
+	///GL_BindTexture( 0, renderImageManager->defaultImage );
+	renderProgManager.SetRenderParm( RENDERPARM_MAP, renderImageManager->defaultImage );
 	
 	for( vLight = backEnd.viewDef->viewLights; vLight; vLight = vLight->next )
 	{
@@ -686,7 +686,7 @@ RB_RenderDrawSurfListWithFunction
 */
 static void RB_RenderDrawSurfListWithFunction( const drawSurf_t * const * drawSurfs, int numDrawSurfs, void ( *triFunc_ )( const drawSurf_t*, vertexLayoutType_t, int ) )
 {
-	backEnd.currentSpace = NULL;
+	backEnd.ClearCurrentSpace();
 	
 	for( int i = 0; i < numDrawSurfs; ++i )
 	{
@@ -699,14 +699,14 @@ static void RB_RenderDrawSurfListWithFunction( const drawSurf_t * const * drawSu
 		assert( drawSurf->space != NULL );
 		
 		// RB begin
-#if 1
+	#if 1
 		if( drawSurf->space != backEnd.currentSpace )
 		{
 			backEnd.currentSpace = drawSurf->space;
 			
 			RB_SetMVP( drawSurf->space->mvp );
 		}
-#else
+	#else
 		
 		if( drawSurf->space != NULL )  	// is it ever NULL?  Do we need to check?
 		{
@@ -737,7 +737,7 @@ static void RB_RenderDrawSurfListWithFunction( const drawSurf_t * const * drawSu
 				RB_EnterModelDepthHack( drawSurf->space->modelDepthHack );
 			}
 		}
-#endif
+	#endif
 
 		renderProgManager.BindShader_Color( drawSurf->jointCache );
 
@@ -819,7 +819,7 @@ static void RB_ShowSilhouette()
 				auto const tri = surf->frontEndGeo;
 
 				idVertexBuffer vertexBuffer;
-				if( !vertexCache.GetVertexBuffer( tri->shadowCache, &vertexBuffer ) )
+				if( !vertexCache.GetVertexBuffer( tri->shadowCache, vertexBuffer ) )
 				{
 					continue;
 				}
@@ -977,7 +977,8 @@ static void RB_ShowSurfaceInfo( const drawSurf_t * const * drawSurfs, int numDra
 	
 	// foresthale 2014-05-02: don't use a shader for tools
 	//renderProgManager.BindShader_TextureVertexColor();
-	GL_BindTexture( 0, renderImageManager->whiteImage );
+	///GL_BindTexture( 0, renderImageManager->whiteImage );
+	renderProgManager.SetRenderParm( RENDERPARM_MAP, renderImageManager->whiteImage );
 	
 	RB_SetVertexColorParms( SVC_MODULATE );
 	// foresthale 2014-05-02: don't use a shader for tools
@@ -1121,7 +1122,7 @@ static void RB_ShowTexturePolarity( const drawSurf_t * const * drawSurfs, int nu
 	
 	for( int i = 0; i < numDrawSurfs; ++i )
 	{
-		auto const drawSurf = drawSurfs[i];
+		auto const drawSurf = drawSurfs[ i ];
 		auto const tri = drawSurf->frontEndGeo;
 
 		if( !tri || !tri->verts )
@@ -1323,7 +1324,7 @@ static void RB_ShowVertexColor( const drawSurf_t * const * drawSurfs, int numDra
 			continue;
 		}
 		
-		renderProgManager.CommitUniforms();
+		renderProgManager.GetCurrentRenderProgram()->CommitUniforms();
 		
 		glBegin( GL_TRIANGLES );
 		for( int j = 0; j < tri->numIndexes; ++j )
@@ -2146,7 +2147,7 @@ static void RB_DrawText( const char* text, const idVec3& origin, float scale, co
 	
 	// RB begin
 	GL_Color( color[0], color[1], color[2], 1 /*color[3]*/ );
-	renderProgManager.CommitUniforms();
+	renderProgManager.GetCurrentRenderProgram()->CommitUniforms();
 	// RB end
 	
 	int i, j, len, num, index, charIndex, line;
@@ -2379,7 +2380,7 @@ static void RB_ShowDebugLines()
 	
 	// RB begin
 	renderProgManager.BindShader_VertexColor();
-	renderProgManager.CommitUniforms();
+	renderProgManager.GetCurrentRenderProgram()->CommitUniforms();
 	// RB end
 	
 	GL_ResetTexturesState();
@@ -2520,7 +2521,7 @@ static void RB_ShowDebugPolygons()
 	
 	// RB begin
 	renderProgManager.BindShader_VertexColor();
-	renderProgManager.CommitUniforms();
+	renderProgManager.GetCurrentRenderProgram()->CommitUniforms();
 	// RB end
 	
 	GL_ResetTexturesState();
@@ -2913,14 +2914,18 @@ static void RB_TestImage()
 	// Bind the Texture
 	if( ( imageCr != NULL ) && ( imageCb != NULL ) )
 	{
-		GL_BindTexture( 0, image );
-		GL_BindTexture( 1, imageCr );
-		GL_BindTexture( 2, imageCb );
+		///GL_BindTexture( 0, image );
+		///GL_BindTexture( 1, imageCr );
+		///GL_BindTexture( 2, imageCb );
+		renderProgManager.SetRenderParm( RENDERPARM_MAPY,  image );
+		renderProgManager.SetRenderParm( RENDERPARM_MAPCR, imageCr );
+		renderProgManager.SetRenderParm( RENDERPARM_MAPCB, imageCb );
 
 		renderProgManager.BindShader_Bink();
 	}
 	else {
-		GL_BindTexture( 0, image );
+		///GL_BindTexture( 0, image );
+		renderProgManager.SetRenderParm( RENDERPARM_MAP, image );
 
 		renderProgManager.BindShader_Texture();
 	}
@@ -2932,18 +2937,16 @@ static void RB_TestImage()
 // RB begin
 static void RB_ShowShadowMaps()
 {
-	idImage*	image = NULL;
-	int		max;
-	float	w, h;
-	
 	if( !r_showShadowMaps.GetBool() )
 		return;
 		
-	image = renderImageManager->shadowImage[0];
+	auto image = renderImageManager->shadowImage[0];
 	if( !image )
 	{
 		return;
 	}
+
+	renderProgManager.BindShader_DebugShadowMap();
 	
 	// Set State
 	GL_State( GLS_DEPTHFUNC_ALWAYS | GLS_SRCBLEND_ONE | GLS_DSTBLEND_ZERO );
@@ -2959,10 +2962,10 @@ static void RB_ShowShadowMaps()
 	
 	for( int i = 0; i < ( r_shadowMapSplits.GetInteger() + 1 ); i++ )
 	{
-		max = image->GetUploadWidth() > image->GetUploadHeight() ? image->GetUploadWidth() : image->GetUploadHeight();
+		int max = ( image->GetUploadWidth() > image->GetUploadHeight() )? image->GetUploadWidth() : image->GetUploadHeight();
 		
-		w = 0.25 * image->GetUploadWidth() / max;
-		h = 0.25 * image->GetUploadHeight() / max;
+		float w = 0.25 * image->GetUploadWidth() / max;
+		float h = 0.25 * image->GetUploadHeight() / max;
 		
 		w *= ( float )renderSystem->GetHeight() / renderSystem->GetWidth();
 		
@@ -2989,12 +2992,12 @@ static void RB_ShowShadowMaps()
 
 		renderProgManager.SetRenderParms( RENDERPARM_MVPMATRIX_X, finalOrtho.Ptr(), 4 );
 
-		ALIGN16( float screenCorrectionParm[4] );
+		// rpScreenCorrectionFactor
+		auto & screenCorrectionParm = renderProgManager.GetRenderParm( RENDERPARM_SCREENCORRECTIONFACTOR );
 		screenCorrectionParm[0] = i;
 		screenCorrectionParm[1] = 0.0f;
 		screenCorrectionParm[2] = 0.0f;
 		screenCorrectionParm[3] = 1.0f;
-		renderProgManager.SetRenderParm( RENDERPARM_SCREENCORRECTIONFACTOR, screenCorrectionParm ); // rpScreenCorrectionFactor
 		
 		//	glMatrixMode( GL_PROJECTION );
 		//	glLoadMatrixf( finalOrtho );
@@ -3002,13 +3005,12 @@ static void RB_ShowShadowMaps()
 		//	glLoadIdentity();
 		
 		// Set Color
-		GL_Color( 1, 1, 1, 1 );
+		GL_Color( 1.0f, 1.0f, 1.0f, 1.0f );
 
-		GL_BindTexture( 0, image );
-		glTexParameteri( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_COMPARE_MODE, GL_NONE );
-			
-		renderProgManager.BindShader_DebugShadowMap();
-		
+		///GL_BindTexture( 0, image );
+		renderProgManager.SetRenderParm( RENDERPARM_SHADOWBUFFERDEBUGMAP, image );
+		//glTexParameteri( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_COMPARE_MODE, GL_NONE );
+
 		GL_DrawIndexed( &backEnd.testImageSurface );
 	}
 	
@@ -3027,8 +3029,7 @@ static void DrawExpandedTriangles( const idTriangles* tri, const float radius, c
 	idVec3 dir[6], normal, point;
 	
 	for( i = 0; i < tri->numIndexes; i += 3 )
-	{
-	
+	{	
 		const idVec3 p[3] = { 
 			tri->verts[ tri->indexes[ i + 0 ] ].GetPosition(), 
 			tri->verts[ tri->indexes[ i + 1 ] ].GetPosition(), 
@@ -3112,7 +3113,8 @@ static void RB_ShowTrace( const drawSurf_t* const* drawSurfs, int numDrawSurfs )
 	idVec3 end = start + 4000 * backEnd.viewDef->GetAxis()[0];
 	
 	// check and draw the surfaces
-	GL_BindTexture( 0, renderImageManager->whiteImage );
+	///GL_BindTexture( 0, renderImageManager->whiteImage );
+	renderProgManager.SetRenderParm( RENDERPARM_MAP, renderImageManager->whiteImage );
 	
 	// find how many are ambient
 	for( int i = 0; i < numDrawSurfs; ++i )

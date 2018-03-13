@@ -77,7 +77,7 @@ void idPlayerIcon::Draw( idPlayer* player, jointHandle_t joint )
 		return;
 	}
 	
-	player->GetJointWorldTransform( joint, gameLocal.time, origin, axis );
+	player->GetJointWorldTransform( joint, gameLocal.GetGameTimeMs(), origin, axis );
 	origin.z += 16.0f;
 	
 	Draw( player, origin );
@@ -168,7 +168,7 @@ bool idPlayerIcon::CreateIcon( idPlayer* player, playerIconType_t type, const ch
 	
 	FreeIcon();
 	
-	memset( &renderEnt, 0, sizeof( renderEnt ) );
+	renderEnt.Clear();
 	renderEnt.origin	= origin;
 	renderEnt.axis		= axis;
 	renderEnt.shaderParms[ SHADERPARM_RED ]				= 1.0f;

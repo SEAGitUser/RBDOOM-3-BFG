@@ -80,7 +80,7 @@ public:
 		this->minDesiredLocalUsers = minDesiredLocalUsers;
 		this->maxDesiredLocalUsers = maxDesiredLocalUsers;
 	}
-	bool 					ProcessInputEvent( const sysEvent_t* ev );
+	bool 					ProcessInputEvent( const idSysEvent* ev );
 	idPlayerProfile* 		GetDefaultProfile();
 	
 	// Master user always index 0

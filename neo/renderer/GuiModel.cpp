@@ -135,9 +135,9 @@ void idRenderModelGui::EmitSurfaces( idRenderView * view,
 	float defaultStereoDepth = stereoRender_defaultGuiDepth.GetFloat();	// default to at-screen
 	
 	// add the surfaces to this view
-	for( int i = 0; i < surfaces.Num(); i++ )
+	for( int i = 0; i < surfaces.Num(); ++i )
 	{
-		const auto & guiSurf = surfaces[i];
+		const auto & guiSurf = surfaces[ i ];
 		if( guiSurf.numIndexes == 0 )
 		{
 			continue;
@@ -266,7 +266,7 @@ void idRenderModelGui::EmitFullScreen()
 	viewDef->numDrawSurfs = 0;
 
 	// RB: give renderView the current time to calculate 2D shader effects
-	int shaderTime = SEC2MS( tr.frameShaderTime );  //tr.frameShaderTime * 1000; //Sys_Milliseconds();
+	int shaderTime = SEC2MS( tr.frameShaderTime );  //tr.frameShaderTime * 1000; //sys->Milliseconds();
 	viewDef->parms.time[0] = shaderTime;
 	viewDef->parms.time[1] = shaderTime;
 	// RB end

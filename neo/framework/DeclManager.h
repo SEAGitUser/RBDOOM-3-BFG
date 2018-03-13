@@ -263,6 +263,8 @@ ID_INLINE idDecl* idDeclAllocator()
 class idMaterial;
 class idDeclSkin;
 class idSoundShader;
+class idDeclRenderProg;
+class idDeclRenderParm;
 
 class idDeclManager {
 public:
@@ -331,13 +333,19 @@ public:
 	virtual void			Touch( const idDecl* decl ) = 0;
 	
 	// Convenience functions for specific types.
+
 	virtual	const idMaterial * 		FindMaterial( const char* name, bool makeDefault = true ) = 0;
 	virtual const idDeclSkin * 		FindSkin( const char* name, bool makeDefault = true ) = 0;
 	virtual const idSoundShader * 	FindSound( const char* name, bool makeDefault = true ) = 0;
-	
+
 	virtual const idMaterial * 		MaterialByIndex( int index, bool forceParse = true ) = 0;
 	virtual const idDeclSkin * 		SkinByIndex( int index, bool forceParse = true ) = 0;
 	virtual const idSoundShader * 	SoundByIndex( int index, bool forceParse = true ) = 0;
+
+	virtual	const idDeclRenderProg * FindRenderProg( const char* name, bool makeDefault = true ) = 0;
+	virtual	const idDeclRenderParm * FindRenderParm( const char* name, bool makeDefault = true ) = 0;
+	virtual	const idDeclRenderProg * RenderProgByIndex( int index, bool forceParse = true ) = 0;
+	virtual	const idDeclRenderParm * RenderParmByIndex( int index, bool forceParse = true ) = 0;
 };
 
 extern idDeclManager * 		declManager;

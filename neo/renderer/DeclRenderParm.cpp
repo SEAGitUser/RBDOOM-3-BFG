@@ -298,6 +298,16 @@ bool idDeclRenderParm::Parse( const char* text, const int textLength, bool allow
 
 /*
 =====================================
+idDeclRenderParm::SetDefaultData
+=====================================
+*/
+void idDeclRenderParm::SetDefaultData() const
+{
+	m_data = m_defaults;
+}
+
+/*
+=====================================
 idDeclRenderParm::FreeData
 =====================================
 */

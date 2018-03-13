@@ -456,8 +456,8 @@ static void RenderShadowBufferGeneric( const drawSurf_t * const drawSurfs, const
 	//for( int i = 0; i < numDrawSurfs; i++ ) {
 	//	const drawSurf_t* const drawSurf = drawSurfs[ i ];
 
-	for( const drawSurf_t* drawSurf = drawSurfs; drawSurf != NULL; drawSurf = drawSurf->nextOnLight ) {
-
+	for( const drawSurf_t* drawSurf = drawSurfs; drawSurf != NULL; drawSurf = drawSurf->nextOnLight ) 
+	{
 		if( drawSurf->numIndexes == 0 )
 			continue;	// a job may have created an empty shadow geometry
 
@@ -500,12 +500,16 @@ static void RenderShadowBufferGeneric( const drawSurf_t * const drawSurfs, const
 				RB_SetMVP( clipMVP );
 			}
 		#endif
-			idRenderMatrix clipMVP;
-
+			//idRenderMatrix clipMVP;
 			///const idRenderMatrix & smVPMatrix = backEnd.shadowVP[ ( side < 0 ) ? 0 : side ];
-			idRenderMatrix::Multiply( smVPMatrix, drawSurf->space->modelMatrix, clipMVP );
+			//idRenderMatrix::Multiply( smVPMatrix, drawSurf->space->modelMatrix, clipMVP );
+			//RB_SetMVP( clipMVP );
 
-			RB_SetMVP( clipMVP );
+			idRenderMatrix::Multiply( smVPMatrix, drawSurf->space->modelMatrix,
+				renderProgManager.GetRenderParm( RENDERPARM_MVPMATRIX_X ),
+				renderProgManager.GetRenderParm( RENDERPARM_MVPMATRIX_Y ),
+				renderProgManager.GetRenderParm( RENDERPARM_MVPMATRIX_Z ),
+				renderProgManager.GetRenderParm( RENDERPARM_MVPMATRIX_W ) );
 
 			backEnd.currentSpace = drawSurf->space;
 		}
@@ -514,6 +518,11 @@ static void RenderShadowBufferGeneric( const drawSurf_t * const drawSurfs, const
 		release_assert( material != nullptr );
 
 		RENDERLOG_OPEN_BLOCK( material->GetName() );
+
+		if( !drawSurf->space->modelMatrix.IsIdentity( MATRIX_EPSILON ) )
+		{
+			RENDERLOG_PRINT("-- modelMatrix.IsIdentity() --\n");
+		}
 
 		bool didDraw = false;
 
@@ -555,7 +564,7 @@ static void RenderShadowBufferGeneric( const drawSurf_t * const drawSurfs, const
 				didDraw = true;
 
 				// set the alpha modulate
-				color[ 3 ] = regs[ pStage->color.registers[ 3 ] ];
+				color[ 3 ] = pStage->GetColorParmAlpha( regs );
 
 				// skip the entire stage if alpha would be black
 				if( color[ 3 ] <= 0.0f )
@@ -573,15 +582,17 @@ static void RenderShadowBufferGeneric( const drawSurf_t * const drawSurfs, const
 				GL_Color( color );
 
 				GL_State( stageGLState );
-				idRenderVector alphaTestValue( regs[ pStage->alphaTestRegister ] );
-				renderProgManager.SetRenderParm( RENDERPARM_ALPHA_TEST, alphaTestValue.ToFloatPtr() );
+
+				auto & alphaTestValue = renderProgManager.GetRenderParm( RENDERPARM_ALPHA_TEST );
+				alphaTestValue.Fill( pStage->GetAlphaTestValue( regs ) );
 
 				renderProgManager.BindShader_TextureVertexColor( drawSurf->jointCache );
 
 				RB_SetVertexColorParms( SVC_IGNORE );
 
 				// bind the texture
-				GL_BindTexture( 0, pStage->texture.image );
+				///GL_BindTexture( 0, pStage->texture.image );
+				renderProgManager.SetRenderParm( RENDERPARM_MAP, pStage->texture.image );
 
 				// set texture matrix and texGens
 				RB_PrepareStageTexturing( pStage, drawSurf );
@@ -765,13 +776,16 @@ void RB_ShadowMapPass( const drawSurf_t * const drawSurfs, const viewLight_t * c
 
 	if( r_useSinglePassShadowMaps.GetBool() )
 	{
-		//renderProgManager.BindShader_DepthOnePass();
+		const int32 shadowLOD = backEnd.viewDef->isSubview ? ( MAX_SHADOWMAP_RESOLUTIONS - 1 ) : 
+			( vLight->parallel ? vLight->shadowLOD : idMath::Max( vLight->shadowLOD, 1 ) );
 
 		GL_SetRenderDestination( renderDestManager.renderDestShadowOnePass );
+		GL_ViewportAndScissor( 0, 0, shadowMapResolutions[ shadowLOD ], shadowMapResolutions[ shadowLOD ] );
 		GL_ClearDepth( 1.0f );
+
+		renderProgManager.BindShader_FillShadowDepthBufferOnePass();
 	}
-	else
-	{
+	else {
 		renderProgManager.BindShader_Depth( false );
 
 		GL_SetRenderDestination( renderDestManager.renderDestShadow );
@@ -804,11 +818,12 @@ void RB_ShadowMapPass( const drawSurf_t * const drawSurfs, const viewLight_t * c
 		{
 			///const int32 shadowLOD = backEnd.viewDef->isSubview ? ( Max( vLight->shadowLOD + 1, MAX_SHADOWMAP_RESOLUTIONS-1 ) ) : vLight->shadowLOD ;
 			const int32 shadowLOD = backEnd.viewDef->isSubview ? ( MAX_SHADOWMAP_RESOLUTIONS - 1 ) : (( vLight->parallel && side >= 0 )? vLight->shadowLOD : idMath::Max( vLight->shadowLOD, 1 ));
+			const int32 layer = ( side < 0 )? 0 : side;
 
-			RENDERLOG_PRINT( "----- side = %i, shadowLOD %i----------\n", side, shadowLOD );
+			RENDERLOG_OPEN_BLOCK( idStrStatic<128>().Format( "--- side %i, shadowLOD %i, layer %i ----------", side, shadowLOD, layer ).c_str() );
 
 			///GL_SetRenderDestination( renderDestManager.renderDestShadow );
-			const int32 layer = ( side < 0 )? 0 : side;
+			
 			renderDestManager.renderDestShadow->SetTargetOGL( renderImageManager->shadowImage[ shadowLOD ], 0, layer, 0 );
 
 			GL_ViewportAndScissor( 0, 0, shadowMapResolutions[ shadowLOD ], shadowMapResolutions[ shadowLOD ] );
@@ -816,7 +831,9 @@ void RB_ShadowMapPass( const drawSurf_t * const drawSurfs, const viewLight_t * c
 
 			// process the chain of surfaces with the current rendering state
 			//RenderShadowBufferFast( drawSurfs, backEnd.shadowVP[ ( side < 0 )? 0 : side ] );
-			RenderShadowBufferGeneric( drawSurfs, backEnd.shadowVP[ ( side < 0 ) ? 0 : side ] );
+			RenderShadowBufferGeneric( drawSurfs, backEnd.shadowVP[ layer ] );
+
+			RENDERLOG_CLOSE_BLOCK();
 		}
 	}
 
@@ -827,11 +844,12 @@ void RB_ShadowMapPass( const drawSurf_t * const drawSurfs, const viewLight_t * c
 	RB_ResetRenderDest( r_useHDR.GetBool() );
 
 	GL_ResetProgramState();
+	GL_ResetTexturesState();
 
 	GL_State( GLS_DEFAULT );
 	GL_Cull( CT_FRONT_SIDED );
 
-	renderProgManager.SetRenderParm( RENDERPARM_ALPHA_TEST, vec4_zero.ToFloatPtr() );
+	renderProgManager.SetRenderParm( RENDERPARM_ALPHA_TEST, vec4_zero );
 
 	RENDERLOG_CLOSE_BLOCK();
 }

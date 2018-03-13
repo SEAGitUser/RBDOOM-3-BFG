@@ -208,7 +208,7 @@ void R_RenderView( idRenderView * renderView )
 	
 	// identify all the visible portal areas, and create view lights and view entities
 	// for all the the entityDefs and lightDefs that are in the visible portal areas
-	static_cast<idRenderWorldLocal*>( renderView->renderWorld )->FindViewLightsAndEntities();
+	renderView->renderWorld->FindViewLightsAndEntities();
 	
 	// wait for any shadow volume jobs from the previous frame to finish
 	tr.frontEndJobList->Wait();
@@ -242,7 +242,7 @@ void R_RenderView( idRenderView * renderView )
 	// write everything needed to the demo file
 	if( common->WriteDemo() )
 	{
-		static_cast<idRenderWorldLocal*>( renderView->renderWorld )->WriteVisibleDefs( renderView );
+		 renderView->renderWorld->WriteVisibleDefs( renderView );
 	}
 	
 	// add the rendering commands for this viewDef

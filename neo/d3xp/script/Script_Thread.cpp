@@ -276,7 +276,7 @@ idThread::idThread()
 	SetThreadName( va( "thread_%d", threadIndex ) );
 	if( g_debugScript.GetBool() )
 	{
-		gameLocal.Printf( "%d: create thread (%d) '%s'\n", gameLocal.time, threadNum, threadName.c_str() );
+		gameLocal.Printf( "%d: create thread (%d) '%s'\n", gameLocal.GetGameTimeMs(), threadNum, threadName.c_str() );
 	}
 }
 
@@ -294,7 +294,7 @@ idThread::idThread( idEntity* self, const function_t* func )
 	interpreter.EnterObjectFunction( self, func, false );
 	if( g_debugScript.GetBool() )
 	{
-		gameLocal.Printf( "%d: create thread (%d) '%s'\n", gameLocal.time, threadNum, threadName.c_str() );
+		gameLocal.Printf( "%d: create thread (%d) '%s'\n", gameLocal.GetGameTimeMs(), threadNum, threadName.c_str() );
 	}
 }
 
@@ -312,7 +312,7 @@ idThread::idThread( const function_t* func )
 	interpreter.EnterFunction( func, false );
 	if( g_debugScript.GetBool() )
 	{
-		gameLocal.Printf( "%d: create thread (%d) '%s'\n", gameLocal.time, threadNum, threadName.c_str() );
+		gameLocal.Printf( "%d: create thread (%d) '%s'\n", gameLocal.GetGameTimeMs(), threadNum, threadName.c_str() );
 	}
 }
 
@@ -327,7 +327,7 @@ idThread::idThread( idInterpreter* source, const function_t* func, int args )
 	interpreter.ThreadCall( source, func, args );
 	if( g_debugScript.GetBool() )
 	{
-		gameLocal.Printf( "%d: create thread (%d) '%s'\n", gameLocal.time, threadNum, threadName.c_str() );
+		gameLocal.Printf( "%d: create thread (%d) '%s'\n", gameLocal.GetGameTimeMs(), threadNum, threadName.c_str() );
 	}
 }
 
@@ -345,7 +345,7 @@ idThread::idThread( idInterpreter* source, idEntity* self, const function_t* fun
 	interpreter.ThreadCall( source, func, args );
 	if( g_debugScript.GetBool() )
 	{
-		gameLocal.Printf( "%d: create thread (%d) '%s'\n", gameLocal.time, threadNum, threadName.c_str() );
+		gameLocal.Printf( "%d: create thread (%d) '%s'\n", gameLocal.GetGameTimeMs(), threadNum, threadName.c_str() );
 	}
 }
 
@@ -362,7 +362,7 @@ idThread::~idThread()
 	
 	if( g_debugScript.GetBool() )
 	{
-		gameLocal.Printf( "%d: end thread (%d) '%s'\n", gameLocal.time, threadNum, threadName.c_str() );
+		gameLocal.Printf( "%d: end thread (%d) '%s'\n", gameLocal.GetGameTimeMs(), threadNum, threadName.c_str() );
 	}
 	threadList.Remove( this );
 	n = threadList.Num();
@@ -463,7 +463,7 @@ void idThread::Init()
 	threadNum = threadIndex;
 	threadList.Append( this );
 	
-	creationTime = gameLocal.time;
+	creationTime = gameLocal.GetGameTimeMs();
 	lastExecuteTime = 0;
 	manualControl = false;
 	
@@ -510,7 +510,7 @@ void idThread::DisplayInfo()
 		"      Status: ",
 		threadNum, threadName.c_str(),
 		interpreter.CurrentFile(), interpreter.CurrentLine(),
-		creationTime, gameLocal.time - creationTime );
+		creationTime, gameLocal.GetGameTimeMs() - creationTime );
 		
 	if( interpreter.threadDying )
 	{
@@ -520,7 +520,7 @@ void idThread::DisplayInfo()
 	{
 		gameLocal.Printf(
 			"Paused since %d (%d ms)\n"
-			"      Reason: ",  lastExecuteTime, gameLocal.time - lastExecuteTime );
+			"      Reason: ",  lastExecuteTime, gameLocal.GetGameTimeMs() - lastExecuteTime );
 		if( waitingForThread )
 		{
 			gameLocal.Printf( "Waiting for thread #%3i '%s'\n", waitingForThread->GetThreadNum(), waitingForThread->GetThreadName() );
@@ -600,7 +600,7 @@ idThread::DelayedStart
 void idThread::DelayedStart( int delay )
 {
 	CancelEvents( &EV_Thread_Execute );
-	if( gameLocal.time <= 0 )
+	if( gameLocal.GetGameTimeMs() <= 0 )
 	{
 		delay++;
 	}
@@ -728,7 +728,7 @@ bool idThread::Execute()
 	idThread*	oldThread;
 	bool		done;
 	
-	if( manualControl && ( waitingUntil > gameLocal.time ) )
+	if( manualControl && ( waitingUntil > gameLocal.GetGameTimeMs() ) )
 	{
 		return false;
 	}
@@ -736,7 +736,7 @@ bool idThread::Execute()
 	oldThread = currentThread;
 	currentThread = this;
 	
-	lastExecuteTime = gameLocal.time;
+	lastExecuteTime = gameLocal.GetGameTimeMs();
 	ClearWaitFor();
 	done = interpreter.Execute();
 	if( done )
@@ -778,7 +778,7 @@ bool idThread::IsWaiting()
 		return true;
 	}
 	
-	if( waitingUntil && ( waitingUntil > gameLocal.time ) )
+	if( waitingUntil && ( waitingUntil > gameLocal.GetGameTimeMs() ) )
 	{
 		return true;
 	}
@@ -996,7 +996,7 @@ idThread::WaitMS
 void idThread::WaitMS( int time )
 {
 	Pause();
-	waitingUntil = gameLocal.time + time;
+	waitingUntil = gameLocal.GetGameTimeMs() + time;
 }
 
 /*
@@ -1022,7 +1022,7 @@ void idThread::WaitFrame()
 	// that frame if necessary.
 	if( !manualControl )
 	{
-		waitingUntil = gameLocal.time + 1;
+		waitingUntil = gameLocal.GetGameTimeMs() + 1;
 	}
 }
 
@@ -2059,7 +2059,7 @@ idThread::Event_GetFrameTime
 */
 void idThread::Event_GetFrameTime()
 {
-	idThread::ReturnFloat( MS2SEC( gameLocal.time - gameLocal.previousTime ) );
+	idThread::ReturnFloat( MS2SEC( gameLocal.GetGameTimeMs() - gameLocal.GetPreviousGameTimeMs() ) );
 }
 
 /*

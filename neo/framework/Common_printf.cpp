@@ -122,7 +122,7 @@ void idCommonLocal::VPrintf( const char* fmt, va_list args )
 	// so we can see how long different init sections are taking
 	if( com_timestampPrints.GetInteger() )
 	{
-		int	t = Sys_Milliseconds();
+		int	t = sys->Milliseconds();
 		if( com_timestampPrints.GetInteger() == 1 )
 		{
 			sprintf( msg, "[%5.2f]", MS2SEC( t ) );
@@ -137,7 +137,7 @@ void idCommonLocal::VPrintf( const char* fmt, va_list args )
 	{
 		msg[sizeof( msg ) - 2] = '\n';
 		msg[sizeof( msg ) - 1] = '\0'; // avoid output garbling
-		Sys_Printf( "idCommon::VPrintf: truncated to %d characters\n", idStr::Length( msg ) - 1 );
+		sys->Printf( "idCommon::VPrintf: truncated to %d characters\n", idStr::Length( msg ) - 1 );
 	}
 	
 	if( rd_buffer )
@@ -195,7 +195,7 @@ void idCommonLocal::VPrintf( const char* fmt, va_list args )
 	idStr::RemoveColors( msg );
 	
 	// echo to dedicated console and early console
-	Sys_Printf( "%s", msg );
+	sys->Printf( "%s", msg );
 	
 	// print to script debugger server
 	// DebuggerServerPrint( msg );
@@ -516,7 +516,7 @@ void idCommonLocal::Error( const char* fmt, ... )
 	}
 	
 	// if we are getting a solid stream of ERP_DROP, do an ERP_FATAL
-	currentTime = Sys_Milliseconds();
+	currentTime = sys->Milliseconds();
 	if( currentTime - lastErrorTime < 100 )
 	{
 		if( ++errorCount > 3 )
@@ -539,7 +539,7 @@ void idCommonLocal::Error( const char* fmt, ... )
 	
 	
 	// copy the error message to the clip board
-	Sys_SetClipboardData( errorMessage );
+	sys->SetClipboardData( errorMessage );
 	
 	// add the message to the error list
 	errorList.AddUnique( errorMessage );
@@ -595,14 +595,14 @@ void idCommonLocal::FatalError( const char* fmt, ... )
 		// full screen rendering window covering the
 		// error dialog
 		
-		Sys_Printf( "FATAL: recursed fatal error:\n%s\n", errorMessage );
+		sys->Printf( "FATAL: recursed fatal error:\n%s\n", errorMessage );
 		
 		va_start( argptr, fmt );
 		idStr::vsnPrintf( errorMessage, sizeof( errorMessage ), fmt, argptr );
 		va_end( argptr );
 		errorMessage[sizeof( errorMessage ) - 1] = '\0';
 		
-		Sys_Printf( "%s\n", errorMessage );
+		sys->Printf( "%s\n", errorMessage );
 		
 		// write the console to a log file?
 		Sys_Quit();

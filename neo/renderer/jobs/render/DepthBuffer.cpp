@@ -126,15 +126,16 @@ static void RB_FillDepthBufferGeneric( const drawSurf_t* const* drawSurfs, int n
 
 				GL_State( stageGLState );
 
-				idRenderVector alphaTestValue( regs[ pStage->alphaTestRegister ] );
-				renderProgManager.SetRenderParm( RENDERPARM_ALPHA_TEST, alphaTestValue.ToFloatPtr() );
+				auto & alphaTestValue = renderProgManager.GetRenderParm( RENDERPARM_ALPHA_TEST );
+				alphaTestValue.Fill( pStage->GetAlphaTestValue( regs ) );
 
 				renderProgManager.BindShader_TextureVertexColor( drawSurf->jointCache );
 
 				RB_SetVertexColorParms( SVC_IGNORE );
 
 				// bind the texture
-				GL_BindTexture( 0, pStage->texture.image );
+				///GL_BindTexture( 0, pStage->texture.image );
+				renderProgManager.SetRenderParm( RENDERPARM_MAP, pStage->texture.image );
 
 				// set texture matrix and texGens
 				RB_PrepareStageTexturing( pStage, drawSurf );
@@ -187,7 +188,7 @@ static void RB_FillDepthBufferGeneric( const drawSurf_t* const* drawSurfs, int n
 		RENDERLOG_CLOSE_BLOCK();
 	}
 
-	renderProgManager.SetRenderParm( RENDERPARM_ALPHA_TEST, vec4_zero.ToFloatPtr() );
+	renderProgManager.SetRenderParm( RENDERPARM_ALPHA_TEST, vec4_zero );
 }
 
 /*
@@ -242,8 +243,8 @@ void RB_FillDepthBufferFast( const drawSurf_t * const * drawSurfs, int numDrawSu
 	const drawSurf_t** perforatedSurfaces = ( const drawSurf_t** )_alloca( numDrawSurfs * sizeof( drawSurf_t* ) );
 	int numPerforatedSurfaces = 0;
 
-	const drawSurf_t** opaqueSurfaces = ( const drawSurf_t** )_alloca( numDrawSurfs * sizeof( drawSurf_t* ) );
-	int numOpaqueSurfaces = 0;
+	//const drawSurf_t** opaqueSurfaces = ( const drawSurf_t** )_alloca( numDrawSurfs * sizeof( drawSurf_t* ) );
+	//int numOpaqueSurfaces = 0;
 
 	// draw all the opaque surfaces and build up a list of perforated surfaces that
 	// we will defer drawing until all opaque surfaces are done

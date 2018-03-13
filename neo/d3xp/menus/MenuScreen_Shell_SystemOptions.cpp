@@ -72,6 +72,7 @@ void idMenuScreen_Shell_SystemOptions::Initialize( idMenuHandler* data )
 	AddChild( btnBack );
 	
 	idMenuWidget_ControlButton* control;
+
 	control = new( TAG_SWF ) idMenuWidget_ControlButton();
 	control->SetOptionType( OPTION_SLIDER_TEXT );
 	control->SetLabel( "#str_02154" );

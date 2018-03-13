@@ -31,7 +31,7 @@ If you have questions concerning this license or the applicable additional terms
 
 #include "Game_local.h"
 
-// _D3XP : rename all gameLocal.time to gameLocal.slow.time for merge!
+// _D3XP : rename all gameLocal.GetGameTimeMs() to gameLocal.slow.time for merge!
 
 const int IMPULSE_DELAY = 150;
 /*
@@ -88,11 +88,8 @@ idPlayerView::Save
 */
 void idPlayerView::Save( idSaveGame* savefile ) const
 {
-	int i;
-	const screenBlob_t* blob;
-	
-	blob = &screenBlobs[ 0 ];
-	for( i = 0; i < MAX_SCREEN_BLOBS; i++, blob++ )
+	auto blob = &screenBlobs[ 0 ];
+	for( int i = 0; i < MAX_SCREEN_BLOBS; i++, blob++ )
 	{
 		savefile->WriteMaterial( blob->material );
 		savefile->WriteFloat( blob->x );
@@ -145,11 +142,8 @@ idPlayerView::Restore
 */
 void idPlayerView::Restore( idRestoreGame* savefile )
 {
-	int i;
-	screenBlob_t* blob;
-	
-	blob = &screenBlobs[ 0 ];
-	for( i = 0; i < MAX_SCREEN_BLOBS; i++, blob++ )
+	auto blob = &screenBlobs[ 0 ];
+	for( int i = 0; i < MAX_SCREEN_BLOBS; i++, blob++ )
 	{
 		savefile->ReadMaterial( blob->material );
 		savefile->ReadFloat( blob->x );
@@ -357,8 +351,7 @@ void idPlayerView::WeaponFireFeedback( const idDict* weaponDef )
 		kickAngles = angles;
 		int	finish = gameLocal.slow.time + g_kickTime.GetFloat() * recoilTime;
 		kickFinishTime = finish;
-	}
-	
+	}	
 }
 
 /*
@@ -703,7 +696,7 @@ float	CalculateWorldSeparation(
 {
 
 	const float fovRadians = DEG2RAD( fov_x_degrees );
-	const float screen = tan( fovRadians * 0.5f ) * fabs( screenSeparation );
+	const float screen = idMath::Tan( fovRadians * 0.5f ) * idMath::Fabs( screenSeparation );
 	const float worldSeparation = screen * convergenceDistance / 0.5f;
 	
 	return worldSeparation;
@@ -810,10 +803,10 @@ void idPlayerView::RenderPlayerView( idMenuHandler_HUD* hudManager )
 			EmitStereoEyeView( eye, hudManager );
 		}
 	}
-	else
-	{
+	else {
 		SingleView( view, hudManager );
 	}
+
 	ScreenFade();
 }
 
@@ -824,8 +817,7 @@ idPlayerView::WarpVision
 */
 int idPlayerView::AddWarp( idVec3 worldOrigin, float centerx, float centery, float initialRadius, float durationMsec )
 {
-	FullscreenFX_Warp* fx = ( FullscreenFX_Warp* )( fxManager->FindFX( "warp" ) );
-	
+	FullscreenFX_Warp* fx = ( FullscreenFX_Warp* )( fxManager->FindFX( "warp" ) );	
 	if( fx )
 	{
 		fx->EnableGrabber( true );
@@ -837,12 +829,10 @@ int idPlayerView::AddWarp( idVec3 worldOrigin, float centerx, float centery, flo
 
 void idPlayerView::FreeWarp( int id )
 {
-	FullscreenFX_Warp* fx = ( FullscreenFX_Warp* )( fxManager->FindFX( "warp" ) );
-	
+	FullscreenFX_Warp* fx = ( FullscreenFX_Warp* )( fxManager->FindFX( "warp" ) );	
 	if( fx )
 	{
 		fx->EnableGrabber( false );
-		return;
 	}
 }
 
@@ -870,7 +860,6 @@ FxFader::SetTriggerState
 */
 bool FxFader::SetTriggerState( bool active )
 {
-
 	// handle on/off states
 	if( active && state == FX_STATE_OFF )
 	{
@@ -916,14 +905,7 @@ bool FxFader::SetTriggerState( bool active )
 			break;
 	}
 	
-	if( alpha > 0 )
-	{
-		return true;
-	}
-	else
-	{
-		return false;
-	}
+	return ( alpha > 0 )? true : false;
 }
 
 /*
@@ -1044,8 +1026,7 @@ bool FullscreenFX_Helltime::Active()
 	{
 		return true;
 	}
-	else
-	{
+	else {
 		// latch the clear flag
 		if( fader.GetAlpha() == 0 )
 		{
@@ -1063,7 +1044,6 @@ FullscreenFX_Helltime::AccumPass
 */
 void FullscreenFX_Helltime::AccumPass( const renderViewParms_t* view )
 {
-
 	int level = DetermineLevel();
 	
 	// for testing
@@ -1126,7 +1106,7 @@ void FullscreenFX_Multiplayer::Initialize()
 	initMaterial = declManager->FindMaterial( "textures/d3bfg/multiplayer/init" );
 	captureMaterial = declManager->FindMaterial( "textures/d3bfg/multiplayer/capture" );
 	drawMaterial = declManager->FindMaterial( "textures/d3bfg/bloodorb/draw" );
-	clearAccumBuffer	= true;
+	clearAccumBuffer = true;
 }
 
 /*
@@ -1168,7 +1148,6 @@ FullscreenFX_Multiplayer::Active
 */
 bool FullscreenFX_Multiplayer::Active()
 {
-
 	if( !common->IsMultiplayer() && g_testMultiplayerFX.GetInteger() == -1 )
 	{
 		return false;
@@ -1178,8 +1157,7 @@ bool FullscreenFX_Multiplayer::Active()
 	{
 		return true;
 	}
-	else
-	{
+	else {
 		// latch the clear flag
 		if( fader.GetAlpha() == 0 )
 		{
@@ -1268,7 +1246,7 @@ bool FullscreenFX_Warp::Active()
 	{
 		return true;
 	}
-	
+
 	return false;
 }
 
@@ -1355,7 +1333,7 @@ void FullscreenFX_Warp::HighQuality()
 {
 	float x1, y1, x2, y2, radius, interp;
 	idVec2 center;
-	int STEP = 9;
+	float STEP = 9.0f;
 	renderSystem->SetColor4( 1.0f, 1.0f, 1.0f, 1.0f );
 	
 	interp = ( idMath::Sin( ( float )( gameLocal.slow.time - startWarpTime ) / 1000 ) + 1 ) / 2.f;
@@ -1366,7 +1344,7 @@ void FullscreenFX_Warp::HighQuality()
 	center.y = renderSystem->GetVirtualHeight() / 2.0f;
 	radius = 200;
 	
-	for( float i = 0; i < 360; i += STEP )
+	for( float i = 0; i < 360.0f; i += STEP )
 	{
 		// compute the values
 		idMath::SinCos( DEG2RAD( i ), x1, y1 );
@@ -1458,7 +1436,6 @@ FullscreenFX_DoubleVision::Active
 */
 bool FullscreenFX_DoubleVision::Active()
 {
-
 	if( gameLocal.fast.time < fxman->GetPlayerView()->dvFinishTime )
 	{
 		return true;
@@ -1474,7 +1451,9 @@ FullscreenFX_DoubleVision::HighQuality
 */
 void FullscreenFX_DoubleVision::HighQuality()
 {
-	int offset = fxman->GetPlayerView()->dvFinishTime - gameLocal.fast.time;
+	int gameTimeMs = gameLocal.fast.time;
+
+	int offset = fxman->GetPlayerView()->dvFinishTime - gameTimeMs;
 	float scale = offset * g_dvAmplitude.GetFloat();
 	
 	// for testing purposes
@@ -1504,18 +1483,20 @@ void FullscreenFX_DoubleVision::HighQuality()
 	{
 		scale = 0.5f;
 	}
-	float shift = scale * sin( sqrtf( ( float )offset ) * g_dvFrequency.GetFloat() );
-	shift = fabs( shift );
+	float shift = scale * idMath::Sin( idMath::Sqrt( ( float )offset ) * g_dvFrequency.GetFloat() );
+	shift = idMath::Fabs( shift );
 	
 	// carry red tint if in berserk mode
 	idVec4 color( 1.0f, 1.0f, 1.0f, 1.0f );
-	if( gameLocal.fast.time < player->inventory.powerupEndTime[ BERSERK ] )
+	if( gameTimeMs < player->inventory.powerupEndTime[ BERSERK ] )
 	{
 		color.y = 0.0f;
 		color.z = 0.0f;
 	}
 	
-	if( ( !common->IsMultiplayer() && gameLocal.fast.time < player->inventory.powerupEndTime[ HELLTIME ] ) || gameLocal.fast.time < player->inventory.powerupEndTime[ INVULNERABILITY ] )
+	if( ( !common->IsMultiplayer() && 
+		gameTimeMs < player->inventory.powerupEndTime[ HELLTIME ] ) || 
+		gameTimeMs < player->inventory.powerupEndTime[ INVULNERABILITY ] )
 	{
 		color.y = 0.0f;
 		color.z = 0.0f;
@@ -1934,6 +1915,7 @@ void FullscreenFXManager::Process( const renderViewParms_t* view )
 	
 	// do the first render
 	gameRenderWorld->RenderScene( view );
+	///renderSystem->RenderScene( gameRenderWorld, view );
 	
 	// we should consider these on a case-by-case basis for stereo rendering
 	// double vision could be implemented "for real" by shifting the

@@ -140,7 +140,7 @@ void R_SetupDrawSurfJoints( drawSurf_t* drawSurf, const idTriangles* tri, const 
 	two or more lights.
 ===================
 */
-void R_AddSingleModel( viewModel_t* vEntity )
+void R_AddSingleModel( viewModel_t * vEntity )
 {
 	// we will add all interaction surfs here, to be chained to the lights in later serial code
 	vEntity->drawSurfs = NULL;
@@ -148,9 +148,9 @@ void R_AddSingleModel( viewModel_t* vEntity )
 	vEntity->dynamicShadowVolumes = NULL;
 	
 	// globals we really should pass in...
-	const idRenderView* const viewDef = tr.viewDef;
-	idRenderEntityLocal* const entityDef = vEntity->entityDef;
-	const idRenderWorldLocal* const world = tr.viewDef->renderWorld; //vEntity->entityDef->world;
+	const idRenderView * const viewDef = tr.viewDef;
+	idRenderEntityLocal * const entityDef = vEntity->entityDef;
+	const idRenderWorldLocal * const world = tr.viewDef->renderWorld; //vEntity->entityDef->world;
 	
 	if( viewDef->isXraySubview && entityDef->GetParms().xrayIndex == 1 )
 	{
@@ -363,7 +363,7 @@ void R_AddSingleModel( viewModel_t* vEntity )
 			continue;
 		}
 		
-		idTriangles* tri = surf->geometry;
+		idTriangles* tri = surf->GetTriangles();
 		if( tri == NULL )
 		{
 			continue;
@@ -372,7 +372,7 @@ void R_AddSingleModel( viewModel_t* vEntity )
 		{
 			continue;		// happens for particles
 		}
-		const idMaterial* shader = surf->shader;
+		const idMaterial* shader = surf->GetMaterial();
 		if( shader == NULL )
 		{
 			continue;
@@ -1216,7 +1216,7 @@ void R_AddModels( idRenderView * const view )
 		}
 		else
 		{
-			int start = Sys_Microseconds();
+			int start = sys->Microseconds();
 			
 			for( viewModel_t* vEntity = view->viewEntitys; vEntity != NULL; vEntity = vEntity->next )
 			{
@@ -1232,7 +1232,7 @@ void R_AddModels( idRenderView * const view )
 				vEntity->dynamicShadowVolumes = NULL;
 			}
 			
-			int end = Sys_Microseconds();
+			int end = sys->Microseconds();
 			backEnd.pc.shadowMicroSec += end - start;
 		}
 	}

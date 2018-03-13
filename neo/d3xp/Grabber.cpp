@@ -318,7 +318,7 @@ void idGrabber::StartDrag( idEntity* grabEnt, int id )
 	localPlayerPoint = ( thePlayer->firstPersonViewAxis[0] * HOLD_DISTANCE ) * thePlayer->firstPersonViewAxis.Transpose();
 	
 	// Set the ending time for the hold
-	endTime = gameLocal.time + g_grabberHoldSeconds.GetFloat() * 1000;
+	endTime = gameLocal.GetGameTimeMs() + g_grabberHoldSeconds.GetFloat() * 1000;
 	
 	// Start up the Force_Drag to bring it in
 	drag.Init( g_grabberDamping.GetFloat() );
@@ -456,7 +456,7 @@ void idGrabber::StopDrag( bool dropOnly )
 		warpId = -1;
 	}
 	
-	lastFiredTime = gameLocal.GetTime();
+	lastFiredTime = gameLocal.GetGameTimeMs();
 	dragEnt = NULL;
 	endTime = 0;
 }
@@ -472,7 +472,7 @@ int idGrabber::Update( idPlayer* player, bool hide )
 	idEntity* newEnt;
 	
 	// pause before allowing refire
-	if( lastFiredTime + FIRING_DELAY > gameLocal.GetTime() )
+	if( lastFiredTime + FIRING_DELAY > gameLocal.GetGameTimeMs() )
 	{
 		return 3;
 	}
@@ -483,13 +483,13 @@ int idGrabber::Update( idPlayer* player, bool hide )
 		StopDrag( true );
 		if( hide )
 		{
-			lastFiredTime = gameLocal.GetTime() - FIRING_DELAY + 250;
+			lastFiredTime = gameLocal.GetGameTimeMs() - FIRING_DELAY + 250;
 		}
 		return 3;
 	}
 	
 	// Check if object being held has been removed (dead demon, projectile, etc.)
-	if( endTime > gameLocal.GetTime() )
+	if( endTime > gameLocal.GetGameTimeMs() )
 	{
 		bool abort = !dragEnt.IsValid();
 		
@@ -612,7 +612,7 @@ int idGrabber::Update( idPlayer* player, bool hide )
 			StopDrag( false );
 			return 3;
 		}
-		if( gameLocal.GetTime() > endTime )
+		if( gameLocal.GetGameTimeMs() > endTime )
 		{
 			StopDrag( true );
 			return 3;
@@ -650,7 +650,7 @@ int idGrabber::Update( idPlayer* player, bool hide )
 		goalPos = player->firstPersonViewOrigin + localPlayerPoint * player->firstPersonViewAxis;
 		
 		drag.SetGoalPosition( goalPos );
-		drag.Evaluate( gameLocal.GetTime() );
+		drag.Evaluate( gameLocal.GetGameTimeMs() );
 		
 		// If an object is flying too fast toward the player, stop it hard
 		if( g_grabberHardStop.GetBool() )
@@ -756,7 +756,7 @@ void idGrabber::UpdateBeams()
 		muzzle_joint = thePlayer->weapon.GetEntity()->GetAnimator()->GetJointHandle( "particle_upper" );
 		if( muzzle_joint != INVALID_JOINT )
 		{
-			thePlayer->weapon.GetEntity()->GetJointWorldTransform( muzzle_joint, gameLocal.GetTime(), muzzle_origin, muzzle_axis );
+			thePlayer->weapon.GetEntity()->GetJointWorldTransform( muzzle_joint, gameLocal.GetGameTimeMs(), muzzle_origin, muzzle_axis );
 		}
 		else
 		{
@@ -779,7 +779,7 @@ idGrabber::ApplyShake
 */
 void idGrabber::ApplyShake()
 {
-	float u = 1 - ( float )( endTime - gameLocal.time ) / ( g_grabberHoldSeconds.GetFloat() * 1000 );
+	float u = 1 - ( float )( endTime - gameLocal.GetGameTimeMs() ) / ( g_grabberHoldSeconds.GetFloat() * 1000 );
 	
 	if( u >= 0.8f )
 	{

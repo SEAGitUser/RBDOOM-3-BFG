@@ -1525,14 +1525,14 @@ void GL_DrawIndexed( const drawSurf_t* surf, vertexLayoutType_t vertexLayout, in
 	// get vertex buffer --------------------------------
 
 	idVertexBuffer vertexBuffer;
-	vertexCache.GetVertexBuffer( surf->vertexCache, &vertexBuffer );
+	vertexCache.GetVertexBuffer( surf->vertexCache, vertexBuffer );
 	const GLint vertOffset = vertexBuffer.GetOffset();
 	const GLuint vbo = GetGLObject( vertexBuffer.GetAPIObject() );
 
 	// get index buffer --------------------------------
 
 	idIndexBuffer indexBuffer;
-	vertexCache.GetIndexBuffer( surf->indexCache, &indexBuffer );
+	vertexCache.GetIndexBuffer( surf->indexCache, indexBuffer );
 	const GLintptr indexOffset = indexBuffer.GetOffset();
 	const GLuint ibo = GetGLObject( indexBuffer.GetAPIObject() );
 
@@ -1563,7 +1563,7 @@ void GL_DrawIndexed( const drawSurf_t* surf, vertexLayoutType_t vertexLayout, in
 	if( surf->jointCache )
 	{
 		idJointBuffer jointBuffer;
-		if( !vertexCache.GetJointBuffer( surf->jointCache, &jointBuffer ) )
+		if( !vertexCache.GetJointBuffer( surf->jointCache, jointBuffer ) )
 		{
 			idLib::Warning( "GL_DrawIndexed, jointBuffer == NULL" );
 			return;
@@ -1577,7 +1577,7 @@ void GL_DrawIndexed( const drawSurf_t* surf, vertexLayoutType_t vertexLayout, in
 		glBindBufferRange( GL_UNIFORM_BUFFER, BINDING_MATRICES_UBO, ubo, jointBuffer.GetOffset(), jointBuffer.GetNumJoints() * sizeof( idJointMat ) );
 	}
 
-	renderProgManager.CommitUniforms();
+	renderProgManager.GetCurrentRenderProgram()->CommitUniforms();
 
 	GL_SetIndexBuffer( ibo );
 	GL_SetVertexArray( vbo, vertexLayout );
@@ -1604,19 +1604,19 @@ void GL_DrawZeroOneCube( vertexLayoutType_t vertexLayout, int instanceCount )
 {
 	const drawSurf_t* const surf = &backEnd.zeroOneCubeSurface;
 
-	renderProgManager.CommitUniforms();
+	renderProgManager.GetCurrentRenderProgram()->CommitUniforms();
 
 	// get vertex buffer --------------------------------
 
 	idVertexBuffer vertexBuffer;
-	vertexCache.GetVertexBuffer( surf->vertexCache, &vertexBuffer );
+	vertexCache.GetVertexBuffer( surf->vertexCache, vertexBuffer );
 	const GLint vertOffset = vertexBuffer.GetOffset();
 	const GLuint vbo = GetGLObject( vertexBuffer.GetAPIObject() );
 
 	// get index buffer --------------------------------
 
 	idIndexBuffer indexBuffer;
-	vertexCache.GetIndexBuffer( surf->indexCache, &indexBuffer );
+	vertexCache.GetIndexBuffer( surf->indexCache, indexBuffer );
 	const GLintptr indexOffset = indexBuffer.GetOffset();
 	const GLuint ibo = GetGLObject( indexBuffer.GetAPIObject() );
 
@@ -1644,19 +1644,19 @@ void GL_DrawUnitSquare( vertexLayoutType_t vertexLayout, int instanceCount )
 {
 	const drawSurf_t* const surf = &backEnd.unitSquareSurface;
 
-	renderProgManager.CommitUniforms();
+	renderProgManager.GetCurrentRenderProgram()->CommitUniforms();
 
 	// get vertex buffer --------------------------------
 
 	idVertexBuffer vertexBuffer;
-	vertexCache.GetVertexBuffer( surf->vertexCache, &vertexBuffer );
+	vertexCache.GetVertexBuffer( surf->vertexCache, vertexBuffer );
 	const GLint vertOffset = vertexBuffer.GetOffset();
 	const GLuint vbo = GetGLObject( vertexBuffer.GetAPIObject() );
 
 	// get index buffer --------------------------------
 
 	idIndexBuffer indexBuffer;
-	vertexCache.GetIndexBuffer( surf->indexCache, &indexBuffer );
+	vertexCache.GetIndexBuffer( surf->indexCache, indexBuffer );
 	const GLintptr indexOffset = indexBuffer.GetOffset();
 	const GLuint ibo = GetGLObject( indexBuffer.GetAPIObject() );
 

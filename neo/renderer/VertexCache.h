@@ -184,15 +184,15 @@ public:
 		return true;
 	}
 	
-	static bool		CacheIsStatic( const vertCacheHandle_t handle )
+	static bool		CacheIsStatic( const vertCacheHandle_t handle ) 
 	{
 		return ( handle & VERTCACHE_STATIC ) != 0;
 	}
 	
 	// vb/ib is a temporary reference -- don't store it
-	bool			GetVertexBuffer( vertCacheHandle_t handle, idVertexBuffer* vb );
-	bool			GetIndexBuffer( vertCacheHandle_t handle, idIndexBuffer* ib );
-	bool			GetJointBuffer( vertCacheHandle_t handle, idJointBuffer* jb );
+	bool			GetVertexBuffer( vertCacheHandle_t, idVertexBuffer & );
+	bool			GetIndexBuffer( vertCacheHandle_t, idIndexBuffer & );
+	bool			GetJointBuffer( vertCacheHandle_t, idJointBuffer & );
 	
 	void			BeginBackEnd();
 	

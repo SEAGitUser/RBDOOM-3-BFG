@@ -2029,7 +2029,7 @@ idPhysics_Player::GetTime
 */
 int idPhysics_Player::GetTime() const
 {
-	return gameLocal.time;
+	return gameLocal.GetGameTimeMs();
 }
 
 /*

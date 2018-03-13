@@ -63,8 +63,6 @@ idAnim::idAnim
 */
 idAnim::idAnim( const idDeclModelDef* modelDef, const idAnim* anim )
 {
-	int i;
-	
 	this->modelDef = modelDef;
 	numAnims = anim->numAnims;
 	name = anim->name;
@@ -72,7 +70,7 @@ idAnim::idAnim( const idDeclModelDef* modelDef, const idAnim* anim )
 	flags = anim->flags;
 	
 	memset( anims, 0, sizeof( anims ) );
-	for( i = 0; i < numAnims; i++ )
+	for( int i = 0; i < numAnims; i++ )
 	{
 		anims[ i ] = anim->anims[ i ];
 		anims[ i ]->IncreaseRefs();
@@ -82,7 +80,7 @@ idAnim::idAnim( const idDeclModelDef* modelDef, const idAnim* anim )
 	memcpy( frameLookup.Ptr(), anim->frameLookup.Ptr(), frameLookup.MemoryUsed() );
 	
 	frameCommands.SetNum( anim->frameCommands.Num() );
-	for( i = 0; i < frameCommands.Num(); i++ )
+	for( int i = 0; i < frameCommands.Num(); i++ )
 	{
 		frameCommands[ i ] = anim->frameCommands[ i ];
 		if( anim->frameCommands[ i ].string )
@@ -99,14 +97,12 @@ idAnim::~idAnim
 */
 idAnim::~idAnim()
 {
-	int i;
-	
-	for( i = 0; i < numAnims; i++ )
+	for( int i = 0; i < numAnims; i++ )
 	{
 		anims[ i ]->DecreaseRefs();
 	}
 	
-	for( i = 0; i < frameCommands.Num(); i++ )
+	for( int i = 0; i < frameCommands.Num(); i++ )
 	{
 		delete frameCommands[ i ].string;
 	}
@@ -119,11 +115,9 @@ idAnim::SetAnim
 */
 void idAnim::SetAnim( const idDeclModelDef* modelDef, const char* sourcename, const char* animname, int num, const idMD5Anim* md5anims[ ANIM_MaxSyncedAnims ] )
 {
-	int i;
-	
 	this->modelDef = modelDef;
 	
-	for( i = 0; i < numAnims; i++ )
+	for( int i = 0; i < numAnims; i++ )
 	{
 		anims[ i ]->DecreaseRefs();
 		anims[ i ] = NULL;
@@ -134,7 +128,7 @@ void idAnim::SetAnim( const idDeclModelDef* modelDef, const char* sourcename, co
 	realname	= sourcename;
 	name		= animname;
 	
-	for( i = 0; i < num; i++ )
+	for( int i = 0; i < num; i++ )
 	{
 		anims[ i ] = md5anims[ i ];
 		anims[ i ]->IncreaseRefs();
@@ -142,7 +136,7 @@ void idAnim::SetAnim( const idDeclModelDef* modelDef, const char* sourcename, co
 	
 	memset( &flags, 0, sizeof( flags ) );
 	
-	for( i = 0; i < frameCommands.Num(); i++ )
+	for( int i = 0; i < frameCommands.Num(); i++ )
 	{
 		delete frameCommands[ i ].string;
 	}
@@ -326,7 +320,7 @@ const char* idAnim::AddFrameCommand( const idDeclModelDef* modelDef, int framenu
 	}
 	
 	// frame numbers are 1 based in .def files, but 0 based internally
-	framenum--;
+	--framenum;
 	
 	frameCommand_t fc;
 	memset( &fc, 0, sizeof( fc ) );
@@ -5139,7 +5133,7 @@ bool idAnimator::CreateFrame( int currentTime, bool force )
 	if( entity && ( ( g_debugAnim.GetInteger() == entity->entityNumber ) || ( g_debugAnim.GetInteger() == -2 ) ) )
 	{
 		debugInfo = true;
-		gameLocal.Printf( "---------------\n%d: entity '%s':\n", gameLocal.GetTime(), entity->GetName() );
+		gameLocal.Printf( "---------------\n%d: entity '%s':\n", gameLocal.GetGameTimeMs(), entity->GetName() );
 		gameLocal.Printf( "model '%s':\n", modelDef->GetModelName() );
 	}
 	else
@@ -5216,7 +5210,7 @@ bool idAnimator::CreateFrame( int currentTime, bool force )
 			
 			if( debugInfo && !AFPoseJoints.Num() && !blendWeight )
 			{
-				gameLocal.Printf( "%d: %s using default pose in model '%s'\n", gameLocal.GetTime(), channelNames[ i ], modelDef->GetModelName() );
+				gameLocal.Printf( "%d: %s using default pose in model '%s'\n", gameLocal.GetGameTimeMs(), channelNames[ i ], modelDef->GetModelName() );
 			}
 		}
 	}
@@ -5427,7 +5421,7 @@ bool idAnimator::GetJointLocalTransform( jointHandle_t jointHandle, int currentT
 		return false;
 	}
 	
-	const idList<jointInfo_t>& modelJoints = modelDef->Joints();
+	const auto & modelJoints = modelDef->Joints();
 	
 	if( ( jointHandle < 0 ) || ( jointHandle >= modelJoints.Num() ) )
 	{

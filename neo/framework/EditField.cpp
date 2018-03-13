@@ -565,8 +565,7 @@ idEditField::Paste
 */
 void idEditField::Paste()
 {
-	char* cbd = Sys_GetClipboardData();
-	
+	char* cbd = sys->GetClipboardData();	
 	if( !cbd )
 	{
 		return;
@@ -625,8 +624,7 @@ void idEditField::Draw( int x, int y, int width, bool showCursor )
 	{
 		prestep = 0;
 	}
-	else
-	{
+	else {
 		if( scroll + drawLen > len )
 		{
 			scroll = len - drawLen;
@@ -680,8 +678,7 @@ void idEditField::Draw( int x, int y, int width, bool showCursor )
 	{
 		cursorChar = 11;
 	}
-	else
-	{
+	else {
 		cursorChar = 10;
 	}
 	

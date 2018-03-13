@@ -180,8 +180,7 @@ LONG WINAPI MainWndProc( HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam )
 			{
 				RECT rect;
 				if( ::GetClientRect( win32.hWnd, &rect ) )
-				{
-				
+				{			
 					if( rect.right > rect.left && rect.bottom > rect.top )
 					{
 						glConfig.nativeScreenWidth = rect.right - rect.left;
@@ -200,7 +199,7 @@ LONG WINAPI MainWndProc( HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam )
 			break;
 		case WM_MOVE:
 		{
-			int		xPos, yPos;
+			int	xPos, yPos;
 			RECT r;
 			
 			// save the window origin in cvars if we aren't fullscreen
@@ -260,43 +259,42 @@ LONG WINAPI MainWndProc( HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam )
 			// we should activate immediately.  If we are here because
 			// the mouse was clicked on a title bar or drag control,
 			// don't activate until the mouse button is released
-		{
-			int	fActive, fMinimized;
-			
-			fActive = LOWORD( wParam );
-			fMinimized = ( BOOL ) HIWORD( wParam );
-			
-			win32.activeApp = ( fActive != WA_INACTIVE );
-			if( win32.activeApp )
 			{
-				idKeyInput::ClearStates();
-				Sys_GrabMouseCursor( true );
-				if( common->IsInitialized() )
+				int	fActive, fMinimized;
+			
+				fActive = LOWORD( wParam );
+				fMinimized = ( BOOL ) HIWORD( wParam );
+			
+				win32.activeApp = ( fActive != WA_INACTIVE );
+				if( win32.activeApp )
 				{
-					SetCursor( NULL );
+					idKeyInput::ClearStates();
+					Sys_GrabMouseCursor( true );
+					if( common->IsInitialized() )
+					{
+						SetCursor( NULL );
+					}
 				}
-			}
 			
-			if( fActive == WA_INACTIVE )
-			{
-				win32.movingWindow = false;
-				if( common->IsInitialized() )
+				if( fActive == WA_INACTIVE )
 				{
-					SetCursor( LoadCursor( 0, IDC_ARROW ) );
+					win32.movingWindow = false;
+					if( common->IsInitialized() )
+					{
+						SetCursor( LoadCursor( 0, IDC_ARROW ) );
+					}
 				}
-			}
 			
-			// start playing the game sound world
-			soundSystem->SetMute( !win32.activeApp );
-			// DG: set com_pause so game pauses when focus is lost
-			// and continues when focus is regained
-			cvarSystem->SetCVarBool( "com_pause", !win32.activeApp );
-			// DG end
+				// start playing the game sound world
+				soundSystem->SetMute( !win32.activeApp );
+				// DG: set com_pause so game pauses when focus is lost
+				// and continues when focus is regained
+				cvarSystem->SetCVarBool( "com_pause", !win32.activeApp );
+				// DG end
 			
-			// we do not actually grab or release the mouse here,
-			// that will be done next time through the main loop
-		}
-		break;
+				// we do not actually grab or release the mouse here,
+				// that will be done next time through the main loop
+			} break;
 		case WM_TIMER:
 		{
 			if( win32.win_timerUpdate.GetBool() )
@@ -337,7 +335,7 @@ LONG WINAPI MainWndProc( HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam )
 			{
 				key = K_NUMLOCK;
 			}
-			Sys_QueEvent( SE_KEY, key, true, 0, NULL, 0 );
+			sys->QueEvent( SE_KEY, key, true, 0, NULL, 0 );
 			
 			break;
 			
@@ -356,7 +354,7 @@ LONG WINAPI MainWndProc( HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam )
 				// as two events (ctrl then alt)
 				break;
 			}
-			Sys_QueEvent( SE_KEY, key, false, 0, NULL, 0 );
+			sys->QueEvent( SE_KEY, key, false, 0, NULL, 0 );
 			break;
 			
 		case WM_CHAR:
@@ -365,13 +363,13 @@ LONG WINAPI MainWndProc( HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam )
 			//       (probably not, some people claim it's actually UCS-2, not UTF-16)
 			if( wParam < 0xD800 || wParam > 0xDFFF )
 			{
-				Sys_QueEvent( SE_CHAR, wParam, 0, 0, NULL, 0 );
+				sys->QueEvent( SE_CHAR, wParam, 0, 0, NULL, 0 );
 			}
 			break;
 			
 		// DG: support utf-32 input via WM_UNICHAR
 		case WM_UNICHAR:
-			Sys_QueEvent( SE_CHAR, wParam, 0, 0, NULL, 0 );
+			sys->QueEvent( SE_CHAR, wParam, 0, 0, NULL, 0 );
 			break;
 		// DG end
 		
@@ -437,103 +435,101 @@ LONG WINAPI MainWndProc( HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam )
 			const int y = GET_Y_LPARAM( lParam );
 			
 			// Generate an event
-			Sys_QueEvent( SE_MOUSE_ABSOLUTE, x, y, 0, NULL, 0 );
+			sys->QueEvent( SE_MOUSE_ABSOLUTE, x, y, 0, NULL, 0 );
 			
 			// Get a mouse leave message
-			TRACKMOUSEEVENT tme =
-			{
+			TRACKMOUSEEVENT tme = {
 				sizeof( TRACKMOUSEEVENT ),
 				TME_LEAVE,
 				hWnd,
 				0
-			};
-			
+			};		
 			TrackMouseEvent( &tme );
 			
 			return 0;
 		}
 		case WM_MOUSELEAVE:
 		{
-			Sys_QueEvent( SE_MOUSE_LEAVE, 0, 0, 0, NULL, 0 );
+			sys->QueEvent( SE_MOUSE_LEAVE, 0, 0, 0, NULL, 0 );
 			return 0;
 		}
 		case WM_LBUTTONDOWN:
 		{
-			Sys_QueEvent( SE_KEY, K_MOUSE1, 1, 0, NULL, 0 );
+			sys->QueEvent( SE_KEY, K_MOUSE1, 1, 0, NULL, 0 );
 			return 0;
 		}
 		case WM_LBUTTONUP:
 		{
-			Sys_QueEvent( SE_KEY, K_MOUSE1, 0, 0, NULL, 0 );
+			sys->QueEvent( SE_KEY, K_MOUSE1, 0, 0, NULL, 0 );
 			return 0;
 		}
 		case WM_RBUTTONDOWN:
 		{
-			Sys_QueEvent( SE_KEY, K_MOUSE2, 1, 0, NULL, 0 );
+			sys->QueEvent( SE_KEY, K_MOUSE2, 1, 0, NULL, 0 );
 			return 0;
 		}
 		case WM_RBUTTONUP:
 		{
-			Sys_QueEvent( SE_KEY, K_MOUSE2, 0, 0, NULL, 0 );
+			sys->QueEvent( SE_KEY, K_MOUSE2, 0, 0, NULL, 0 );
 			return 0;
 		}
 		case WM_MBUTTONDOWN:
 		{
-			Sys_QueEvent( SE_KEY, K_MOUSE3, 1, 0, NULL, 0 );
+			sys->QueEvent( SE_KEY, K_MOUSE3, 1, 0, NULL, 0 );
 			return 0;
 		}
 		case WM_MBUTTONUP:
 		{
-			Sys_QueEvent( SE_KEY, K_MOUSE3, 0, 0, NULL, 0 );
+			sys->QueEvent( SE_KEY, K_MOUSE3, 0, 0, NULL, 0 );
 			return 0;
 		}
 		case WM_XBUTTONDOWN:
 		{
 			// RB begin
-#if defined(__MINGW32__)
-			Sys_QueEvent( SE_KEY, K_MOUSE4, 1, 0, NULL, 0 );
-#else
+		#if defined(__MINGW32__)
+			sys->QueEvent( SE_KEY, K_MOUSE4, 1, 0, NULL, 0 );
+		#else
 			int button = GET_XBUTTON_WPARAM( wParam );
 			if( button == 1 )
 			{
-				Sys_QueEvent( SE_KEY, K_MOUSE4, 1, 0, NULL, 0 );
+				sys->QueEvent( SE_KEY, K_MOUSE4, 1, 0, NULL, 0 );
 			}
 			else if( button == 2 )
 			{
-				Sys_QueEvent( SE_KEY, K_MOUSE5, 1, 0, NULL, 0 );
+				sys->QueEvent( SE_KEY, K_MOUSE5, 1, 0, NULL, 0 );
 			}
-#endif
+		#endif
 			// RB end
 			return 0;
 		}
 		case WM_XBUTTONUP:
 		{
 			// RB begin
-#if defined(__MINGW32__)
-			Sys_QueEvent( SE_KEY, K_MOUSE4, 0, 0, NULL, 0 );
-#else
+		#if defined(__MINGW32__)
+			sys->QueEvent( SE_KEY, K_MOUSE4, 0, 0, NULL, 0 );
+		#else
 			int button = GET_XBUTTON_WPARAM( wParam );
 			if( button == 1 )
 			{
-				Sys_QueEvent( SE_KEY, K_MOUSE4, 0, 0, NULL, 0 );
+				sys->QueEvent( SE_KEY, K_MOUSE4, 0, 0, NULL, 0 );
 			}
 			else if( button == 2 )
 			{
-				Sys_QueEvent( SE_KEY, K_MOUSE5, 0, 0, NULL, 0 );
+				sys->QueEvent( SE_KEY, K_MOUSE5, 0, 0, NULL, 0 );
 			}
-#endif
+		#endif
 			// RB end
 			return 0;
 		}
 		case WM_MOUSEWHEEL:
 		{
 			int delta = GET_WHEEL_DELTA_WPARAM( wParam ) / WHEEL_DELTA;
-			int key = delta < 0 ? K_MWHEELDOWN : K_MWHEELUP;
-			delta = abs( delta );
+			int key = ( delta < 0 )? K_MWHEELDOWN : K_MWHEELUP;
+			delta = idMath::Abs( delta );
 			while( delta-- > 0 )
 			{
-				Sys_QueEvent( SE_KEY, key, true, 0, NULL, 0 );
-				Sys_QueEvent( SE_KEY, key, false, 0, NULL, 0 );
+				sys->QueEvent( SE_KEY, key, true, 0, NULL, 0 );
+				sys->QueEvent( SE_KEY, key, false, 0, NULL, 0 );
 			}
 			break;
 		}

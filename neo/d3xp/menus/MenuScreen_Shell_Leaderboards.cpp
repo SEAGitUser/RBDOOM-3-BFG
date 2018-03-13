@@ -1166,7 +1166,7 @@ void idLBCache::Update( const idLeaderboardCallback* callback )
 	// Find a a row block to store these new rows
 	idLBRowBlock* rowBlock	= FindFreeRowBlock();
 	
-	rowBlock->lastTime		= Sys_Milliseconds();			// Freshen row
+	rowBlock->lastTime		= sys->Milliseconds();			// Freshen row
 	rowBlock->startIndex	= callback->GetStartIndex();
 	rowBlock->rows			= callback->GetRows();
 }
@@ -1195,7 +1195,7 @@ const idLeaderboardCallback::row_t* idLBCache::GetLeaderboardRow( int row )
 		int lastIndex = startIndex + rowBlocks[i].rows.Num() - 1;
 		if( row >= startIndex && row <= lastIndex )
 		{
-			rowBlocks[i].lastTime = Sys_Milliseconds();		// Freshen row
+			rowBlocks[i].lastTime = sys->Milliseconds();		// Freshen row
 			return &rowBlocks[i].rows[row - startIndex];
 		}
 	}

@@ -471,7 +471,7 @@ bool R_GenerateSubViews( idRenderView * const renderView )
 	bool subviews = false;
 	for( int i = 0; i < renderView->numDrawSurfs; ++i )
 	{
-		const drawSurf_t * const drawSurf = renderView->drawSurfs[ i ];
+		const auto * const drawSurf = renderView->drawSurfs[ i ];
 		
 		if( drawSurf->material->HasSubview() )
 		{

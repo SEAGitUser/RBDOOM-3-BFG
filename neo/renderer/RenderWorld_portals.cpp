@@ -474,8 +474,7 @@ void idRenderWorldLocal::FloodViewThroughArea_r( const idVec3& origin, int areaN
 	{
 		areaScreenRect[areaNum] = ps->rect;
 	}
-	else
-	{
+	else {
 		areaScreenRect[areaNum].Union( ps->rect );
 	}
 	
@@ -602,9 +601,9 @@ void idRenderWorldLocal::FloodViewThroughArea_r( const idVec3& origin, int areaN
 =======================
 idRenderWorldLocal::FlowViewThroughPortals
 
-Finds viewLights and viewEntities by flowing from an origin through the visible
-portals that the origin point can see into. The planes array defines a volume with
-the planes pointing outside the volume. Zero planes assumes an unbounded volume.
+	Finds viewLights and viewEntities by flowing from an origin through the visible
+	portals that the origin point can see into. The planes array defines a volume with
+	the planes pointing outside the volume. Zero planes assumes an unbounded volume.
 =======================
 */
 void idRenderWorldLocal::FlowViewThroughPortals( const idVec3& origin, int numPlanes, const idPlane* planes ) const
@@ -667,7 +666,7 @@ void idRenderWorldLocal::BuildConnectedAreas_r( int areaNum ) const
 ===================
 idRenderWorldLocal::BuildConnectedAreas
 
-This is only valid for a given view, not all views in a frame
+	This is only valid for a given view, not all views in a frame
 ===================
 */
 void idRenderWorldLocal::BuildConnectedAreas() const
@@ -693,14 +692,14 @@ void idRenderWorldLocal::BuildConnectedAreas() const
 =============
 idRenderWorldLocal::FindViewLightsAndEntites
 
-All the modelrefs and lightrefs that are in visible areas
-will have viewEntitys and viewLights created for them.
+	All the modelrefs and lightrefs that are in visible areas
+	will have viewEntitys and viewLights created for them.
 
-The scissorRects on the viewEntitys and viewLights may be empty if
-they were considered, but not actually visible.
+	The scissorRects on the viewEntitys and viewLights may be empty if
+	they were considered, but not actually visible.
 
-Entities and lights can have cached viewEntities / viewLights that
-will be used if the viewCount variable matches.
+	Entities and lights can have cached viewEntities / viewLights that
+	will be used if the viewCount variable matches.
 =============
 */
 void idRenderWorldLocal::FindViewLightsAndEntities() const
@@ -762,20 +761,20 @@ void idRenderWorldLocal::FindViewLightsAndEntities() const
 			
 			AddAreaToView( tr.viewDef->areaNum, &ps );
 		}
+
+		return;
 	}
-	else
-	{
-		// note that the center of projection for flowing through portals may
-		// be a different point than initialViewAreaOrigin for subviews that
-		// may have the viewOrigin in a solid/invalid area
-		FlowViewThroughPortals( tr.viewDef->GetOrigin(), 5, &tr.viewDef->GetBaseFrustum()[0] );
-	}
+
+	// note that the center of projection for flowing through portals may
+	// be a different point than initialViewAreaOrigin for subviews that
+	// may have the viewOrigin in a solid/invalid area
+	FlowViewThroughPortals( tr.viewDef->GetOrigin(), 5, &tr.viewDef->GetBaseFrustum()[0] );
 }
 
 /*
 =======================================================================
 
-Light linking into the BSP tree by flooding through portals
+	Light linking into the BSP tree by flooding through portals
 
 =======================================================================
 */
@@ -912,9 +911,9 @@ void idRenderWorldLocal::FloodLightThroughArea_r( idRenderLightLocal* light, int
 =======================
 idRenderWorldLocal::FlowLightThroughPortals
 
-Adds an arearef in each area that the light center flows into.
-This can only be used for shadow casting lights that have a generated
-prelight, because shadows are cast from back side which may not be in visible areas.
+	Adds an arearef in each area that the light center flows into.
+	This can only be used for shadow casting lights that have a generated
+	prelight, because shadows are cast from back side which may not be in visible areas.
 =======================
 */
 void idRenderWorldLocal::FlowLightThroughPortals( idRenderLightLocal* light )
@@ -926,7 +925,7 @@ void idRenderWorldLocal::FlowLightThroughPortals( idRenderLightLocal* light )
 		return;
 	}
 	
-	idRenderPlane frustumPlanes[6];
+	idRenderPlane frustumPlanes[ 6 ];
 	idRenderMatrix::GetFrustumPlanes( frustumPlanes, light->baseLightProject, true, true );
 	
 	portalStack_t ps;
@@ -943,7 +942,7 @@ void idRenderWorldLocal::FlowLightThroughPortals( idRenderLightLocal* light )
 /*
 =======================================================================
 
-Portal State Management
+	Portal State Management
 
 =======================================================================
 */
@@ -968,18 +967,14 @@ Returns 0 if no portal contacts the bounds
 */
 qhandle_t idRenderWorldLocal::FindPortal( const idBounds& b ) const
 {
-	int				i, j;
-	idBounds		wb;
-	doublePortal_t*	portal;
-	idWinding*		w;
-	
-	for( i = 0; i < numInterAreaPortals; i++ )
+	idBounds wb;
+	for( int i = 0; i < numInterAreaPortals; i++ )
 	{
-		portal = &doublePortals[i];
-		w = portal->portals[0]->w;
+		auto portal = &doublePortals[i];
+		auto w = portal->portals[0]->w;
 		
 		wb.Clear();
-		for( j = 0; j < w->GetNumPoints(); j++ )
+		for( int j = 0; j < w->GetNumPoints(); j++ )
 		{
 			wb.AddPoint( ( *w )[j].ToVec3() );
 		}
@@ -987,8 +982,7 @@ qhandle_t idRenderWorldLocal::FindPortal( const idBounds& b ) const
 		{
 			return i + 1;
 		}
-	}
-	
+	}	
 	return 0;
 }
 
@@ -1044,7 +1038,7 @@ bool idRenderWorldLocal::AreasAreConnected( int areaNum1, int areaNum2, portalCo
 		common->Error( "idRenderWorldLocal::AreasAreConnected: bad connection number: %i\n", ( int )connection );
 	}
 	
-	return portalAreas[areaNum1].connectedAreaNum[attribute] == portalAreas[areaNum2].connectedAreaNum[attribute];
+	return( portalAreas[ areaNum1 ].connectedAreaNum[ attribute ] == portalAreas[ areaNum2 ].connectedAreaNum[ attribute ] );
 }
 
 /*
@@ -1116,7 +1110,7 @@ int idRenderWorldLocal::GetPortalState( qhandle_t portal )
 =====================
 idRenderWorldLocal::ShowPortals
 
-Debugging tool, won't work correctly with SMP or when mirrors are present
+	Debugging tool, won't work correctly with SMP or when mirrors are present
 =====================
 */
 void idRenderWorldLocal::ShowPortals()
@@ -1146,9 +1140,8 @@ void idRenderWorldLocal::ShowPortals()
 				GL_Color( 0, 1, 0 );
 			}
 			
-			// RB begin
-			renderProgManager.CommitUniforms();
-			// RB end
+			//SEA: ???
+			//renderProgManager.GetCurrentRenderProgram()->CommitUniforms();
 			
 			glBegin( GL_LINE_LOOP );
 			for( int j = 0; j < w->GetNumPoints(); j++ )

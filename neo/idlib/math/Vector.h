@@ -1000,11 +1000,12 @@ public:
 	{
 		Set( xy.x, xy.y, zw.x, zw.y );
 	}
-
 	
 	void 			Set( const float x, const float y, const float z, const float w );
 	void			Set( const idVec3 &xyz, const float w );
 	void			Set( const idVec2 &xy, const idVec2 &zw );
+
+	ID_INLINE void	Fill( const float value ) { Set( value, value, value, value ); }
 
 	void			Zero();
 	

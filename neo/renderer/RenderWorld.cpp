@@ -161,8 +161,8 @@ qhandle_t idRenderWorldLocal::AddEntityDef( const renderEntityParms_t* re )
 ==============
 UpdateEntityDef
 
-Does not write to the demo file, which will only be updated for
-visible entities
+	Does not write to the demo file, which will only be updated for
+	visible entities
 ==============
 */
 int c_callbackUpdate;
@@ -217,7 +217,7 @@ void idRenderWorldLocal::UpdateEntityDef( qhandle_t entityHandle, const renderEn
 				if( boundsMatch && originMatch && axisMatch && modelMatch )
 				{
 					// only clear the dynamic model and interaction surfaces if they exist
-					c_callbackUpdate++;
+					++c_callbackUpdate;
 					def->ClearDynamicModel();
 					def->parms = *re;
 					return;
@@ -234,8 +234,7 @@ void idRenderWorldLocal::UpdateEntityDef( qhandle_t entityHandle, const renderEn
 			def->FreeDerivedData( false, false );
 		}
 	}
-	else
-	{
+	else {
 		// creating a new one
 		def = new( TAG_RENDER_ENTITY ) idRenderEntityLocal;
 		entityDefs[entityHandle] = def;
@@ -271,8 +270,8 @@ void idRenderWorldLocal::UpdateEntityDef( qhandle_t entityHandle, const renderEn
 ===================
 FreeEntityDef
 
-Frees all references and lit surfaces from the model, and
-NULL's out it's entry in the world list
+	Frees all references and lit surfaces from the model, and
+	NULL's out it's entry in the world list
 ===================
 */
 void idRenderWorldLocal::FreeEntityDef( qhandle_t entityHandle )
@@ -357,10 +356,10 @@ qhandle_t idRenderWorldLocal::AddLightDef( const renderLightParms_t* rlight )
 =================
 UpdateLightDef
 
-The generation of all the derived interaction data will
-usually be deferred until it is visible in a scene
+	The generation of all the derived interaction data will
+	usually be deferred until it is visible in a scene.
 
-Does not write to the demo file, which will only be done for visible lights
+	Does not write to the demo file, which will only be done for visible lights.
 =================
 */
 void idRenderWorldLocal::UpdateLightDef( qhandle_t lightHandle, const renderLightParms_t* rlight )
@@ -411,8 +410,7 @@ void idRenderWorldLocal::UpdateLightDef( qhandle_t lightHandle, const renderLigh
 			light->FreeDerivedData();
 		}
 	}
-	else
-	{
+	else {
 		// create a new one
 		light = new( TAG_RENDER_LIGHT ) idRenderLightLocal;
 		lightDefs[lightHandle] = light;
@@ -451,8 +449,8 @@ void idRenderWorldLocal::UpdateLightDef( qhandle_t lightHandle, const renderLigh
 ====================
 FreeLightDef
 
-Frees all references and lit surfaces from the light, and
-NULL's out it's entry in the world list
+	Frees all references and lit surfaces from the light, and
+	NULL's out it's entry in the world list.
 ====================
 */
 void idRenderWorldLocal::FreeLightDef( qhandle_t lightHandle )
@@ -510,7 +508,8 @@ const renderLightParms_t* idRenderWorldLocal::GetRenderLight( qhandle_t lightHan
 idRenderWorldLocal::ProjectDecalOntoWorld
 ================
 */
-void idRenderWorldLocal::ProjectDecalOntoWorld( const idFixedWinding& winding, const idVec3& projectionOrigin, const bool parallel, const float fadeDepth, const idMaterial* material, const int startTime )
+void idRenderWorldLocal::ProjectDecalOntoWorld( const idFixedWinding& winding, const idVec3& projectionOrigin,
+	const bool parallel, const float fadeDepth, const idMaterial* material, const int startTime )
 {
 	decalProjectionParms_t globalParms;
 	
@@ -525,12 +524,11 @@ void idRenderWorldLocal::ProjectDecalOntoWorld( const idFixedWinding& winding, c
 	
 	// check all areas for models
 	for( int i = 0; i < numAreas; i++ )
-	{
-	
-		const portalArea_t* area = &portalAreas[ areas[i] ];
+	{	
+		const auto * area = &portalAreas[ areas[i] ];
 		
 		// check all models in this area
-		for( const areaReference_t* ref = area->entityRefs.areaNext; ref != &area->entityRefs; ref = ref->areaNext )
+		for( const auto * ref = area->entityRefs.areaNext; ref != &area->entityRefs; ref = ref->areaNext )
 		{
 			auto def = ref->entity;
 			
@@ -565,8 +563,7 @@ void idRenderWorldLocal::ProjectDecalOntoWorld( const idFixedWinding& winding, c
 			idRenderModelDecal::GlobalProjectionParmsToLocal( localParms, globalParms, def->parms.origin, def->parms.axis );
 			localParms.force = ( def->parms.customShader != NULL );
 			
-			if( def->decals == NULL )
-			{
+			if( def->decals == NULL ) {
 				def->decals = AllocDecal( def->GetIndex(), startTime );
 			}
 			def->decals->AddDeferredDecal( localParms );
@@ -580,7 +577,8 @@ void idRenderWorldLocal::ProjectDecalOntoWorld( const idFixedWinding& winding, c
 idRenderWorldLocal::ProjectDecal
 ====================
 */
-void idRenderWorldLocal::ProjectDecal( qhandle_t entityHandle, const idFixedWinding& winding, const idVec3& projectionOrigin, const bool parallel, const float fadeDepth, const idMaterial* material, const int startTime )
+void idRenderWorldLocal::ProjectDecal( qhandle_t entityHandle, const idFixedWinding& winding, 
+	const idVec3& projectionOrigin, const bool parallel, const float fadeDepth, const idMaterial* material, const int startTime )
 {
 	if( entityHandle < 0 || entityHandle >= entityDefs.Num() )
 	{
@@ -768,7 +766,7 @@ void idRenderWorldLocal::RemoveDecals( qhandle_t entityHandle )
 ====================
 idRenderWorldLocal::SetRenderView
 
-Sets the current view so any calls to the render world will use the correct parms.
+	Sets the current view so any calls to the render world will use the correct parms.
 ====================
 */
 void idRenderWorldLocal::SetRenderView( const renderViewParms_t* renderView )
@@ -812,7 +810,7 @@ void idRenderWorldLocal::RenderScene( const renderViewParms_t* renderViewParms )
 	tr.guiModel->EmitFullScreen();
 	tr.guiModel->Clear();
 	
-	int startTime = Sys_Microseconds();
+	int startTime = sys->Microseconds();
 	
 	// setup view parms for the initial view
 	auto view = allocManager.FrameAlloc<idRenderView, FRAME_ALLOC_VIEW_DEF, true>();
@@ -875,7 +873,7 @@ void idRenderWorldLocal::RenderScene( const renderViewParms_t* renderViewParms )
 
 	tr.UnCrop();
 	
-	int endTime = Sys_Microseconds();
+	int endTime = sys->Microseconds();
 	
 	tr.pc.frontEndMicroSec += endTime - startTime;
 	
@@ -1037,8 +1035,7 @@ void idRenderWorldLocal::BoundsInAreas_r( int nodeNum, const idBounds& bounds, i
 	int side, i;
 	areaNode_t* node;
 	
-	do
-	{
+	do {
 		if( nodeNum < 0 )
 		{
 			nodeNum = -1 - nodeNum;
@@ -1068,8 +1065,7 @@ void idRenderWorldLocal::BoundsInAreas_r( int nodeNum, const idBounds& bounds, i
 		{
 			nodeNum = node->children[1];
 		}
-		else
-		{
+		else {
 			if( node->children[1] != 0 )
 			{
 				BoundsInAreas_r( node->children[1], bounds, areas, numAreas, maxAreas );
@@ -1636,7 +1632,7 @@ void idRenderWorldLocal::GenerateAllInteractions()
 		return;
 	}
 	
-	int start = Sys_Milliseconds();
+	int start = sys->Milliseconds();
 	
 	generateAllInteractionsCalled = false;
 	
@@ -1704,7 +1700,7 @@ void idRenderWorldLocal::GenerateAllInteractions()
 		session->Pump();
 	}
 	
-	int end = Sys_Milliseconds();
+	int end = sys->Milliseconds();
 	int	msec = end - start;
 	
 	common->Printf( "idRenderWorld::GenerateAllInteractions, msec = %i\n", msec );

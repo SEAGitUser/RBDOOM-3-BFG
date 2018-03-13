@@ -40,7 +40,7 @@ class idMenuHandler_HUD;
 */
 
 // screenBlob_t are for the on-screen damage claw marks, etc
-typedef struct
+struct screenBlob_t
 {
 	const idMaterial* 	material;
 	float				x, y, w, h;
@@ -48,24 +48,18 @@ typedef struct
 	int					finishTime;
 	int					startFadeTime;
 	float				driftAmount;
-} screenBlob_t;
+};
 
 #define	MAX_SCREEN_BLOBS	8
 
-
-
-
-
-class WarpPolygon_t
-{
+class WarpPolygon_t {
 public:
 	idVec4					outer1;
 	idVec4					outer2;
 	idVec4					center;
 };
 
-class Warp_t
-{
+class Warp_t {
 public:
 	int						id;
 	bool					active;
@@ -122,20 +116,11 @@ public:
 	virtual void			Restore( idRestoreGame* savefile );
 	
 	// fader functions
-	void					SetFadeTime( int t )
-	{
-		msec = t;
-	};
-	int						GetFadeTime()
-	{
-		return msec;
-	};
+	void					SetFadeTime( int t ) { msec = t; };
+	int						GetFadeTime() { return msec; };
 	
 	// misc functions
-	float					GetAlpha()
-	{
-		return alpha;
-	};
+	float					GetAlpha() { return alpha; };
 };
 
 
@@ -144,12 +129,11 @@ public:
 FullscreenFX
 ==================
 */
-class FullscreenFX
-{
+class FullscreenFX {
 protected:
 	idStr					name;
 	FxFader					fader;
-	FullscreenFXManager*		fxman;
+	FullscreenFXManager *	fxman;
 	
 public:
 	FullscreenFX()
@@ -245,10 +229,7 @@ public:
 	virtual bool			Active();
 	virtual void			HighQuality();
 	virtual void			AccumPass( const renderViewParms_t* view );
-	virtual bool			HasAccum()
-	{
-		return true;
-	};
+	virtual bool			HasAccum() { return true; };
 	
 	virtual void			Restore( idRestoreGame* savefile );
 };
@@ -437,16 +418,13 @@ public:
 	void				Flash( idVec4 color, int time );
 	
 	// temp for view testing
-	void				EnableBFGVision( bool b )
-	{
-		bfgVision = b;
-	};
+	void				EnableBFGVision( bool b ) { bfgVision = b; };
 	
 private:
 	void				SingleView( const renderViewParms_t* view, idMenuHandler_HUD* hudManager );
 	void				ScreenFade();
 	
-	screenBlob_t* 		GetScreenBlob();
+	screenBlob_t * 		GetScreenBlob();
 	
 	screenBlob_t		screenBlobs[MAX_SCREEN_BLOBS];
 	
@@ -458,12 +436,12 @@ public:
 	
 	bool				bfgVision;			//
 	
-	const idMaterial* 	tunnelMaterial;		// health tunnel vision
-	const idMaterial* 	armorMaterial;		// armor damage view effect
-	const idMaterial* 	berserkMaterial;	// berserk effect
-	const idMaterial* 	irGogglesMaterial;	// ir effect
-	const idMaterial* 	bloodSprayMaterial; // blood spray
-	const idMaterial* 	bfgMaterial;		// when targeted with BFG
+	const idMaterial * 	tunnelMaterial;		// health tunnel vision
+	const idMaterial * 	armorMaterial;		// armor damage view effect
+	const idMaterial * 	berserkMaterial;	// berserk effect
+	const idMaterial * 	irGogglesMaterial;	// ir effect
+	const idMaterial * 	bloodSprayMaterial; // blood spray
+	const idMaterial * 	bfgMaterial;		// when targeted with BFG
 	float				lastDamageTime;		// accentuate the tunnel effect for a while
 	
 	idVec4				fadeColor;			// fade color
@@ -474,10 +452,10 @@ public:
 	
 	idAngles			shakeAng;			// from the sound sources
 	
-	idPlayer* 			player;
-	renderViewParms_t		view;
+	idPlayer * 			player;
+	renderViewParms_t	view;
 	
-	FullscreenFXManager*	fxManager;
+	FullscreenFXManager * fxManager;
 	
 public:
 	int					AddWarp( idVec3 worldOrigin, float centerx, float centery, float initialRadius, float durationMsec );

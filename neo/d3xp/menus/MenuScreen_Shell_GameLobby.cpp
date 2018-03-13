@@ -345,9 +345,9 @@ void idMenuScreen_Shell_GameLobby::ShowScreen( const mainMenuTransition_t transi
 			options->SetListData( menuOptions );
 		}
 		
-		longCountdown = Sys_Milliseconds() + WAIT_START_TIME_LONG;
+		longCountdown = sys->Milliseconds() + WAIT_START_TIME_LONG;
 		longCountRemaining = longCountdown;
-		shortCountdown = Sys_Milliseconds() + WAIT_START_TIME_SHORT;
+		shortCountdown = sys->Milliseconds() + WAIT_START_TIME_SHORT;
 	}
 	
 	idSWFScriptObject& root = GetSWFObject()->GetRootObject();
@@ -646,8 +646,8 @@ void idMenuScreen_Shell_GameLobby::UpdateLobby()
 			{
 				if( session->GetActivePlatformLobbyBase().IsLobbyFull() )
 				{
-					longCountdown = Sys_Milliseconds() + longCountRemaining;
-					int timeRemaining = shortCountdown - Sys_Milliseconds();
+					longCountdown = sys->Milliseconds() + longCountRemaining;
+					int timeRemaining = shortCountdown - sys->Milliseconds();
 					if( timeRemaining < 0 )
 					{
 						timeRemaining = 0;
@@ -657,10 +657,10 @@ void idMenuScreen_Shell_GameLobby::UpdateLobby()
 				}
 				else if( session->GetActivePlatformLobbyBase().GetNumLobbyUsers() > 1 )
 				{
-					int timeRemaining = longCountdown - Sys_Milliseconds();
+					int timeRemaining = longCountdown - sys->Milliseconds();
 					if( timeRemaining > WAIT_START_TIME_SHORT )
 					{
-						shortCountdown = Sys_Milliseconds() + WAIT_START_TIME_SHORT;
+						shortCountdown = sys->Milliseconds() + WAIT_START_TIME_SHORT;
 					}
 					else
 					{
@@ -677,9 +677,9 @@ void idMenuScreen_Shell_GameLobby::UpdateLobby()
 				else
 				{
 					ms = 0;
-					longCountdown = Sys_Milliseconds() + WAIT_START_TIME_LONG;
+					longCountdown = sys->Milliseconds() + WAIT_START_TIME_LONG;
 					longCountRemaining = longCountdown;
-					shortCountdown = Sys_Milliseconds() + WAIT_START_TIME_SHORT;
+					shortCountdown = sys->Milliseconds() + WAIT_START_TIME_SHORT;
 					handler->SetTimeRemaining( longCountRemaining );
 				}
 			}

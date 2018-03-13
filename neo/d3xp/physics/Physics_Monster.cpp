@@ -254,7 +254,7 @@ idPhysics_Monster::Rest
 */
 void idPhysics_Monster::Rest()
 {
-	current.atRest = gameLocal.time;
+	current.atRest = gameLocal.GetGameTimeMs();
 	current.velocity.Zero();
 	self->BecomeInactive( TH_PHYSICS );
 }
@@ -622,7 +622,7 @@ idPhysics_Monster::GetTime
 */
 int idPhysics_Monster::GetTime() const
 {
-	return gameLocal.time;
+	return gameLocal.GetGameTimeMs();
 }
 
 /*

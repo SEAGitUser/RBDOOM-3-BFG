@@ -126,8 +126,8 @@ public:
 	virtual void				InitFromFile( const char* fileName ) = 0;
 	
 	// Supports reading/writing binary file formats
-	virtual bool				LoadBinaryModel( idFile* file, const ID_TIME_T sourceTimeStamp ) = 0;
-	virtual void				WriteBinaryModel( idFile* file, ID_TIME_T* _timeStamp = NULL ) const = 0;
+	virtual bool				LoadBinaryModel( idFile*, const ID_TIME_T sourceTimeStamp ) = 0;
+	virtual void				WriteBinaryModel( idFile*, ID_TIME_T* _timeStamp = NULL ) const = 0;
 	virtual bool				SupportsBinaryModel() = 0;
 	
 	// RB begin
@@ -145,7 +145,7 @@ public:
 	// dynamic model instantiations will be created with this
 	// the geometry data will be owned by the model, and freed when it is freed
 	// the geoemtry should be raw triangles, with no extra processing
-	virtual void				AddSurface( modelSurface_t surface ) = 0;
+	virtual void				AddSurface( modelSurface_t ) = 0;
 	
 	// cleans all the geometry and performs cross-surface processing
 	// like shadow hulls
@@ -236,7 +236,7 @@ public:
 	// currently, this will be regenerated for every view, even though
 	// some models, like character meshes, could be used for multiple (mirror)
 	// views in a frame, or may stay static for multiple frames (corpses)
-	// The renderer will delete the returned dynamic model the next view
+	// The renderer will delete the returned dynamic model the next view.
 	// This isn't const, because it may need to reload a purged model if it
 	// wasn't precached correctly.
 	virtual idRenderModel* 		InstantiateDynamicModel( const struct renderEntityParms_t*, const idRenderView*, idRenderModel* cachedModel ) = 0;
@@ -251,7 +251,7 @@ public:
 	virtual jointHandle_t		GetJointHandle( const char* name ) const = 0;
 	
 	// Returns the name for the joint with the given handle.
-	virtual const char* 		GetJointName( jointHandle_t handle ) const = 0;
+	virtual const char* 		GetJointName( jointHandle_t ) const = 0;
 	
 	// Returns the default animation pose or NULL if the model is not an MD5.
 	virtual const idJointQuat* 	GetDefaultPose() const = 0;
@@ -260,8 +260,8 @@ public:
 	virtual int					NearestJoint( int surfaceNum, int a, int c, int b ) const = 0;
 	
 	// Writing to and reading from a demo file.
-	virtual void				ReadFromDemoFile( class idDemoFile* f ) = 0;
-	virtual void				WriteToDemoFile( class idDemoFile* f ) = 0;
+	virtual void				ReadFromDemoFile( class idDemoFile* ) = 0;
+	virtual void				WriteToDemoFile( class idDemoFile* ) = 0;
 	
 	// if false, the model doesn't need to be linked into the world, because it
 	// can't contribute visually -- triggers, etc

@@ -292,12 +292,14 @@ static void UpdateCvars()
 		}
 	}
 
-	if (r_useHDR.IsModified() || r_useHalfLambertLighting.IsModified() )
+	if( r_useHDR.IsModified() || r_useHalfLambertLighting.IsModified() || r_useProgUBO.IsModified() )
 	{
 		r_useHDR.ClearModified();
 		r_useHalfLambertLighting.ClearModified();
+		r_useProgUBO.ClearModified();
+
 		renderProgManager.KillAllShaders();
-		renderProgManager.LoadAllShaders();
+		renderProgManager.LoadAllShaders( false );
 	}
 	
 	// RB: turn off shadow mapping for OpenGL drivers that are too slow
@@ -826,7 +828,7 @@ const emptyCommand_t* idRenderSystemLocal::SwapCommandBuffers_FinishCommandBuffe
 //	primaryWorld = NULL;
 
 	// set the time for shader effects in 2D rendering
-	frameShaderTime = Sys_Milliseconds() * 0.001;
+	frameShaderTime = sys->Milliseconds() * 0.001;
 	
 	auto cmd2 = allocManager.GetEmptyFrameCmd<setBufferCommand_t>();
 	cmd2->commandId = RC_SET_BUFFER;
@@ -934,12 +936,12 @@ void idRenderSystemLocal::CropRenderSize( int width, int height )
 			common->Printf( "write DC_CROP_RENDER\n" );
 		}
 	}
-	
-	idScreenRect& previous = renderCrops[currentRenderCrop];
-	
-	currentRenderCrop++;
-	
-	idScreenRect& current = renderCrops[currentRenderCrop];
+
+	auto & previous = renderCrops[ currentRenderCrop ];
+
+	++currentRenderCrop;
+
+	auto & current = renderCrops[ currentRenderCrop ];
 	
 	current.x1 = previous.x1;
 	current.x2 = previous.x1 + width - 1;
@@ -968,7 +970,7 @@ void idRenderSystemLocal::UnCrop()
 	guiModel->EmitFullScreen();
 	guiModel->Clear();
 	
-	currentRenderCrop--;
+	--currentRenderCrop;
 	
 	if( common->WriteDemo() )
 	{
@@ -1013,7 +1015,7 @@ void idRenderSystemLocal::CaptureRenderToImage( const char* imageName, bool clea
 		image = renderImageManager->CreateImage( imageName );
 	}
 	
-	idScreenRect& rc = renderCrops[ currentRenderCrop ];
+	auto & rc = renderCrops[ currentRenderCrop ];
 	
 	auto cmd = allocManager.GetEmptyFrameCmd<copyRenderCommand_t>();
 	cmd->commandId = RC_COPY_RENDER;

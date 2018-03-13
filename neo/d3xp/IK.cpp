@@ -637,13 +637,13 @@ void idIK_Walk::Evaluate()
 	modelOrigin += modelOffset * modelAxis;
 	
 	// create frame without joint mods
-	animator->CreateFrame( gameLocal.GetTime(), false );
+	animator->CreateFrame( gameLocal.GetGameTimeMs(), false );
 	
 	// get the joint positions for the feet
 	lowestHeight = idMath::INFINITY;
 	for( i = 0; i < numLegs; i++ )
 	{
-		animator->GetJointTransform( footJoints[i], gameLocal.GetTime(), footOrigin, axis );
+		animator->GetJointTransform( footJoints[i], gameLocal.GetGameTimeMs(), footOrigin, axis );
 		jointOrigins[i] = modelOrigin + footOrigin * modelAxis;
 		jointHeight = jointOrigins[i] * normal;
 		if( jointHeight < lowestHeight )
@@ -662,7 +662,7 @@ void idIK_Walk::Evaluate()
 		{
 			pivotFoot = newPivotFoot;
 			pivotYaw = newPivotYaw;
-			animator->GetJointTransform( footJoints[pivotFoot], gameLocal.GetTime(), footOrigin, axis );
+			animator->GetJointTransform( footJoints[pivotFoot], gameLocal.GetGameTimeMs(), footOrigin, axis );
 			pivotPos = modelOrigin + footOrigin * modelAxis;
 		}
 		
@@ -730,7 +730,7 @@ void idIK_Walk::Evaluate()
 			smallestShift = shift;
 		}
 		
-		animator->GetJointTransform( ankleJoints[i], gameLocal.GetTime(), ankleOrigin, ankleAxis[i] );
+		animator->GetJointTransform( ankleJoints[i], gameLocal.GetGameTimeMs(), ankleOrigin, ankleAxis[i] );
 		jointOrigins[i] = modelOrigin + ankleOrigin * modelAxis;
 		
 		height = jointOrigins[i] * normal;
@@ -752,7 +752,7 @@ void idIK_Walk::Evaluate()
 		jointOrigins[i] += shift * normal;
 	}
 	
-	animator->GetJointTransform( waistJoint, gameLocal.GetTime(), waistOrigin, waistAxis );
+	animator->GetJointTransform( waistJoint, gameLocal.GetGameTimeMs(), waistOrigin, waistAxis );
 	waistOrigin = modelOrigin + waistOrigin * modelAxis;
 	
 	// adjust position of the waist
@@ -802,12 +802,12 @@ void idIK_Walk::Evaluate()
 	for( i = 0; i < numLegs; i++ )
 	{	
 		// get the position of the hip in world space
-		animator->GetJointTransform( hipJoints[i], gameLocal.GetTime(), hipOrigin, axis );
+		animator->GetJointTransform( hipJoints[i], gameLocal.GetGameTimeMs(), hipOrigin, axis );
 		hipOrigin = modelOrigin + waistOffset + hipOrigin * modelAxis;
 		hipDir = hipForward[i] * axis * modelAxis;
 		
 		// get the IK bend direction
-		animator->GetJointTransform( kneeJoints[i], gameLocal.GetTime(), kneeOrigin, axis );
+		animator->GetJointTransform( kneeJoints[i], gameLocal.GetGameTimeMs(), kneeOrigin, axis );
 		kneeDir = kneeForward[i] * axis * modelAxis;
 		
 		// solve IK and calculate knee position
@@ -1157,12 +1157,12 @@ void idIK_Reach::Evaluate()
 	{
 	
 		// get the position of the shoulder in world space
-		animator->GetJointTransform( shoulderJoints[i], gameLocal.GetTime(), shoulderOrigin, axis );
+		animator->GetJointTransform( shoulderJoints[i], gameLocal.GetGameTimeMs(), shoulderOrigin, axis );
 		shoulderOrigin = modelOrigin + shoulderOrigin * modelAxis;
 		shoulderDir = shoulderForward[i] * axis * modelAxis;
 		
 		// get the position of the hand in world space
-		animator->GetJointTransform( handJoints[i], gameLocal.GetTime(), handOrigin, axis );
+		animator->GetJointTransform( handJoints[i], gameLocal.GetGameTimeMs(), handOrigin, axis );
 		handOrigin = modelOrigin + handOrigin * modelAxis;
 		
 		// get first collision going from shoulder to hand
@@ -1170,7 +1170,7 @@ void idIK_Reach::Evaluate()
 		handOrigin = trace.endpos;
 		
 		// get the IK bend direction
-		animator->GetJointTransform( elbowJoints[i], gameLocal.GetTime(), elbowOrigin, axis );
+		animator->GetJointTransform( elbowJoints[i], gameLocal.GetGameTimeMs(), elbowOrigin, axis );
 		elbowDir = elbowForward[i] * axis * modelAxis;
 		
 		// solve IK and calculate elbow position

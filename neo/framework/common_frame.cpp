@@ -92,7 +92,7 @@ be called directly in the foreground thread for comparison.
 */
 int idGameThread::Run()
 {
-	commonLocal.frameTiming.startGameTime = Sys_Microseconds();
+	commonLocal.frameTiming.startGameTime = sys->Microseconds();
 	
 	// debugging tool to test frame dropping behavior
 	if( com_sleepGame.GetInteger() )
@@ -142,19 +142,19 @@ int idGameThread::Run()
 	// we should have consumed all of our usercmds
 	if( userCmdMgr )
 	{
-		// RB begin
-#if defined(USE_DOOMCLASSIC)
+	// RB begin
+	#if defined(USE_DOOMCLASSIC)
 		if( userCmdMgr->HasUserCmdForPlayer( game->GetLocalClientNum() ) && common->GetCurrentGame() == DOOM3_BFG )
-#else
+	#else
 		if( userCmdMgr->HasUserCmdForPlayer( game->GetLocalClientNum() ) )
-#endif
-			// RB end
+	#endif
+	// RB end
 		{
 			idLib::Printf( "idGameThread::Run: didn't consume all usercmds\n" );
 		}
 	}
 	
-	commonLocal.frameTiming.finishGameTime = Sys_Microseconds();
+	commonLocal.frameTiming.finishGameTime = sys->Microseconds();
 	
 	SetThreadGameTime( ( commonLocal.frameTiming.finishGameTime - commonLocal.frameTiming.startGameTime ) / 1000 );
 	
@@ -164,7 +164,7 @@ int idGameThread::Run()
 		commonLocal.Draw();
 	}
 	
-	commonLocal.frameTiming.finishDrawTime = Sys_Microseconds();
+	commonLocal.frameTiming.finishDrawTime = sys->Microseconds();
 	
 	SetThreadRenderTime( ( commonLocal.frameTiming.finishDrawTime - commonLocal.frameTiming.finishGameTime ) / 1000 );
 	
@@ -200,8 +200,7 @@ gameReturn_t idGameThread::RunGameAndDraw( int numGameFrames_, idUserCmdMgr& use
 		// run it in the main thread so PIX profiling catches everything
 		Run();
 	}
-	else
-	{
+	else {
 		this->SignalWork();
 	}
 	
@@ -225,7 +224,7 @@ void idCommonLocal::DrawWipeModel()
 		return;
 	}
 	
-	int currentTime = Sys_Milliseconds();
+	int currentTime = sys->Milliseconds();
 	
 	if( !wipeHold && currentTime > wipeStopTime )
 	{
@@ -252,7 +251,7 @@ void idCommonLocal::Draw()
 	
 	if( loadGUI != NULL )
 	{
-		loadGUI->Render( renderSystem, Sys_Milliseconds() );
+		loadGUI->Render( renderSystem, sys->Milliseconds() );
 	}
 	// RB begin
 #if defined(USE_DOOMCLASSIC)
@@ -305,12 +304,12 @@ void idCommonLocal::Draw()
 		if( !com_skipGameDraw.GetBool() && Game()->GetLocalClientNum() >= 0 )
 		{
 			// draw the game view
-			int	start = Sys_Milliseconds();
+			int	start = sys->Milliseconds();
 			if( game )
 			{
 				gameDraw = game->Draw( Game()->GetLocalClientNum() );
 			}
-			int end = Sys_Milliseconds();
+			int end = sys->Milliseconds();
 			time_gameDraw += ( end - start );	// note time used for com_speeds
 		}
 		if( !gameDraw )
@@ -472,7 +471,7 @@ void idCommonLocal::Frame()
 		// RB end
 		
 		// pump all the events
-		Sys_GenerateEvents();
+		sys->ProcessOSEvents();
 		
 		// write config file if anything changed
 		WriteConfiguration();
@@ -550,7 +549,7 @@ void idCommonLocal::Frame()
 		//--------------------------------------------
 		// this should exit right after vsync, with the GPU idle and ready to draw
 		// This may block if the GPU isn't finished renderng the previous frame.
-		frameTiming.startSyncTime = Sys_Microseconds();
+		frameTiming.startSyncTime = sys->Microseconds();
 		const emptyCommand_t* renderCommands = NULL;
 		if( com_smp.GetBool() )
 		{
@@ -561,7 +560,7 @@ void idCommonLocal::Frame()
 			// input latency
 			renderSystem->SwapCommandBuffers_FinishRendering( &time_frontend, &time_backend, &time_shadows, &time_gpu );
 		}
-		frameTiming.finishSyncTime = Sys_Microseconds();
+		frameTiming.finishSyncTime = sys->Microseconds();
 		
 		//--------------------------------------------
 		// Determine how many game tics we are going to run,
@@ -594,7 +593,7 @@ void idCommonLocal::Frame()
 		
 		for( ;; )
 		{
-			const int thisFrameTime = Sys_Milliseconds();
+			const int thisFrameTime = sys->Milliseconds();
 			static int lastFrameTime = thisFrameTime;	// initialized only the first time
 			const int deltaMilliseconds = thisFrameTime - lastFrameTime;
 			lastFrameTime = thisFrameTime;
@@ -785,14 +784,14 @@ void idCommonLocal::Frame()
 		// Run the render back end, getting the GPU busy with new commands
 		// ASAP to minimize the pipeline bubble.
 		//----------------------------------------
-		frameTiming.startRenderTime = Sys_Microseconds();
+		frameTiming.startRenderTime = sys->Microseconds();
 		renderSystem->RenderCommandBuffers( renderCommands );
 		if( com_sleepRender.GetInteger() > 0 )
 		{
 			// debug tool to test frame adaption
 			Sys_Sleep( com_sleepRender.GetInteger() );
 		}
-		frameTiming.finishRenderTime = Sys_Microseconds();
+		frameTiming.finishRenderTime = sys->Microseconds();
 		
 		// make sure the game / draw thread has completed
 		// This may block if the game is taking longer than the render back end
@@ -839,8 +838,8 @@ void idCommonLocal::Frame()
 		// report timing information
 		if( com_speeds.GetBool() )
 		{
-			static int lastTime = Sys_Milliseconds();
-			int	nowTime = Sys_Milliseconds();
+			static int lastTime = sys->Milliseconds();
+			int	nowTime = sys->Milliseconds();
 			int	com_frameMsec = nowTime - lastTime;
 			lastTime = nowTime;
 			Printf( "frame:%d all:%3d gfr:%3d rf:%3lld bk:%3lld\n", idLib::frameNumber, com_frameMsec, time_gameFrame, time_frontend / 1000, time_backend / 1000 );
@@ -849,9 +848,9 @@ void idCommonLocal::Frame()
 		}
 		
 		// the FPU stack better be empty at this point or some bad code or compiler bug left values on the stack
-		if( !Sys_FPU_StackIsEmpty() )
+		if( !sys->FPU_StackIsEmpty() )
 		{
-			Printf( "%s", Sys_FPU_GetState() );
+			Printf( "%s", sys->FPU_GetState() );
 			FatalError( "idCommon::Frame: the FPU stack is not empty at the end of the frame\n" );
 		}
 		

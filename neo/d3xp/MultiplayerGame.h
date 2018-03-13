@@ -55,13 +55,13 @@ enum gameType_t
 };
 
 // Used by the UI
-typedef enum
+enum flagStatus_t
 {
 	FLAGSTATUS_INBASE = 0,
 	FLAGSTATUS_TAKEN  = 1,
 	FLAGSTATUS_STRAY  = 2,
 	FLAGSTATUS_NONE   = 3
-} flagStatus_t;
+};
 
 typedef struct mpPlayerState_s
 {
@@ -89,7 +89,7 @@ typedef struct mpChatLine_s
 	short			fade;			// starts high and decreases, line is removed once reached 0
 } mpChatLine_t;
 
-typedef enum
+enum snd_evt_t
 {
 	SND_YOUWIN = 0,
 	SND_YOULOSE,
@@ -106,10 +106,9 @@ typedef enum
 	SND_FLAG_DROPPED_YOURS,
 	SND_FLAG_DROPPED_THEIRS,
 	SND_COUNT
-} snd_evt_t;
+};
 
-class idMultiplayerGame
-{
+class idMultiplayerGame {
 public:
 
 	idMultiplayerGame();
@@ -137,7 +136,7 @@ public:
 	void			ReadFromSnapshot( const idBitMsg& msg );
 	
 	// game state
-	typedef enum
+	enum gameState_t
 	{
 		INACTIVE = 0,						// not running
 		WARMUP,								// warming up
@@ -147,7 +146,7 @@ public:
 		GAMEREVIEW,							// game is over, scoreboard is up. we wait si_gameReviewPause seconds (which has a min value)
 		NEXTGAME,
 		STATE_COUNT
-	} gameState_t;
+	};
 	static const char* GameStateStrings[ STATE_COUNT ];
 	idMultiplayerGame::gameState_t		GetGameState() const;
 	
@@ -156,7 +155,7 @@ public:
 	void			PlayTeamSound( int toTeam, snd_evt_t evt, const char* shader = NULL );	// sound that's sent only to member of toTeam team
 	
 	// more compact than a chat line
-	typedef enum
+	enum msg_evt_t
 	{
 		MSG_SUICIDE = 0,
 		MSG_KILLED,
@@ -177,7 +176,7 @@ public:
 		MSG_SCOREUPDATE,
 		MSG_LEFTGAME,
 		MSG_COUNT
-	} msg_evt_t;
+	};
 	void			PrintMessageEvent( msg_evt_t evt, int parm1 = -1, int parm2 = -1 );
 	
 	void			DisconnectClient( int clientNum );
@@ -194,7 +193,7 @@ public:
 	bool			IsPureReady() const;
 	void			ProcessChatMessage( int clientNum, bool team, const char* name, const char* text, const char* sound );
 	void			ProcessVoiceChat( int clientNum, bool team, int index );
-	bool			HandleGuiEvent( const sysEvent_t* sev );
+	bool			HandleGuiEvent( const idSysEvent* sev );
 	bool			IsScoreboardActive();
 	void			SetScoreboardActive( bool active );
 	void			CleanupScoreboard();

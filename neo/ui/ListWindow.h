@@ -52,7 +52,7 @@ class idListWindow : public idWindow
 public:
 	idListWindow( idUserInterfaceLocal* gui );
 	
-	virtual const char*	HandleEvent( const sysEvent_t* event, bool* updateVisuals );
+	virtual const char*	HandleEvent( const idSysEvent* event, bool* updateVisuals );
 	virtual void		PostParse();
 	virtual void		Draw( int time, float x, float y );
 	virtual void		Activate( bool activate, idStr& act );

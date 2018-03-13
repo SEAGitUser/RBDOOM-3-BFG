@@ -127,7 +127,7 @@ void idCommonLocal::SendSnapshots()
 	{
 		return;
 	}
-	int currentTime = Sys_Milliseconds();
+	int currentTime = sys->Milliseconds();
 	if( currentTime < nextSnapshotSendTime )
 	{
 		return;
@@ -155,7 +155,7 @@ idCommonLocal::NetReceiveSnapshot
 */
 void idCommonLocal::NetReceiveSnapshot( class idSnapShot& ss )
 {
-	ss.SetRecvTime( Sys_Milliseconds() );
+	ss.SetRecvTime( sys->Milliseconds() );
 	// If we are about to overwrite the oldest snap, then force a read, which will cause a pop on screen, but we have to do this.
 	if( writeSnapshotIndex - readSnapshotIndex >= RECEIVE_SNAPSHOT_BUFFER_SIZE )
 	{
@@ -185,7 +185,7 @@ void idCommonLocal::SendUsercmds( int localClientNum )
 	{
 		return;
 	}
-	int currentTime = Sys_Milliseconds();
+	int currentTime = sys->Milliseconds();
 	if( currentTime < nextUsercmdSendTime )
 	{
 		return;
@@ -267,7 +267,7 @@ idCommonLocal::ProcessSnapshot
 */
 void idCommonLocal::ProcessSnapshot( idSnapShot& ss )
 {
-	int time = Sys_Milliseconds();
+	int time = sys->Milliseconds();
 	
 	snapTime = time;
 	snapPrevious			= snapCurrent;
@@ -418,7 +418,7 @@ void idCommonLocal::ProcessNextSnapshot()
 idCommonLocal::CalcSnapTimeBuffered
 Return the amount of game time left of buffered snapshots
 totalBufferedTime - total amount of snapshot time (includng what we've already past in current interpolate)
-totalRecvTime - total real time (sys_milliseconds) all of totalBufferedTime was received over
+totalRecvTime - total real time (sys->Milliseconds) all of totalBufferedTime was received over
 ========================
 */
 int idCommonLocal::CalcSnapTimeBuffered( int& totalBufferedTime, int& totalRecvTime )
@@ -488,7 +488,7 @@ void idCommonLocal::RunNetworkSnapshotFrame()
 	reliableQueue.Clear();
 	
 	// abuse the game timing to time presentable thinking on clients
-	time_gameFrame = Sys_Microseconds();
+	time_gameFrame = sys->Microseconds();
 	time_maxGameFrame = 0;
 	count_numGameFrames = 0;
 	
@@ -498,8 +498,8 @@ void idCommonLocal::RunNetworkSnapshotFrame()
 		int	msec_interval = 1 + idMath::Ftoi( ( float )initialBaseTicksPerSec );
 		
 		static int clientTimeResidual = 0;
-		static int lastTime = Sys_Milliseconds();
-		int currentTime = Sys_Milliseconds();
+		static int lastTime = sys->Milliseconds();
+		int currentTime = sys->Milliseconds();
 		int deltaFrameTime = idMath::ClampInt( 1, 33, currentTime - lastTime );
 		
 		clientTimeResidual += idMath::ClampInt( 0, 50, currentTime - lastTime );
@@ -639,7 +639,7 @@ void idCommonLocal::RunNetworkSnapshotFrame()
 		}
 	}
 	
-	time_gameFrame = Sys_Microseconds() - time_gameFrame;
+	time_gameFrame = sys->Microseconds() - time_gameFrame;
 }
 
 /*

@@ -194,7 +194,7 @@ public:
 	virtual void				NetReceiveUsercmds( int peer, idBitMsg& msg );
 	void						NetReadUsercmds( int clientNum, idBitMsg& msg );
 	
-	virtual bool				ProcessEvent( const sysEvent_t* event );
+	virtual bool				ProcessEvent( const idSysEvent* event );
 	
 	virtual bool				LoadGame( const char* saveName );
 	virtual bool				SaveGame( const char* saveName );
@@ -586,7 +586,7 @@ private:
 	void	CheckStartupStorageRequirements();
 	
 	void	ExitMenu();
-	bool	MenuEvent( const sysEvent_t* event );
+	bool	MenuEvent( const idSysEvent* event );
 	
 	void	StartMenu( bool playIntro = false );
 	void	GuiFrameEvents();

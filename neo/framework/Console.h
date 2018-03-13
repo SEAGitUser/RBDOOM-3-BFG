@@ -68,7 +68,7 @@ public:
 	virtual void	Init() = 0;
 	virtual void	Shutdown() = 0;
 	
-	virtual bool	ProcessEvent( const sysEvent_t* event, bool forceAccept ) = 0;
+	virtual bool	ProcessEvent( const idSysEvent* event, bool forceAccept ) = 0;
 	
 	// the system code can release the mouse pointer when the console is active
 	virtual bool	Active() = 0;

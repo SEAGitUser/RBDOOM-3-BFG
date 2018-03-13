@@ -219,12 +219,12 @@ idCommonLocal::Quit
 */
 void idCommonLocal::Quit()
 {
-
 	// don't try to shutdown if we are in a recursive error
 	if( !com_errorEntered )
 	{
 		Shutdown();
 	}
+
 	Sys_Quit();
 }
 
@@ -901,23 +901,23 @@ void idCommonLocal::RenderBink( const char* path )
 	
 	idMaterial* material = const_cast<idMaterial*>( declManager->FindMaterial( "splashbink" ) );
 	material->Parse( materialText.c_str(), materialText.Length(), false );
-	material->ResetCinematicTime( Sys_Milliseconds() );
+	material->ResetCinematicTime( sys->Milliseconds() );
 	
 	// RB: FFmpeg might return the wrong play length so I changed the intro video to play max 30 seconds until finished
 	int cinematicLength = 30000; //material->CinematicLength();
 	int	mouseEvents[MAX_MOUSE_EVENTS][2];
 	
 	bool escapeEvent = false;
-	while( ( Sys_Milliseconds() <= ( material->GetCinematicStartTime() + cinematicLength ) ) && material->CinematicIsPlaying() )
+	while( ( sys->Milliseconds() <= ( material->GetCinematicStartTime() + cinematicLength ) ) && material->CinematicIsPlaying() )
 	{
 		renderSystem->DrawStretchPic( chop, 0, imageWidth, renderSystem->GetVirtualHeight(), 0, 0, 1, 1, material );
 		const emptyCommand_t* cmd = renderSystem->SwapCommandBuffers( &time_frontend, &time_backend, &time_shadows, &time_gpu );
 		renderSystem->RenderCommandBuffers( cmd );
 		
-		Sys_GenerateEvents();
+		sys->ProcessOSEvents();
 		
 		// queue system events ready for polling
-		Sys_GetEvent();
+		sys->GetEvent();
 		
 		// RB: allow to escape video by pressing anything
 		int numKeyEvents = Sys_PollKeyboardInputEvents();
@@ -1044,10 +1044,10 @@ void idCommonLocal::LoadGameDLL()
 	}
 	
 	const char* functionName = "GetGameAPI";
-	GetGameAPI = ( GetGameAPI_t ) Sys_DLL_GetProcAddress( gameDLL, functionName );
+	GetGameAPI = ( GetGameAPI_t ) sys->DLL_GetProcAddress( gameDLL, functionName );
 	if( !GetGameAPI )
 	{
-		Sys_DLL_Unload( gameDLL );
+		sys->DLL_Unload( gameDLL );
 		gameDLL = NULL;
 		common->FatalError( "couldn't find game DLL API" );
 		return;
@@ -1071,7 +1071,7 @@ void idCommonLocal::LoadGameDLL()
 	
 	if( gameExport.version != GAME_API_VERSION )
 	{
-		Sys_DLL_Unload( gameDLL );
+		sys->DLL_Unload( gameDLL );
 		gameDLL = NULL;
 		common->FatalError( "wrong game DLL API version" );
 		return;
@@ -1120,7 +1120,7 @@ void idCommonLocal::UnloadGameDLL()
 	
 	if( gameDLL )
 	{
-		Sys_DLL_Unload( gameDLL );
+		sys->DLL_Unload( gameDLL );
 		gameDLL = NULL;
 	}
 	game = NULL;
@@ -1183,7 +1183,7 @@ void idCommonLocal::Init( int argc, const char* const* argv, const char* cmdline
 		// register all static CVars
 		idCVar::RegisterStaticVars();
 		
-		///idLib::Printf( "QA Timing INIT: %06dms\n", Sys_Milliseconds() );
+		///idLib::Printf( "QA Timing INIT: %06dms\n", sys->Milliseconds() );
 		
 		// print engine version
 		Printf( "%s\n", version.string );
@@ -1312,7 +1312,7 @@ void idCommonLocal::Init( int argc, const char* const* argv, const char* cmdline
 		}
 		
 		
-		int legalStartTime = Sys_Milliseconds();
+		int legalStartTime = sys->Milliseconds();
 		declManager->Init2();
 		
 		// initialize string database so we can use it for loading messages
@@ -1391,10 +1391,10 @@ void idCommonLocal::Init( int argc, const char* const* argv, const char* cmdline
 		
 		StartMenu( true );
 		
-		while( Sys_Milliseconds() - legalStartTime < legalMinTime )
+		while( sys->Milliseconds() - legalStartTime < legalMinTime )
 		{
 			RenderSplash();
-			Sys_GenerateEvents();
+			sys->ProcessOSEvents();
 			Sys_Sleep( 10 );
 		};
 		
@@ -1453,7 +1453,7 @@ void idCommonLocal::Init( int argc, const char* const* argv, const char* cmdline
 		
 		Printf( "--- Common Initialization Complete ---\n" );
 		
-		idLib::Printf( "QA Timing IIS: %06dms\n", Sys_Milliseconds() );
+		idLib::Printf( "QA Timing IIS: %06dms\n", sys->Milliseconds() );
 	}
 	catch( idException& )
 	{
@@ -1668,7 +1668,7 @@ idCommonLocal::BusyWait
 */
 void idCommonLocal::BusyWait()
 {
-	Sys_GenerateEvents();
+	sys->ProcessOSEvents();
 	
 	const bool captureToImage = false;
 	UpdateScreen( captureToImage );
@@ -1754,22 +1754,20 @@ void idCommonLocal::LeaveGame()
 idCommonLocal::ProcessEvent
 ===============
 */
-bool idCommonLocal::ProcessEvent( const sysEvent_t* event )
+bool idCommonLocal::ProcessEvent( const idSysEvent* event )
 {
 	// hitting escape anywhere brings up the menu
 	if( game && game->IsInGame() )
 	{
-		if( event->evType == SE_KEY && event->evValue2 == 1 && ( event->evValue == K_ESCAPE || event->evValue == K_JOY9 ) )
+		if( event->IsKeyEvent() && event->IsKeyDown() && ( event->GetKey() == K_ESCAPE || event->GetKey() == K_JOY9 ) )
 		{
 			if( game->CheckInCinematic() == true )
 			{
 				game->SkipCinematicScene();
 			}
-			else
-			{
+			else {
 				if( !game->Shell_IsActive() )
-				{
-				
+				{			
 					// menus / etc
 					if( MenuEvent( event ) )
 					{
@@ -1781,8 +1779,7 @@ bool idCommonLocal::ProcessEvent( const sysEvent_t* event )
 					StartMenu();
 					return true;
 				}
-				else
-				{
+				else {
 					console->Close();
 					
 					// menus / etc
@@ -1821,14 +1818,13 @@ bool idCommonLocal::ProcessEvent( const sysEvent_t* event )
 	{
 		// Translate the event to Doom classic format.
 		event_t classicEvent;
-		if( event->evType == SE_KEY )
-		{
-		
-			if( event->evValue2 == 1 )
+		if( event->IsKeyEvent() )
+		{	
+			if( event->IsKeyDown() )
 			{
 				classicEvent.type = ev_keydown;
 			}
-			else if( event->evValue2 == 0 )
+			else if( event->IsKeyUp() )
 			{
 				classicEvent.type = ev_keyup;
 			}
@@ -1865,9 +1861,9 @@ bool idCommonLocal::ProcessEvent( const sysEvent_t* event )
 	}
 	
 	// in game, exec bindings for all key downs
-	if( event->evType == SE_KEY && event->evValue2 == 1 )
+	if( event->IsKeyEvent() && event->IsKeyDown() )
 	{
-		idKeyInput::ExecKeyBinding( event->evValue );
+		idKeyInput::ExecKeyBinding( event->GetKey() );
 		return true;
 	}
 	

@@ -758,7 +758,7 @@ static void R_CreateGrainImage1( idImage* image )
 	
 	static byte	data[GRAIN_SIZE][GRAIN_SIZE][4];
 	
-	idRandom2 random( Sys_Milliseconds() );
+	idRandom2 random( sys->Milliseconds() );
 	
 	for( int i = 0 ; i < GRAIN_SIZE ; i++ )
 	{
@@ -788,7 +788,7 @@ static void R_CreateSMAAAreaImage( idImage* image )
 {
 	static byte	data[AREATEX_HEIGHT][AREATEX_WIDTH][4];
 	
-	idRandom2 random( Sys_Milliseconds() );
+	idRandom2 random( sys->Milliseconds() );
 	
 	for( int x = 0; x < AREATEX_WIDTH; x++ )
 	{
@@ -815,7 +815,7 @@ static void R_CreateSMAASearchImage( idImage* image )
 {
 	static byte	data[ SEARCHTEX_HEIGHT ][ SEARCHTEX_WIDTH ][ 4 ];
 
-	idRandom2 random( Sys_Milliseconds() );
+	idRandom2 random( sys->Milliseconds() );
 
 	for( int x = 0; x < SEARCHTEX_WIDTH; x++ )
 	{

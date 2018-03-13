@@ -60,7 +60,7 @@ R_ReloadShaders
 static void R_ReloadShaders( const idCmdArgs& args )
 {
 	renderProgManager.KillAllShaders();
-	renderProgManager.LoadAllShaders();
+	renderProgManager.LoadAllShaders( false );
 }
 
 /*
@@ -70,188 +70,281 @@ idRenderProgManager::Init()
 */
 void idRenderProgManager::Init()
 {
-	common->Printf( "----- Initializing Render Programs -----\n" );
-		
-	for( int i = 0; i < MAX_BUILTINS; i++ )
-	{
-		builtinShaders[i] = -1;
-	}
-	
-	// RB: added checks for GPU skinning
-	struct builtinShaders_t
-	{
+	common->Printf( "------ Initializing Render Parms -------\n" );
+
+	struct builtins_t {
 		int			index;
-		const char* name;
-		const char* nameOutSuffix;
-		uint32		shaderFeatures;
-		bool		requireGPUSkinningSupport;
-	} 
-	builtins[] =
+		const char * name;
+	};
+
+	builtins_t builtin_parms[] =
 	{
-		{ BUILTIN_GUI, "gui.vfp", "", 0, false },
-		{ BUILTIN_COLOR, "color.vfp", "", 0, false },
+		{ RENDERPARM_MVPMATRIX_X,				"MVPmatrixX" },
+		{ RENDERPARM_MVPMATRIX_Y,				"MVPmatrixY" },
+		{ RENDERPARM_MVPMATRIX_Z,				"MVPmatrixZ" },
+		{ RENDERPARM_MVPMATRIX_W,				"MVPmatrixW" },
+		{ RENDERPARM_MODELMATRIX_X,				"ModelMatrixX" },
+		{ RENDERPARM_MODELMATRIX_Y,				"ModelMatrixY" },
+		{ RENDERPARM_MODELMATRIX_Z,				"ModelMatrixZ" },
+		{ RENDERPARM_MODELMATRIX_W,				"ModelMatrixW" },
+		{ RENDERPARM_MODELVIEWMATRIX_X,			"ModelViewMatrixX" },
+		{ RENDERPARM_MODELVIEWMATRIX_Y,			"ModelViewMatrixY" },
+		{ RENDERPARM_MODELVIEWMATRIX_Z,			"ModelViewMatrixZ" },
+		{ RENDERPARM_MODELVIEWMATRIX_W,			"ModelViewMatrixW" },
+		{ RENDERPARM_INVERSEMODELVIEWMATRIX_X,	"InverseModelMatrixX" },
+		{ RENDERPARM_INVERSEMODELVIEWMATRIX_Y,	"InverseModelMatrixY" },
+		{ RENDERPARM_INVERSEMODELVIEWMATRIX_Z,	"InverseModelMatrixZ" },
+		{ RENDERPARM_INVERSEMODELVIEWMATRIX_W,	"InverseModelMatrixW" },
+		{ RENDERPARM_AMBIENT_COLOR,				"AmbientColor" },
+		{ RENDERPARM_ENABLE_SKINNING,			"SkinningParms" },
+		{ RENDERPARM_ALPHA_TEST,				"AlphaTest" },
+		{ RENDERPARM_SCREENCORRECTIONFACTOR,	"ScreenCorrectionFactor" },
+		//{ RENDERPARM_WINDOWCOORD,				"WindowCoord" },
+		{ RENDERPARM_OVERBRIGHT,				"Overbright" },
+		{ RENDERPARM_GLOBALLIGHTORIGIN,			"GlobalLightOrigin" },
+		{ RENDERPARM_LOCALLIGHTORIGIN,			"LocalLightOrigin" },
+		{ RENDERPARM_LOCALVIEWORIGIN,			"LocalViewOrigin" },
+		{ RENDERPARM_LIGHTPROJECTION_S,			"LightProjectionS" },
+		{ RENDERPARM_LIGHTPROJECTION_T,			"LightProjectionT" },
+		{ RENDERPARM_LIGHTPROJECTION_P,			"LightProjectionP" },
+		{ RENDERPARM_LIGHTPROJECTION_Q,			"LightProjectionQ" },
+		{ RENDERPARM_LIGHTFALLOFF_S,			"LightFalloffS" },
+		{ RENDERPARM_BASELIGHTPROJECT_S,		"BaseLightProjectS" },
+		{ RENDERPARM_BASELIGHTPROJECT_T,		"BaseLightProjectT" },
+		{ RENDERPARM_BASELIGHTPROJECT_R,		"BaseLightProjectR" },
+		{ RENDERPARM_BASELIGHTPROJECT_Q,		"BaseLightProjectQ" },
+		{ RENDERPARM_DIFFUSEMODIFIER,			"DiffuseModifier" },
+		{ RENDERPARM_SPECULARMODIFIER,			"SpecularModifier" },
+		{ RENDERPARM_COLORMODIFIER,				"ColorModifier" },
+		{ RENDERPARM_BUMPMATRIX_S,				"BumpMatrixS" },
+		{ RENDERPARM_BUMPMATRIX_T,				"BumpMatrixT" },
+		{ RENDERPARM_DIFFUSEMATRIX_S,			"DiffuseMatrixS" },
+		{ RENDERPARM_DIFFUSEMATRIX_T,			"DiffuseMatrixT" },
+		{ RENDERPARM_SPECULARMATRIX_S,			"SpecularMatrixS" },
+		{ RENDERPARM_SPECULARMATRIX_T,			"SpecularMatrixT" },
+		{ RENDERPARM_VERTEXCOLOR_MODULATE,		"VertexColorModulate" },
+		{ RENDERPARM_VERTEXCOLOR_ADD,			"VertexColorAdd" },
+		{ RENDERPARM_VERTEXCOLOR_MAD,			"VertexColorMAD" },
+		{ RENDERPARM_COLOR,						"Color" },
+		{ RENDERPARM_TEXTUREMATRIX_S,			"TextureMatrixS" },
+		{ RENDERPARM_TEXTUREMATRIX_T,			"TextureMatrixT" },
+		{ RENDERPARM_TEXGEN_0_S,				"TexGen0S" },
+		{ RENDERPARM_TEXGEN_0_T,				"TexGen0T" },
+		{ RENDERPARM_TEXGEN_0_Q,				"TexGen0Q" },
+		{ RENDERPARM_TEXGEN_0_ENABLED,			"TexGen0Enabled" },
+		{ RENDERPARM_TEXGEN_1_S,				"TexGen1S" },
+		{ RENDERPARM_TEXGEN_1_T,				"TexGen1T" },
+		{ RENDERPARM_TEXGEN_1_Q,				"TexGen1Q" },
+		{ RENDERPARM_TEXGEN_1_ENABLED,			"TexGen1Enabled" },
+		{ RENDERPARM_WOBBLESKY_X,				"WobbleSkyX" },
+		{ RENDERPARM_WOBBLESKY_Y,				"WobbleSkyY" },
+		{ RENDERPARM_WOBBLESKY_Z,				"WobbleSkyZ" },
+		{ RENDERPARM_JITTERTEXSCALE,			"JitterTexScale" },
+		{ RENDERPARM_JITTERTEXOFFSET,			"JitterTexOffset" },
+
+		{ RENDERPARM_USERVEC0,					"UserVec0" },
+		{ RENDERPARM_USERVEC1,					"UserVec1" },
+		{ RENDERPARM_USERVEC2,					"UserVec2" },
+		{ RENDERPARM_USERVEC3,					"UserVec3" },
+		{ RENDERPARM_USERVEC4,					"UserVec4" },
+		{ RENDERPARM_USERVEC5,					"UserVec5" },
+		{ RENDERPARM_USERVEC6,					"UserVec6" },
+		{ RENDERPARM_USERVEC7,					"UserVec7" },
+		{ RENDERPARM_USERVEC8,					"UserVec8" },
+		{ RENDERPARM_USERVEC9,					"UserVec9" },
+		{ RENDERPARM_USERVEC10,					"UserVec10" },
+		{ RENDERPARM_USERVEC11,					"UserVec11" },
+		{ RENDERPARM_USERVEC12,					"UserVec12" },
+		{ RENDERPARM_USERVEC13,					"UserVec13" },
+		{ RENDERPARM_USERVEC14,					"UserVec14" },
+		{ RENDERPARM_USERVEC15,					"UserVec15" },
+		{ RENDERPARM_USERVEC16,					"UserVec16" },
+		{ RENDERPARM_USERVEC17,					"UserVec17" },
+		{ RENDERPARM_USERVEC18,					"UserVec18" },
+		{ RENDERPARM_USERVEC19,					"UserVec19" },
+		{ RENDERPARM_USERVEC20,					"UserVec20" },
+		{ RENDERPARM_USERVEC21,					"UserVec21" },
+		{ RENDERPARM_USERVEC22,					"UserVec22" },
+		{ RENDERPARM_USERVEC23,					"UserVec23" },
+		{ RENDERPARM_USERVEC24,					"UserVec24" },
+		{ RENDERPARM_USERVEC25,					"UserVec25" },
+		{ RENDERPARM_USERVEC26,					"UserVec26" },
+		{ RENDERPARM_USERVEC27,					"UserVec27" },
+		{ RENDERPARM_USERVEC28,					"UserVec28" },
+		{ RENDERPARM_USERVEC29,					"UserVec29" },
+		{ RENDERPARM_USERVEC30,					"UserVec30" },
+		{ RENDERPARM_USERVEC31,					"UserVec31" },
+
+		{ RENDERPARM_BUMPMAP,				"bumpMap" },
+		{ RENDERPARM_DIFFUSEMAP,			"diffuseMap" },
+		{ RENDERPARM_SPECULARMAP,			"specularMap" },
+		{ RENDERPARM_LIGHTPROJECTMAP,		"lightProjectMap" },
+		{ RENDERPARM_LIGHTFALLOFFMAP,		"lightFalloffMap" },
+		{ RENDERPARM_MAP,					"map" },
+		{ RENDERPARM_CUBEMAP,				"cubeMap" },
+		{ RENDERPARM_ENVIROCUBEMAP,			"enviroCubeMap" },
+		{ RENDERPARM_MASKMAP,				"maskMap" },
+		{ RENDERPARM_COVERAGEMAP,			"coverageMap" },
+		{ RENDERPARM_MAPY,					"mapY" },
+		{ RENDERPARM_MAPCR,					"mapCr" },
+		{ RENDERPARM_MAPCB,					"mapCb" },
+		{ RENDERPARM_FOGMAP,				"fogMap" },
+		{ RENDERPARM_FOGENTERMAP,			"fogEnterMap" },
+		{ RENDERPARM_NOFALLOFFMAP,			"noFalloffMap" },
+		{ RENDERPARM_SCRATCHIMAGE,			"scratchImage" },
+		{ RENDERPARM_SCRATCHIMAGE2,			"scratchImage2" },
+		{ RENDERPARM_ACCUMMAP,				"accumMap" },
+		{ RENDERPARM_CURRENTRENDERMAP,		"currentRenderMap" },
+		{ RENDERPARM_CURRENTDEPTHMAP,		"currentDepthMap" },
+		{ RENDERPARM_JITTERMAP,				"jitterMap" },
+		{ RENDERPARM_RANDOMIMAGE256,		"randomImage256" },
+		{ RENDERPARM_GRAINMAP,				"grainMap" },
+		{ RENDERPARM_VIEWNORMALMAP,			"viewNormalMap" },
+		{ RENDERPARM_SHADOWBUFFERMAP,		"shadowBufferMap" },
+		{ RENDERPARM_SHADOWBUFFERDEBUGMAP,	"shadowBufferDebugMap" },
+		{ RENDERPARM_BLOOMRENDERMAP,		"bloomRenderMap" },
+		{ RENDERPARM_SMAAINPUTIMAGE,		"smaaInputImage" },
+		{ RENDERPARM_SMAAAREAIMAGE,			"smaaAreaImage" },
+		{ RENDERPARM_SMAASEARCHIMAGE,		"smaaSearchImage" },
+		{ RENDERPARM_SMAAEDGESIMAGE,		"smaaEdgesImage" },
+		{ RENDERPARM_SMAABLENDIMAGE,		"smaaBlendImage" },
+		{ RENDERPARM_EDITORMAP,				"editorMap" },
+
+		{ RENDERPARM_USERMAP0,				"UserMap0" },
+		{ RENDERPARM_USERMAP1,				"UserMap1" },
+		{ RENDERPARM_USERMAP2,				"UserMap2" },
+		{ RENDERPARM_USERMAP3,				"UserMap3" },
+		{ RENDERPARM_USERMAP4,				"UserMap4" },
+		{ RENDERPARM_USERMAP5,				"UserMap5" },
+		{ RENDERPARM_USERMAP6,				"UserMap6" },
+		{ RENDERPARM_USERMAP7,				"UserMap7" },
+		{ RENDERPARM_USERMAP8,				"UserMap8" },
+		{ RENDERPARM_USERMAP9,				"UserMap9" },
+		{ RENDERPARM_USERMAP10,				"UserMap10" },
+		{ RENDERPARM_USERMAP11,				"UserMap11" },
+		{ RENDERPARM_USERMAP12,				"UserMap12" },
+		{ RENDERPARM_USERMAP13,				"UserMap13" },
+		{ RENDERPARM_USERMAP14,				"UserMap14" },
+		{ RENDERPARM_USERMAP15,				"UserMap15" },
+	};
+	builtinParms.Zero();
+	for( int i = 0; i < _countof( builtin_parms ); ++i )
+	{
+		auto parm = declManager->FindRenderParm( builtin_parms[ i ].name );
+		release_assert( parm != NULL );
+
+		parm->Print();
+
+		builtinParms[ builtin_parms[ i ].index ] = parm;
+	}
+
+	common->Printf( "----- Initializing Render Programs -----\n" );
+
+	builtins_t builtin_progs[] =
+	{
+		{ BUILTIN_GUI, "gui" },
+		{ BUILTIN_COLOR, "color" },
 		// RB begin
-		{ BUILTIN_COLOR_SKINNED, "color", "_skinned", BIT( USE_GPU_SKINNING ), true },
-		{ BUILTIN_VERTEX_COLOR, "vertex_color.vfp", "", 0, false },
-		{ BUILTIN_AMBIENT_LIGHTING, "ambient_lighting", "", 0, false },
-		{ BUILTIN_AMBIENT_LIGHTING_SKINNED, "ambient_lighting", "_skinned", BIT( USE_GPU_SKINNING ), true },
-		{ BUILTIN_SMALL_GEOMETRY_BUFFER, "gbuffer", "", 0, false },
-		{ BUILTIN_SMALL_GEOMETRY_BUFFER_SKINNED, "gbuffer", "_skinned", BIT( USE_GPU_SKINNING ), true },
+		{ BUILTIN_COLOR_SKINNED, "color_skinned" },
+		{ BUILTIN_VERTEX_COLOR, "vertex_color" },
+		{ BUILTIN_AMBIENT_LIGHTING, "ambient_lighting" },
+		{ BUILTIN_AMBIENT_LIGHTING_SKINNED, "ambient_lighting_skinned" },
+		{ BUILTIN_SMALL_GEOMETRY_BUFFER, "gbuffer" },
+		{ BUILTIN_SMALL_GEOMETRY_BUFFER_SKINNED, "gbuffer_skinned" },
 //SEA ->
-		{ BUILTIN_SMALL_GBUFFER_SML, "gbuffer_sml", "", 0, false },
-		{ BUILTIN_SMALL_GBUFFER_SML_SKINNED, "gbuffer_sml", "_skinned", BIT( USE_GPU_SKINNING ), true },
-		{ BUILTIN_DEPTH_WORLD, "depth_world", "", 0, false },
+		{ BUILTIN_SMALL_GBUFFER_SML, "gbuffer_sml" },
+		{ BUILTIN_SMALL_GBUFFER_SML_SKINNED, "gbuffer_sml_skinned" },
+		{ BUILTIN_DEPTH_WORLD, "depth_world" },
 //SEA <-
 		// RB end
-//		{ BUILTIN_SIMPLESHADE, "simpleshade.vfp", 0, false },
-		{ BUILTIN_TEXTURED, "texture.vfp", "", 0, false },
-		{ BUILTIN_TEXTURE_VERTEXCOLOR, "texture_color.vfp", "", 0, false },
-		{ BUILTIN_TEXTURE_VERTEXCOLOR_SRGB, "texture_color.vfp", "", BIT( USE_SRGB ), false },
-		{ BUILTIN_TEXTURE_VERTEXCOLOR_SKINNED, "texture_color_skinned.vfp", "", 0, true },
-		{ BUILTIN_TEXTURE_TEXGEN_VERTEXCOLOR, "texture_color_texgen.vfp", "",  0, false },
+//		{ BUILTIN_SIMPLESHADE, "simpleshade", 0, false },
+		{ BUILTIN_TEXTURED, "texture" },
+		{ BUILTIN_TEXTURE_VERTEXCOLOR, "texture_color" },
+		{ BUILTIN_TEXTURE_VERTEXCOLOR_SRGB, "texture_color_srgb" },
+		{ BUILTIN_TEXTURE_VERTEXCOLOR_SKINNED, "texture_color_skinned" },
+		{ BUILTIN_TEXTURE_TEXGEN_VERTEXCOLOR, "texture_color_texgen" },
 		// RB begin
-		{ BUILTIN_INTERACTION, "interaction.vfp", "", 0, false },
-		{ BUILTIN_INTERACTION_SKINNED, "interaction", "_skinned", BIT( USE_GPU_SKINNING ), true },
-		{ BUILTIN_INTERACTION_AMBIENT, "interactionAmbient.vfp", 0, false },
-		{ BUILTIN_INTERACTION_AMBIENT_SKINNED, "interactionAmbient_skinned.vfp", 0, true },
-		{ BUILTIN_INTERACTION_SHADOW_MAPPING_SPOT, "interactionSM", "_spot", 0, false },
-		{ BUILTIN_INTERACTION_SHADOW_MAPPING_SPOT_SKINNED, "interactionSM", "_spot_skinned", BIT( USE_GPU_SKINNING ), true },
-		{ BUILTIN_INTERACTION_SHADOW_MAPPING_POINT, "interactionSM", "_point", BIT( LIGHT_POINT ), false },
-		{ BUILTIN_INTERACTION_SHADOW_MAPPING_POINT_SKINNED, "interactionSM", "_point_skinned", BIT( USE_GPU_SKINNING ) | BIT( LIGHT_POINT ), true },
-		{ BUILTIN_INTERACTION_SHADOW_MAPPING_PARALLEL, "interactionSM", "_parallel", BIT( LIGHT_PARALLEL ), false },
-		{ BUILTIN_INTERACTION_SHADOW_MAPPING_PARALLEL_SKINNED, "interactionSM", "_parallel_skinned", BIT( USE_GPU_SKINNING ) | BIT( LIGHT_PARALLEL ), true },
+		{ BUILTIN_INTERACTION, "interaction" },
+		{ BUILTIN_INTERACTION_SKINNED, "interaction_skinned" },
+		{ BUILTIN_INTERACTION_AMBIENT, "interactionAmbient" },
+		{ BUILTIN_INTERACTION_AMBIENT_SKINNED, "interactionAmbient_skinned" },
+		{ BUILTIN_INTERACTION_SHADOW_MAPPING_SPOT, "interactionSM_spot"},
+		{ BUILTIN_INTERACTION_SHADOW_MAPPING_SPOT_SKINNED, "interactionSM_spot_skinned" },
+		{ BUILTIN_INTERACTION_SHADOW_MAPPING_POINT, "interactionSM_point" },
+		{ BUILTIN_INTERACTION_SHADOW_MAPPING_POINT_SKINNED, "interactionSM_point_skinned" },
+		{ BUILTIN_INTERACTION_SHADOW_MAPPING_PARALLEL, "interactionSM_parallel" },
+		{ BUILTIN_INTERACTION_SHADOW_MAPPING_PARALLEL_SKINNED, "interactionSM_parallel_skinned" },
 		// RB end
-		{ BUILTIN_ENVIRONMENT, "environment.vfp", "", 0, false },
-		{ BUILTIN_ENVIRONMENT_SKINNED, "environment_skinned.vfp", "",  0, true },
-		{ BUILTIN_BUMPY_ENVIRONMENT, "bumpyenvironment.vfp", "", 0, false },
-		{ BUILTIN_BUMPY_ENVIRONMENT_SKINNED, "bumpyenvironment_skinned.vfp", "", 0, true },
+		{ BUILTIN_ENVIRONMENT, "environment" },
+		{ BUILTIN_ENVIRONMENT_SKINNED, "environment_skinned" },
+		{ BUILTIN_BUMPY_ENVIRONMENT, "bumpyenvironment" },
+		{ BUILTIN_BUMPY_ENVIRONMENT_SKINNED, "bumpyenvironment_skinned" },
 		
-		{ BUILTIN_DEPTH, "depth.vfp", "", 0, false },
-		{ BUILTIN_DEPTH_SKINNED, "depth_skinned.vfp", "", 0, true },
+		{ BUILTIN_DEPTH, "depth" },
+		{ BUILTIN_DEPTH_SKINNED, "depth_skinned" },
 		
-		{ BUILTIN_SHADOW, "shadow.vfp", "", 0, false },
-		{ BUILTIN_SHADOW_SKINNED, "shadow_skinned.vfp", "", 0, true },
+		{ BUILTIN_SHADOW, "shadow" },
+		{ BUILTIN_SHADOW_SKINNED, "shadow_skinned" },
 		
-		{ BUILTIN_SHADOW_DEBUG, "shadowDebug.vfp", "", 0, false },
-		{ BUILTIN_SHADOW_DEBUG_SKINNED, "shadowDebug_skinned.vfp", "", 0, true },
+		{ BUILTIN_SHADOW_DEBUG, "shadowDebug" },
+		{ BUILTIN_SHADOW_DEBUG_SKINNED, "shadowDebug_skinned" },
 		
-		{ BUILTIN_BLENDLIGHT, "blendlight.vfp", "", 0, false },
-		{ BUILTIN_BLENDLIGHT_SCREENSPACE, "blendlight2", "", 0, false },
-		{ BUILTIN_FOG, "fog.vfp", "", 0, false },
-		{ BUILTIN_FOG_SKINNED, "fog_skinned.vfp", "", 0, true },
-		{ BUILTIN_SKYBOX, "skybox.vfp", "",  0, false },
-		{ BUILTIN_WOBBLESKY, "wobblesky.vfp", "", 0, false },
-		{ BUILTIN_POSTPROCESS, "postprocess.vfp", "", 0, false },
+		{ BUILTIN_BLENDLIGHT, "blendlight" },
+		{ BUILTIN_BLENDLIGHT_SCREENSPACE, "blendlight2" },
+		{ BUILTIN_FOG, "fog" },
+		{ BUILTIN_FOG_SKINNED, "fog_skinned" },
+		{ BUILTIN_SKYBOX, "skybox" },
+		{ BUILTIN_WOBBLESKY, "wobblesky" },
+		{ BUILTIN_POSTPROCESS, "postprocess"},
 		// RB begin
-		{ BUILTIN_SCREEN, "screen", "", 0, false },
-		{ BUILTIN_TONEMAP, "tonemap", "", 0, false },
-		{ BUILTIN_BRIGHTPASS, "tonemap", "_brightpass", BIT( BRIGHTPASS ), false },
-		{ BUILTIN_HDR_GLARE_CHROMATIC, "hdr_glare_chromatic", "", 0, false },
-		{ BUILTIN_HDR_DEBUG, "tonemap", "_debug", BIT( HDR_DEBUG ), false },
+		{ BUILTIN_SCREEN, "screen" },
+		{ BUILTIN_TONEMAP, "tonemap" },
+		{ BUILTIN_BRIGHTPASS, "tonemap_brightpass" },
+		{ BUILTIN_HDR_GLARE_CHROMATIC, "hdr_glare_chromatic" },
+		{ BUILTIN_HDR_DEBUG, "tonemap_debug" },
 		
-		{ BUILTIN_SMAA_EDGE_DETECTION, "SMAA_edge_detection", "", 0, false },
-		{ BUILTIN_SMAA_BLENDING_WEIGHT_CALCULATION, "SMAA_blending_weight_calc", "", 0, false },
-		{ BUILTIN_SMAA_NEIGHBORHOOD_BLENDING, "SMAA_final", "", 0, false },
+		{ BUILTIN_SMAA_EDGE_DETECTION, "SMAA_edge_detection" },
+		{ BUILTIN_SMAA_BLENDING_WEIGHT_CALCULATION, "SMAA_blending_weight_calc" },
+		{ BUILTIN_SMAA_NEIGHBORHOOD_BLENDING, "SMAA_final" },
 		
-		{ BUILTIN_AMBIENT_OCCLUSION, "AmbientOcclusion_AO", "", 0, false },
-		{ BUILTIN_AMBIENT_OCCLUSION_AND_OUTPUT, "AmbientOcclusion_AO", "_write", BIT( BRIGHTPASS ), false },
-		{ BUILTIN_AMBIENT_OCCLUSION_BLUR, "AmbientOcclusion_blur", "", 0, false },
-		{ BUILTIN_AMBIENT_OCCLUSION_BLUR_AND_OUTPUT, "AmbientOcclusion_blur", "_write", BIT( BRIGHTPASS ), false },
-		{ BUILTIN_AMBIENT_OCCLUSION_MINIFY, "AmbientOcclusion_minify", "", 0, false },
-		{ BUILTIN_AMBIENT_OCCLUSION_RECONSTRUCT_CSZ, "AmbientOcclusion_minify", "_mip0", BIT( BRIGHTPASS ), false },
-		{ BUILTIN_DEEP_GBUFFER_RADIOSITY_SSGI, "DeepGBufferRadiosity_radiosity", "", 0, false },
-		{ BUILTIN_DEEP_GBUFFER_RADIOSITY_BLUR, "DeepGBufferRadiosity_blur", "", 0, false },
-		{ BUILTIN_DEEP_GBUFFER_RADIOSITY_BLUR_AND_OUTPUT, "DeepGBufferRadiosity_blur", "_write", BIT( BRIGHTPASS ), false },
+		{ BUILTIN_AMBIENT_OCCLUSION, "AmbientOcclusion_AO" },
+		{ BUILTIN_AMBIENT_OCCLUSION_AND_OUTPUT, "AmbientOcclusion_AO_write" },
+		{ BUILTIN_AMBIENT_OCCLUSION_BLUR, "AmbientOcclusion_blur", },
+		{ BUILTIN_AMBIENT_OCCLUSION_BLUR_AND_OUTPUT, "AmbientOcclusion_blur_write" },
+		{ BUILTIN_AMBIENT_OCCLUSION_MINIFY, "AmbientOcclusion_minify" },
+		{ BUILTIN_AMBIENT_OCCLUSION_RECONSTRUCT_CSZ, "AmbientOcclusion_minify_mip0" },
+		{ BUILTIN_DEEP_GBUFFER_RADIOSITY_SSGI, "DeepGBufferRadiosity_radiosity" },
+		{ BUILTIN_DEEP_GBUFFER_RADIOSITY_BLUR, "DeepGBufferRadiosity_blur" },
+		{ BUILTIN_DEEP_GBUFFER_RADIOSITY_BLUR_AND_OUTPUT, "DeepGBufferRadiosity_blur_write" },
 		// RB end
-		{ BUILTIN_STEREO_DEGHOST, "stereoDeGhost.vfp", "", 0, false },
-		{ BUILTIN_STEREO_WARP, "stereoWarp.vfp", "", 0, false },
-//		{ BUILTIN_ZCULL_RECONSTRUCT, "zcullReconstruct.vfp", 0, false },
-		{ BUILTIN_BINK, "bink.vfp", "",  0, false },
-		{ BUILTIN_BINK_GUI, "bink_gui.vfp", "", 0, false },
-		{ BUILTIN_STEREO_INTERLACE, "stereoInterlace.vfp", "", 0, false },
-		{ BUILTIN_MOTION_BLUR, "motionBlur.vfp", "", 0, false },
+		{ BUILTIN_STEREO_DEGHOST, "stereoDeGhost" },
+		{ BUILTIN_STEREO_WARP, "stereoWarp" },
+//		{ BUILTIN_ZCULL_RECONSTRUCT, "zcullReconstruct" },
+		{ BUILTIN_BINK, "bink" },
+		{ BUILTIN_BINK_GUI, "bink_gui" },
+		{ BUILTIN_STEREO_INTERLACE, "stereoInterlace" },
+		{ BUILTIN_MOTION_BLUR, "motionBlur" },
 		
 		// RB begin
-		{ BUILTIN_DEBUG_SHADOWMAP, "debug_shadowmap.vfp", "", 0, false },
+		{ BUILTIN_DEBUG_SHADOWMAP, "debug_shadowmap" },
 		// RB end
 	};
-	const int numBuiltins = _countof( builtins );
-	vertShaders.SetNum( numBuiltins );
-	geomShaders.SetNum( numBuiltins );
-	fragShaders.SetNum( numBuiltins );
-	glslPrograms.SetNum( numBuiltins );
-	
-	for( int i = 0; i < numBuiltins; i++ )
+	builtinProgs.Zero();
+	for( int i = 0; i < _countof( builtin_progs ); ++i )
 	{
-		vertShaders[ i ].name = builtins[ i ].name;
-		vertShaders[ i ].nameOutSuffix = builtins[ i ].nameOutSuffix;
-		vertShaders[ i ].shaderFeatures = builtins[ i ].shaderFeatures;
-		vertShaders[ i ].builtin = true;
+		auto prog = declManager->FindRenderProg( builtin_progs[ i ].name );
+		release_assert( prog != NULL );
 
-		geomShaders[ i ].name = builtins[ i ].name;
-		geomShaders[ i ].nameOutSuffix = builtins[ i ].nameOutSuffix;
-		geomShaders[ i ].shaderFeatures = builtins[ i ].shaderFeatures;
-		geomShaders[ i ].builtin = true;
+		prog->Print();
 
-		fragShaders[ i ].name = builtins[ i ].name;
-		fragShaders[ i ].nameOutSuffix = builtins[ i ].nameOutSuffix;
-		fragShaders[ i ].shaderFeatures = builtins[ i ].shaderFeatures;
-		fragShaders[ i ].builtin = true;
-		
-		builtinShaders[builtins[i].index] = i;
-		
-		if( builtins[i].requireGPUSkinningSupport && !glConfig.gpuSkinningAvailable )
-		{
-			// RB: don't try to load shaders that would break the GLSL compiler in the OpenGL driver
-			continue;
-		}
-		
-		LoadShader( i, SHT_VERTEX );
-		LoadShader( i, SHT_GEOMETRY );
-		LoadShader( i, SHT_FRAGMENT );
-		LoadGLSLProgram( i, i, i, i );
+		builtinProgs[ builtin_progs[ i ].index ] = prog;
 	}
 
 	r_useHalfLambertLighting.ClearModified();
 	r_useHDR.ClearModified();
+	r_useProgUBO.ClearModified();
 
-	glslUniforms.SetNum( RENDERPARM_USER + MAX_GLSL_USER_PARMS, vec4_zero );
-	
-	if( glConfig.gpuSkinningAvailable )
-	{
-		vertShaders[ builtinShaders[ BUILTIN_COLOR_SKINNED ] ].usesJoints = true;
-		vertShaders[ builtinShaders[ BUILTIN_TEXTURE_VERTEXCOLOR_SKINNED ] ].usesJoints = true;
-		vertShaders[ builtinShaders[ BUILTIN_INTERACTION_SKINNED ] ].usesJoints = true;
-		vertShaders[ builtinShaders[ BUILTIN_INTERACTION_AMBIENT_SKINNED ] ].usesJoints = true;
-		vertShaders[ builtinShaders[ BUILTIN_ENVIRONMENT_SKINNED ] ].usesJoints = true;
-		vertShaders[ builtinShaders[ BUILTIN_BUMPY_ENVIRONMENT_SKINNED ] ].usesJoints = true;
-		vertShaders[ builtinShaders[ BUILTIN_DEPTH_SKINNED ] ].usesJoints = true;
-		vertShaders[ builtinShaders[ BUILTIN_SHADOW_SKINNED ] ].usesJoints = true;
-		vertShaders[ builtinShaders[ BUILTIN_SHADOW_DEBUG_SKINNED ] ].usesJoints = true;
-		vertShaders[ builtinShaders[ BUILTIN_FOG_SKINNED ] ].usesJoints = true;
-		// RB begin
-		vertShaders[ builtinShaders[ BUILTIN_AMBIENT_LIGHTING_SKINNED ] ].usesJoints = true;
-		vertShaders[ builtinShaders[ BUILTIN_SMALL_GEOMETRY_BUFFER_SKINNED ] ].usesJoints = true;
-		vertShaders[ builtinShaders[ BUILTIN_SMALL_GBUFFER_SML_SKINNED ] ].usesJoints = true;
-
-		vertShaders[ builtinShaders[ BUILTIN_INTERACTION_SHADOW_MAPPING_SPOT_SKINNED ] ].usesJoints = true;
-		vertShaders[ builtinShaders[ BUILTIN_INTERACTION_SHADOW_MAPPING_POINT_SKINNED ] ].usesJoints = true;
-		vertShaders[ builtinShaders[ BUILTIN_INTERACTION_SHADOW_MAPPING_PARALLEL_SKINNED ] ].usesJoints = true;
-		// RB end
-	}
-	
-	cmdSystem->AddCommand( "reloadShaders", R_ReloadShaders, CMD_FL_RENDERER, "reloads shaders" );
-
-	/////////////////////////////////////////////////////////////////////////////////////////////////
-#if 1
-
-	for( int index = 0; index < declManager->GetNumDecls( DECL_RENDERPARM ); ++index )
-	{
-		auto decl = declManager->DeclByIndex( DECL_RENDERPARM, index, true )->Cast<idDeclRenderParm>();
-		decl->Print();
-	}
-
-	extern idCVar r_useProgUBO;
+	cmdSystem->AddCommand( "reloadShaders", R_ReloadShaders, CMD_FL_RENDERER, "reloads render programs" );
 
 /*#ifdef ID_PC
 	idParser::AddGlobalDefine( "PC" );
@@ -272,6 +365,7 @@ void idRenderProgManager::Init()
 		idParser::AddGlobalDefine( "_INTEL_" );
 	}
 
+	extern idCVar r_useProgUBO;
 	if( r_useProgUBO.GetBool() ) {
 		idParser::AddGlobalDefine( "USE_UBO_PARMS" );
 	}
@@ -299,15 +393,11 @@ void idRenderProgManager::Init()
 	#error Non PC world. Implement Me!
 #endif*/
 
-	for( int index = 0; index < declManager->GetNumDecls( DECL_RENDERPROG ); ++index )
-	{
-		auto decl = declManager->DeclByIndex( DECL_RENDERPROG, index, true )->Cast<idDeclRenderProg>();
-		decl->Print();
-	}
+	//LoadAllShaders( true );
+
 	//TestParseProg();
 
 	//idParser::RemoveAllGlobalDefines();
-#endif
 }
 
 /*
@@ -315,41 +405,19 @@ void idRenderProgManager::Init()
 idRenderProgManager::LoadAllShaders()
 ================================================================================================
 */
-void idRenderProgManager::LoadAllShaders() 
+void idRenderProgManager::LoadAllShaders( bool bPrint ) // ???
 {
-#if 1
-	for( int i = 0; i < vertShaders.Num(); ++i )
+	for( int index = 0; index < declManager->GetNumDecls( DECL_RENDERPROG ); ++index )
 	{
-		LoadShader( i, SHT_VERTEX );
-	}
-	for( int i = 0; i < geomShaders.Num(); ++i )
-	{
-		LoadShader( i, SHT_GEOMETRY );
-	}
-	for( int i = 0; i < fragShaders.Num(); ++i )
-	{
-		LoadShader( i, SHT_FRAGMENT );
-	}
-	
-	for( int i = 0; i < glslPrograms.Num(); ++i )
-	{
-		if( glslPrograms[i].vertShaderIndex == -1 || glslPrograms[i].fragShaderIndex == -1 ) {
-			// RB: skip reloading because we didn't load it initially
-			continue;
-		}	
-		LoadGLSLProgram( i, glslPrograms[i].vertShaderIndex, glslPrograms[ i ].geomShaderIndex, glslPrograms[i].fragShaderIndex );
-	}
-#else
-
-	for( int sht = 0; sht < SHT_MAX; sht++ )
-	{
-		for( int i = 0; i < shaders[ sht ].Num(); ++i )
+		auto decl = declManager->RenderProgByIndex( index, true );
+		if( decl )
 		{
-			LoadShader( i, sht );
+			if( bPrint )
+			{
+				decl->Print();
+			}
 		}
 	}
-
-#endif
 }
 
 /*
@@ -360,50 +428,15 @@ idRenderProgManager::KillAllShaders()
 void idRenderProgManager::KillAllShaders()
 {
 	Unbind();
-#if 1
-	for( int i = 0; i < glslPrograms.Num(); ++i )
+
+	for( int index = 0; index < declManager->GetNumDecls( DECL_RENDERPROG ); ++index )
 	{
-		if( glslPrograms[ i ].progId != INVALID_PROGID ) {
-			glDeleteProgram( glslPrograms[ i ].progId );
-			glslPrograms[ i ].progId = INVALID_PROGID;
-		}
+		auto prog = declManager->RenderProgByIndex( index, false );
+		release_assert( prog != NULL );
+
+		const_cast<idDeclRenderProg*>( prog )->FreeData();
 	}
 
-	for( int i = 0; i < vertShaders.Num(); ++i )
-	{
-		if( vertShaders[i].progId != INVALID_PROGID ) {
-			glDeleteShader( vertShaders[i].progId );
-			vertShaders[i].progId = INVALID_PROGID;
-		}
-	}
-	for( int i = 0; i < geomShaders.Num(); ++i )
-	{
-		if( geomShaders[ i ].progId != INVALID_PROGID ) {
-			glDeleteShader( geomShaders[ i ].progId );
-			geomShaders[ i ].progId = INVALID_PROGID;
-		}
-	}
-	for( int i = 0; i < fragShaders.Num(); ++i )
-	{
-		if( fragShaders[i].progId != INVALID_PROGID ) {
-			glDeleteShader( fragShaders[i].progId );
-			fragShaders[i].progId = INVALID_PROGID;
-		}
-	}
-#else
-
-	for( int sht = 0; sht < SHT_MAX; sht++ )
-	{
-		for( int i = 0; i < shaders[ sht ].Num(); ++i )
-		{
-			if( shaders[ sht ][ i ].objectID != INVALID_PROGID ) {
-				glDeleteShader( shaders[ sht ][ i ].objectID );
-				shaders[ sht ][ i ].objectID = INVALID_PROGID;
-			}
-		}
-	}
-
-#endif
 }
 
 /*
@@ -413,246 +446,9 @@ idRenderProgManager::Shutdown()
 */
 void idRenderProgManager::Shutdown()
 {
-	KillAllShaders();
-
-	/*for( int index = 0; index < declManager->GetNumDecls( DECL_RENDERPROG ); ++index ) 
-	{
-		auto prog = declManager->DeclByIndex( DECL_RENDERPROG, index, false )->Cast<idDeclRenderProg>();
-		const_cast<idDeclRenderProg*>( prog )->FreeData();
-	}*/
+	//KillAllShaders();
+	//SEA: decl manager will handle this.	
 }
-
-/*
-================================================================================================
-idRenderProgManager::FindShader
-================================================================================================
-*/
-
-int idRenderProgManager::FindVertexShader( const char* name )
-{
-	for( int i = 0; i < vertShaders.Num(); ++i )
-	{
-		if( vertShaders[i].name.Icmp( name ) == 0 )
-		{
-			LoadShader( i, SHT_VERTEX );
-			return i;
-		}
-	}
-	vertShader_t shader;
-	shader.name = name;
-	int index = vertShaders.Append( shader );
-	LoadShader( index, SHT_VERTEX );
-	currentVertShader = index;
-	
-	// RB: removed idStr::Icmp( name, "heatHaze.vfp" ) == 0  hack
-	// this requires r_useUniformArrays 1
-	for( int i = 0; i < vertShaders[ index ].uniforms.Num(); i++ )
-	{
-		if( vertShaders[ index ].uniforms[ i ] == RENDERPARM_ENABLE_SKINNING )
-		{
-			vertShaders[ index ].usesJoints = true;
-			vertShaders[ index ].optionalSkinning = true;
-		}
-	}
-	// RB end
-	
-	return index;
-}
-int idRenderProgManager::FindGeometryShader( const char* name )
-{
-	for( int i = 0; i < geomShaders.Num(); ++i )
-	{
-		if( geomShaders[ i ].name.Icmp( name ) == 0 )
-		{
-			LoadShader( i, SHT_GEOMETRY );
-			return i;
-		}
-	}
-	geomShader_t shader;
-	shader.name = name;
-	int index = geomShaders.Append( shader );
-	LoadShader( index, SHT_GEOMETRY );
-	currentGeomShader = index;
-	return index;
-}
-int idRenderProgManager::FindFragmentShader( const char* name )
-{
-	for( int i = 0; i < fragShaders.Num(); ++i )
-	{
-		if( fragShaders[i].name.Icmp( name ) == 0 )
-		{
-			LoadShader( i, SHT_FRAGMENT );
-			return i;
-		}
-	}
-	fragShader_t shader;
-	shader.name = name;
-	int index = fragShaders.Append( shader );
-	LoadShader( index, SHT_FRAGMENT );
-	currentFragShader = index;
-	return index;
-}
-
-int idRenderProgManager::FindShader( const char* name, shaderType_e shaderType )
-{
-#if 1
-	/*/*/if( shaderType == shaderType_e::SHT_VERTEX )
-	{
-		return FindVertexShader( name );
-	}
-	else if( shaderType == shaderType_e::SHT_GEOMETRY )
-	{
-		return FindGeometryShader( name );
-	}
-	else if( shaderType == shaderType_e::SHT_FRAGMENT )
-	{
-		return FindFragmentShader( name );
-	}
-
-#else
-
-	for( int i = 0; i < shaders[ shaderType ].Num(); ++i )
-	{
-		if( shaders[ shaderType ][ i ].name.Icmp( name ) == 0 )
-		{
-			LoadShader( i, shaderType );
-			return i;
-		}
-	}
-
-	glslShader_t shader;
-	shader.name = name;
-	int index = shaders[ shaderType ].Append( shader );
-	LoadShader( index, shaderType );
-	currentShaders[ shaderType ] = index;
-
-	return index;
-
-#endif
-
-	return 0;
-}
-
-/*
-================================================================================================
-idRenderProgManager::LoadShader
-================================================================================================
-*/
-void idRenderProgManager::LoadShader( int index, shaderType_e shaderType )
-{
-#if 1
-	/*/*/if( shaderType == shaderType_e::SHT_VERTEX )/////////////////////////////////////////////////////////////
-	{
-		if( vertShaders[ index ].progId != INVALID_PROGID ) {
-			return; // Already loaded
-		}
-		vertShader_t& vs = vertShaders[ index ];
-		vs.progId = LoadGLSLShader( shaderType_e::SHT_VERTEX, vs.name, vs.nameOutSuffix, vs.shaderFeatures, vs.builtin, vs.uniforms );
-		return;
-	} 
-	else if( shaderType == shaderType_e::SHT_TESS_CTRL )//////////////////////////////////////////////////////////
-	{
-		release_assert( "Loading SHT_TESS_CTRL Not Implemented!" );
-		return;
-	}
-	else if( shaderType == shaderType_e::SHT_TESS_EVAL )
-	{
-		release_assert( "Loading SHT_TESS_EVAL Not Implemented!" );
-		return;
-	}
-	else if( shaderType == shaderType_e::SHT_GEOMETRY )///////////////////////////////////////////////////////////
-	{
-		if( geomShaders[ index ].progId != INVALID_PROGID ) {
-			return; // Already loaded
-		}
-		geomShader_t& gs = geomShaders[ index ];
-		gs.progId = LoadGLSLShader( shaderType_e::SHT_GEOMETRY, gs.name, gs.nameOutSuffix, gs.shaderFeatures, gs.builtin, gs.uniforms );
-		return;
-	}
-	else if( shaderType == shaderType_e::SHT_FRAGMENT )///////////////////////////////////////////////////////////
-	{
-		if( fragShaders[ index ].progId != INVALID_PROGID ) {
-			return; // Already loaded
-		}
-		fragShader_t& fs = fragShaders[ index ];
-		fs.progId = LoadGLSLShader( shaderType_e::SHT_FRAGMENT, fs.name, fs.nameOutSuffix, fs.shaderFeatures, fs.builtin, fs.uniforms );
-		return;
-	}
-	else if( shaderType == shaderType_e::SHT_COMPUTE )////////////////////////////////////////////////////////////
-	{
-		release_assert( "Loading SHT_COMPUTE Not Implemented!" );
-		return;
-	}
-
-	release_assert("Unknown ShaderType Loading");
-#else
-
-	if( shaders[ shaderType ][ index ].objectID != INVALID_PROGID ) {
-		return; // Already loaded
-	}
-
-	auto & sho = shaders[ shaderType ][ index ];
-	sho.objectID = LoadGLSLShader( shaderType, sho.name, sho.nameOutSuffix, sho.flags, sho.builtin, sho.uniforms );
-
-#endif
-}
-
-/*
-================================================================================================
-idRenderProgManager::BindShader
-================================================================================================
-*/
-// RB begin
-void idRenderProgManager::BindShader( int progIndex, int vIndex, int gIndex, int fIndex, bool builtin )
-{
-	if( currentVertShader == vIndex && currentGeomShader == gIndex && currentFragShader == fIndex ) {
-		return;
-	}
-	
-	if( builtin )
-	{
-		currentVertShader = vIndex;
-		currentGeomShader = gIndex;
-		currentFragShader = fIndex;
-		
-		// vIndex denotes the GLSL program
-		if( vIndex >= 0 && vIndex < glslPrograms.Num() )
-		{
-			currentRenderProgram = vIndex;
-			RENDERLOG_PRINT( "Binding GLSL Program %s %s\n", glslPrograms[vIndex].name.c_str(), ShaderUsesJoints() ? "skinned" : "" );
-			glUseProgram( glslPrograms[vIndex].progId );
-		}
-	}
-	else
-	{
-		if( progIndex == -1 )
-		{
-			// RB: FIXME linear search
-			for( int i = 0; i < glslPrograms.Num(); ++i )
-			{
-				if( ( glslPrograms[i].vertShaderIndex == vIndex ) && 
-					( glslPrograms[i].geomShaderIndex == fIndex ) && 
-					( glslPrograms[i].fragShaderIndex == fIndex ) )
-				{
-					progIndex = i;
-					break;
-				}
-			}
-		}
-		
-		currentVertShader = vIndex;
-		currentGeomShader = gIndex;
-		currentFragShader = fIndex;
-		
-		if( progIndex >= 0 && progIndex < glslPrograms.Num() )
-		{
-			currentRenderProgram = progIndex;
-			RENDERLOG_PRINT( "Binding GLSL Program %s %s\n", glslPrograms[progIndex].name.c_str(), ShaderUsesJoints() ? "skinned" : "" );
-			glUseProgram( glslPrograms[progIndex].progId );
-		}
-	}
-}
-// RB end
 
 /*
 ================================================================================================
@@ -661,46 +457,8 @@ idRenderProgManager::Unbind
 */
 void idRenderProgManager::Unbind()
 {
-	currentVertShader = -1;
-	currentGeomShader = -1;
-	currentFragShader = -1;
-
-	for( int i = 0; i < m_currentShaders.Num(); i++ ) {
-		m_currentShaders[ i ] = -1;
-	}
-	currentRenderProgram = -1;
+	mCurrentDeclRenderProg = nullptr;
 	glUseProgram( GL_NONE );
-}
-
-// RB begin
-bool idRenderProgManager::IsShaderBound() const
-{
-	//return( currentShaders[ SHT_VERTEX ] != -1 );
-	return( currentVertShader != -1 );
-}
-// RB end
-
-/*
-================================================================================================
-idRenderProgManager::SetRenderParms
-================================================================================================
-*/
-void idRenderProgManager::SetRenderParms( renderParm_t rp, const float* value, int num )
-{
-	for( int i = 0; i < num; i++ )
-	{
-		SetRenderParm( ( renderParm_t )( rp + i ), value + ( i * 4 ) );
-	}
-}
-
-/*
-================================================================================================
-idRenderProgManager::SetRenderParm
-================================================================================================
-*/
-void idRenderProgManager::SetRenderParm( renderParm_t rp, const float* value )
-{
-	SetUniformValue( rp, value );
 }
 
 /*
@@ -710,6 +468,95 @@ idRenderProgManager::GetRenderParm
 */
 idRenderVector & idRenderProgManager::GetRenderParm( renderParm_t rp )
 {
-	return glslUniforms[ rp ];
+	return builtinParms[ rp ]->GetVec4();
+}
+
+/*
+================================================================================================
+idRenderProgManager::SetRenderParm
+================================================================================================
+*/
+void idRenderProgManager::SetRenderParm( renderParm_t rp, const float* vector )
+{
+	///SetUniformValue( rp, value );
+	const idDeclRenderParm * parm = builtinParms[ rp ];
+	release_assert( parm != NULL );
+
+#if defined( USE_INTRINSICS )
+	assert_16_byte_aligned( vector );
+	_mm_store_ps( parm->GetVecPtr(), _mm_load_ps( vector ) );	
+#else
+	parm->Set( vector );
+#endif
+}
+void idRenderProgManager::SetRenderParm( renderParm_t rp, const idRenderVector & vector )
+{
+	const idDeclRenderParm * parm = builtinParms[ rp ];
+	release_assert( parm != NULL );
+
+#if defined( USE_INTRINSICS )
+	assert_16_byte_aligned( vector.ToFloatPtr() );
+	_mm_store_ps( parm->GetVecPtr(), _mm_load_ps( vector.ToFloatPtr() ) );
+#else
+	parm->Set( vector );
+#endif
+}
+
+/*
+================================================================================================
+idRenderProgManager::SetRenderParm
+================================================================================================
+*/
+void idRenderProgManager::SetRenderParm( renderParm_t rp, idImage * img )
+{
+	builtinParms[ rp ]->Set( img );
+}
+
+/*
+================================================================================================
+idRenderProgManager::FindRenderProgram
+================================================================================================
+*/
+const idDeclRenderProg * idRenderProgManager::FindRenderProgram( const char * progName ) const
+{
+	auto decl = declManager->FindType( DECL_RENDERPROG, progName, false );
+	release_assert( decl != NULL );
+
+	return decl->Cast<idDeclRenderProg>();
+}
+/*
+================================================================================================
+idRenderProgManager::BindRenderProg
+================================================================================================
+*/
+void idRenderProgManager::BindRenderProgram( const idDeclRenderProg * prog )
+{
+	if( mCurrentDeclRenderProg != prog )
+	{
+		mCurrentDeclRenderProg = prog;
+
+		RENDERLOG_PRINT( "Binding GLSL Program %s %s\n", prog->GetName(), prog->HasHardwareSkinning() ? "skinned" : "" );
+
+		prog->Bind();
+	}
+}
+
+/*
+================================================================================================
+idRenderProgManager::ZeroUniforms
+================================================================================================
+*/
+void idRenderProgManager::ZeroUniforms()
+{
+	//memset( glslUniforms.Ptr(), 0, glslUniforms.Allocated() );
+
+	for( int index = 0; index < declManager->GetNumDecls( DECL_RENDERPARM ); ++index )
+	{
+		auto decl = declManager->RenderParmByIndex( index, false );
+		if( decl != NULL )
+		{
+			decl->SetDefaultData();
+		}
+	}
 }
 

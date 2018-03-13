@@ -15,6 +15,31 @@
 idCVar r_skipInteractionFastPath( "r_skipInteractionFastPath", "1", CVAR_RENDERER | CVAR_BOOL, "" );
 idCVar r_useLightStencilSelect( "r_useLightStencilSelect", "0", CVAR_RENDERER | CVAR_BOOL, "use stencil select pass" );
 
+struct forwardInteractionsRenderPassParms_t 
+{
+	const idDeclRenderParm *	rpBumpMap;
+	const idDeclRenderParm *	rpDiffuseMap;
+	const idDeclRenderParm *	rpSpecularMap;
+	const idDeclRenderParm *	rpLightProjectMap;
+	const idDeclRenderParm *	rpLightFalloffMap;
+	const idDeclRenderParm *	rpShadowBufferMap;
+	const idDeclRenderParm *	rpJitterMap;
+
+	const idDeclRenderParm *	rpDiffuseModifier;
+	const idDeclRenderParm *	rpSpecularModifier;
+
+	const idDeclRenderParm *	rpBumpMatrixS;
+	const idDeclRenderParm *	rpBumpMatrixT;
+
+	const idDeclRenderParm *	rpDiffuseMatrixS;
+	const idDeclRenderParm *	rpDiffuseMatrixT;
+
+	const idDeclRenderParm *	rpSpecularMatrixS;
+	const idDeclRenderParm *	rpSpecularMatrixT;
+
+	const idDeclRenderParm *	rpVertexColorMAD;
+};
+
 /*
 ==================
  RB_SetupInteractionStage
@@ -112,30 +137,29 @@ void RB_DrawSingleInteraction( drawInteraction_t* din )
 	}
 
 	// bump matrix
-	renderProgManager.SetRenderParm( RENDERPARM_BUMPMATRIX_S, din->bumpMatrix[ 0 ].ToFloatPtr() );
-	renderProgManager.SetRenderParm( RENDERPARM_BUMPMATRIX_T, din->bumpMatrix[ 1 ].ToFloatPtr() );
+	renderProgManager.SetRenderParm( RENDERPARM_BUMPMATRIX_S, din->bumpMatrix[ 0 ] );
+	renderProgManager.SetRenderParm( RENDERPARM_BUMPMATRIX_T, din->bumpMatrix[ 1 ] );
 
 	// diffuse matrix
-	renderProgManager.SetRenderParm( RENDERPARM_DIFFUSEMATRIX_S, din->diffuseMatrix[ 0 ].ToFloatPtr() );
-	renderProgManager.SetRenderParm( RENDERPARM_DIFFUSEMATRIX_T, din->diffuseMatrix[ 1 ].ToFloatPtr() );
+	renderProgManager.SetRenderParm( RENDERPARM_DIFFUSEMATRIX_S, din->diffuseMatrix[ 0 ] );
+	renderProgManager.SetRenderParm( RENDERPARM_DIFFUSEMATRIX_T, din->diffuseMatrix[ 1 ] );
 
 	// specular matrix
-	renderProgManager.SetRenderParm( RENDERPARM_SPECULARMATRIX_S, din->specularMatrix[ 0 ].ToFloatPtr() );
-	renderProgManager.SetRenderParm( RENDERPARM_SPECULARMATRIX_T, din->specularMatrix[ 1 ].ToFloatPtr() );
+	renderProgManager.SetRenderParm( RENDERPARM_SPECULARMATRIX_S, din->specularMatrix[ 0 ] );
+	renderProgManager.SetRenderParm( RENDERPARM_SPECULARMATRIX_T, din->specularMatrix[ 1 ] );
 
 	RB_SetVertexColorParms( din->vertexColor );
 
-	renderProgManager.SetRenderParm( RENDERPARM_DIFFUSEMODIFIER, din->diffuseColor.ToFloatPtr() );
-	renderProgManager.SetRenderParm( RENDERPARM_SPECULARMODIFIER, din->specularColor.ToFloatPtr() );
+	renderProgManager.SetRenderParm( RENDERPARM_DIFFUSEMODIFIER, din->diffuseColor );
+	renderProgManager.SetRenderParm( RENDERPARM_SPECULARMODIFIER, din->specularColor );
 
-	// texture 0 will be the per-surface bump map
-	GL_BindTexture( INTERACTION_TEXUNIT_BUMP, din->bumpImage );
-
-	// texture 3 is the per-surface diffuse map
-	GL_BindTexture( INTERACTION_TEXUNIT_DIFFUSE, din->diffuseImage );
-
-	// texture 4 is the per-surface specular map
-	GL_BindTexture( INTERACTION_TEXUNIT_SPECULAR, din->specularImage );
+	
+	///GL_BindTexture( INTERACTION_TEXUNIT_BUMP, din->bumpImage ); // texture 0 will be the per-surface bump map	
+	///GL_BindTexture( INTERACTION_TEXUNIT_DIFFUSE, din->diffuseImage ); // texture 3 is the per-surface diffuse map	
+	///GL_BindTexture( INTERACTION_TEXUNIT_SPECULAR, din->specularImage ); // texture 4 is the per-surface specular map
+	renderProgManager.SetRenderParm( RENDERPARM_BUMPMAP, din->bumpImage );
+	renderProgManager.SetRenderParm( RENDERPARM_DIFFUSEMAP, din->diffuseImage );
+	renderProgManager.SetRenderParm( RENDERPARM_SPECULARMAP, din->specularImage );
 
 	GL_DrawIndexed( din->surf );
 }
@@ -153,21 +177,21 @@ void RB_SetupForFastPathInteractions( const idVec4& diffuseColor, const idVec4& 
 	const idRenderVector tMatrix( 0.0f, 1.0f, 0.0f, 0.0f );
 
 	// bump matrix
-	renderProgManager.SetRenderParm( RENDERPARM_BUMPMATRIX_S, sMatrix.ToFloatPtr() );
-	renderProgManager.SetRenderParm( RENDERPARM_BUMPMATRIX_T, tMatrix.ToFloatPtr() );
+	renderProgManager.SetRenderParm( RENDERPARM_BUMPMATRIX_S, sMatrix );
+	renderProgManager.SetRenderParm( RENDERPARM_BUMPMATRIX_T, tMatrix );
 
 	// diffuse matrix
-	renderProgManager.SetRenderParm( RENDERPARM_DIFFUSEMATRIX_S, sMatrix.ToFloatPtr() );
-	renderProgManager.SetRenderParm( RENDERPARM_DIFFUSEMATRIX_T, tMatrix.ToFloatPtr() );
+	renderProgManager.SetRenderParm( RENDERPARM_DIFFUSEMATRIX_S, sMatrix );
+	renderProgManager.SetRenderParm( RENDERPARM_DIFFUSEMATRIX_T, tMatrix );
 
 	// specular matrix
-	renderProgManager.SetRenderParm( RENDERPARM_SPECULARMATRIX_S, sMatrix.ToFloatPtr() );
-	renderProgManager.SetRenderParm( RENDERPARM_SPECULARMATRIX_T, tMatrix.ToFloatPtr() );
+	renderProgManager.SetRenderParm( RENDERPARM_SPECULARMATRIX_S, sMatrix );
+	renderProgManager.SetRenderParm( RENDERPARM_SPECULARMATRIX_T, tMatrix );
 
 	RB_SetVertexColorParms( SVC_IGNORE );
 
-	renderProgManager.SetRenderParm( RENDERPARM_DIFFUSEMODIFIER, diffuseColor.ToFloatPtr() );
-	renderProgManager.SetRenderParm( RENDERPARM_SPECULARMODIFIER, specularColor.ToFloatPtr() );
+	renderProgManager.SetRenderParm( RENDERPARM_DIFFUSEMODIFIER, diffuseColor );
+	renderProgManager.SetRenderParm( RENDERPARM_SPECULARMODIFIER, specularColor );
 }
 
 /*
@@ -318,12 +342,12 @@ void RB_RenderInteractions( const drawSurf_t* const surfList, const viewLight_t*
 		{
 			assert( walk->shadowVolumeState == SHADOWVOLUME_UNFINISHED || walk->shadowVolumeState == SHADOWVOLUME_DONE );
 
-			uint64 start = Sys_Microseconds();
+			uint64 start = sys->Microseconds();
 			while( walk->shadowVolumeState == SHADOWVOLUME_UNFINISHED )
 			{
 				Sys_Yield();
 			}
-			uint64 end = Sys_Microseconds();
+			uint64 end = sys->Microseconds();
 
 			backEnd.pc.shadowMicroSec += end - start;
 		}
@@ -333,8 +357,7 @@ void RB_RenderInteractions( const drawSurf_t* const surfList, const viewLight_t*
 		{
 			allSurfaces.Append( walk );
 		}
-		else
-		{
+		else {
 			complexSurfaces.Append( walk );
 		}
 	}
@@ -358,22 +381,22 @@ void RB_RenderInteractions( const drawSurf_t* const surfList, const viewLight_t*
 		float jitterSampleScale = 1.0f;
 		float shadowMapSamples = r_shadowMapSamples.GetInteger();
 
-		// screen power of two correction factor
-		float screenCorrectionParm[ 4 ];
+		// screen power of two correction factor / rpScreenCorrectionFactor;
+		auto & screenCorrectionParm = renderProgManager.GetRenderParm( RENDERPARM_SCREENCORRECTIONFACTOR );
 		screenCorrectionParm[ 0 ] = 1.0f / ( JITTER_SIZE * shadowMapSamples );
 		screenCorrectionParm[ 1 ] = 1.0f / JITTER_SIZE;
 		screenCorrectionParm[ 2 ] = 1.0f / shadowMapResolutions[ shadowLOD ];
 		screenCorrectionParm[ 3 ] = vLight->parallel ? r_shadowMapSunDepthBiasScale.GetFloat() : r_shadowMapRegularDepthBiasScale.GetFloat();
-		renderProgManager.SetRenderParm( RENDERPARM_SCREENCORRECTIONFACTOR, screenCorrectionParm ); // rpScreenCorrectionFactor
 
-		float jitterTexScale[ 4 ];
+		// rpJitterTexScale
+		auto & jitterTexScale = renderProgManager.GetRenderParm( RENDERPARM_JITTERTEXSCALE );
 		jitterTexScale[ 0 ] = r_shadowMapJitterScale.GetFloat() * jitterSampleScale;	// TODO shadow buffer size fraction shadowMapSize / maxShadowMapSize
 		jitterTexScale[ 1 ] = r_shadowMapJitterScale.GetFloat() * jitterSampleScale;
 		jitterTexScale[ 2 ] = -r_shadowMapBiasScale.GetFloat();
 		jitterTexScale[ 3 ] = 0.0f;
-		renderProgManager.SetRenderParm( RENDERPARM_JITTERTEXSCALE, jitterTexScale ); // rpJitterTexScale
 
-		float jitterTexOffset[ 4 ];
+		// rpJitterTexOffset
+		auto & jitterTexOffset = renderProgManager.GetRenderParm( RENDERPARM_JITTERTEXOFFSET );
 		if( r_shadowMapRandomizeJitter.GetBool() )
 		{
 			jitterTexOffset[ 0 ] = ( rand() & 255 ) / 255.0;
@@ -385,17 +408,14 @@ void RB_RenderInteractions( const drawSurf_t* const surfList, const viewLight_t*
 		}
 		jitterTexOffset[ 2 ] = 0.0f;
 		jitterTexOffset[ 3 ] = 0.0f;
-		renderProgManager.SetRenderParm( RENDERPARM_JITTERTEXOFFSET, jitterTexOffset ); // rpJitterTexOffset
 
-		if( vLight->parallel )
-		{
-			//float cascadeDistances[4];
-			//cascadeDistances[0] = backEnd.viewDef->GetSplitFrustumDistances()[0];
-			//cascadeDistances[1] = backEnd.viewDef->GetSplitFrustumDistances()[1];
-			//cascadeDistances[2] = backEnd.viewDef->GetSplitFrustumDistances()[2];
-			//cascadeDistances[3] = backEnd.viewDef->GetSplitFrustumDistances()[3];
-			renderProgManager.SetRenderParm( RENDERPARM_CASCADEDISTANCES, backEnd.viewDef->GetSplitFrustumDistances() ); // rpCascadeDistances
-		}
+		/*if( vLight->parallel ) { // rpCascadeDistances
+			auto & cascadeDistances = renderProgManager.GetRenderParm( RENDERPARM_CASCADEDISTANCES );
+			cascadeDistances[0] = backEnd.viewDef->GetSplitFrustumDistances()[0];
+			cascadeDistances[1] = backEnd.viewDef->GetSplitFrustumDistances()[1];
+			cascadeDistances[2] = backEnd.viewDef->GetSplitFrustumDistances()[2];
+			cascadeDistances[3] = backEnd.viewDef->GetSplitFrustumDistances()[3];
+		}*/
 
 	}
 	// RB end
@@ -415,6 +435,7 @@ void RB_RenderInteractions( const drawSurf_t* const surfList, const viewLight_t*
 			lightScale * lightRegs[ lightStage->color.registers[ SHADERPARM_GREEN ] ],
 			lightScale * lightRegs[ lightStage->color.registers[ SHADERPARM_BLUE] ],
 						 lightRegs[ lightStage->color.registers[ SHADERPARM_ALPHA ] ] );
+
 		// apply the world-global overbright and the 2x factor for specular
 		const idRenderVector diffuseColor = lightColor;
 		const idRenderVector specularColor = lightColor * 2.0f;
@@ -426,28 +447,33 @@ void RB_RenderInteractions( const drawSurf_t* const surfList, const viewLight_t*
 		}
 
 		// texture 1 will be the light falloff texture
-		GL_BindTexture( INTERACTION_TEXUNIT_FALLOFF, vLight->falloffImage );
+		///GL_BindTexture( INTERACTION_TEXUNIT_FALLOFF, vLight->falloffImage );
+		renderProgManager.SetRenderParm( RENDERPARM_LIGHTFALLOFFMAP, vLight->falloffImage );
 
 		// texture 2 will be the light projection texture
-		GL_BindTexture( INTERACTION_TEXUNIT_PROJECTION, lightStage->texture.image );
+		///GL_BindTexture( INTERACTION_TEXUNIT_PROJECTION, lightStage->texture.image );
+		renderProgManager.SetRenderParm( RENDERPARM_LIGHTPROJECTMAP, lightStage->texture.image );
 
 		if( r_useShadowMapping.GetBool() )
 		{
 			// texture 5 will be the shadow maps array
-			GL_BindTexture( INTERACTION_TEXUNIT_SHADOWMAPS, renderImageManager->shadowImage[ shadowLOD ] );
+			///GL_BindTexture( INTERACTION_TEXUNIT_SHADOWMAPS, renderImageManager->shadowImage[ shadowLOD ] );
+			renderProgManager.SetRenderParm( RENDERPARM_SHADOWBUFFERMAP, renderImageManager->shadowImage[ shadowLOD ] );
 
 			// texture 6 will be the jitter texture for soft shadowing
 			if( r_shadowMapSamples.GetInteger() == 16 )
 			{
-				GL_BindTexture( INTERACTION_TEXUNIT_JITTER, renderImageManager->jitterImage16 );
+				///GL_BindTexture( INTERACTION_TEXUNIT_JITTER, renderImageManager->jitterImage16 );
+				renderProgManager.SetRenderParm( RENDERPARM_JITTERMAP, renderImageManager->jitterImage16 );
 			}
 			else if( r_shadowMapSamples.GetInteger() == 4 )
 			{
-				GL_BindTexture( INTERACTION_TEXUNIT_JITTER, renderImageManager->jitterImage4 );
+				///GL_BindTexture( INTERACTION_TEXUNIT_JITTER, renderImageManager->jitterImage4 );
+				renderProgManager.SetRenderParm( RENDERPARM_JITTERMAP, renderImageManager->jitterImage4 );
 			}
-			else
-			{
-				GL_BindTexture( INTERACTION_TEXUNIT_JITTER, renderImageManager->jitterImage1 );
+			else {
+				///GL_BindTexture( INTERACTION_TEXUNIT_JITTER, renderImageManager->jitterImage1 );
+				renderProgManager.SetRenderParm( RENDERPARM_JITTERMAP, renderImageManager->jitterImage1 );
 			}
 		}
 
@@ -463,7 +489,7 @@ void RB_RenderInteractions( const drawSurf_t* const surfList, const viewLight_t*
 		RB_SetupForFastPathInteractions( diffuseColor, specularColor );
 
 		// even if the space does not change between light stages, each light stage may need a different lightTextureMatrix baked in
-		backEnd.currentSpace = NULL;
+		backEnd.ClearCurrentSpace();
 
 		for( int sortedSurfNum = 0; sortedSurfNum < allSurfaces.Num(); sortedSurfNum++ )
 		{
@@ -499,7 +525,7 @@ void RB_RenderInteractions( const drawSurf_t* const surfList, const viewLight_t*
 				}
 			}
 
-			const idMaterial* const surfaceShader = surf->material;
+			const idMaterial* const surfaceMaterial = surf->material;
 			const float* surfaceRegs = surf->shaderRegisters;
 
 			inter.surf = surf;
@@ -521,8 +547,7 @@ void RB_RenderInteractions( const drawSurf_t* const surfList, const viewLight_t*
 							lightDepthBoundsDisabled = false;
 						}
 					}
-					else
-					{
+					else {
 						if( !lightDepthBoundsDisabled )
 						{
 							GL_DepthBoundsTest( 0.0f, 0.0f );
@@ -531,19 +556,19 @@ void RB_RenderInteractions( const drawSurf_t* const surfList, const viewLight_t*
 					}
 				}
 
-				idRenderVector globalLightOrigin( vLight->globalLightOrigin, vLight->parallel ? ( -1.0f ) : ( vLight->pointLight ? 0.0f : 1.0f ) );
-				renderProgManager.SetRenderParm( RENDERPARM_GLOBALLIGHTORIGIN, globalLightOrigin.ToFloatPtr() );
+				auto & globalLightOrigin = renderProgManager.GetRenderParm( RENDERPARM_GLOBALLIGHTORIGIN );
+				globalLightOrigin.Set( vLight->globalLightOrigin, vLight->parallel ? ( -1.0f ) : ( vLight->pointLight ? 0.0f : 1.0f ) );
 				// RB end
 
 				// tranform the light/view origin into model local space
 
 				idRenderVector localLightOrigin( 0.0f );
 				surf->space->modelMatrix.InverseTransformPoint( vLight->globalLightOrigin, localLightOrigin.ToVec3() );
-				renderProgManager.SetRenderParm( RENDERPARM_LOCALLIGHTORIGIN, localLightOrigin.ToFloatPtr() );
+				renderProgManager.SetRenderParm( RENDERPARM_LOCALLIGHTORIGIN, localLightOrigin );
 				
 				idRenderVector localViewOrigin( 1.0f );
 				surf->space->modelMatrix.InverseTransformPoint( backEnd.viewDef->GetOrigin(), localViewOrigin.ToVec3() );
-				renderProgManager.SetRenderParm( RENDERPARM_LOCALVIEWORIGIN, localViewOrigin.ToFloatPtr() );
+				renderProgManager.SetRenderParm( RENDERPARM_LOCALVIEWORIGIN, localViewOrigin );
 
 				// transform the light project into model local space
 				idRenderPlane lightProjection[ 4 ];
@@ -579,44 +604,52 @@ void RB_RenderInteractions( const drawSurf_t* const surfList, const viewLight_t*
 				{
 					if( vLight->parallel )
 					{
-						for( int i = 0; i < ( r_shadowMapSplits.GetInteger() + 1 ); i++ )
+						idRenderMatrix shadowClipMVPs[ 6 ];
+						uint32 count = ( r_shadowMapSplits.GetInteger() + 1 );
+						for( uint32 i = 0; i < count; i++ )
 						{
-							idRenderMatrix shadowClipMVP;
-							idRenderMatrix::Multiply( backEnd.shadowVP[ i ], surf->space->modelMatrix, shadowClipMVP );
-
-							renderProgManager.SetRenderParms( ( renderParm_t )( RENDERPARM_SHADOW_MATRIX_0_X + i * 4 ), shadowClipMVP.Ptr(), 4 );
+							///idRenderMatrix shadowClipMVP;
+							idRenderMatrix::Multiply( backEnd.shadowVP[ i ], surf->space->modelMatrix, shadowClipMVPs[ i ] );
+							///renderProgManager.SetRenderParms( ( renderParm_t )( RENDERPARM_SHADOW_MATRIX_0_X + i * 4 ), shadowClipMVP.Ptr(), 4 );
 						}
+						backEnd.shadowUniformBuffer.Update( sizeof( idRenderMatrix ) * count, shadowClipMVPs->Ptr() );
 					}
 					else if( vLight->pointLight )
 					{
-						for( int i = 0; i < 6; i++ )
+						idRenderMatrix shadowClipMVPs[ 6 ];
+						for( uint32 i = 0; i < 6; i++ )
 						{
-							idRenderMatrix shadowClipMVP;
-							idRenderMatrix::Multiply( backEnd.shadowVP[ i ], surf->space->modelMatrix, shadowClipMVP );
-
-							renderProgManager.SetRenderParms( ( renderParm_t )( RENDERPARM_SHADOW_MATRIX_0_X + i * 4 ), shadowClipMVP.Ptr(), 4 );
+							///idRenderMatrix shadowClipMVP;
+							idRenderMatrix::Multiply( backEnd.shadowVP[ i ], surf->space->modelMatrix, shadowClipMVPs[ i ] );
+							///renderProgManager.SetRenderParms( ( renderParm_t )( RENDERPARM_SHADOW_MATRIX_0_X + i * 4 ), shadowClipMVP.Ptr(), 4 );
 						}
+						backEnd.shadowUniformBuffer.Update( sizeof( idRenderMatrix ) * 6, shadowClipMVPs->Ptr() );
 					}
 					else // spot light
 					{
 						idRenderMatrix shadowClipMVP;
 						idRenderMatrix::Multiply( backEnd.shadowVP[ 0 ], surf->space->modelMatrix, shadowClipMVP );
-
-						renderProgManager.SetRenderParms( ( renderParm_t )( RENDERPARM_SHADOW_MATRIX_0_X ), shadowClipMVP.Ptr(), 4 );
-
+						///renderProgManager.SetRenderParms( ( renderParm_t )( RENDERPARM_SHADOW_MATRIX_0_X ), shadowClipMVP.Ptr(), 4 );
+						backEnd.shadowUniformBuffer.Update( sizeof( idRenderMatrix ), shadowClipMVP.Ptr() );
 					}
+
+					const GLintptr ubo = GetGLObject( backEnd.shadowUniformBuffer.GetAPIObject() );
+					glBindBufferRange( GL_UNIFORM_BUFFER, BINDING_SHADOW_UBO, ubo, backEnd.shadowUniformBuffer.GetOffset(), backEnd.shadowUniformBuffer.GetSize() );
 				}
 				// RB end
 			}
 
 			// check for the fast path
-			if( surfaceShader->GetFastPathBumpImage() && !r_skipInteractionFastPath.GetBool() )
+			if( surfaceMaterial->GetFastPathBumpImage() && !r_skipInteractionFastPath.GetBool() )
 			{
 				RENDERLOG_OPEN_BLOCK( surf->material->GetName() );
 
-				GL_BindTexture( INTERACTION_TEXUNIT_BUMP, surfaceShader->GetFastPathBumpImage() );
-				GL_BindTexture( INTERACTION_TEXUNIT_DIFFUSE, surfaceShader->GetFastPathDiffuseImage() );
-				GL_BindTexture( INTERACTION_TEXUNIT_SPECULAR, surfaceShader->GetFastPathSpecularImage() );
+				//GL_BindTexture( INTERACTION_TEXUNIT_BUMP, surfaceShader->GetFastPathBumpImage() );
+				//GL_BindTexture( INTERACTION_TEXUNIT_DIFFUSE, surfaceShader->GetFastPathDiffuseImage() );
+				//GL_BindTexture( INTERACTION_TEXUNIT_SPECULAR, surfaceShader->GetFastPathSpecularImage() );
+				renderProgManager.SetRenderParm( RENDERPARM_BUMPMAP, surfaceMaterial->GetFastPathBumpImage() );
+				renderProgManager.SetRenderParm( RENDERPARM_DIFFUSEMAP, surfaceMaterial->GetFastPathDiffuseImage() );
+				renderProgManager.SetRenderParm( RENDERPARM_SPECULARMAP, surfaceMaterial->GetFastPathSpecularImage() );
 
 				GL_DrawIndexed( surf );
 
@@ -628,7 +661,7 @@ void RB_RenderInteractions( const drawSurf_t* const surfList, const viewLight_t*
 			inter.diffuseColor[ 0 ] = inter.diffuseColor[ 1 ] = inter.diffuseColor[ 2 ] = inter.diffuseColor[ 3 ] = 0;
 			inter.specularColor[ 0 ] = inter.specularColor[ 1 ] = inter.specularColor[ 2 ] = inter.specularColor[ 3 ] = 0;
 
-			RB_DrawComplexMaterialInteraction( inter, surfaceRegs, surfaceShader, diffuseColor, specularColor );
+			RB_DrawComplexMaterialInteraction( inter, surfaceRegs, surfaceMaterial, diffuseColor, specularColor );
 		}
 	}
 
@@ -660,7 +693,7 @@ void RB_DrawInteractionsForward( const idRenderView * const viewDef )
 	//
 	// for each light, perform shadowing and adding
 	//
-	for( const viewLight_t* vLight = backEnd.viewDef->viewLights; vLight != NULL; vLight = vLight->next )
+	for( const auto * vLight = viewDef->viewLights; vLight != NULL; vLight = vLight->next )
 	{
 		// do fogging later
 		if( vLight->lightShader->IsFogLight() || vLight->lightShader->IsBlendLight() )
@@ -680,7 +713,6 @@ void RB_DrawInteractionsForward( const idRenderView * const viewDef )
 			GL_DepthBoundsTest( vLight->scissorRect.zmin, vLight->scissorRect.zmax );
 		}
 
-		// RB: shadow mapping
 		if( r_useShadowMapping.GetBool() )
 		{
 			RB_ShadowMapPass( vLight->globalShadows, vLight );
@@ -702,8 +734,7 @@ void RB_DrawInteractionsForward( const idRenderView * const viewDef )
 				RENDERLOG_CLOSE_BLOCK();
 			}
 		}
-		else
-		{
+		else {
 			// only need to clear the stencil buffer and perform stencil testing if there are shadows
 			const bool performStencilTest = ( vLight->globalShadows != NULL || vLight->localShadows != NULL ) && !r_useShadowMapping.GetBool();
 
@@ -718,8 +749,7 @@ void RB_DrawInteractionsForward( const idRenderView * const viewDef )
 					// write a stencil mask for the visible light bounds to hi-stencil
 					RB_StencilSelectLight( vLight );
 				}
-				else
-				{
+				else {
 					// always clear whole S-Cull tiles
 					idScreenRect rect;
 					rect.x1 = ( vLight->scissorRect.x1 + 0 ) & ~15;
@@ -762,7 +792,6 @@ void RB_DrawInteractionsForward( const idRenderView * const viewDef )
 				RENDERLOG_CLOSE_BLOCK();
 			}
 		}
-		// RB end
 
 		if( vLight->translucentInteractions != NULL && !r_skipTranslucent.GetBool() )
 		{

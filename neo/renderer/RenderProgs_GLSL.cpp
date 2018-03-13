@@ -192,6 +192,7 @@ struct attribInfo_t {
 	
 	{ "float4",		"color",		"COLOR",		"out_FragColor",	0,	AT_PS_OUT,	0 },
 	{ "half4",		"hcolor",		"COLOR",		"out_FragColor",	0,	AT_PS_OUT,	0 },
+
 	{ "float4",		"target0",		"SV_Target0",	"out_FragColor0",	0,	AT_PS_OUT,	0 },
 	{ "float4",		"target1",		"SV_Target1",	"out_FragColor1",	1,	AT_PS_OUT,	0 },
 	{ "float4",		"target2",		"SV_Target2",	"out_FragColor2",	2,	AT_PS_OUT,	0 },
@@ -200,6 +201,7 @@ struct attribInfo_t {
 	{ "float4",		"target5",		"SV_Target5",	"out_FragColor5",	5,	AT_PS_OUT,	0 },
 	{ "float4",		"target6",		"SV_Target6",	"out_FragColor6",	6,	AT_PS_OUT,	0 },
 	{ "float4",		"target7",		"SV_Target7",	"out_FragColor7",	7,	AT_PS_OUT,	0 },
+
 	{ "half4",		"htarget0",		"SV_Target0",	"out_FragColor0",	0,	AT_PS_OUT,	0 },
 	{ "half4",		"htarget1",		"SV_Target1",	"out_FragColor1",	1,	AT_PS_OUT,	0 },
 	{ "half4",		"htarget2",		"SV_Target2",	"out_FragColor2",	2,	AT_PS_OUT,	0 },
@@ -224,7 +226,7 @@ struct attribInfo_t {
 	{ "half4",		"hcolor",		"COLOR",				"vofi_Color",		0,	AT_PS_IN,	0 },
 	{ "half4",		"hcolor0",		"COLOR0",				"vofi_Color",		0,	AT_PS_IN,	0 },
 	
-	{ "float4",		"texcoord0",	"TEXCOORD0_centroid",	"vofi_TexCoord0",	0,	AT_PS_IN,	0 }, // Varying
+	{ "float4",		"texcoord0",	"TEXCOORD0_centroid",	"vofi_TexCoord0",	0,	AT_PS_IN,	0 },
 	{ "float4",		"texcoord1",	"TEXCOORD1_centroid",	"vofi_TexCoord1",	1,	AT_PS_IN,	0 },
 	{ "float4",		"texcoord2",	"TEXCOORD2_centroid",	"vofi_TexCoord2",	2,	AT_PS_IN,	0 },
 	{ "float4",		"texcoord3",	"TEXCOORD3_centroid",	"vofi_TexCoord3",	3,	AT_PS_IN,	0 },
@@ -446,7 +448,7 @@ static const char* GLSLParmNames[ RENDERPARM_TOTAL ] =
 };
 
 // RB begin
-const char* idRenderProgManager::GLSLMacroNames[ MAX_SHADER_MACRO_NAMES ] =
+/*const char* idRenderProgManager::GLSLMacroNames[ MAX_SHADER_MACRO_NAMES ] =
 {
 	"USE_GPU_SKINNING",
 	"LIGHT_POINT",
@@ -454,7 +456,7 @@ const char* idRenderProgManager::GLSLMacroNames[ MAX_SHADER_MACRO_NAMES ] =
 	"BRIGHTPASS",
 	"HDR_DEBUG",
 	"USE_SRGB"
-};
+};*/
 // RB end
 
 /*
@@ -1842,6 +1844,7 @@ void ConvertCG2GLSL( const idStr & in, idStr & out, const char* name, idStr& uni
 	final.ToString( out );
 }
 
+#if 0
 /*
 ================================================================================================
 idRenderProgManager::LoadGLSLShader
@@ -2017,271 +2020,28 @@ GLuint idRenderProgManager::LoadGLSLShader( shaderType_e shaderType, const char*
 
 	return CreateGLSLShaderObject( shaderType, programGLSL.c_str(), inFile.c_str() );
 }
+#endif
 
-/*
-================================================================================================
-  GL_CreateGLSLShaderObject
-================================================================================================
-*/
-GLuint idRenderProgManager::CreateGLSLShaderObject( shaderType_e shaderType, const char * sourceGLSL, const char * fileName ) const
-{
-	// create and compile the shader
-	const GLuint shader = glCreateShader( glslShaderInfo[ shaderType ].glTargetType );
-	if( !shader )
-	{
-		idLib::Error( "Fail to create GLSL shader object for %s", fileName );
-		return INVALID_PROGID;
-	}
 
-	const char* source[ 1 ] = { sourceGLSL };
-	glShaderSource( shader, 1, source, NULL );
-	glCompileShader( shader );
-
-	GLint compiled = GL_FALSE;
-	glGetShaderiv( shader, GL_COMPILE_STATUS, &compiled );
-	if( compiled == GL_FALSE )
-	{
-		int infologLength = 0;
-		glGetShaderiv( shader, GL_INFO_LOG_LENGTH, &infologLength );
-		if( infologLength > 1 )
-		{
-			idTempArray<char> infoLog( infologLength );
-			glGetShaderInfoLog( shader, infologLength, NULL, infoLog.Ptr() );
-
-			idLib::Printf( S_COLOR_ORANGE "While compiling %s program %s" S_COLOR_DEFAULT "\n", glslShaderInfo[ shaderType ].shaderTypeName, fileName );
-
-			const char separator = '\n';
-			idList<idStr> lines;
-			lines.Clear();
-			lines.Append( idStr( sourceGLSL ) );
-			for( int index = 0, ofs = lines[ index ].Find( separator ); ofs != -1; index++, ofs = lines[ index ].Find( separator ) )
-			{
-				lines.Append( lines[ index ].c_str() + ofs + 1 );
-				lines[ index ].CapLength( ofs );
-			}
-
-			idLib::Printf( S_COLOR_ORANGE "---------------------" S_COLOR_DEFAULT "\n" );
-			for( int i = 0; i < lines.Num(); ++i )
-			{
-				idLib::Printf( S_COLOR_LT_GREY "%3d: %s" S_COLOR_DEFAULT "\n", i + 1, lines[ i ].c_str() );
-			}
-			idLib::Printf( S_COLOR_ORANGE "---------------------" S_COLOR_DEFAULT "\n" );
-
-			idLib::Printf( S_COLOR_ORANGE "%s" S_COLOR_DEFAULT "\n", infoLog.Ptr() );
-		}
-
-		glDeleteShader( shader );
-		return INVALID_PROGID;
-	}
-
-	return shader;
-}
-
-/*
-================================================================================================
-idRenderProgManager::FindGLSLProgram
-================================================================================================
-*/
-int idRenderProgManager::FindGLSLProgram( const char* name, int vIndex, int fIndex )
-{
-	for( int i = 0; i < glslPrograms.Num(); ++i )
-	{
-		if( ( glslPrograms[ i ].vertShaderIndex == vIndex ) && ( glslPrograms[ i ].fragShaderIndex == fIndex ) )
-		{
-			LoadGLSLProgram( i, vIndex, -1, fIndex );
-			return i;
-		}
-	}
-
-	glslProgram_t program;
-	program.name = name;
-	int index = glslPrograms.Append( program );
-	LoadGLSLProgram( index, vIndex, -1, fIndex );
-	return index;
-}
-
-/*
-================================================================================================
-idRenderProgManager::GetGLSLParmName
-================================================================================================
-*/
-const char* idRenderProgManager::GetGLSLParmName( int rp ) const
-{
-	if( rp >= RENDERPARM_USER )
-	{
-		int userParmIndex = rp - RENDERPARM_USER;
-		return va( "rpUser%d", userParmIndex );
-	}
-	assert( rp < RENDERPARM_TOTAL );
-	return GLSLParmNames[ rp ];
-}
-
-// RB begin
-const char* idRenderProgManager::GetGLSLMacroName( shaderFeature_t sf ) const
-{
-	assert( sf < MAX_SHADER_MACRO_NAMES );
-
-	return GLSLMacroNames[ sf ];
-}
-// RB end
-
-/*
-================================================================================================
-idRenderProgManager::SetUniformValue
-================================================================================================
-*/
-void idRenderProgManager::SetUniformValue( const renderParm_t rp, const float* value )
-{
-	for( int i = 0; i < 4; i++ )
-	{
-		glslUniforms[ rp ][ i ] = value[ i ];
-	}
-}
 
 /*
 ================================================================================================
 idRenderProgManager::CommitUnforms
 ================================================================================================
 */
-void idRenderProgManager::CommitUniforms()
+/*void idRenderProgManager::CommitUniforms()
 {
-	const int progID = GetGLSLCurrentProgram();
-	const auto & prog = glslPrograms[ progID ];
+	const auto prog = GetCurrentRenderProgram();
 
-	idRenderVector localVectors[ RENDERPARM_USER + MAX_GLSL_USER_PARMS ];
+}*/
 
-	if( prog.vertShaderIndex >= 0 )
-	{
-		const auto & vertexUniforms = vertShaders[ prog.vertShaderIndex ].uniforms;
-		if( prog.vertUniformArray != -1 && vertexUniforms.Num() > 0 )
-		{
-			int totalUniforms = 0;
-			for( int i = 0; i < vertexUniforms.Num(); i++ )
-			{
-				// RB: HACK rpShadowMatrices[6 * 4]
-				if( vertexUniforms[ i ] == RENDERPARM_SHADOW_MATRIX_0_X )
-				{
-					for( int j = 0; j < ( 6 * 4 ); j++ )
-					{
-					#if defined( USE_INTRINSICS )
-						///_mm_store_ps( localVectors[ i + j ].ToFloatPtr(), _mm_load_ps( glslUniforms[ vertexUniforms[ i ] + j ].ToFloatPtr() ) );
-						_mm_stream_ps( localVectors[ i + j ].ToFloatPtr(), _mm_load_ps( glslUniforms[ vertexUniforms[ i ] + j ].ToFloatPtr() ) );
-					#else
-						localVectors[ i + j ] = glslUniforms[ vertexUniforms[ i ] + j ];
-					#endif
-						++totalUniforms;
-					}
-				}
-				else {
-				#if defined( USE_INTRINSICS )
-					///_mm_store_ps( localVectors[ i ].ToFloatPtr(), _mm_load_ps( glslUniforms[ vertexUniforms[ i ] ].ToFloatPtr() ) );
-					_mm_stream_ps( localVectors[ i ].ToFloatPtr(), _mm_load_ps( glslUniforms[ vertexUniforms[ i ] ].ToFloatPtr() ) );
-				#else
-					localVectors[ i ] = glslUniforms[ vertexUniforms[ i ] ];
-				#endif
-					++totalUniforms;
-				}
-			}
-		#if defined( USE_INTRINSICS )
-			_mm_sfence();
-		#endif
-			glUniform4fv( prog.vertUniformArray, totalUniforms, localVectors->ToFloatPtr() );
-
-			RENDERLOG_PRINT( "VS Uniforms( Binding:%i, Count:%i )\n", prog.vertUniformArray, totalUniforms );
-		}
-	}
-
-	if( prog.geomShaderIndex >= 0 )
-	{
-		const auto & geometryUniforms = geomShaders[ prog.geomShaderIndex ].uniforms;
-		if( prog.geomUniformArray != -1 && geometryUniforms.Num() > 0 )
-		{
-			int totalUniforms = 0;
-			for( int i = 0; i < geometryUniforms.Num(); i++ )
-			{
-				// RB: HACK rpShadowMatrices[6 * 4]
-				if( geometryUniforms[ i ] == RENDERPARM_SHADOW_MATRIX_0_X )
-				{
-					for( int j = 0; j < ( 6 * 4 ); j++ )
-					{
-					#if defined( USE_INTRINSICS )
-						///_mm_store_ps( localVectors[ i + j ].ToFloatPtr(), _mm_load_ps( glslUniforms[ geometryUniforms[ i ] + j ].ToFloatPtr() ) );
-						_mm_stream_ps( localVectors[ i + j ].ToFloatPtr(), _mm_load_ps( glslUniforms[ geometryUniforms[ i ] + j ].ToFloatPtr() ) );
-					#else
-						localVectors[ i + j ] = glslUniforms[ geometryUniforms[ i ] + j ];
-					#endif
-						++totalUniforms;
-					}
-				}
-				else {
-				#if defined( USE_INTRINSICS )
-					///_mm_store_ps( localVectors[ i ].ToFloatPtr(), _mm_load_ps( glslUniforms[ geometryUniforms[ i ] ].ToFloatPtr() ) );
-					_mm_stream_ps( localVectors[ i ].ToFloatPtr(), _mm_load_ps( glslUniforms[ geometryUniforms[ i ] ].ToFloatPtr() ) );
-				#else
-					localVectors[ i ] = glslUniforms[ geometryUniforms[ i ] ];
-				#endif
-					++totalUniforms;
-				}
-			}
-		#if defined( USE_INTRINSICS )
-			_mm_sfence();
-		#endif
-			glUniform4fv( prog.geomUniformArray, totalUniforms, localVectors->ToFloatPtr() );
-
-			RENDERLOG_PRINT( "GS Uniforms( Binding:%i, Count:%i )\n", prog.geomUniformArray, totalUniforms );
-		}
-	}
-
-	if( prog.fragShaderIndex >= 0 )
-	{
-		const auto & fragmentUniforms = fragShaders[ prog.fragShaderIndex ].uniforms;
-		if( prog.fragUniformArray != -1 && fragmentUniforms.Num() > 0 )
-		{
-			int totalUniforms = 0;
-			for( int i = 0; i < fragmentUniforms.Num(); i++ )
-			{
-				// RB: HACK rpShadowMatrices[6 * 4]
-				if( fragmentUniforms[ i ] == RENDERPARM_SHADOW_MATRIX_0_X )
-				{
-					for( int j = 0; j < ( 6 * 4 ); j++ )
-					{
-					#if defined( USE_INTRINSICS )
-						///_mm_store_ps( localVectors[ i + j ].ToFloatPtr(), _mm_load_ps( glslUniforms[ fragmentUniforms[ i ] + j ].ToFloatPtr() ) );
-						_mm_stream_ps( localVectors[ i + j ].ToFloatPtr(), _mm_load_ps( glslUniforms[ fragmentUniforms[ i ] + j ].ToFloatPtr() ) );
-					#else
-						localVectors[ i + j ] = glslUniforms[ fragmentUniforms[ i ] + j ];
-					#endif
-						++totalUniforms;
-					}
-				}
-				else {
-				#if defined( USE_INTRINSICS )
-					///_mm_store_ps( localVectors[ i ].ToFloatPtr(), _mm_load_ps( glslUniforms[ fragmentUniforms[ i ] ].ToFloatPtr() ) );
-					_mm_stream_ps( localVectors[ i ].ToFloatPtr(), _mm_load_ps( glslUniforms[ fragmentUniforms[ i ] ].ToFloatPtr() ) );
-
-				#else
-					localVectors[ i ] = glslUniforms[ fragmentUniforms[ i ] ];
-				#endif
-					++totalUniforms;
-				}
-			}
-		#if defined( USE_INTRINSICS )
-			_mm_sfence();
-		#endif
-			glUniform4fv( prog.fragUniformArray, totalUniforms, localVectors->ToFloatPtr() );
-
-			RENDERLOG_PRINT( "FS Uniforms( Binding:%i, Count:%i )\n", prog.fragUniformArray, totalUniforms );
-		}
-	}
-}
-
-class idSort_QuickUniforms : public idSort_Quick< glslUniformLocation_t, idSort_QuickUniforms > {
+/*class idSort_QuickUniforms : public idSort_Quick< glslUniformLocation_t, idSort_QuickUniforms > {
 public:
 	int Compare( const glslUniformLocation_t& a, const glslUniformLocation_t& b ) const
 	{
 		return a.uniformIndex - b.uniformIndex;
 	}
-};
+};*/
 
 // Bind vertex input / fragment output locations.
 void BindInOutAttributes( GLuint program )
@@ -2344,205 +2104,4 @@ void BindUniformBuffers( GLuint program )
 			glUniformBlockBinding( program, blockIndex, BINDING_SHADOW_UBO );
 		}
 	}
-}
-
-/*
-================================================================================================
-idRenderProgManager::LoadGLSLProgram
-================================================================================================
-*/
-void idRenderProgManager::LoadGLSLProgram( const int programIndex,
-	const int vertShaderIndex, const int geomShaderIndex, const int fragShaderIndex )
-{
-	auto & prog = glslPrograms[ programIndex ];
-
-	if( prog.progId != INVALID_PROGID )
-	{
-		return; // Already loaded
-	}
-
-	idGLSLShader vertShaderID = ( vertShaderIndex != -1 ) ? vertShaders[ vertShaderIndex ].progId : INVALID_PROGID;
-	idGLSLShader geomShaderID = ( geomShaderIndex != -1 ) ? geomShaders[ geomShaderIndex ].progId : INVALID_PROGID;
-	idGLSLShader fragShaderID = ( fragShaderIndex != -1 ) ? fragShaders[ fragShaderIndex ].progId : INVALID_PROGID;
-
-	if( !vertShaderID.IsValid() || !fragShaderID.IsValid() )
-	{
-		idLib::Error( "Fail to create GLSL program VS:%u, FS:%u ( VS&FS must be valid )", vertShaderID, fragShaderID );
-		return;
-	}
-
-	const GLuint program = glCreateProgram();
-	if( !program )
-	{
-		idLib::Error( "Fail to create GLSL program object ( VS:%s, FS:%s )",
-			vertShaders[ vertShaderIndex ].name.c_str(), fragShaders[ fragShaderIndex ].name.c_str() );
-		return;
-	}
-
-	if( vertShaderID.IsValid() )
-	{
-		glAttachShader( program, vertShaderID );
-
-		//glDeleteShader( vertexProgID );
-		//vertexShaders[ vertexShaderIndex ].progId = INVALID_PROGID;
-	}
-
-	if( geomShaderID.IsValid() )
-	{
-		glAttachShader( program, geomShaderID );
-
-		//glDeleteShader( geometryProgID );
-		//geometryShaders[ geometryShaderIndex ].progId = INVALID_PROGID;
-	}
-
-	if( fragShaderID.IsValid() )
-	{
-		glAttachShader( program, fragShaderID );
-
-		//glDeleteShader( fragmentProgID );
-		//fragmentShaders[ fragmentShaderIndex ].progId = INVALID_PROGID;
-	}
-
-	// Bind vertex input / fragment output locations.
-	BindInOutAttributes( program );
-
-	// glProgramParameteri( program, GL_PROGRAM_BINARY_RETRIEVABLE_HINT, GL_TRUE );
-	// glProgramParameteri( program, GL_PROGRAM_SEPARABLE, GL_TRUE );
-
-	GLint linked = GL_FALSE;
-	glLinkProgram( program );
-	glGetProgramiv( program, GL_LINK_STATUS, &linked );
-	if( linked == GL_FALSE )
-	{
-		int infologLength = 0;
-		glGetProgramiv( program, GL_INFO_LOG_LENGTH, &infologLength );
-		if( infologLength > 1 )
-		{
-			idTempArray<char> infoLog( infologLength );
-			glGetProgramInfoLog( program, infologLength, NULL, infoLog.Ptr() );
-
-			idLib::Printf( S_COLOR_LT_GREY "Linking GLSL prog:%u with vs:%u, gs:%u, fs:%u Fail. InfoLog:" S_COLOR_DEFAULT "\n",
-				program,
-				vertShaderID.IsValid() ? vertShaderID.GetValue() : GL_NONE,
-				geomShaderID.IsValid() ? geomShaderID.GetValue() : GL_NONE,
-				fragShaderID.IsValid() ? fragShaderID.GetValue() : GL_NONE );
-			idLib::Printf( S_COLOR_LT_GREY "%s" S_COLOR_DEFAULT "\n", infoLog.Ptr() );
-		}
-
-		glDeleteProgram( program );
-		idLib::Error( "Failed linkage ( ProgIndex:%i, Vs:%s, Gs:%s, Fs:%s )\n",
-			programIndex,
-			vertShaderID.IsValid() ? vertShaders[ vertShaderIndex ].name.c_str() : "NULL",
-			geomShaderID.IsValid() ? geomShaders[ geomShaderIndex ].name.c_str() : "NULL",
-			fragShaderID.IsValid() ? fragShaders[ fragShaderIndex ].name.c_str() : "NULL" );
-		return;
-	}
-
-	GLint valid = GL_FALSE;
-	glValidateProgram( program );
-	glGetProgramiv( program, GL_VALIDATE_STATUS, &valid );
-	if( valid == GL_FALSE )
-	{
-		GLint infologLength = 0;
-		glGetProgramiv( program, GL_INFO_LOG_LENGTH, &infologLength );
-		if( infologLength > 1 )
-		{
-			// The maxLength includes the NULL character
-			idTempArray<char> infoLog( infologLength );
-			glGetProgramInfoLog( program, infologLength, NULL, infoLog.Ptr() );
-
-			idLib::Printf( S_COLOR_LT_GREY "Validating GLSL prog:%u with vs:%u, gs:%u, fs:%u Fail. InfoLog:" S_COLOR_DEFAULT "\n",
-				program,
-				vertShaderID.IsValid() ? vertShaderID.GetValue() : GL_NONE,
-				geomShaderID.IsValid() ? geomShaderID.GetValue() : GL_NONE,
-				fragShaderID.IsValid() ? fragShaderID.GetValue() : GL_NONE );
-			idLib::Printf( S_COLOR_LT_GREY "%s" S_COLOR_DEFAULT "\n", infoLog.Ptr() );
-		}
-
-		glDeleteProgram( program );
-		idLib::Error( "Failed validation ( ProgIndex:%i, Vs:%s, Gs:%s, Fs:%s )\n",
-			programIndex,
-			vertShaderID.IsValid() ? vertShaders[ vertShaderIndex ].name.c_str() : "NULL",
-			geomShaderID.IsValid() ? geomShaders[ geomShaderIndex ].name.c_str() : "NULL",
-			fragShaderID.IsValid() ? fragShaders[ fragShaderIndex ].name.c_str() : "NULL" );
-		return;
-	}
-
-	/*{
-		GLint length;
-		GLenum binaryFormat;
-		glGetProgramiv( program, GL_PROGRAM_BINARY_LENGTH, &length );
-		void *binary = _alloca( length );
-		glGetProgramBinary( program, length, NULL, &binaryFormat, binary );
-	}*/
-
-	// Always detach shaders after a successful link.
-	if( vertShaderID.IsValid() ) {
-		glDetachShader( program, vertShaderID );
-	}
-	if( geomShaderID.IsValid() ) {
-		glDetachShader( program, geomShaderID );
-	}
-	if( fragShaderID.IsValid() ) {
-		glDetachShader( program, fragShaderID );
-	}
-
-	prog.vertUniformArray = glGetUniformLocation( program, VERTEX_UNIFORM_ARRAY_NAME );
-	prog.geomUniformArray = glGetUniformLocation( program, GEOMETRY_UNIFORM_ARRAY_NAME );
-	prog.fragUniformArray = glGetUniformLocation( program, FRAGMENT_UNIFORM_ARRAY_NAME );
-
-	assert( prog.vertUniformArray != -1 || vertShaderIndex < 0 || vertShaders[ vertShaderIndex ].uniforms.Num() == 0 );
-	assert( prog.geomUniformArray != -1 || geomShaderIndex < 0 || geomShaders[ geomShaderIndex ].uniforms.Num() == 0 );
-	assert( prog.fragUniformArray != -1 || fragShaderIndex < 0 || fragShaders[ fragShaderIndex ].uniforms.Num() == 0 );
-
-	BindUniformBuffers( program );
-
-	// set the texture unit locations once for the render program. We only need to do this once since we only link the program once
-	glUseProgram( program );
-	int numSamplerUniforms = 0;
-	for( int i = 0; i < MAX_PROG_TEXTURE_PARMS; ++i )
-	{
-		GLint loc = glGetUniformLocation( program, va( "samp%d", i ) );
-		if( loc != -1 ) 
-		{
-			glUniform1i( loc, i );
-			numSamplerUniforms++;
-		}
-	}
-
-	idStr programName = vertShaders[ vertShaderIndex ].name;
-	programName.StripFileExtension();
-	prog.name = programName;
-	prog.progId = program;
-	prog.fragShaderIndex = fragShaderIndex;
-	prog.geomShaderIndex = geomShaderIndex;
-	prog.vertShaderIndex = vertShaderIndex;
-
-	/*{
-		const char* srcBuffer = NULL;
-		int len = fileSystem->ReadFile( "renderprogs/progs/src.prog", ( void** )&srcBuffer );
-		if( len <= 0 ) {
-			idLib::Error( "Error renderprogs/progs/src.prog" );
-		}
-
-		idStrStatic<MAX_OSPATH> progFile;
-		progFile.Format<MAX_OSPATH>( "renderprogs/progs/%s.prog", prog.name.c_str() );
-
-		idStr prog_str;
-		prog_str += "renderProg ";
-		prog_str += prog.name;
-		prog_str += srcBuffer;
-
-		fileSystem->WriteFile( progFile, prog_str.c_str(), prog_str.Length(), "fs_basepath" );
-	}*/
-}
-
-/*
-================================================================================================
-idRenderProgManager::ZeroUniforms
-================================================================================================
-*/
-void idRenderProgManager::ZeroUniforms()
-{
-	memset( glslUniforms.Ptr(), 0, glslUniforms.Allocated() );
 }

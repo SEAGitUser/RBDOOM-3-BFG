@@ -217,6 +217,11 @@ public:
 	virtual const idMaterial* 		MaterialByIndex( int index, bool forceParse = true );
 	virtual const idDeclSkin* 		SkinByIndex( int index, bool forceParse = true );
 	virtual const idSoundShader* 	SoundByIndex( int index, bool forceParse = true );
+
+	virtual	const idDeclRenderProg * FindRenderProg( const char* name, bool makeDefault = true );
+	virtual	const idDeclRenderParm * FindRenderParm( const char* name, bool makeDefault = true );
+	virtual	const idDeclRenderProg * RenderProgByIndex( int index, bool forceParse = true );
+	virtual	const idDeclRenderParm * RenderParmByIndex( int index, bool forceParse = true );
 	
 	virtual void				Touch( const idDecl* );
 	
@@ -635,7 +640,7 @@ void idDeclFile::Reload( bool force )
 	// check for an unchanged timestamp
 	if( !force && timestamp != 0 )
 	{
-		ID_TIME_T	testTimeStamp;
+		ID_TIME_T testTimeStamp;
 		fileSystem->ReadFile( fileName, NULL, &testTimeStamp );
 		
 		if( testTimeStamp == timestamp )
@@ -900,7 +905,7 @@ void idDeclManagerLocal::Init()
 	RegisterDeclType( "renderProg",			DECL_RENDERPROG,	idDeclAllocator<idDeclRenderProg> );
 	
 	RegisterDeclFolder( "renderprogs",		".rparms",			DECL_RENDERPARM );
-	RegisterDeclFolder( "renderprogs/progs", ".rprog",			DECL_RENDERPROG );
+	RegisterDeclFolder( "renderprogs",		".rprog",			DECL_RENDERPROG );
 
 	RegisterDeclFolder( "materials",		".mtr",				DECL_MATERIAL );
 	
@@ -1302,9 +1307,9 @@ void idDeclManagerLocal::ReloadFile( const char* filename, bool force )
 	{
 		if( !loadedFiles[i]->fileName.Icmp( filename ) )
 		{
-			checksum ^= loadedFiles[i]->checksum;
-			loadedFiles[i]->Reload( force );
-			checksum ^= loadedFiles[i]->checksum;
+			checksum ^= loadedFiles[ i ]->checksum;
+			loadedFiles[ i ]->Reload( force );
+			checksum ^= loadedFiles[ i ]->checksum;
 		}
 	}
 }
@@ -1776,6 +1781,29 @@ const idSoundShader* idDeclManagerLocal::SoundByIndex( int index, bool forcePars
 	return static_cast<const idSoundShader*>( DeclByIndex( DECL_SOUND, index, forceParse ) );
 }
 
+/********************************************************************/
+
+const idDeclRenderProg * idDeclManagerLocal::FindRenderProg( const char* name, bool makeDefault )
+{
+	return static_cast<const idDeclRenderProg*>( FindType( DECL_RENDERPROG, name, makeDefault ) );
+}
+const idDeclRenderProg * idDeclManagerLocal::RenderProgByIndex( int index, bool forceParse )
+{
+	return static_cast<const idDeclRenderProg*>( DeclByIndex( DECL_RENDERPROG, index, forceParse ) );
+}
+/********************************************************************/
+
+const idDeclRenderParm * idDeclManagerLocal::FindRenderParm( const char* name, bool makeDefault )
+{
+	return static_cast<const idDeclRenderParm*>( FindType( DECL_RENDERPARM, name, makeDefault ) );
+}
+const idDeclRenderParm * idDeclManagerLocal::RenderParmByIndex( int index, bool forceParse )
+{
+	return static_cast<const idDeclRenderParm*>( DeclByIndex( DECL_RENDERPARM, index, forceParse ) );
+}
+
+/********************************************************************/
+
 /*
 ===================
 idDeclManagerLocal::Touch
@@ -1874,10 +1902,10 @@ void idDeclManagerLocal::ListDecls_f( const idCmdArgs& args )
 ===================
 idDeclManagerLocal::ReloadDecls_f
 
-Reload will not find any new files created in the directories, it
-will only reload existing files.
+	Reload will not find any new files created in the directories, it
+	will only reload existing files.
 
-A reload will never cause anything to be purged.
+	A reload will never cause anything to be purged.
 ===================
 */
 void idDeclManagerLocal::ReloadDecls_f( const idCmdArgs& args )

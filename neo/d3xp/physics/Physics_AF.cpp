@@ -6775,7 +6775,7 @@ void idPhysics_AF::Rest()
 {
 	int i;
 	
-	current.atRest = gameLocal.time;
+	current.atRest = gameLocal.GetGameTimeMs();
 	
 	for( i = 0; i < bodies.Num(); i++ )
 	{
@@ -7183,7 +7183,7 @@ bool idPhysics_AF::Evaluate( int timeStepMSec, int endTimeMSec )
 	// apply collision impulses
 	if( ApplyCollisions( timeStep ) )
 	{
-		current.atRest = gameLocal.time;
+		current.atRest = gameLocal.GetGameTimeMs();
 		comeToRest = true;
 	}
 	
@@ -7268,7 +7268,7 @@ idPhysics_AF::GetTime
 */
 int idPhysics_AF::GetTime() const
 {
-	return gameLocal.time;
+	return gameLocal.GetGameTimeMs();
 }
 
 /*

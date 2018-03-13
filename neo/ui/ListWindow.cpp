@@ -93,7 +93,7 @@ bool idListWindow::IsSelected( int index )
 	return ( currentSel.FindIndex( index ) >= 0 );
 }
 
-const char* idListWindow::HandleEvent( const sysEvent_t* event, bool* updateVisuals )
+const char* idListWindow::HandleEvent( const idSysEvent* event, bool* updateVisuals )
 {
 	// need to call this to allow proper focus and capturing on embedded children
 	const char* ret = idWindow::HandleEvent( event, updateVisuals );
@@ -101,11 +101,11 @@ const char* idListWindow::HandleEvent( const sysEvent_t* event, bool* updateVisu
 	float vert = GetMaxCharHeight();
 	int numVisibleLines = textRect.h / vert;
 	
-	int key = event->evValue;
+	int key = event->GetKey();
 	
-	if( event->evType == SE_KEY )
+	if( event->IsKeyEvent() )
 	{
-		if( !event->evValue2 )
+		if( event->IsKeyUp() )
 		{
 			// We only care about key down, not up
 			return ret;
@@ -148,13 +148,11 @@ const char* idListWindow::HandleEvent( const sysEvent_t* event, bool* updateVisu
 						{
 							ClearSelection( cur );
 						}
-						else
-						{
+						else {
 							AddCurrentSel( cur );
 						}
 					}
-					else
-					{
+					else {
 						if( IsSelected( cur ) && ( gui->GetTime() < clickTime + doubleClickSpeed ) )
 						{
 							// Double-click causes ON_ENTER to get run
@@ -166,8 +164,7 @@ const char* idListWindow::HandleEvent( const sysEvent_t* event, bool* updateVisu
 						clickTime = gui->GetTime();
 					}
 				}
-				else
-				{
+				else {
 					SetCurrentSel( listItems.Num() - 1 );
 				}
 			}
@@ -190,17 +187,15 @@ const char* idListWindow::HandleEvent( const sysEvent_t* event, bool* updateVisu
 			{
 				top += numLines;
 			}
-			else
-			{
+			else {
 				SetCurrentSel( GetCurrentSel() + numLines );
 			}
 		}
-		else
-		{
+		else {
 			return ret;
 		}
 	}
-	else if( event->evType == SE_CHAR )
+	else if( event->IsCharEvent() )
 	{
 		if( !idStr::CharIsPrintable( key ) )
 		{
@@ -221,11 +216,9 @@ const char* idListWindow::HandleEvent( const sysEvent_t* event, bool* updateVisu
 				SetCurrentSel( i );
 				break;
 			}
-		}
-		
+		}		
 	}
-	else
-	{
+	else {
 		return ret;
 	}
 	
@@ -263,8 +256,7 @@ const char* idListWindow::HandleEvent( const sysEvent_t* event, bool* updateVisu
 		}
 		scroller->SetValue( top );
 	}
-	else
-	{
+	else {
 		top = 0;
 		scroller->SetValue( 0.0f );
 	}
@@ -272,7 +264,7 @@ const char* idListWindow::HandleEvent( const sysEvent_t* event, bool* updateVisu
 	if( key != K_MOUSE1 )
 	{
 		// Send a fake mouse click event so onAction gets run in our parents
-		const sysEvent_t ev = sys->GenerateMouseButtonEvent( 1, true );
+		const idSysEvent ev = sys->GenerateMouseButtonEvent( 1, true );
 		idWindow::HandleEvent( &ev, updateVisuals );
 	}
 	

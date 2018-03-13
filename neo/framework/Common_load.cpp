@@ -69,7 +69,7 @@ void idCommonLocal::StartWipe( const char* _wipeMaterial, bool hold )
 	
 	wipeMaterial = declManager->FindMaterial( _wipeMaterial, false );
 	
-	wipeStartTime = Sys_Milliseconds();
+	wipeStartTime = sys->Milliseconds();
 	wipeStopTime = wipeStartTime + SEC2MS( com_wipeSeconds.GetFloat() );
 	wipeHold = hold;
 }
@@ -81,14 +81,14 @@ idCommonLocal::CompleteWipe
 */
 void idCommonLocal::CompleteWipe()
 {
-	while( Sys_Milliseconds() < wipeStopTime )
+	while( sys->Milliseconds() < wipeStopTime )
 	{
 		BusyWait();
 		Sys_Sleep( 10 );
 	}
 	
 	// ensure it is completely faded out
-	wipeStopTime = Sys_Milliseconds();
+	wipeStopTime = sys->Milliseconds();
 	BusyWait();
 }
 
@@ -297,7 +297,7 @@ void idCommonLocal::LoadLoadingGui( const char* mapName, bool& hellMap )
 	if( loadGUI != NULL )
 	{
 		loadGUI->Activate( true );
-		nextLoadTip = Sys_Milliseconds() + LOAD_TIP_CHANGE_INTERVAL;
+		nextLoadTip = sys->Milliseconds() + LOAD_TIP_CHANGE_INTERVAL;
 		
 		idSWFSpriteInstance* bgImg = loadGUI->GetRootObject().GetSprite( "bgImage" );
 		if( bgImg != NULL )
@@ -432,7 +432,7 @@ void idCommonLocal::ExecuteMapChange()
 		cvarSystem->ResetFlaggedVariables( CVAR_CHEAT );
 	}
 	
-	int start = Sys_Milliseconds();
+	int start = sys->Milliseconds();
 	
 	for( int i = 0; i < MAX_INPUT_DEVICES; i++ )
 	{
@@ -471,20 +471,20 @@ void idCommonLocal::ExecuteMapChange()
 	StartWipe( "wipeMaterial", true );
 	CompleteWipe();
 	
-	int sm = Sys_Milliseconds();
+	int sm = sys->Milliseconds();
 	// shut down the existing game if it is running
 	UnloadMap();
-	int ms = Sys_Milliseconds() - sm;
+	int ms = sys->Milliseconds() - sm;
 	common->Printf( "%6d msec to unload map\n", ms );
 	
 	// Free media from previous level and
 	// note which media we are going to need to load
-	sm = Sys_Milliseconds();
+	sm = sys->Milliseconds();
 	renderSystem->BeginLevelLoad();
 	soundSystem->BeginLevelLoad();
 	declManager->BeginLevelLoad();
 	uiManager->BeginLevelLoad();
-	ms = Sys_Milliseconds() - sm;
+	ms = sys->Milliseconds() - sm;
 	common->Printf( "%6d msec to free assets\n", ms );
 	
 	//Sys_DumpMemory( true );
@@ -562,7 +562,7 @@ void idCommonLocal::ExecuteMapChange()
 			game->SetPersistentPlayerInfo( 0, mapSpawnData.persistentPlayerInfo );
 		}
 		game->SetServerInfo( matchParameters.serverInfo );
-		game->InitFromNewMap( fullMapName, renderWorld, soundWorld, matchParameters.gameMode, Sys_Milliseconds() );
+		game->InitFromNewMap( fullMapName, renderWorld, soundWorld, matchParameters.gameMode, sys->Milliseconds() );
 	}
 	
 	game->Shell_CreateMenu( true );
@@ -578,7 +578,7 @@ void idCommonLocal::ExecuteMapChange()
 		
 		while( session->GetState() == idSession::LOADING )
 		{
-			Sys_GenerateEvents();
+			sys->ProcessOSEvents();
 			session->UpdateSignInManager();
 			session->Pump();
 			Sys_Sleep( 10 );
@@ -683,10 +683,10 @@ void idCommonLocal::ExecuteMapChange()
 	// we are valid for game draws now
 	insideExecuteMapChange = false;
 	mapSpawned = true;
-	Sys_ClearEvents();
 	
-	
-	int	msec = Sys_Milliseconds() - start;
+	sys->ClearEvents();
+
+	int	msec = sys->Milliseconds() - start;
 	common->Printf( "%6d msec to load %s\n", msec, currentMapName.c_str() );
 	//Sys_DumpMemory( false );
 	
@@ -712,14 +712,14 @@ void idCommonLocal::UpdateLevelLoadPacifier()
 	
 	const int sessionUpdateTime = common->IsMultiplayer() ? 16 : 100;
 	
-	const int time = Sys_Milliseconds();
+	const int time = sys->Milliseconds();
 	
 	// Throttle session pumps.
 	if( time - lastPacifierSessionTime >= sessionUpdateTime )
 	{
 		lastPacifierSessionTime = time;
 		
-		Sys_GenerateEvents();
+		sys->ProcessOSEvents();
 		
 		session->UpdateSignInManager();
 		session->Pump();
@@ -798,7 +798,7 @@ void idCommonLocal::LoadPacifierBinarizeFilename( const char* filename, const ch
 	loadPacifierBinarizeFilename = filename;
 	loadPacifierBinarizeInfo = "";
 	loadPacifierBinarizeProgress = 0.0f;
-	loadPacifierBinarizeStartTime = Sys_Milliseconds();
+	loadPacifierBinarizeStartTime = sys->Milliseconds();
 	loadPacifierBinarizeMiplevel = 0;
 	loadPacifierBinarizeMiplevelTotal = 0;
 }
@@ -818,12 +818,12 @@ void idCommonLocal::LoadPacifierBinarizeMiplevel( int level, int maxLevel )
 void idCommonLocal::LoadPacifierBinarizeProgress( float progress )
 {
 	static int lastUpdateTime = 0;
-	int time = Sys_Milliseconds();
+	int time = sys->Milliseconds();
 	if( progress == 0.0f )
 	{
 		// restart the progress, so that if multiple images have to be
 		// binarized for one filename, we don't give bogus estimates...
-		loadPacifierBinarizeStartTime = Sys_Milliseconds();
+		loadPacifierBinarizeStartTime = sys->Milliseconds();
 	}
 	loadPacifierBinarizeProgress = progress;
 	if( ( time - lastUpdateTime ) >= 16 )

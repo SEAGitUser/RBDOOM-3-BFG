@@ -38,7 +38,7 @@ extern idCVar g_demoMode;
 idSignInManagerBase::ProcessInputEvent
 ========================
 */
-bool idSignInManagerBase::ProcessInputEvent( const sysEvent_t* ev )
+bool idSignInManagerBase::ProcessInputEvent( const idSysEvent* ev )
 {
 	// If we could use more local users, poll for them
 	if( GetNumLocalUsers() < maxDesiredLocalUsers && !IsAnyDeviceBeingRegistered() )

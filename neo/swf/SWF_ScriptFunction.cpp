@@ -1079,7 +1079,7 @@ idSWFScriptVar idSWFScriptFunction_Script::Run( idSWFScriptObject* thisObject, i
 				stack.Pop( 1 );
 				break;
 			case Action_GetTime:
-				stack.Alloc().SetInteger( Sys_Milliseconds() );
+				stack.Alloc().SetInteger( sys->Milliseconds() );
 				break;
 			case Action_RandomNumber:
 				assert( thisSprite && thisSprite->sprite && thisSprite->sprite->GetSWF() );
@@ -2171,7 +2171,7 @@ idStr idSWFScriptFunction_Script::ExportToScript( idSWFScriptObject* thisObject,
 				stack.Pop( 1 );
 				break;
 			case Action_GetTime:
-				stack.Alloc().SetInteger( Sys_Milliseconds() );
+				stack.Alloc().SetInteger( sys->Milliseconds() );
 				break;
 			case Action_RandomNumber:
 				assert( thisSprite && thisSprite->sprite && thisSprite->sprite->GetSWF() );

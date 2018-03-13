@@ -300,7 +300,7 @@ public:
 	virtual void				NetReceiveUsercmds( int peer, idBitMsg& msg ) = 0;
 	
 	// Processes the given event.
-	virtual	bool				ProcessEvent( const sysEvent_t* event ) = 0;
+	virtual	bool				ProcessEvent( const idSysEvent* event ) = 0;
 	
 	virtual bool				LoadGame( const char* saveName ) = 0;
 	virtual bool				SaveGame( const char* saveName ) = 0;

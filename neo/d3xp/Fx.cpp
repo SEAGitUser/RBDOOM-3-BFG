@@ -167,15 +167,15 @@ void idEntityFx::Setup( const char* fx )
 	systemName = fx;
 	started = 0;
 	
-	fxEffect = static_cast<const idDeclFX*>( declManager->FindType( DECL_FX, systemName.c_str() ) );	
+	fxEffect = declManager->FindType( DECL_FX, systemName.c_str() )->Cast<idDeclFX>();
 	if( fxEffect )
 	{
 		idFXLocalAction localAction;		
-		memset( &localAction, 0, sizeof( idFXLocalAction ) );
+		localAction.Clear();
 		
 		actions.AssureSize( fxEffect->events.Num(), localAction );
 		
-		for( int i = 0; i < fxEffect->events.Num(); i++ )
+		for( int i = 0; i < fxEffect->events.Num(); ++i )
 		{
 			const idFXSingleAction& fxaction = fxEffect->events[i];
 			
@@ -326,7 +326,7 @@ idEntityFx::Done
 */
 const bool idEntityFx::Done()
 {
-	if( started > 0 && gameLocal.GetTime() > started + Duration() )
+	if( started > 0 && gameLocal.GetGameTimeMs() > started + Duration() )
 	{
 		return true;
 	}
@@ -434,7 +434,7 @@ void idEntityFx::Run( int time )
 		
 		if( fxaction.fire.Length() )
 		{
-			for( j = 0; j < fxEffect->events.Num(); j++ )
+			for( j = 0; j < fxEffect->events.Num(); ++j )
 			{
 				if( fxEffect->events[j].name.Icmp( fxaction.fire ) == 0 )
 				{
@@ -569,7 +569,7 @@ void idEntityFx::Run( int time )
 			{
 				if( useAction->modelDefHandle == -1 )
 				{
-					memset( &useAction->renderEntity, 0, sizeof( renderEntityParms_t ) );
+					useAction->renderEntity.Clear();
 					useAction->renderEntity.origin = GetPhysics()->GetOrigin() + fxaction.offset;
 					useAction->renderEntity.axis = ( fxaction.explicitAxis ) ? fxaction.axis : GetPhysics()->GetAxis();
 					useAction->renderEntity.hModel = renderModelManager->FindModel( fxaction.data );
@@ -728,7 +728,7 @@ void idEntityFx::Think()
 	
 	if( thinkFlags & TH_THINK )
 	{
-		Run( gameLocal.GetTime() );
+		Run( gameLocal.GetGameTimeMs() );
 	}
 	
 	RunPhysics();
@@ -787,7 +787,7 @@ void idEntityFx::Event_Trigger( idEntity* activator )
 		return;
 	}
 
-	if( gameLocal.GetTime() < nextTriggerTime )
+	if( gameLocal.GetGameTimeMs() < nextTriggerTime )
 	{
 		return;
 	}
@@ -796,7 +796,7 @@ void idEntityFx::Event_Trigger( idEntity* activator )
 	if( spawnArgs.GetString( "fx", "", &fx ) )
 	{
 		Setup( fx );
-		Start( gameLocal.GetTime() );
+		Start( gameLocal.GetGameTimeMs() );
 		PostEventMS( &EV_Fx_KillFx, Duration() );
 		BecomeActive( TH_THINK );
 	}
@@ -804,11 +804,11 @@ void idEntityFx::Event_Trigger( idEntity* activator )
 	float fxActionDelay = spawnArgs.GetFloat( "fxActionDelay" );
 	if( fxActionDelay != 0.0f )
 	{
-		nextTriggerTime = gameLocal.GetTime() + SEC2MS( fxActionDelay );
+		nextTriggerTime = gameLocal.GetGameTimeMs() + SEC2MS( fxActionDelay );
 	}
 	else {
 		// prevent multiple triggers on same frame
-		nextTriggerTime = gameLocal.GetTime() + 1;
+		nextTriggerTime = gameLocal.GetGameTimeMs() + 1;
 	}
 	PostEventSec( &EV_Fx_Action, fxActionDelay, activator );
 }
@@ -882,13 +882,13 @@ void idEntityFx::ReadFromSnapshot( const idBitMsg& msg )
 	{
 		int max_lapse;
 		spawnArgs.GetInt( "effect_lapse", "1000", max_lapse );
-		if( gameLocal.GetTime() - start_time > max_lapse )
+		if( gameLocal.GetGameTimeMs() - start_time > max_lapse )
 		{
 			// too late, skip the effect completely
 			started = 0;
 			return;
 		}
-		const idDeclFX* fx = static_cast<const idDeclFX*>( declManager->DeclByIndex( DECL_FX, fx_index ) );
+		auto fx = declManager->DeclByIndex( DECL_FX, fx_index )->Cast<idDeclFX>();
 		if( !fx ) {
 			gameLocal.Error( "FX at index %d not found", fx_index );
 		}
@@ -923,7 +923,7 @@ void idEntityFx::ClientPredictionThink()
 {
 	if( gameLocal.isNewFrame )
 	{
-		Run( gameLocal.GetTime() );
+		Run( gameLocal.GetGameTimeMs() );
 	}
 	RunPhysics();
 	Present();

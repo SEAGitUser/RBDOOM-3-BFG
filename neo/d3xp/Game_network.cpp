@@ -790,7 +790,7 @@ void idGameLocal::ClientReadSnapshot( const idSnapShot& ss )
 					if( weap && ( weap->GetRenderEntity()->bounds[0] == weap->GetRenderEntity()->bounds[1] ) )
 					{
 						// update the weapon's viewmodel bounds so that the model doesn't flicker in the spectator's view
-						weap->GetAnimator()->GetBounds( gameLocal.time, weap->GetRenderEntity()->bounds );
+						weap->GetAnimator()->GetBounds( gameLocal.GetGameTimeMs(), weap->GetRenderEntity()->bounds );
 						weap->UpdateVisuals();
 					}
 				}
@@ -1504,7 +1504,7 @@ void idEventQueue::Enqueue( entityNetEvent_t* event, outOfOrderBehaviour_t behav
 		while( end && end->time > event->time )
 		{
 			entityNetEvent_t* outOfOrder = RemoveLast();
-			common->DPrintf( "WARNING: new event with id %d ( time %d ) caused removal of event with id %d ( time %d ), game time = %d.\n", event->event, event->time, outOfOrder->event, outOfOrder->time, gameLocal.time );
+			common->DPrintf( "WARNING: new event with id %d ( time %d ) caused removal of event with id %d ( time %d ), game time = %d.\n", event->event, event->time, outOfOrder->event, outOfOrder->time, gameLocal.GetGameTimeMs() );
 			Free( outOfOrder );
 		}
 	}

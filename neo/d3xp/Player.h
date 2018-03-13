@@ -618,7 +618,7 @@ public:
 		return focusGUIent != NULL;
 	}
 	
-	bool					HandleGuiEvents( const sysEvent_t* ev );
+	bool					HandleGuiEvents( const idSysEvent* ev );
 	void					PerformImpulse( int impulse );
 	void					Spectate( bool spectate, bool force = false );
 	void					TogglePDA();

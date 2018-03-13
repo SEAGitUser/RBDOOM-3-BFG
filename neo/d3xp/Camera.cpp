@@ -194,7 +194,7 @@ void idCameraView::Spawn()
 {
 	// if no target specified use ourself
 	const char* cam = spawnArgs.GetString( "cameraTarget" );
-	if( strlen( cam ) == 0 )
+	if( idStr::Length( cam ) == 0 )
 	{
 		spawnArgs.Set( "cameraTarget", spawnArgs.GetString( "name" ) );
 	}
@@ -362,9 +362,8 @@ void idCameraAnim::LoadAnim()
 	int			numCuts;
 	int			i;
 	idStr		filename;
-	const char*	key;
 	
-	key = spawnArgs.GetString( "anim" );
+	auto key = spawnArgs.GetString( "anim" );
 	if( !key )
 	{
 		gameLocal.Error( "Missing 'anim' key on '%s'", name.c_str() );
@@ -467,7 +466,7 @@ void idCameraAnim::Start()
 		gameLocal.Printf( "%d: '%s' start\n", gameLocal.GetFrameNum(), GetName() );
 	}
 	
-	starttime = gameLocal.GetTime();
+	starttime = gameLocal.GetGameTimeMs();
 	gameLocal.SetCamera( this );
 	BecomeActive( TH_THINK );
 	
@@ -544,7 +543,7 @@ void idCameraAnim::GetViewParms( renderViewParms_t* view )
 	
 	SetTimeState ts( timeGroup );
 	
-	frameTime	= ( gameLocal.GetTime() - starttime ) * frameRate;
+	frameTime	= ( gameLocal.GetGameTimeMs() - starttime ) * frameRate;
 	frame		= frameTime / 1000;
 	lerp		= ( frameTime % 1000 ) * 0.001f;
 	
@@ -650,7 +649,7 @@ void idCameraAnim::GetViewParms( renderViewParms_t* view )
 #if 0
 	static int lastFrame = 0;
 	static idVec3 lastFrameVec( 0.0f, 0.0f, 0.0f );
-	if( gameLocal.time != lastFrame )
+	if( gameLocal.GetGameTimeMs() != lastFrame )
 	{
 		gameRenderWorld->DebugBounds( colorCyan, idBounds( view->vieworg ).Expand( 16.0f ), vec3_origin, 1 );
 		gameRenderWorld->DebugLine( colorRed, view->vieworg, view->vieworg + idVec3( 0.0f, 0.0f, 2.0f ), 10000, false );
@@ -658,7 +657,7 @@ void idCameraAnim::GetViewParms( renderViewParms_t* view )
 		gameRenderWorld->DebugLine( colorYellow, view->vieworg + view->viewaxis[ 0 ] * 64.0f, view->vieworg + view->viewaxis[ 0 ] * 66.0f, 10000, false );
 		gameRenderWorld->DebugLine( colorOrange, view->vieworg + view->viewaxis[ 0 ] * 64.0f, view->vieworg + view->viewaxis[ 0 ] * 64.0f + idVec3( 0.0f, 0.0f, 2.0f ), 10000, false );
 		lastFrameVec = view->vieworg;
-		lastFrame = gameLocal.time;
+		lastFrame = gameLocal.GetGameTimeMs();
 	}
 #endif
 	

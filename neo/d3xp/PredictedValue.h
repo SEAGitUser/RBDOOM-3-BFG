@@ -32,16 +32,16 @@ If you have questions concerning this license or the applicable additional terms
 
 /*
 ================================================
-A simple class to handle simple predictable values
-on multiplayer clients.
+	A simple class to handle simple predictable values
+	on multiplayer clients.
 
-The class encapsulates the actual value to be stored
-as well as the client frame number on which it is set.
+	The class encapsulates the actual value to be stored
+	as well as the client frame number on which it is set.
 
-When reading predicted values from a snapshot, the actual
-value is only updated if the server has processed the client's
-usercmd for the frame in which the client predicted the value.
-Got that?
+	When reading predicted values from a snapshot, the actual
+	value is only updated if the server has processed the client's
+	usercmd for the frame in which the client predicted the value.
+	Got that?
 ================================================
 */
 template< class type_ >

@@ -1587,6 +1587,91 @@ void idRenderMatrix::CopyMatrix( const idRenderMatrix& matrix, idVec4& row0, idV
 
 /*
 ========================
+idRenderMatrix::Multiply
+========================
+*/
+void idRenderMatrix::Multiply( const idRenderMatrix& a, const idRenderMatrix& b, idVec4& row0, idVec4& row1, idVec4& row2, idVec4& row3 )
+{
+	assert_16_byte_aligned( row0.ToFloatPtr() );
+	assert_16_byte_aligned( row1.ToFloatPtr() );
+	assert_16_byte_aligned( row2.ToFloatPtr() );
+	assert_16_byte_aligned( row3.ToFloatPtr() );
+
+#if defined( USE_INTRINSICS )
+	__m128 a0 = _mm_load_ps( a.m + 0 * 4 );
+	__m128 a1 = _mm_load_ps( a.m + 1 * 4 );
+	__m128 a2 = _mm_load_ps( a.m + 2 * 4 );
+	__m128 a3 = _mm_load_ps( a.m + 3 * 4 );
+
+	__m128 b0 = _mm_load_ps( b.m + 0 * 4 );
+	__m128 b1 = _mm_load_ps( b.m + 1 * 4 );
+	__m128 b2 = _mm_load_ps( b.m + 2 * 4 );
+	__m128 b3 = _mm_load_ps( b.m + 3 * 4 );
+
+	__m128 t0 = _mm_mul_ps( _mm_splat_ps( a0, 0 ), b0 );
+	__m128 t1 = _mm_mul_ps( _mm_splat_ps( a1, 0 ), b0 );
+	__m128 t2 = _mm_mul_ps( _mm_splat_ps( a2, 0 ), b0 );
+	__m128 t3 = _mm_mul_ps( _mm_splat_ps( a3, 0 ), b0 );
+
+	t0 = _mm_madd_ps( _mm_splat_ps( a0, 1 ), b1, t0 );
+	t1 = _mm_madd_ps( _mm_splat_ps( a1, 1 ), b1, t1 );
+	t2 = _mm_madd_ps( _mm_splat_ps( a2, 1 ), b1, t2 );
+	t3 = _mm_madd_ps( _mm_splat_ps( a3, 1 ), b1, t3 );
+
+	t0 = _mm_madd_ps( _mm_splat_ps( a0, 2 ), b2, t0 );
+	t1 = _mm_madd_ps( _mm_splat_ps( a1, 2 ), b2, t1 );
+	t2 = _mm_madd_ps( _mm_splat_ps( a2, 2 ), b2, t2 );
+	t3 = _mm_madd_ps( _mm_splat_ps( a3, 2 ), b2, t3 );
+
+	t0 = _mm_madd_ps( _mm_splat_ps( a0, 3 ), b3, t0 );
+	t1 = _mm_madd_ps( _mm_splat_ps( a1, 3 ), b3, t1 );
+	t2 = _mm_madd_ps( _mm_splat_ps( a2, 3 ), b3, t2 );
+	t3 = _mm_madd_ps( _mm_splat_ps( a3, 3 ), b3, t3 );
+
+	_mm_store_ps( row0.ToFloatPtr(), t0 );
+	_mm_store_ps( row1.ToFloatPtr(), t1 );
+	_mm_store_ps( row2.ToFloatPtr(), t2 );
+	_mm_store_ps( row3.ToFloatPtr(), t3 );
+
+#else
+
+	/*
+	for ( int i = 0 ; i < 4 ; i++ ) {
+	for ( int j = 0 ; j < 4 ; j++ ) {
+	out.m[ i * 4 + j ] =
+	a.m[ i * 4 + 0 ] * b.m[ 0 * 4 + j ] +
+	a.m[ i * 4 + 1 ] * b.m[ 1 * 4 + j ] +
+	a.m[ i * 4 + 2 ] * b.m[ 2 * 4 + j ] +
+	a.m[ i * 4 + 3 ] * b.m[ 3 * 4 + j ];
+	}
+	}
+	*/
+
+	row0[ 0 ] = a.m[ 0 * 4 + 0 ] * b.m[ 0 * 4 + 0 ] + a.m[ 0 * 4 + 1 ] * b.m[ 1 * 4 + 0 ] + a.m[ 0 * 4 + 2 ] * b.m[ 2 * 4 + 0 ] + a.m[ 0 * 4 + 3 ] * b.m[ 3 * 4 + 0 ];
+	row0[ 1 ] = a.m[ 0 * 4 + 0 ] * b.m[ 0 * 4 + 1 ] + a.m[ 0 * 4 + 1 ] * b.m[ 1 * 4 + 1 ] + a.m[ 0 * 4 + 2 ] * b.m[ 2 * 4 + 1 ] + a.m[ 0 * 4 + 3 ] * b.m[ 3 * 4 + 1 ];
+	row0[ 2 ] = a.m[ 0 * 4 + 0 ] * b.m[ 0 * 4 + 2 ] + a.m[ 0 * 4 + 1 ] * b.m[ 1 * 4 + 2 ] + a.m[ 0 * 4 + 2 ] * b.m[ 2 * 4 + 2 ] + a.m[ 0 * 4 + 3 ] * b.m[ 3 * 4 + 2 ];
+	row0[ 3 ] = a.m[ 0 * 4 + 0 ] * b.m[ 0 * 4 + 3 ] + a.m[ 0 * 4 + 1 ] * b.m[ 1 * 4 + 3 ] + a.m[ 0 * 4 + 2 ] * b.m[ 2 * 4 + 3 ] + a.m[ 0 * 4 + 3 ] * b.m[ 3 * 4 + 3 ];
+
+	row1[ 0 ] = a.m[ 1 * 4 + 0 ] * b.m[ 0 * 4 + 0 ] + a.m[ 1 * 4 + 1 ] * b.m[ 1 * 4 + 0 ] + a.m[ 1 * 4 + 2 ] * b.m[ 2 * 4 + 0 ] + a.m[ 1 * 4 + 3 ] * b.m[ 3 * 4 + 0 ];
+	row1[ 1 ] = a.m[ 1 * 4 + 0 ] * b.m[ 0 * 4 + 1 ] + a.m[ 1 * 4 + 1 ] * b.m[ 1 * 4 + 1 ] + a.m[ 1 * 4 + 2 ] * b.m[ 2 * 4 + 1 ] + a.m[ 1 * 4 + 3 ] * b.m[ 3 * 4 + 1 ];
+	row1[ 2 ] = a.m[ 1 * 4 + 0 ] * b.m[ 0 * 4 + 2 ] + a.m[ 1 * 4 + 1 ] * b.m[ 1 * 4 + 2 ] + a.m[ 1 * 4 + 2 ] * b.m[ 2 * 4 + 2 ] + a.m[ 1 * 4 + 3 ] * b.m[ 3 * 4 + 2 ];
+	row1[ 3 ] = a.m[ 1 * 4 + 0 ] * b.m[ 0 * 4 + 3 ] + a.m[ 1 * 4 + 1 ] * b.m[ 1 * 4 + 3 ] + a.m[ 1 * 4 + 2 ] * b.m[ 2 * 4 + 3 ] + a.m[ 1 * 4 + 3 ] * b.m[ 3 * 4 + 3 ];
+
+	row2[ 0 ] = a.m[ 2 * 4 + 0 ] * b.m[ 0 * 4 + 0 ] + a.m[ 2 * 4 + 1 ] * b.m[ 1 * 4 + 0 ] + a.m[ 2 * 4 + 2 ] * b.m[ 2 * 4 + 0 ] + a.m[ 2 * 4 + 3 ] * b.m[ 3 * 4 + 0 ];
+	row2[ 1 ] = a.m[ 2 * 4 + 0 ] * b.m[ 0 * 4 + 1 ] + a.m[ 2 * 4 + 1 ] * b.m[ 1 * 4 + 1 ] + a.m[ 2 * 4 + 2 ] * b.m[ 2 * 4 + 1 ] + a.m[ 2 * 4 + 3 ] * b.m[ 3 * 4 + 1 ];
+	row2[ 2 ] = a.m[ 2 * 4 + 0 ] * b.m[ 0 * 4 + 2 ] + a.m[ 2 * 4 + 1 ] * b.m[ 1 * 4 + 2 ] + a.m[ 2 * 4 + 2 ] * b.m[ 2 * 4 + 2 ] + a.m[ 2 * 4 + 3 ] * b.m[ 3 * 4 + 2 ];
+	row2[ 3 ] = a.m[ 2 * 4 + 0 ] * b.m[ 0 * 4 + 3 ] + a.m[ 2 * 4 + 1 ] * b.m[ 1 * 4 + 3 ] + a.m[ 2 * 4 + 2 ] * b.m[ 2 * 4 + 3 ] + a.m[ 2 * 4 + 3 ] * b.m[ 3 * 4 + 3 ];
+
+	row3[ 0 ] = a.m[ 3 * 4 + 0 ] * b.m[ 0 * 4 + 0 ] + a.m[ 3 * 4 + 1 ] * b.m[ 1 * 4 + 0 ] + a.m[ 3 * 4 + 2 ] * b.m[ 2 * 4 + 0 ] + a.m[ 3 * 4 + 3 ] * b.m[ 3 * 4 + 0 ];
+	row3[ 1 ] = a.m[ 3 * 4 + 0 ] * b.m[ 0 * 4 + 1 ] + a.m[ 3 * 4 + 1 ] * b.m[ 1 * 4 + 1 ] + a.m[ 3 * 4 + 2 ] * b.m[ 2 * 4 + 1 ] + a.m[ 3 * 4 + 3 ] * b.m[ 3 * 4 + 1 ];
+	row3[ 2 ] = a.m[ 3 * 4 + 0 ] * b.m[ 0 * 4 + 2 ] + a.m[ 3 * 4 + 1 ] * b.m[ 1 * 4 + 2 ] + a.m[ 3 * 4 + 2 ] * b.m[ 2 * 4 + 2 ] + a.m[ 3 * 4 + 3 ] * b.m[ 3 * 4 + 2 ];
+	row3[ 3 ] = a.m[ 3 * 4 + 0 ] * b.m[ 0 * 4 + 3 ] + a.m[ 3 * 4 + 1 ] * b.m[ 1 * 4 + 3 ] + a.m[ 3 * 4 + 2 ] * b.m[ 2 * 4 + 3 ] + a.m[ 3 * 4 + 3 ] * b.m[ 3 * 4 + 3 ];
+
+#endif
+}
+
+/*
+========================
 idRenderMatrix::SetMVP
 ========================
 */

@@ -42,8 +42,7 @@ extern const idEventDef EV_ReachedAng;
 ===============================================================================
 */
 
-class idMover : public idEntity
-{
+class idMover : public idEntity {
 public:
 	CLASS_PROTOTYPE( idMover );
 	
@@ -65,26 +64,26 @@ public:
 	void					SetPortalState( bool open );
 	
 protected:
-	typedef enum
+	enum moveStage_t
 	{
 		ACCELERATION_STAGE,
 		LINEAR_STAGE,
 		DECELERATION_STAGE,
 		FINISHED_STAGE
-	} moveStage_t;
+	};
 	
-	typedef enum
+	enum moverCommand_t
 	{
 		MOVER_NONE,
 		MOVER_ROTATING,
 		MOVER_MOVING,
 		MOVER_SPLINE
-	} moverCommand_t;
+	};
 	
 	//
 	// mover directions.  make sure to change script/doom_defs.script if you add any, or change their order
 	//
-	typedef enum
+	enum moverDir_t
 	{
 		DIR_UP				= -1,
 		DIR_DOWN			= -2,
@@ -98,25 +97,25 @@ protected:
 		DIR_REL_RIGHT		= -10,
 		DIR_REL_FORWARD		= -11,
 		DIR_REL_BACK		= -12
-	} moverDir_t;
+	};
 	
-	typedef struct
+	struct moveState_t
 	{
 		moveStage_t			stage;
 		int					acceleration;
 		int					movetime;
 		int					deceleration;
 		idVec3				dir;
-	} moveState_t;
+	};
 	
-	typedef struct
+	struct rotationState_t
 	{
 		moveStage_t			stage;
 		int					acceleration;
 		int					movetime;
 		int					deceleration;
 		idAngles			rot;
-	} rotationState_t;
+	};
 	
 	idPhysics_Parametric	physicsObj;
 	
@@ -201,8 +200,7 @@ private:
 	void					Event_IsRotating();
 };
 
-class idSplinePath : public idEntity
-{
+class idSplinePath : public idEntity {
 public:
 	CLASS_PROTOTYPE( idSplinePath );
 	
@@ -219,8 +217,7 @@ struct floorInfo_s
 	int						floor;
 };
 
-class idElevator : public idMover
-{
+class idElevator : public idMover {
 public:
 	CLASS_PROTOTYPE( idElevator );
 	
@@ -243,12 +240,12 @@ protected:
 	void					Event_Touch( idEntity* other, trace_t* trace );
 	
 private:
-	typedef enum
+	enum elevatorState_t
 	{
 		INIT,
 		IDLE,
 		WAITING_ON_DOORS
-	} elevatorState_t;
+	};
 	
 	elevatorState_t			state;
 	idList<floorInfo_s, TAG_MOVER>		floorInfo;
@@ -285,16 +282,15 @@ private:
 ===============================================================================
 */
 
-typedef enum
+enum moverState_t
 {
 	MOVER_POS1,
 	MOVER_POS2,
 	MOVER_1TO2,
 	MOVER_2TO1
-} moverState_t;
+};
 
-class idMover_Binary : public idEntity
-{
+class idMover_Binary : public idEntity {
 public:
 	CLASS_PROTOTYPE( idMover_Binary );
 	
@@ -391,8 +387,7 @@ protected:
 	static void				GetMovedir( float dir, idVec3& movedir );
 };
 
-class idDoor : public idMover_Binary
-{
+class idDoor : public idMover_Binary {
 public:
 	CLASS_PROTOTYPE( idDoor );
 	
@@ -461,8 +456,7 @@ private:
 	void					Event_ClosePortal();
 };
 
-class idPlat : public idMover_Binary
-{
+class idPlat : public idMover_Binary {
 public:
 	CLASS_PROTOTYPE( idPlat );
 	
@@ -501,8 +495,7 @@ private:
 ===============================================================================
 */
 
-class idMover_Periodic : public idEntity
-{
+class idMover_Periodic : public idEntity {
 public:
 	CLASS_PROTOTYPE( idMover_Periodic );
 	
@@ -526,8 +519,7 @@ protected:
 	void					Event_PartBlocked( idEntity* blockingEntity );
 };
 
-class idRotater : public idMover_Periodic
-{
+class idRotater : public idMover_Periodic {
 public:
 	CLASS_PROTOTYPE( idRotater );
 	
@@ -544,8 +536,7 @@ private:
 	void					Event_Activate( idEntity* activator );
 };
 
-class idBobber : public idMover_Periodic
-{
+class idBobber : public idMover_Periodic {
 public:
 	CLASS_PROTOTYPE( idBobber );
 	
@@ -556,8 +547,7 @@ public:
 private:
 };
 
-class idPendulum : public idMover_Periodic
-{
+class idPendulum : public idMover_Periodic {
 public:
 	CLASS_PROTOTYPE( idPendulum );
 	
@@ -568,8 +558,7 @@ public:
 private:
 };
 
-class idRiser : public idMover_Periodic
-{
+class idRiser : public idMover_Periodic {
 public:
 	CLASS_PROTOTYPE( idRiser );
 	

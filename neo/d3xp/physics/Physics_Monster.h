@@ -40,16 +40,16 @@ If you have questions concerning this license or the applicable additional terms
 ===================================================================================
 */
 
-typedef enum
+enum monsterMoveResult_t
 {
 	MM_OK,
 	MM_SLIDING,
 	MM_BLOCKED,
 	MM_STEPPED,
 	MM_FALLING
-} monsterMoveResult_t;
+};
 
-typedef struct monsterPState_s
+struct monsterPState_t
 {
 	int						atRest;
 	bool					onGround;
@@ -57,11 +57,9 @@ typedef struct monsterPState_s
 	idVec3					velocity;
 	idVec3					localOrigin;
 	idVec3					pushVelocity;
-} monsterPState_t;
+};
 
-class idPhysics_Monster : public idPhysics_Actor
-{
-
+class idPhysics_Monster : public idPhysics_Actor {
 public:
 	CLASS_PROTOTYPE( idPhysics_Monster );
 	

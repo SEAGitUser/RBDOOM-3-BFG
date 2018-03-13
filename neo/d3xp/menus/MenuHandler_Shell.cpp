@@ -243,9 +243,9 @@ void idMenuHandler_Shell::Update()
 			idMatchParameters matchParameters = session->GetActivePlatformLobbyBase().GetMatchParms();
 			if( !MatchTypeIsPrivate( matchParameters.matchFlags ) )
 			{
-				if( Sys_Milliseconds() >= nextPeerUpdateMs )
+				if( sys->Milliseconds() >= nextPeerUpdateMs )
 				{
-					nextPeerUpdateMs = Sys_Milliseconds() + PEER_UPDATE_INTERVAL;
+					nextPeerUpdateMs = sys->Milliseconds() + PEER_UPDATE_INTERVAL;
 					byte buffer[ 128 ];
 					idBitMsg msg;
 					msg.InitWrite( buffer, sizeof( buffer ) );
@@ -264,7 +264,7 @@ void idMenuHandler_Shell::Update()
 
 	if( introGui != NULL && introGui->IsActive() )
 	{
-		introGui->Render( renderSystem, Sys_Milliseconds() );
+		introGui->Render( renderSystem, sys->Milliseconds() );
 	}
 
 	if( continueWaitForEnumerate )
@@ -301,7 +301,7 @@ void idMenuHandler_Shell::SetCanContinue( bool valid )
 idMenuHandler_Shell::HandleGuiEvent
 ========================
 */
-bool idMenuHandler_Shell::HandleGuiEvent( const sysEvent_t* sev )
+bool idMenuHandler_Shell::HandleGuiEvent( const idSysEvent* sev )
 {
 	if( IsPacifierVisible() )
 	{
@@ -315,14 +315,14 @@ bool idMenuHandler_Shell::HandleGuiEvent( const sysEvent_t* sev )
 
 	if( waitForBinding )
 	{
-		if( sev->evType == SE_KEY && sev->evValue2 == 1 )
+		if( sev->IsKeyEvent() && sev->IsKeyDown() )
 		{
-			if( sev->evValue >= K_JOY_STICK1_UP && sev->evValue <= K_JOY_STICK2_RIGHT )
+			if( sev->GetKey() >= K_JOY_STICK1_UP && sev->GetKey() <= K_JOY_STICK2_RIGHT )
 			{
 				return true;
 			}
 
-			if( sev->evValue == K_ESCAPE )
+			if( sev->GetKey() == K_ESCAPE )
 			{
 				waitForBinding = false;
 
@@ -335,9 +335,9 @@ bool idMenuHandler_Shell::HandleGuiEvent( const sysEvent_t* sev )
 			}
 			else
 			{
-				if( idStr::Icmp( idKeyInput::GetBinding( sev->evValue ), "" ) == 0 )  	// no existing binding found
+				if( idStr::Icmp( idKeyInput::GetBinding( sev->GetKey() ), "" ) == 0 )  	// no existing binding found
 				{
-					idKeyInput::SetBinding( sev->evValue, waitBind );
+					idKeyInput::SetBinding( sev->GetKey(), waitBind );
 
 					idMenuScreen_Shell_Bindings* bindScreen = dynamic_cast< idMenuScreen_Shell_Bindings* >( menuScreens[ SHELL_AREA_KEYBOARD ] );
 					if( bindScreen != NULL )
@@ -352,11 +352,11 @@ bool idMenuHandler_Shell::HandleGuiEvent( const sysEvent_t* sev )
 				}
 				else  	// binding found prompt to change
 				{
-					const char* curBind = idKeyInput::GetBinding( sev->evValue );
+					const char* curBind = idKeyInput::GetBinding( sev->GetKey() );
 
 					if( idStr::Icmp( waitBind, curBind ) == 0 )
 					{
-						idKeyInput::SetBinding( sev->evValue, "" );
+						idKeyInput::SetBinding( sev->GetKey(), "" );
 						idMenuScreen_Shell_Bindings* bindScreen = dynamic_cast< idMenuScreen_Shell_Bindings* >( menuScreens[ SHELL_AREA_KEYBOARD ] );
 						if( bindScreen != NULL )
 						{
@@ -374,7 +374,8 @@ bool idMenuHandler_Shell::HandleGuiEvent( const sysEvent_t* sev )
 						{
 							class idSWFScriptFunction_RebindKey : public idSWFScriptFunction_RefCounted {
 							public:
-								idSWFScriptFunction_RebindKey( idMenuScreen_Shell_Bindings* _menu, gameDialogMessages_t _msg, bool _accept, idMenuHandler_Shell* _mgr, int _key, const char* _bind )
+								idSWFScriptFunction_RebindKey( idMenuScreen_Shell_Bindings* _menu, gameDialogMessages_t _msg, 
+									bool _accept, idMenuHandler_Shell* _mgr, int _key, const char* _bind )
 								{
 									menu = _menu;
 									msg = _msg;
@@ -406,7 +407,9 @@ bool idMenuHandler_Shell::HandleGuiEvent( const sysEvent_t* sev )
 								const char* bind;
 							};
 
-							common->Dialog().AddDialog( GDM_BINDING_ALREDY_SET, DIALOG_ACCEPT_CANCEL, new idSWFScriptFunction_RebindKey( bindScreen, GDM_BINDING_ALREDY_SET, true, this, sev->evValue, waitBind ), new idSWFScriptFunction_RebindKey( bindScreen, GDM_BINDING_ALREDY_SET, false, this, sev->evValue, waitBind ), false );
+							common->Dialog().AddDialog( GDM_BINDING_ALREDY_SET, DIALOG_ACCEPT_CANCEL, 
+								new idSWFScriptFunction_RebindKey( bindScreen, GDM_BINDING_ALREDY_SET, true, this, sev->GetKey(), waitBind ),
+								new idSWFScriptFunction_RebindKey( bindScreen, GDM_BINDING_ALREDY_SET, false, this, sev->GetKey(), waitBind ), false );
 						}
 					}
 				}
@@ -690,7 +693,7 @@ void idMenuHandler_Shell::ActivateMenu( bool show )
 								auto stage = mat->GetStage( i );
 								if( stage != NULL && stage->texture.cinematic )
 								{
-									stage->texture.cinematic->ResetTime( Sys_Milliseconds() );
+									stage->texture.cinematic->ResetTime( sys->Milliseconds() );
 								}
 							}
 						}
@@ -1391,7 +1394,7 @@ void idMenuHandler_Shell::ShowDoomIntro()
 				auto stage = mat->GetStage( i );
 				if( stage != NULL && stage->texture.cinematic )
 				{
-					stage->texture.cinematic->ResetTime( Sys_Milliseconds() );
+					stage->texture.cinematic->ResetTime( sys->Milliseconds() );
 				}
 			}
 		}
@@ -1580,7 +1583,7 @@ void idMenuHandler_Shell::ShowROEIntro()
 				auto stage = mat->GetStage( i );
 				if( stage != NULL && stage->texture.cinematic )
 				{
-					stage->texture.cinematic->ResetTime( Sys_Milliseconds() );
+					stage->texture.cinematic->ResetTime( sys->Milliseconds() );
 				}
 			}
 		}
@@ -1672,11 +1675,11 @@ void idMenuHandler_Shell::ShowROEIntro()
 											{
 												if( startFade == 0 )
 												{
-													startFade = Sys_Milliseconds();
+													startFade = sys->Milliseconds();
 												}
 												else
 												{
-													if( Sys_Milliseconds() - startFade >= 3000 )
+													if( sys->Milliseconds() - startFade >= 3000 )
 													{
 														nextInfo->SetVisible( false );
 														thisObject->GetSprite()->SetVisible( false );
@@ -1699,7 +1702,7 @@ void idMenuHandler_Shell::ShowROEIntro()
 													}
 													else
 													{
-														float alpha = 1.0f - ( ( float )( Sys_Milliseconds() - startFade ) / 3000.0f );
+														float alpha = 1.0f - ( ( float )( sys->Milliseconds() - startFade ) / 3000.0f );
 														nextInfo->SetAlpha( alpha );
 														thisObject->GetSprite()->SetAlpha( alpha );
 													}
@@ -1813,11 +1816,11 @@ void idMenuHandler_Shell::ShowLEIntro()
 						{
 							if( startFade == 0 )
 							{
-								startFade = Sys_Milliseconds();
+								startFade = sys->Milliseconds();
 							}
 							else
 							{
-								float alpha = 1.0f - ( ( float )( Sys_Milliseconds() - startFade ) / 3000.0f );
+								float alpha = 1.0f - ( ( float )( sys->Milliseconds() - startFade ) / 3000.0f );
 								if( alpha <= 0.0f )
 								{
 									thisObject->GetSprite()->SetVisible( false );

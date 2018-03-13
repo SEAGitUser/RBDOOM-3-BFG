@@ -39,22 +39,9 @@ const int numLanguages = sizeof( sysLanguageNames ) / sizeof sysLanguageNames[ 0
 
 idCVar sys_lang( "sys_lang", ID_LANG_ENGLISH, CVAR_SYSTEM | CVAR_INIT, "", sysLanguageNames, idCmdSystem::ArgCompletion_String<sysLanguageNames> );
 
-idSysLocal			sysLocal;
-idSys* 				sys = &sysLocal;
+idSysLocal sysLocal;
+idSys * sys = &sysLocal;
 
-void idSysLocal::DebugPrintf( const char* fmt, ... )
-{
-	va_list argptr;
-	
-	va_start( argptr, fmt );
-	Sys_DebugVPrintf( fmt, argptr );
-	va_end( argptr );
-}
-
-void idSysLocal::DebugVPrintf( const char* fmt, va_list arg )
-{
-	Sys_DebugVPrintf( fmt, arg );
-}
 
 double idSysLocal::GetClockTicks()
 {
@@ -76,26 +63,6 @@ const char* idSysLocal::GetProcessorString()
 	return Sys_GetProcessorString();
 }
 
-const char* idSysLocal::FPU_GetState()
-{
-	return Sys_FPU_GetState();
-}
-
-bool idSysLocal::FPU_StackIsEmpty()
-{
-	return Sys_FPU_StackIsEmpty();
-}
-
-void idSysLocal::FPU_SetFTZ( bool enable )
-{
-	Sys_FPU_SetFTZ( enable );
-}
-
-void idSysLocal::FPU_SetDAZ( bool enable )
-{
-	Sys_FPU_SetDAZ( enable );
-}
-
 bool idSysLocal::LockMemory( void* ptr, int bytes )
 {
 	return Sys_LockMemory( ptr, bytes );
@@ -106,51 +73,9 @@ bool idSysLocal::UnlockMemory( void* ptr, int bytes )
 	return Sys_UnlockMemory( ptr, bytes );
 }
 
-int idSysLocal::DLL_Load( const char* dllName )
-{
-	return Sys_DLL_Load( dllName );
-}
-
-void* idSysLocal::DLL_GetProcAddress( int dllHandle, const char* procName )
-{
-	return Sys_DLL_GetProcAddress( dllHandle, procName );
-}
-
-void idSysLocal::DLL_Unload( int dllHandle )
-{
-	Sys_DLL_Unload( dllHandle );
-}
-
 void idSysLocal::DLL_GetFileName( const char* baseName, char* dllName, int maxLength )
 {
 	idStr::snPrintf( dllName, maxLength, "%s" CPUSTRING ".dll", baseName );
-}
-
-sysEvent_t idSysLocal::GenerateMouseButtonEvent( int button, bool down )
-{
-	sysEvent_t ev;
-	ev.evType = SE_KEY;
-	ev.evValue = K_MOUSE1 + button - 1;
-	ev.evValue2 = down;
-	ev.evPtrLength = 0;
-	ev.evPtr = NULL;
-	return ev;
-}
-
-sysEvent_t idSysLocal::GenerateMouseMoveEvent( int deltax, int deltay )
-{
-	sysEvent_t ev;
-	ev.evType = SE_MOUSE;
-	ev.evValue = deltax;
-	ev.evValue2 = deltay;
-	ev.evPtrLength = 0;
-	ev.evPtr = NULL;
-	return ev;
-}
-
-void idSysLocal::FPU_EnableExceptions( int exceptions )
-{
-	Sys_FPU_EnableExceptions( exceptions );
 }
 
 /*
@@ -164,7 +89,7 @@ const char* Sys_TimeStampToStr( ID_TIME_T timeStamp )
 	timeString[0] = '\0';
 	
 	time_t ts = ( time_t )timeStamp;
-	tm*	time = localtime( &ts );
+	tm*	time = ::localtime( &ts );
 	if( time == NULL )
 	{
 		// String separated to prevent detection of trigraphs
@@ -206,8 +131,7 @@ const char* Sys_TimeStampToStr( ID_TIME_T timeStamp )
 			out += "am";
 		}
 	}
-	else
-	{
+	else {
 		// europeans get "day/month/year  24hour:min"
 		out = va( "%02d", time->tm_mday );
 		out += "/";
@@ -361,7 +285,89 @@ const char* Sys_DefaultLanguage()
 	
 	fileSystem->FreeFileList( langFiles );
 	
-	return sys_lang.GetString();// ID_LANG_ENGLISH;
-	
-	
+	return sys_lang.GetString();// ID_LANG_ENGLISH;	
+}
+
+
+
+
+
+
+/*
+===========================
+===========================
+*/
+idSysEvent idSysLocal::GenerateMouseButtonEvent( int button, bool down )
+{
+	idSysEvent ev;
+	ev.Init( SE_KEY, K_MOUSE1 + button - 1, down, 0, nullptr );
+	return ev;
+}
+/*
+===========================
+===========================
+*/
+idSysEvent idSysLocal::GenerateMouseMoveEvent( int deltax, int deltay )
+{
+	idSysEvent ev;
+	ev.Init( SE_MOUSE, deltax, deltay, 0, nullptr );
+	return ev;
+}
+/*
+===========================
+===========================
+*/
+void idSysEvent::FreeData()
+{
+	// free any block data
+	if( evPtr )
+	{
+		Mem_Free( evPtr );
+		evPtr = nullptr;
+	}
+}
+/*
+===========================
+===========================
+*/
+bool idSysEvent::Write( idFile* file )
+{
+	int r = file->Write( this, sizeof( *this ) );
+	if( r != sizeof( *this ) )
+	{
+		return false;
+	}
+	if( evPtrLength )
+	{
+		assert( evPtr );
+		r = file->Write( evPtr, evPtrLength );
+		if( r != evPtrLength )
+		{
+			return false;
+		}
+	}
+	return true;
+}
+/*
+===========================
+===========================
+*/
+bool idSysEvent::Read( idFile* file )
+{
+	int r = file->Read( this, sizeof( *this ) );
+	if( r != sizeof( *this ) )
+	{
+		return false;
+	}
+	FreeData();
+	if( evPtrLength )
+	{
+		evPtr = Mem_ClearedAlloc( evPtrLength, TAG_EVENTS );
+		r = file->Read( evPtr, evPtrLength );
+		if( r != evPtrLength )
+		{
+			return false;
+		}
+	}
+	return true;
 }

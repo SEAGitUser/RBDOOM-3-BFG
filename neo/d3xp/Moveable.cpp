@@ -299,7 +299,7 @@ bool idMoveable::Collide( const trace_t& collision, const idVec3& velocity )
 	idEntity* ent;
 
 	v = -( velocity * collision.c.normal );
-	if( v > BOUNCE_SOUND_MIN_VELOCITY && gameLocal.GetTime() > nextSoundTime )
+	if( v > BOUNCE_SOUND_MIN_VELOCITY && gameLocal.GetGameTimeMs() > nextSoundTime )
 	{
 		f = v > BOUNCE_SOUND_MAX_VELOCITY ? 1.0f : idMath::Sqrt( v - BOUNCE_SOUND_MIN_VELOCITY ) * ( 1.0f / idMath::Sqrt( BOUNCE_SOUND_MAX_VELOCITY - BOUNCE_SOUND_MIN_VELOCITY ) );
 		if( StartSound( "snd_bounce", SND_CHANNEL_ANY, 0, false, NULL ) )
@@ -308,11 +308,11 @@ bool idMoveable::Collide( const trace_t& collision, const idVec3& velocity )
 			// which causes footsteps on ai's to not honor their shader parms
 			SetSoundVolume( f );
 		}
-		nextSoundTime = gameLocal.GetTime() + 500;
+		nextSoundTime = gameLocal.GetGameTimeMs() + 500;
 	}
 
 	// _D3XP :: changes relating to the addition of monsterDamage
-	if( !common->IsClient() && canDamage && gameLocal.GetTime() > nextDamageTime )
+	if( !common->IsClient() && canDamage && gameLocal.GetGameTimeMs() > nextDamageTime )
 	{
 		bool hasDamage = damage.Length() > 0;
 		bool hasMonsterDamage = monsterDamage.Length() > 0;
@@ -354,7 +354,7 @@ bool idMoveable::Collide( const trace_t& collision, const idVec3& velocity )
 					}
 				}
 
-				nextDamageTime = gameLocal.GetTime() + 1000;
+				nextDamageTime = gameLocal.GetGameTimeMs() + 1000;
 			}
 		}
 	}
@@ -369,10 +369,10 @@ bool idMoveable::Collide( const trace_t& collision, const idVec3& velocity )
 		}
 	}
 
-	if( fxCollide.Length() && gameLocal.GetTime() > nextCollideFxTime )
+	if( fxCollide.Length() && gameLocal.GetGameTimeMs() > nextCollideFxTime )
 	{
 		idEntityFx::StartFx( fxCollide, &collision.c.point, NULL, this, false );
-		nextCollideFxTime = gameLocal.GetTime() + 3500;
+		nextCollideFxTime = gameLocal.GetGameTimeMs() + 3500;
 	}
 
 	return false;
@@ -486,13 +486,13 @@ bool idMoveable::FollowInitialSplinePath()
 {
 	if( initialSpline != NULL )
 	{
-		if( gameLocal.GetTime() < initialSpline->GetTime( initialSpline->GetNumValues() - 1 ) )
+		if( gameLocal.GetGameTimeMs() < initialSpline->GetTime( initialSpline->GetNumValues() - 1 ) )
 		{
-			idVec3 splinePos = initialSpline->GetCurrentValue( gameLocal.GetTime() );
+			idVec3 splinePos = initialSpline->GetCurrentValue( gameLocal.GetGameTimeMs() );
 			idVec3 linearVelocity = ( splinePos - physicsObj.GetOrigin() ) * com_engineHz_latched;
 			physicsObj.SetLinearVelocity( linearVelocity );
 
-			idVec3 splineDir = initialSpline->GetCurrentFirstDerivative( gameLocal.GetTime() );
+			idVec3 splineDir = initialSpline->GetCurrentFirstDerivative( gameLocal.GetGameTimeMs() );
 			idVec3 dir = initialSplineDir * physicsObj.GetAxis();
 			idVec3 angularVelocity = dir.Cross( splineDir );
 			angularVelocity.Normalize();
@@ -640,7 +640,7 @@ void idMoveable::Event_Activate( idEntity* activator )
 		PostEventSec( &EV_SetAngularVelocity, delay, init_avelocity );
 	}
 
-	InitInitialSpline( gameLocal.GetTime() );
+	InitInitialSpline( gameLocal.GetGameTimeMs() );
 }
 
 /*
@@ -1270,7 +1270,7 @@ void idExplodingBarrel::Killed( idEntity* inflictor, idEntity* attacker, int dam
 			byte		msgBuf[ MAX_EVENT_PARAM_SIZE ];
 
 			msg.InitWrite( msgBuf, sizeof( msgBuf ) );
-			msg.WriteLong( gameLocal.GetTime() );
+			msg.WriteLong( gameLocal.GetGameTimeMs() );
 			ServerSendEvent( EVENT_EXPLODE, &msg, false );
 		}
 	}
@@ -1318,7 +1318,7 @@ void idExplodingBarrel::Killed( idEntity* inflictor, idEntity* attacker, int dam
 			debris = static_cast< idDebris* >( ent );
 			debris->Create( this, physicsObj.GetOrigin(), dir.ToMat3() );
 			debris->Launch();
-			debris->GetRenderEntity()->shaderParms[ SHADERPARM_TIME_OF_DEATH ] = ( gameLocal.GetTime() + 1500 ) * 0.001f;
+			debris->GetRenderEntity()->shaderParms[ SHADERPARM_TIME_OF_DEATH ] = ( gameLocal.GetGameTimeMs() + 1500 ) * 0.001f;
 			debris->UpdateVisuals();
 		}
 		kv = spawnArgs.MatchPrefix( "def_debris", kv );
@@ -1502,9 +1502,7 @@ bool idExplodingBarrel::ClientReceiveEvent( int event, int time, const idBitMsg&
 			}
 			return true;
 		}
-		default:
-		{
-			return idBarrel::ClientReceiveEvent( event, time, msg );
-		}
 	}
+
+	return idBarrel::ClientReceiveEvent( event, time, msg );
 }

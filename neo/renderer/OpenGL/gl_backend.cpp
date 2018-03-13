@@ -134,14 +134,14 @@ const void GL_BlockingSwapBuffers()
 {
 	RENDERLOG_PRINT( "***************** GL_BlockingSwapBuffers *****************\n\n\n" );
 	
-	const int beforeFinish = Sys_Milliseconds();
+	const int beforeFinish = sys->Milliseconds();
 	
 	if( !glConfig.syncAvailable )
 	{
 		glFinish();
 	}
 	
-	const int beforeSwap = Sys_Milliseconds();
+	const int beforeSwap = sys->Milliseconds();
 	if( r_showSwapBuffers.GetBool() && beforeSwap - beforeFinish > 1 )
 	{
 		common->Printf( "%i msec to glFinish\n", beforeSwap - beforeFinish );
@@ -149,7 +149,7 @@ const void GL_BlockingSwapBuffers()
 	
 	GLimp_SwapBuffers();
 	
-	const int beforeFence = Sys_Milliseconds();
+	const int beforeFence = sys->Milliseconds();
 	if( r_showSwapBuffers.GetBool() && beforeFence - beforeSwap > 1 )
 	{
 		common->Printf( "%i msec to swapBuffers\n", beforeFence - beforeSwap );
@@ -164,12 +164,12 @@ const void GL_BlockingSwapBuffers()
 			glDeleteSync( renderSync[swapIndex] );
 		}
 		// draw something tiny to ensure the sync is after the swap
-		const int start = Sys_Milliseconds();
+		const int start = sys->Milliseconds();
 		glScissor( 0, 0, 1, 1 );
 		glEnable( GL_SCISSOR_TEST );
 		glClear( GL_COLOR_BUFFER_BIT );
 		renderSync[swapIndex] = glFenceSync( GL_SYNC_GPU_COMMANDS_COMPLETE, 0 );
-		const int end = Sys_Milliseconds();
+		const int end = sys->Milliseconds();
 		if( r_showSwapBuffers.GetBool() && end - start > 1 )
 		{
 			common->Printf( "%i msec to start fence\n", end - start );
@@ -178,11 +178,10 @@ const void GL_BlockingSwapBuffers()
 		GLsync	syncToWaitOn;
 		if( r_syncEveryFrame.GetBool() )
 		{
-			syncToWaitOn = renderSync[swapIndex];
+			syncToWaitOn = renderSync[ swapIndex ];
 		}
-		else
-		{
-			syncToWaitOn = renderSync[!swapIndex];
+		else {
+			syncToWaitOn = renderSync[ !swapIndex ];
 		}
 		
 		if( glIsSync( syncToWaitOn ) )
@@ -194,13 +193,13 @@ const void GL_BlockingSwapBuffers()
 		}
 	}
 	
-	const int afterFence = Sys_Milliseconds();
+	const int afterFence = sys->Milliseconds();
 	if( r_showSwapBuffers.GetBool() && afterFence - beforeFence > 1 )
 	{
 		common->Printf( "%i msec to wait on fence\n", afterFence - beforeFence );
 	}
 	
-	const int64 exitBlockTime = Sys_Microseconds();
+	const int64 exitBlockTime = sys->Microseconds();
 	
 	static int64 prevBlockTime;
 	if( r_showSwapBuffers.GetBool() && prevBlockTime )
@@ -235,7 +234,7 @@ Renders the draw list twice, with slight modifications for left eye / right eye
 */
 void RB_StereoRenderExecuteBackEndCommands( const emptyCommand_t* const allCmds )
 {
-	uint64 backEndStartTime = Sys_Microseconds();
+	uint64 backEndStartTime = sys->Microseconds();
 	
 	// If we are in a monoscopic context, this draws to the only buffer, and is
 	// the same as GL_BACK.  In a quad-buffer stereo context, this is necessary
@@ -293,8 +292,8 @@ void RB_StereoRenderExecuteBackEndCommands( const emptyCommand_t* const allCmds 
 				case RC_DRAW_VIEW_GUI:
 				case RC_DRAW_VIEW_3D:
 				{
-					const drawSurfsCommand_t* const dsc = ( const drawSurfsCommand_t* )cmds;
-					const idRenderView&	eyeViewDef = *dsc->viewDef;
+					const drawSurfsCommand_t * const dsc = ( const drawSurfsCommand_t* )cmds;
+					const idRenderView & eyeViewDef = *dsc->viewDef;
 					
 					if( eyeViewDef.GetStereoEye() && eyeViewDef.GetStereoEye() != stereoEye )
 					{
@@ -376,31 +375,40 @@ void RB_StereoRenderExecuteBackEndCommands( const emptyCommand_t* const allCmds 
 	{
 		case STEREO3D_QUAD_BUFFER:
 			glDrawBuffer( GL_BACK_RIGHT );
-			GL_BindTexture( 0, stereoRenderImages[1] );
-			GL_BindTexture( 1, stereoRenderImages[0] );
+			///GL_BindTexture( 0, stereoRenderImages[1] );
+			///GL_BindTexture( 1, stereoRenderImages[0] );
+			renderProgManager.SetRenderParm( ( renderParm_t )( RENDERPARM_USERMAP0 + 0 ), stereoRenderImages[ 1 ] );
+			renderProgManager.SetRenderParm( ( renderParm_t )( RENDERPARM_USERMAP0 + 1 ), stereoRenderImages[ 0 ] );
 			GL_DrawIndexed( &backEnd.unitSquareSurface );
 			
 			glDrawBuffer( GL_BACK_LEFT );
-			GL_BindTexture( 1, stereoRenderImages[ 1 ] );
-			GL_BindTexture( 0, stereoRenderImages[ 0 ] );
+			///GL_BindTexture( 0, stereoRenderImages[ 0 ] );
+			///GL_BindTexture( 1, stereoRenderImages[ 1 ] );
+			renderProgManager.SetRenderParm( ( renderParm_t )( RENDERPARM_USERMAP0 + 0 ), stereoRenderImages[ 0 ] );
+			renderProgManager.SetRenderParm( ( renderParm_t )( RENDERPARM_USERMAP0 + 1 ), stereoRenderImages[ 1 ] );
 			GL_DrawIndexed( &backEnd.unitSquareSurface );
 			
 			break;
 		case STEREO3D_HDMI_720: // HDMI 720P 3D
-			GL_BindTexture( 0, stereoRenderImages[ 1 ] );
-			GL_BindTexture( 1, stereoRenderImages[ 0 ] );
+			///GL_BindTexture( 0, stereoRenderImages[ 1 ] );
+			///GL_BindTexture( 1, stereoRenderImages[ 0 ] );
 			GL_ViewportAndScissor( 0, 0, 1280, 720 );
+			renderProgManager.SetRenderParm( ( renderParm_t )( RENDERPARM_USERMAP0 + 0 ), stereoRenderImages[ 1 ] );
+			renderProgManager.SetRenderParm( ( renderParm_t )( RENDERPARM_USERMAP0 + 1 ), stereoRenderImages[ 0 ] );
 			GL_DrawIndexed( &backEnd.unitSquareSurface );
 			
-			GL_BindTexture( 0, stereoRenderImages[ 0 ] );
-			GL_BindTexture( 1, stereoRenderImages[ 1 ] );
+			///GL_BindTexture( 0, stereoRenderImages[ 0 ] );
+			///GL_BindTexture( 1, stereoRenderImages[ 1 ] );
 			GL_ViewportAndScissor( 0, 750, 1280, 720 );
+			renderProgManager.SetRenderParm( ( renderParm_t )( RENDERPARM_USERMAP0 + 0 ), stereoRenderImages[ 0 ] );
+			renderProgManager.SetRenderParm( ( renderParm_t )( RENDERPARM_USERMAP0 + 1 ), stereoRenderImages[ 1 ] );
 			GL_DrawIndexed( &backEnd.unitSquareSurface );
 			
 			// force the HDMI 720P 3D guard band to a constant color
 			GL_Scissor( 0, 720, 1280, 30 );
 			glClear( GL_COLOR_BUFFER_BIT );
 			break;
+
 		default:
 		case STEREO3D_SIDE_BY_SIDE:
 			if( stereoRender_warp.GetBool() )
@@ -431,7 +439,8 @@ void RB_StereoRenderExecuteBackEndCommands( const emptyCommand_t* const allCmds 
 				// don't use GL_Color(), because we don't want to clamp
 				renderProgManager.SetRenderParm( RENDERPARM_COLOR, color.ToFloatPtr() );
 				
-				GL_BindTexture( 0, stereoRenderImages[ 0 ] );
+				///GL_BindTexture( 0, stereoRenderImages[ 0 ] );
+				renderProgManager.SetRenderParm( ( renderParm_t )( RENDERPARM_USERMAP0 + 0 ), stereoRenderImages[ 0 ] );
 				glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER );
 				glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER );
 				GL_DrawIndexed( &backEnd.unitSquareSurface );
@@ -452,35 +461,45 @@ void RB_StereoRenderExecuteBackEndCommands( const emptyCommand_t* const allCmds 
 		// a non-warped side-by-side-uncompressed (dual input cable) is rendered
 		// just like STEREO3D_SIDE_BY_SIDE_COMPRESSED, so fall through.
 		case STEREO3D_SIDE_BY_SIDE_COMPRESSED:
-			GL_BindTexture( 0, stereoRenderImages[ 0 ] );
-			GL_BindTexture( 1, stereoRenderImages[ 1 ] );
+			///GL_BindTexture( 0, stereoRenderImages[ 0 ] );
+			///GL_BindTexture( 1, stereoRenderImages[ 1 ] );
 			GL_ViewportAndScissor( 0, 0, renderSystem->GetWidth(), renderSystem->GetHeight() );
+			renderProgManager.SetRenderParm( ( renderParm_t )( RENDERPARM_USERMAP0 + 0 ), stereoRenderImages[ 0 ] );
+			renderProgManager.SetRenderParm( ( renderParm_t )( RENDERPARM_USERMAP0 + 1 ), stereoRenderImages[ 1 ] );
 			GL_DrawIndexed( &backEnd.unitSquareSurface );
 			
-			GL_BindTexture( 0, stereoRenderImages[ 1] );
-			GL_BindTexture( 1, stereoRenderImages[ 0 ] );
+			///GL_BindTexture( 0, stereoRenderImages[ 1] );
+			///GL_BindTexture( 1, stereoRenderImages[ 0 ] );
 			GL_ViewportAndScissor( renderSystem->GetWidth(), 0, renderSystem->GetWidth(), renderSystem->GetHeight() );
+			renderProgManager.SetRenderParm( ( renderParm_t )( RENDERPARM_USERMAP0 + 0 ), stereoRenderImages[ 1 ] );
+			renderProgManager.SetRenderParm( ( renderParm_t )( RENDERPARM_USERMAP0 + 1 ), stereoRenderImages[ 0 ] );
 			GL_DrawIndexed( &backEnd.unitSquareSurface );
 			break;
 			
-		case STEREO3D_TOP_AND_BOTTOM_COMPRESSED:
-			GL_BindTexture( 1, stereoRenderImages[ 0 ] );
-			GL_BindTexture( 0, stereoRenderImages[ 1 ] );
+		case STEREO3D_TOP_AND_BOTTOM_COMPRESSED:			
+			///GL_BindTexture( 0, stereoRenderImages[ 1 ] );
+			///GL_BindTexture( 1, stereoRenderImages[ 0 ] );
 			GL_ViewportAndScissor( 0, 0, renderSystem->GetWidth(), renderSystem->GetHeight() );
+			renderProgManager.SetRenderParm( ( renderParm_t )( RENDERPARM_USERMAP0 + 0 ), stereoRenderImages[ 1 ] );
+			renderProgManager.SetRenderParm( ( renderParm_t )( RENDERPARM_USERMAP0 + 1 ), stereoRenderImages[ 0 ] );
 			GL_DrawIndexed( &backEnd.unitSquareSurface );
-			
-			GL_BindTexture( 1, stereoRenderImages[ 1 ] );
-			GL_BindTexture( 0, stereoRenderImages[ 0 ] );
+						
+			///GL_BindTexture( 0, stereoRenderImages[ 0 ] );
+			///GL_BindTexture( 1, stereoRenderImages[ 1 ] );
 			GL_ViewportAndScissor( 0, renderSystem->GetHeight(), renderSystem->GetWidth(), renderSystem->GetHeight() );
+			renderProgManager.SetRenderParm( ( renderParm_t )( RENDERPARM_USERMAP0 + 0 ), stereoRenderImages[ 0 ] );
+			renderProgManager.SetRenderParm( ( renderParm_t )( RENDERPARM_USERMAP0 + 1 ), stereoRenderImages[ 1 ] );
 			GL_DrawIndexed( &backEnd.unitSquareSurface );
 			break;
 			
 		case STEREO3D_INTERLACED: // every other scanline
-			GL_BindTexture( 0, stereoRenderImages[ 0 ] );
+			///GL_BindTexture( 0, stereoRenderImages[ 0 ] );
+			renderProgManager.SetRenderParm( ( renderParm_t )( RENDERPARM_USERMAP0 + 0 ), stereoRenderImages[ 0 ] );
 			glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST );
 			glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST );
 
-			GL_BindTexture( 1, stereoRenderImages[ 1 ] );
+			///GL_BindTexture( 1, stereoRenderImages[ 1 ] );
+			renderProgManager.SetRenderParm( ( renderParm_t )( RENDERPARM_USERMAP0 + 1 ), stereoRenderImages[ 1 ] );
 			glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST );
 			glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST );
 			
@@ -507,7 +526,7 @@ void RB_StereoRenderExecuteBackEndCommands( const emptyCommand_t* const allCmds 
 	// we may choose to sync to the swapbuffers before the next frame
 	
 	// stop rendering on this thread
-	uint64 backEndFinishTime = Sys_Microseconds();
+	uint64 backEndFinishTime = sys->Microseconds();
 	backEnd.pc.totalMicroSec = backEndFinishTime - backEndStartTime;
 }
 
@@ -538,13 +557,12 @@ void RB_ExecuteBackEndCommands( const emptyCommand_t* cmds )
 	
 	if( renderSystem->GetStereo3DMode() != STEREO3D_OFF )
 	{
-		RB_StereoRenderExecuteBackEndCommands( cmds );
-		
+		RB_StereoRenderExecuteBackEndCommands( cmds );	
 		RENDERLOG_END_FRAME();
 		return;
 	}
 	
-	uint64 backEndStartTime = Sys_Microseconds();
+	uint64 backEndStartTime = sys->Microseconds();
 	
 	// needed for editor rendering
 	GL_SetDefaultState();
@@ -599,7 +617,7 @@ void RB_ExecuteBackEndCommands( const emptyCommand_t* cmds )
 	glFlush();
 	
 	// stop rendering on this thread
-	uint64 backEndFinishTime = Sys_Microseconds();
+	uint64 backEndFinishTime = sys->Microseconds();
 	backEnd.pc.totalMicroSec = backEndFinishTime - backEndStartTime;
 	
 	if( r_debugRenderToTexture.GetInteger() == 1 )

@@ -55,7 +55,7 @@ class idConsoleLocal : public idConsole {
 public:
 	virtual	void		Init();
 	virtual void		Shutdown();
-	virtual	bool		ProcessEvent( const sysEvent_t* event, bool forceAccept );
+	virtual	bool		ProcessEvent( const idSysEvent* event, bool forceAccept );
 	virtual	bool		Active();
 	virtual	void		ClearNotifyLines();
 	virtual void		Open();
@@ -220,7 +220,7 @@ float idConsoleLocal::DrawFPS( float y )
 	
 	// don't use serverTime, because that will be drifting to
 	// correct for internet lag changes, timescales, timedemos, etc
-	int t = Sys_Milliseconds();
+	int t = sys->Milliseconds();
 	int frameTime = t - previous;
 	previous = t;
 	
@@ -809,7 +809,7 @@ Causes the console to start opening the desired amount.
 void idConsoleLocal::SetDisplayFraction( float frac )
 {
 	finalFrac = frac;
-	fracTime = Sys_Milliseconds();
+	fracTime = sys->Milliseconds();
 }
 
 /*
@@ -823,7 +823,7 @@ void idConsoleLocal::UpdateDisplayFraction()
 {
 	if( con_speed.GetFloat() <= 0.1f )
 	{
-		fracTime = Sys_Milliseconds();
+		fracTime = sys->Milliseconds();
 		displayFrac = finalFrac;
 		return;
 	}
@@ -831,21 +831,21 @@ void idConsoleLocal::UpdateDisplayFraction()
 	// scroll towards the destination height
 	if( finalFrac < displayFrac )
 	{
-		displayFrac -= con_speed.GetFloat() * ( Sys_Milliseconds() - fracTime ) * 0.001f;
+		displayFrac -= con_speed.GetFloat() * ( sys->Milliseconds() - fracTime ) * 0.001f;
 		if( finalFrac > displayFrac )
 		{
 			displayFrac = finalFrac;
 		}
-		fracTime = Sys_Milliseconds();
+		fracTime = sys->Milliseconds();
 	}
 	else if( finalFrac > displayFrac )
 	{
-		displayFrac += con_speed.GetFloat() * ( Sys_Milliseconds() - fracTime ) * 0.001f;
+		displayFrac += con_speed.GetFloat() * ( sys->Milliseconds() - fracTime ) * 0.001f;
 		if( finalFrac < displayFrac )
 		{
 			displayFrac = finalFrac;
 		}
-		fracTime = Sys_Milliseconds();
+		fracTime = sys->Milliseconds();
 	}
 }
 
@@ -854,15 +854,15 @@ void idConsoleLocal::UpdateDisplayFraction()
 ProcessEvent
 ==============
 */
-bool idConsoleLocal::ProcessEvent( const sysEvent_t* event, bool forceAccept )
+bool idConsoleLocal::ProcessEvent( const idSysEvent* event, bool forceAccept )
 {
-	const bool consoleKey = event->evType == SE_KEY && event->evValue == K_GRAVE && com_allowConsole.GetBool();
+	const bool consoleKey = event->IsKeyEvent() && event->GetKey() == K_GRAVE && com_allowConsole.GetBool();
 	
 	// we always catch the console key event
 	if( !forceAccept && consoleKey )
 	{
 		// ignore up events
-		if( event->evValue2 == 0 )
+		if( event->IsKeyUp() )
 		{
 			return true;
 		}
@@ -875,8 +875,7 @@ bool idConsoleLocal::ProcessEvent( const sysEvent_t* event, bool forceAccept )
 			Close();
 			Sys_GrabMouseCursor( true );
 		}
-		else
-		{
+		else {
 			consoleField.Clear();
 			keyCatching = true;
 			if( idKeyInput::IsDown( K_LSHIFT ) || idKeyInput::IsDown( K_RSHIFT ) )
@@ -884,8 +883,7 @@ bool idConsoleLocal::ProcessEvent( const sysEvent_t* event, bool forceAccept )
 				// if the shift key is down, don't open the console as much
 				SetDisplayFraction( 0.2f );
 			}
-			else
-			{
+			else {
 				SetDisplayFraction( 0.5f );
 			}
 		}
@@ -899,25 +897,25 @@ bool idConsoleLocal::ProcessEvent( const sysEvent_t* event, bool forceAccept )
 	}
 	
 	// handle key and character events
-	if( event->evType == SE_CHAR )
+	if( event->IsCharEvent() )
 	{
 		// never send the console key as a character
-		if( event->evValue != '`' && event->evValue != '~' )
+		if( event->GetChar() != '`' && event->GetChar() != '~' )
 		{
-			consoleField.CharEvent( event->evValue );
+			consoleField.CharEvent( event->GetChar() );
 		}
 		return true;
 	}
 	
-	if( event->evType == SE_KEY )
+	if( event->IsKeyEvent() )
 	{
 		// ignore up key events
-		if( event->evValue2 == 0 )
+		if( event->IsKeyUp() )
 		{
 			return true;
 		}
 		
-		KeyDownEvent( event->evValue );
+		KeyDownEvent( event->GetKey() );
 		return true;
 	}
 	
@@ -943,7 +941,7 @@ void idConsoleLocal::Linefeed()
 	// mark time for transparent overlay
 	if( current >= 0 )
 	{
-		times[current % NUM_CON_TIMES] = Sys_Milliseconds();
+		times[current % NUM_CON_TIMES] = sys->Milliseconds();
 	}
 	
 	x = 0;
@@ -1062,7 +1060,7 @@ void idConsoleLocal::Print( const char* txt, bool bInDraw )
 	// mark time for transparent overlay
 	if( current >= 0 )
 	{
-		times[ current % NUM_CON_TIMES ] = Sys_Milliseconds();
+		times[ current % NUM_CON_TIMES ] = sys->Milliseconds();
 	}
 }
 
@@ -1135,7 +1133,7 @@ void idConsoleLocal::DrawNotify()
 			continue;
 		}
 
-		time = Sys_Milliseconds() - time;
+		time = sys->Milliseconds() - time;
 		if( time > con_notifyTime.GetFloat() * 1000 )
 		{
 			continue;
@@ -1371,7 +1369,7 @@ void idConsoleLocal::PrintOverlay( idOverlayHandle& handle, justify_t justify, c
 	auto & overlay = overlayText.Alloc();
 	overlay.text = string;
 	overlay.justify = justify;
-	overlay.time = Sys_Milliseconds();
+	overlay.time = sys->Milliseconds();
 	
 	handle.index = overlayText.Num() - 1;
 	handle.time = overlay.time;

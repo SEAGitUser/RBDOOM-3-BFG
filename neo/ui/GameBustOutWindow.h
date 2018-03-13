@@ -121,7 +121,7 @@ public:
 	virtual void		WriteToSaveGame( idFile* savefile );
 	virtual void		ReadFromSaveGame( idFile* savefile );
 	
-	virtual const char*	HandleEvent( const sysEvent_t* event, bool* updateVisuals );
+	virtual const char*	HandleEvent( const idSysEvent* event, bool* updateVisuals );
 	virtual void		PostParse();
 	virtual void		Draw( int time, float x, float y );
 	virtual const char*	Activate( bool activate );

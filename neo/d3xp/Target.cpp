@@ -67,12 +67,9 @@ idTarget_Remove::Event_Activate
 */
 void idTarget_Remove::Event_Activate( idEntity* activator )
 {
-	int			i;
-	idEntity*	ent;
-	
-	for( i = 0; i < targets.Num(); i++ )
+	for( int i = 0; i < targets.Num(); i++ )
 	{
-		ent = targets[ i ].GetEntity();
+		auto ent = targets[ i ].GetEntity();
 		if( ent )
 		{
 			ent->PostEventMS( &EV_Remove, 0 );
@@ -103,12 +100,9 @@ idTarget_Show::Event_Activate
 */
 void idTarget_Show::Event_Activate( idEntity* activator )
 {
-	int			i;
-	idEntity*	ent;
-	
-	for( i = 0; i < targets.Num(); i++ )
+	for( int i = 0; i < targets.Num(); i++ )
 	{
-		ent = targets[ i ].GetEntity();
+		auto ent = targets[ i ].GetEntity();
 		if( ent )
 		{
 			ent->Show();
@@ -139,14 +133,10 @@ idTarget_Damage::Event_Activate
 */
 void idTarget_Damage::Event_Activate( idEntity* activator )
 {
-	int			i;
-	const char* damage;
-	idEntity* 	ent;
-	
-	damage = spawnArgs.GetString( "def_damage", "damage_generic" );
-	for( i = 0; i < targets.Num(); i++ )
+	auto damage = spawnArgs.GetString( "def_damage", "damage_generic" );
+	for( int i = 0; i < targets.Num(); i++ )
 	{
-		ent = targets[ i ].GetEntity();
+		auto ent = targets[ i ].GetEntity();
 		if( ent )
 		{
 			ent->Damage( this, this, vec3_origin, damage, 1.0f, INVALID_JOINT );
@@ -397,7 +387,7 @@ idTarget_SetGlobalShaderTime::Event_Activate
 void idTarget_SetGlobalShaderTime::Event_Activate( idEntity* activator )
 {
 	int parm = spawnArgs.GetInt( "globalParm" );
-	float time = -MS2SEC( gameLocal.time );
+	float time = -MS2SEC( gameLocal.GetGameTimeMs() );
 	if( parm >= 0 && parm < MAX_GLOBAL_SHADER_PARMS )
 	{
 		gameLocal.globalShaderParms[parm] = time;
@@ -486,14 +476,10 @@ idTarget_SetShaderTime::Event_Activate
 */
 void idTarget_SetShaderTime::Event_Activate( idEntity* activator )
 {
-	int			i;
-	idEntity* 	ent;
-	float		time;
-	
-	time = -MS2SEC( gameLocal.time );
-	for( i = 0; i < targets.Num(); i++ )
+	float time = -MS2SEC( gameLocal.GetGameTimeMs() );
+	for( int i = 0; i < targets.Num(); i++ )
 	{
-		ent = targets[ i ].GetEntity();
+		auto ent = targets[ i ].GetEntity();
 		if( ent )
 		{
 			ent->SetShaderParm( SHADERPARM_TIMEOFFSET, time );
@@ -560,9 +546,6 @@ idTarget_FadeEntity::Event_Activate
 */
 void idTarget_FadeEntity::Event_Activate( idEntity* activator )
 {
-	idEntity* ent;
-	int i;
-	
 	if( !targets.Num() )
 	{
 		return;
@@ -572,8 +555,8 @@ void idTarget_FadeEntity::Event_Activate( idEntity* activator )
 	cinematic = true;
 	BecomeActive( TH_THINK );
 	
-	ent = this;
-	for( i = 0; i < targets.Num(); i++ )
+	idEntity* ent = this;
+	for( int i = 0; i < targets.Num(); i++ )
 	{
 		ent = targets[ i ].GetEntity();
 		if( ent )
@@ -583,8 +566,8 @@ void idTarget_FadeEntity::Event_Activate( idEntity* activator )
 		}
 	}
 	
-	fadeStart = gameLocal.time;
-	fadeEnd = gameLocal.time + SEC2MS( spawnArgs.GetFloat( "fadetime" ) );
+	fadeStart = gameLocal.GetGameTimeMs();
+	fadeEnd = gameLocal.GetGameTimeMs() + SEC2MS( spawnArgs.GetFloat( "fadetime" ) );
 }
 
 /*
@@ -603,14 +586,14 @@ void idTarget_FadeEntity::Think()
 	if( thinkFlags & TH_THINK )
 	{
 		GetColor( fadeTo );
-		if( gameLocal.time >= fadeEnd )
+		if( gameLocal.GetGameTimeMs() >= fadeEnd )
 		{
 			color = fadeTo;
 			BecomeInactive( TH_THINK );
 		}
 		else
 		{
-			frac = ( float )( gameLocal.time - fadeStart ) / ( float )( fadeEnd - fadeStart );
+			frac = ( float )( gameLocal.GetGameTimeMs() - fadeStart ) / ( float )( fadeEnd - fadeStart );
 			color.Lerp( fadeFrom, fadeTo, frac );
 		}
 		
@@ -844,9 +827,7 @@ idTarget_SetModel::Spawn
 */
 void idTarget_SetModel::Spawn()
 {
-	const char* model;
-	
-	model = spawnArgs.GetString( "newmodel" );
+	auto model = spawnArgs.GetString( "newmodel" );
 	if( declManager->FindType( DECL_MODELDEF, model, false ) == NULL )
 	{
 		// precache the render model
@@ -1251,7 +1232,7 @@ void idTarget_SetInfluence::Event_Activate( idEntity* activator )
 	int fov = spawnArgs.GetInt( "fov" );
 	if( fov )
 	{
-		fovSetting.Init( gameLocal.time, SEC2MS( spawnArgs.GetFloat( "fovTime" ) ), player->DefaultFov(), fov );
+		fovSetting.Init( gameLocal.GetGameTimeMs(), SEC2MS( spawnArgs.GetFloat( "fovTime" ) ), player->DefaultFov(), fov );
 		BecomeActive( TH_THINK );
 	}
 	
@@ -1377,8 +1358,8 @@ void idTarget_SetInfluence::Think()
 	if( thinkFlags & TH_THINK )
 	{
 		idPlayer* player = gameLocal.GetLocalPlayer();
-		player->SetInfluenceFov( fovSetting.GetCurrentValue( gameLocal.time ) );
-		if( fovSetting.IsDone( gameLocal.time ) )
+		player->SetInfluenceFov( fovSetting.GetCurrentValue( gameLocal.GetGameTimeMs() ) );
+		if( fovSetting.IsDone( gameLocal.GetGameTimeMs() ) )
 		{
 			if( !spawnArgs.GetBool( "leaveFOV" ) )
 			{
@@ -1545,7 +1526,7 @@ void idTarget_SetKeyVal::Event_Activate( idEntity* activator )
 							if( idStr::Icmpn( key, "gui_", 4 ) == 0 )
 							{
 								ent->GetRenderEntity()->gui[ j ]->SetStateString( key, val );
-								ent->GetRenderEntity()->gui[ j ]->StateChanged( gameLocal.time );
+								ent->GetRenderEntity()->gui[ j ]->StateChanged( gameLocal.GetGameTimeMs() );
 							}
 						}
 					}
@@ -1604,7 +1585,7 @@ void idTarget_SetFov::Restore( idRestoreGame* savefile )
 	savefile->ReadFloat( setting );
 	fovSetting.SetEndValue( setting );
 	
-	fovSetting.GetCurrentValue( gameLocal.time );
+	fovSetting.GetCurrentValue( gameLocal.GetGameTimeMs() );
 }
 
 /*
@@ -1618,7 +1599,7 @@ void idTarget_SetFov::Event_Activate( idEntity* activator )
 	cinematic = true;
 	
 	idPlayer* player = gameLocal.GetLocalPlayer();
-	fovSetting.Init( gameLocal.time, SEC2MS( spawnArgs.GetFloat( "time" ) ), player ? player->DefaultFov() : g_fov.GetFloat(), spawnArgs.GetFloat( "fov" ) );
+	fovSetting.Init( gameLocal.GetGameTimeMs(), SEC2MS( spawnArgs.GetFloat( "time" ) ), player ? player->DefaultFov() : g_fov.GetFloat(), spawnArgs.GetFloat( "fov" ) );
 	BecomeActive( TH_THINK );
 }
 
@@ -1632,8 +1613,8 @@ void idTarget_SetFov::Think()
 	if( thinkFlags & TH_THINK )
 	{
 		idPlayer* player = gameLocal.GetLocalPlayer();
-		player->SetInfluenceFov( fovSetting.GetCurrentValue( gameLocal.time ) );
-		if( fovSetting.IsDone( gameLocal.time ) )
+		player->SetInfluenceFov( fovSetting.GetCurrentValue( gameLocal.GetGameTimeMs() ) );
+		if( fovSetting.IsDone( gameLocal.GetGameTimeMs() ) )
 		{
 			player->SetInfluenceFov( 0.0f );
 			BecomeInactive( TH_THINK );
@@ -1691,14 +1672,10 @@ idTarget_LockDoor::Event_Activate
 */
 void idTarget_LockDoor::Event_Activate( idEntity* activator )
 {
-	int i;
-	idEntity* ent;
-	int lock;
-	
-	lock = spawnArgs.GetInt( "locked", "1" );
-	for( i = 0; i < targets.Num(); i++ )
+	int lock = spawnArgs.GetInt( "locked", "1" );
+	for( int i = 0; i < targets.Num(); i++ )
 	{
-		ent = targets[ i ].GetEntity();
+		auto ent = targets[ i ].GetEntity();
 		if( ent != NULL && ent->IsType( idDoor::Type ) )
 		{
 			if( static_cast<idDoor*>( ent )->IsLocked() )
@@ -1735,10 +1712,9 @@ void idTarget_CallObjectFunction::Event_Activate( idEntity* activator )
 	int					i;
 	idEntity*			ent;
 	const function_t*	func;
-	const char*			funcName;
 	idThread*			thread;
 	
-	funcName = spawnArgs.GetString( "call" );
+	auto funcName = spawnArgs.GetString( "call" );
 	for( i = 0; i < targets.Num(); i++ )
 	{
 		ent = targets[ i ].GetEntity();

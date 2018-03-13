@@ -236,7 +236,6 @@ idSecurityCamera::DrawFov
 */
 void idSecurityCamera::DrawFov()
 {
-	int i;
 	float radius, a, s, c, halfRadius;
 	idVec3 right, up;
 	idVec4 color( 1, 0, 0, 1 ), color2( 0, 0, 1, 1 );
@@ -254,7 +253,7 @@ void idSecurityCamera::DrawFov()
 	lastHalfPoint.Normalize();
 	lastHalfPoint = GetPhysics()->GetOrigin() + lastHalfPoint * scanDist;
 	center = GetPhysics()->GetOrigin() + dir * scanDist;
-	for( i = 1; i < 12; i++ )
+	for( int i = 1; i < 12; i++ )
 	{
 		a = idMath::TWO_PI * i / 12.0f;
 		idMath::SinCos( a, s, c );
@@ -307,7 +306,7 @@ bool idSecurityCamera::CanSeePlayer()
 	
 	handle = gameLocal.pvs.SetupCurrentPVS( pvsArea );
 	
-	for( i = 0; i < gameLocal.numClients; i++ )
+	for( i = 0; i < gameLocal.numClients; ++i )
 	{
 		ent = static_cast<idPlayer*>( gameLocal.entities[ i ] );
 		
@@ -335,9 +334,7 @@ bool idSecurityCamera::CanSeePlayer()
 			continue;
 		}
 		
-		idVec3 eye;
-		
-		eye = ent->EyeOffset();
+		idVec3 eye = ent->EyeOffset();
 		
 		gameLocal.clip.TracePoint( tr, GetPhysics()->GetOrigin(), ent->GetPhysics()->GetOrigin() + eye, MASK_OPAQUE, this );
 		if( tr.fraction == 1.0 || ( gameLocal.GetTraceEntity( tr ) == ent ) )
@@ -403,7 +400,7 @@ void idSecurityCamera::Think()
 				float	sightTime;
 				
 				SetAlertMode( ALERT );
-				stopSweeping = gameLocal.time;
+				stopSweeping = gameLocal.GetGameTimeMs();
 				if( sweeping )
 				{
 					CancelEvents( &EV_SecurityCam_Pause );
@@ -437,7 +434,7 @@ void idSecurityCamera::Think()
 			{
 				idAngles a = GetPhysics()->GetAxis().ToAngles();
 				
-				pct = ( gameLocal.time - sweepStart ) / ( sweepEnd - sweepStart );
+				pct = ( gameLocal.GetGameTimeMs() - sweepStart ) / ( sweepEnd - sweepStart );
 				travel = pct * sweepAngle;
 				if( negativeSweep )
 				{
@@ -452,6 +449,7 @@ void idSecurityCamera::Think()
 			}
 		}
 	}
+
 	Present();
 }
 
@@ -462,7 +460,7 @@ idSecurityCamera::GetAxis
 */
 const idVec3 idSecurityCamera::GetAxis() const
 {
-	return ( flipAxis ) ? -GetPhysics()->GetAxis()[modelAxis] : GetPhysics()->GetAxis()[modelAxis];
+	return ( flipAxis )? -GetPhysics()->GetAxis()[modelAxis] : GetPhysics()->GetAxis()[modelAxis];
 };
 
 /*
@@ -482,11 +480,9 @@ idSecurityCamera::StartSweep
 */
 void idSecurityCamera::StartSweep()
 {
-	int speed;
-	
 	sweeping = true;
-	sweepStart = gameLocal.time;
-	speed = SEC2MS( SweepSpeed() );
+	sweepStart = gameLocal.GetGameTimeMs();
+	int speed = SEC2MS( SweepSpeed() );
 	sweepEnd = sweepStart + speed;
 	PostEventMS( &EV_SecurityCam_Pause, speed );
 	StartSound( "snd_moving", SND_CHANNEL_BODY, 0, false, NULL );
@@ -500,11 +496,10 @@ idSecurityCamera::Event_ContinueSweep
 void idSecurityCamera::Event_ContinueSweep()
 {
 	float pct = ( stopSweeping - sweepStart ) / ( sweepEnd - sweepStart );
-	float f = gameLocal.time - ( sweepEnd - sweepStart ) * pct;
-	int speed;
+	float f = gameLocal.GetGameTimeMs() - ( sweepEnd - sweepStart ) * pct;
 	
 	sweepStart = f;
-	speed = MS2SEC( SweepSpeed() );
+	int speed = MS2SEC( SweepSpeed() );
 	sweepEnd = sweepStart + speed;
 	PostEventMS( &EV_SecurityCam_Pause, speed * ( 1.0 - pct ) );
 	StartSound( "snd_moving", SND_CHANNEL_BODY, 0, false, NULL );
@@ -519,15 +514,13 @@ idSecurityCamera::Event_Alert
 */
 void idSecurityCamera::Event_Alert()
 {
-	float	wait;
-	
 	SetAlertMode( ACTIVATED );
 	StopSound( SND_CHANNEL_ANY, false );
 	StartSound( "snd_activate", SND_CHANNEL_BODY, 0, false, NULL );
 	ActivateTargets( this );
 	CancelEvents( &EV_SecurityCam_ContinueSweep );
 	
-	wait = spawnArgs.GetFloat( "wait", "20" );
+	float wait = spawnArgs.GetFloat( "wait", "20" );
 	PostEventSec( &EV_SecurityCam_ContinueSweep, wait );
 }
 
@@ -550,9 +543,7 @@ idSecurityCamera::Event_Pause
 */
 void idSecurityCamera::Event_Pause()
 {
-	float	sweepWait;
-	
-	sweepWait = spawnArgs.GetFloat( "sweepWait", "0.5" );
+	float sweepWait = spawnArgs.GetFloat( "sweepWait", "0.5" );
 	sweeping = false;
 	StopSound( SND_CHANNEL_ANY, false );
 	StartSound( "snd_stop", SND_CHANNEL_BODY, 0, false, NULL );
@@ -637,8 +628,7 @@ void idSecurityCamera::Present()
 	{
 		modelDefHandle = gameRenderWorld->AddEntityDef( &renderEntity );
 	}
-	else
-	{
+	else {
 		gameRenderWorld->UpdateEntityDef( modelDefHandle, &renderEntity );
 	}
 }

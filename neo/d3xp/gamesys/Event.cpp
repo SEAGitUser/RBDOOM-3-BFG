@@ -448,7 +448,7 @@ void idEvent::Schedule( idClass* obj, const idTypeInfo* type, int time )
 	typeinfo = type;
 	
 	// wraps after 24 days...like I care. ;)
-	this->time = gameLocal.time + time;
+	this->time = gameLocal.GetGameTimeMs() + time;
 	
 	eventNode.Remove();
 	
@@ -583,7 +583,7 @@ void idEvent::ServiceEvents()
 		event = EventQueue.Next();
 		assert( event );
 		
-		if( event->time > gameLocal.time )
+		if( event->time > gameLocal.GetGameTimeMs() )
 		{
 			break;
 		}

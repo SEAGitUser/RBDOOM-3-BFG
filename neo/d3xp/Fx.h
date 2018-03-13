@@ -39,9 +39,9 @@ If you have questions concerning this license or the applicable additional terms
 
 struct idFXLocalAction
 {
-	renderLightParms_t			renderLight;			// light presented to the renderer
+	renderLightParms_t		renderLight;			// light presented to the renderer
 	qhandle_t				lightDefHandle;			// handle to renderer light def
-	renderEntityParms_t			renderEntity;			// used to present a model to the renderer
+	renderEntityParms_t		renderEntity;			// used to present a model to the renderer
 	int						modelDefHandle;			// handle to static renderer model
 	float					delay;
 	int						particleSystem;
@@ -50,6 +50,11 @@ struct idFXLocalAction
 	bool					shakeStarted;
 	bool					decalDropped;
 	bool					launched;
+
+	void Clear()
+	{
+		memset( this, 0, sizeof( idFXLocalAction ) );
+	}
 };
 
 class idEntityFx : public idEntity {

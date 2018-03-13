@@ -64,7 +64,7 @@ const char* renderLogMainBlockLabels[] =
 	ASSERT_ENUM_STRING( MRB_MAX,							16 )
 };
 
-extern uint64 Sys_Microseconds();
+//extern uint64 Sys_Microseconds();
 /*
 ================================================================================================
 
@@ -136,7 +136,7 @@ void PC_BeginNamedEvent( const char* szName, ... )
 
 	pixEvent_t* ev = &pixEvents[ numPixEvents++ ];
 	strncpy( ev->name, szName, sizeof( ev->name ) - 1 );
-	ev->cpuTime = Sys_Microseconds();
+	ev->cpuTime = sys->Microseconds();
 #endif
 }
 
@@ -167,7 +167,7 @@ void PC_EndNamedEvent()
 	}
 
 	pixEvent_t* ev = &pixEvents[ numPixEvents - 1 ];
-	ev->cpuTime = Sys_Microseconds() - ev->cpuTime;
+	ev->cpuTime = sys->Microseconds() - ev->cpuTime;
 
 	GL_CheckErrors();
 	glEndQuery( GL_TIME_ELAPSED_EXT );
@@ -302,7 +302,7 @@ void idRenderLog::StartFrame()
 	logFile->Printf( "// %s", str );
 	logFile->Printf( "// %s\n\n", com_version.GetString() );
 
-	frameStartTime = Sys_Microseconds();
+	frameStartTime = sys->Microseconds();
 	closeBlockTime = frameStartTime;
 	OpenBlock( "Frame" );
 }
@@ -447,7 +447,7 @@ idRenderLog::LogOpenBlock
 */
 void idRenderLog::LogOpenBlock( renderLogIndentLabel_t label, const char* fmt, va_list args )
 {
-	uint64 now = Sys_Microseconds();
+	uint64 now = sys->Microseconds();
 
 	//if( logFile != NULL )
 	/*if( r_logFile.GetInteger() != 0 )
@@ -513,7 +513,7 @@ idRenderLog::LogCloseBlock
 */
 void idRenderLog::LogCloseBlock( renderLogIndentLabel_t label )
 {
-	closeBlockTime = Sys_Microseconds();
+	closeBlockTime = sys->Microseconds();
 
 	assert( logLevel > 0 );
 	logLevel--;

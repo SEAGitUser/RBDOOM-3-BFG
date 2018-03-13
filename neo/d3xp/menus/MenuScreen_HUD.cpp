@@ -1578,7 +1578,7 @@ void  idMenuScreen_HUD::UpdateAudioLog( bool show )
 	
 		if( audioLogPrevTime == 0 )
 		{
-			audioLogPrevTime = gameLocal.time;
+			audioLogPrevTime = gameLocal.GetGameTimeMs();
 		}
 		
 		for( int index = 0; index < 13; ++index )
@@ -1586,7 +1586,7 @@ void  idMenuScreen_HUD::UpdateAudioLog( bool show )
 			idSWFSpriteInstance* node = audioLog->GetScriptObject()->GetNestedSprite( "bar", va( "node%d", index ) );
 			if( node != NULL )
 			{
-				float diff = gameLocal.time - audioLogPrevTime;
+				float diff = gameLocal.GetGameTimeMs() - audioLogPrevTime;
 				float speed = ( diff / 350.0f ) * 100.0f;
 				if( !node->UpdateMoveToScale( speed ) )
 				{
@@ -1596,7 +1596,7 @@ void  idMenuScreen_HUD::UpdateAudioLog( bool show )
 				}
 			}
 		}
-		audioLogPrevTime = gameLocal.time;
+		audioLogPrevTime = gameLocal.GetGameTimeMs();
 	}
 }
 
@@ -1664,7 +1664,7 @@ void  idMenuScreen_HUD::UpdateCommunication( bool show, idPlayer* player )
 		
 		if( commPrevTime == 0 )
 		{
-			commPrevTime = gameLocal.time;
+			commPrevTime = gameLocal.GetGameTimeMs();
 		}
 		
 		for( int index = 0; index < 16; ++index )
@@ -1672,7 +1672,7 @@ void  idMenuScreen_HUD::UpdateCommunication( bool show, idPlayer* player )
 			idSWFSpriteInstance* node = communication->GetScriptObject()->GetNestedSprite( "info", "bar", va( "node%d", index ) );
 			if( node != NULL )
 			{
-				float diff = gameLocal.time - commPrevTime;
+				float diff = gameLocal.GetGameTimeMs() - commPrevTime;
 				float speed = ( diff / 350.0f ) * 100.0f;
 				if( !node->UpdateMoveToScale( speed ) )
 				{
@@ -1683,7 +1683,7 @@ void  idMenuScreen_HUD::UpdateCommunication( bool show, idPlayer* player )
 			}
 		}
 		
-		commPrevTime = gameLocal.time;
+		commPrevTime = gameLocal.GetGameTimeMs();
 	}
 	
 	oxygenComm = inVaccuum;

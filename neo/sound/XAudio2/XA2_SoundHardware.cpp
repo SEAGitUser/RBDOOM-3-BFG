@@ -715,7 +715,7 @@ void idSoundHardware_XAudio2::Update()
 {
 	if( pXAudio2 == NULL )
 	{
-		int nowTime = Sys_Milliseconds();
+		int nowTime = sys->Milliseconds();
 		if( lastResetTime + 1000 < nowTime )
 		{
 			lastResetTime = nowTime;
@@ -794,7 +794,7 @@ void idSoundHardware_XAudio2::Update()
 	
 	pMasterVoice->GetEffectParameters( 0, &levels, sizeof( levels ) );
 	
-	int currentTime = Sys_Milliseconds();
+	int currentTime = sys->Milliseconds();
 	for( int i = 0; i < outputChannels; i++ )
 	{
 		if( vuMeterPeakTimes[i] < currentTime )

@@ -504,7 +504,7 @@ void idUsercmdGenLocal::MouseMove()
 	
 	if( idMath::Fabs( mx ) > 1000 || idMath::Fabs( my ) > 1000 )
 	{
-		Sys_DebugPrintf( "idUsercmdGenLocal::MouseMove: Ignoring ridiculous mouse delta.\n" );
+		sys->DebugPrintf( "idUsercmdGenLocal::MouseMove: Ignoring ridiculous mouse delta.\n" );
 		mx = my = 0;
 	}
 	
@@ -513,7 +513,7 @@ void idUsercmdGenLocal::MouseMove()
 	
 	if( m_showMouseRate.GetBool() )
 	{
-		Sys_DebugPrintf( "[%3i %3i  = %5.1f %5.1f] ", mouseDx, mouseDy, mx, my );
+		sys->DebugPrintf( "[%3i %3i  = %5.1f %5.1f] ", mouseDx, mouseDy, mx, my );
 	}
 	
 	mouseDx = 0;
@@ -1491,7 +1491,7 @@ idUsercmdGenLocal::BuildCurrentUsercmd
 void idUsercmdGenLocal::BuildCurrentUsercmd( int deviceNum )
 {
 
-	pollTime = Sys_Milliseconds();
+	pollTime = sys->Milliseconds();
 	if( pollTime - lastPollTime > 100 )
 	{
 		lastPollTime = pollTime - 100;

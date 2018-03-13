@@ -62,13 +62,13 @@ enum stereo3DMode_t
 	STEREO3D_HDMI_720
 };
 
-typedef enum
+enum autoRenderIconType_t
 {
 	AUTORENDER_DEFAULTICON = 0,
 	AUTORENDER_HELLICON,
 	AUTORENDER_DIALOGICON,
 	AUTORENDER_MAX
-} autoRenderIconType_t ;
+};
 
 enum stereoDepthType_t
 {
@@ -128,6 +128,7 @@ struct glconfig_t
 	int					maxTextureCoords;
 	int					maxTextureImageUnits;
 	int					uniformBufferOffsetAlignment;
+	int					uniformBufferMaxSize;
 	float				maxTextureAnisotropy;
 	
 	int					colorBits;
@@ -157,6 +158,8 @@ struct glconfig_t
 	bool				swapControlTearAvailable;
 
 	bool				ARB_vertex_attrib_binding;
+	bool				ARB_texture_storage;
+	bool				ARB_buffer_storage;
 	
 	// RB begin
 	bool				gremedyStringMarkerAvailable;
@@ -167,6 +170,9 @@ struct glconfig_t
 	int					maxColorAttachments;
 //	bool				framebufferPackedDepthStencilAvailable;
 	bool				framebufferBlitAvailable;
+
+	int					max_texture_buffer_size;
+	int					texture_buffer_offset_alignment;
 	
 	// only true with uniform buffer support and an OpenGL driver that supports GLSL >= 1.50
 	bool				gpuSkinningAvailable;
@@ -284,13 +290,13 @@ public:
 	virtual void			SetGLState( const uint64 glState ) = 0;
 	
 	virtual void			DrawFilled( const idVec4& color, float x, float y, float w, float h ) = 0;
-	virtual void			DrawStretchPic( float x, float y, float w, float h, float s1, float t1, float s2, float t2, const idMaterial* material ) = 0;
+	virtual void			DrawStretchPic( float x, float y, float w, float h, float s1, float t1, float s2, float t2, const idMaterial* ) = 0;
 	void					DrawStretchPic( const idVec4& rect, const idVec4& st, const idMaterial* material ) { DrawStretchPic( rect.x, rect.y, rect.z, rect.w, st.x, st.y, st.z, st.w, material ); }
-	virtual void			DrawStretchPic( const idVec4& topLeft, const idVec4& topRight, const idVec4& bottomRight, const idVec4& bottomLeft, const idMaterial* material ) = 0;
-	virtual void			DrawStretchTri( const idVec2& p1, const idVec2& p2, const idVec2& p3, const idVec2& t1, const idVec2& t2, const idVec2& t3, const idMaterial* material ) = 0;
-	virtual idDrawVert* 	AllocTris( int numVerts, const triIndex_t* indexes, int numIndexes, const idMaterial* material, const stereoDepthType_t stereoType = STEREO_DEPTH_TYPE_NONE ) = 0;
+	virtual void			DrawStretchPic( const idVec4& topLeft, const idVec4& topRight, const idVec4& bottomRight, const idVec4& bottomLeft, const idMaterial* ) = 0;
+	virtual void			DrawStretchTri( const idVec2& p1, const idVec2& p2, const idVec2& p3, const idVec2& t1, const idVec2& t2, const idVec2& t3, const idMaterial* ) = 0;
+	virtual idDrawVert* 	AllocTris( int numVerts, const triIndex_t* indexes, int numIndexes, const idMaterial*, const stereoDepthType_t = STEREO_DEPTH_TYPE_NONE ) = 0;
 	
-	virtual void			PrintMemInfo( MemInfo_t* mi ) = 0;
+	virtual void			PrintMemInfo( MemInfo_t* ) = 0;
 	
 	virtual void			DrawSmallChar( int x, int y, int ch ) = 0;
 	virtual void			DrawSmallStringExt( int x, int y, const char* string, const idVec4& setColor, bool forceColor ) = 0;

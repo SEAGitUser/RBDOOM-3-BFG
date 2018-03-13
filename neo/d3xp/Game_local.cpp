@@ -473,7 +473,7 @@ void idGameLocal::SaveGame( idFile* f, idFile* strings )
 	idEntity* ent;
 	idEntity* link;
 	
-	int startTimeMs = Sys_Milliseconds();
+	int startTimeMs = sys->Milliseconds();
 	if( g_recordSaveGameTrace.GetBool() )
 	{
 		bool result = BeginTraceRecording( "e:\\savegame_trace.pix2" );
@@ -675,7 +675,7 @@ void idGameLocal::SaveGame( idFile* f, idFile* strings )
 	
 	savegame.Close();
 	
-	int endTimeMs = Sys_Milliseconds();
+	int endTimeMs = sys->Milliseconds();
 	idLib::Printf( "Save time: %dms\n", ( endTimeMs - startTimeMs ) );
 	
 	if( g_recordSaveGameTrace.GetBool() )
@@ -1670,7 +1670,9 @@ void idGameLocal::MapShutdown()
 	
 	common->UpdateLevelLoadPacifier();
 	
-	collisionModelManager->FreeMap();		// Fixes an issue where when maps were reloaded the materials wouldn't get their surfaceFlags re-set.  Now we free the map collision model forcing materials to be reparsed.
+	// Fixes an issue where when maps were reloaded the materials wouldn't get their surfaceFlags re-set.  
+	// Now we free the map collision model forcing materials to be reparsed.
+	collisionModelManager->FreeMap();		
 	
 	common->UpdateLevelLoadPacifier();
 	
@@ -2401,7 +2403,6 @@ void idGameLocal::SortActiveEntityList()
 	// if the active entity list needs to be reordered to place pushers at the front
 	if( sortPushers )
 	{
-	
 		for( ent = activeEntities.Next(); ent != NULL; ent = next_ent )
 		{
 			next_ent = ent->activeNode.Next();
@@ -2480,7 +2481,7 @@ void idGameLocal::RunTimeGroup2( idUserCmdMgr& userCmdMgr )
 	idEntity* ent;
 	int num = 0;
 	
-	SelectTimeGroup( true );
+	SelectTimeGroup( TIME_GROUP2 );
 	
 	for( ent = activeEntities.Next(); ent != NULL; ent = ent->activeNode.Next() )
 	{
@@ -2492,7 +2493,7 @@ void idGameLocal::RunTimeGroup2( idUserCmdMgr& userCmdMgr )
 		num++;
 	}
 	
-	SelectTimeGroup( false );
+	SelectTimeGroup( TIME_GROUP1 );
 }
 
 /*
@@ -2587,7 +2588,7 @@ void idGameLocal::RunFrame( idUserCmdMgr& cmdMgr, gameReturn_t& ret )
 			slow.time += idMath::Ftoi( ( fast.time - fast.previousTime ) * slowmoScale );
 			slow.realClientTime = slow.time;
 			
-			SelectTimeGroup( 0 );
+			SelectTimeGroup( TIME_GROUP1 );
 			
 			DemoWriteGameInfo();
 			
@@ -2650,18 +2651,20 @@ void idGameLocal::RunFrame( idUserCmdMgr& cmdMgr, gameReturn_t& ret )
 					}
 					timer_singlethink.Clear();
 					timer_singlethink.Start();
+
 					RunEntityThink( *ent, cmdMgr );
+
 					timer_singlethink.Stop();
+
 					ms = timer_singlethink.Milliseconds();
 					if( ms >= g_timeentities.GetFloat() )
 					{
 						Printf( "%d: entity '%s': %.1f ms\n", time, ent->name.c_str(), ms );
 					}
-					num++;
+					++num;
 				}
 			}
-			else
-			{
+			else {
 				if( inCinematic )
 				{
 					num = 0;
@@ -2673,11 +2676,10 @@ void idGameLocal::RunFrame( idUserCmdMgr& cmdMgr, gameReturn_t& ret )
 							continue;
 						}
 						RunEntityThink( *ent, cmdMgr );
-						num++;
+						++num;
 					}
 				}
-				else
-				{
+				else {
 					num = 0;
 					for( ent = activeEntities.Next(); ent != NULL; ent = ent->activeNode.Next() )
 					{
@@ -2685,8 +2687,21 @@ void idGameLocal::RunFrame( idUserCmdMgr& cmdMgr, gameReturn_t& ret )
 						{
 							continue;
 						}
-						RunEntityThink( *ent, cmdMgr );
-						num++;
+						///RunEntityThink( *ent, cmdMgr );
+						{
+							if( ent->entityNumber < MAX_PLAYERS )
+							{
+								// Players may run more than one think per frame in MP,
+								// if there is a large buffer of usercmds from the network.
+								// Players will always run exactly one think in singleplayer.
+								RunAllUserCmdsForPlayer( cmdMgr, ent->entityNumber );
+							}
+							else {
+								// Non-player entities always run one think.
+								ent->Think();
+							}
+						}
+						++num;
 					}
 				}
 			}
@@ -2701,8 +2716,7 @@ void idGameLocal::RunFrame( idUserCmdMgr& cmdMgr, gameReturn_t& ret )
 			//clientGame.gameLibEffects.Update( clientGame.GetGameMs(), clientGame.GetGameMsPerFrame(), clientGame.GetServerGameTime() );
 			//}
 			//}
-			
-			
+					
 			// remove any entities that have stopped thinking
 			if( numEntitiesToDeactivate )
 			{
@@ -2729,9 +2743,9 @@ void idGameLocal::RunFrame( idUserCmdMgr& cmdMgr, gameReturn_t& ret )
 			idEvent::ServiceEvents();
 			
 			// service pending fast events
-			SelectTimeGroup( 1 );
+			SelectTimeGroup( TIME_GROUP2 );
 			idEvent::ServiceFastEvents();
-			SelectTimeGroup( 0 );
+			SelectTimeGroup( TIME_GROUP1 );
 			
 			timer_events.Stop();
 			
@@ -2929,7 +2943,7 @@ void idGameLocal::RunAllUserCmdsForPlayer( idUserCmdMgr& cmdMgr, const int playe
 	{
 		const int clientTimeOfNextCommand = cmdMgr.GetNextUserCmdClientTime( playerNumber );
 		const int timeDeltaBetweenClientCommands = clientTimeOfNextCommand - lastCmdRunTimeOnClient[ playerNumber ];
-		const int timeSinceServerRanLastCommand = gameLocal.time - lastCmdRunTimeOnServer[ playerNumber ];
+		const int timeSinceServerRanLastCommand = gameLocal.GetGameTimeMs() - lastCmdRunTimeOnServer[ playerNumber ];
 		int clientTimeRunSoFar = 0;
 		
 		// Handle clients who may be running faster than the server. Potentiallly runs multiple
@@ -2956,8 +2970,7 @@ void idGameLocal::RunAllUserCmdsForPlayer( idUserCmdMgr& cmdMgr, const int playe
 				}
 			}
 		}
-		else
-		{
+		else {
 			// If we get here, it is likely that the client is running at 60Hz but the server
 			// is running at 120Hz. Duplicate the previous
 			// usercmd and run it so that the server doesn't starve.
@@ -2970,8 +2983,7 @@ void idGameLocal::RunAllUserCmdsForPlayer( idUserCmdMgr& cmdMgr, const int playe
 			}
 		}
 	}
-	else
-	{
+	else {
 		// Run an "empty" cmd, ran out of buffer.
 		usercmd_t emptyCmd = player.usercmd;
 		emptyCmd.forwardmove = 0;
@@ -3013,8 +3025,7 @@ void idGameLocal::RunAllUserCmdsForPlayer( idUserCmdMgr& cmdMgr, const int playe
 			lastCmdRunTimeOnClient[ playerNumber ] = currentCommand.clientGameMilliseconds;
 			lastCmdRunTimeOnServer[ playerNumber ] = gameLocal.serverTime;
 		}
-		else
-		{
+		else {
 			break;
 		}
 	}
@@ -3076,7 +3087,6 @@ makes rendering and sound system calls
 */
 bool idGameLocal::Draw( int clientNum )
 {
-
 	if( clientNum == -1 )
 	{
 		return false;
@@ -3108,9 +3118,8 @@ bool idGameLocal::Draw( int clientNum )
 idGameLocal::HandleGuiCommands
 ================
 */
-bool idGameLocal::HandlePlayerGuiEvent( const sysEvent_t* ev )
+bool idGameLocal::HandlePlayerGuiEvent( const idSysEvent* ev )
 {
-
 	idPlayer* player = GetLocalPlayer();
 	bool handled = false;
 	
@@ -3188,9 +3197,7 @@ idGameLocal::CallObjectFrameCommand
 */
 void idGameLocal::CallObjectFrameCommand( idEntity* ent, const char* frameCommand )
 {
-	const function_t* func;
-	
-	func = ent->scriptObject.GetFunction( frameCommand );
+	auto func = ent->scriptObject.GetFunction( frameCommand );
 	if( !func )
 	{
 		if( !ent->IsType( idTestModel::Type ) )
@@ -4128,17 +4135,14 @@ Returns the entity whose name matches the specified string.
 */
 idEntity* idGameLocal::FindEntity( const char* name ) const
 {
-	int hash, i;
-	
-	hash = entityHash.GenerateKey( name, true );
-	for( i = entityHash.First( hash ); i != -1; i = entityHash.Next( i ) )
+	int hash = entityHash.GenerateKey( name, true );
+	for( int i = entityHash.First( hash ); i != -1; i = entityHash.Next( i ) )
 	{
 		if( entities[i] && entities[i]->name.Icmp( name ) == 0 )
 		{
 			return entities[i];
 		}
-	}
-	
+	}	
 	return NULL;
 }
 
@@ -4927,7 +4931,7 @@ bool idGameLocal::SkipCinematic( void )
 	if( !skipCinematic )
 	{
 		skipCinematic = true;
-		cinematicMaxSkipTime = gameLocal.time + SEC2MS( g_cinematicMaxSkipTime.GetFloat() );
+		cinematicMaxSkipTime = gameLocal.GetGameTimeMs() + SEC2MS( g_cinematicMaxSkipTime.GetFloat() );
 	}
 	
 	return true;
@@ -5764,7 +5768,7 @@ bool idGameLocal::Shell_IsActive() const
 idGameLocal::Shell_HandleGuiEvent
 ========================
 */
-bool idGameLocal::Shell_HandleGuiEvent( const sysEvent_t* sev )
+bool idGameLocal::Shell_HandleGuiEvent( const idSysEvent* sev )
 {
 	if( shellHandler != NULL )
 	{

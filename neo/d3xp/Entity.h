@@ -60,8 +60,7 @@ extern const idEventDef EV_StopSound;
 extern const idEventDef EV_CacheSoundShader;
 
 // Think flags
-enum
-{
+enum {
 	TH_ALL					= -1,
 	TH_THINK				= 1,		// run think function each frame
 	TH_PHYSICS				= 2,		// run physics each frame
@@ -74,7 +73,7 @@ enum
 // Signals
 // make sure to change script/doom_defs.script if you add any, or change their order
 //
-typedef enum
+enum signalNum_t
 {
 	SIG_TOUCH,				// object was touched
 	SIG_USE,				// object was used
@@ -89,7 +88,7 @@ typedef enum
 	SIG_MOVER_2TO1,			// mover changing from position 2 to 1
 	
 	NUM_SIGNALS
-} signalNum_t;
+};
 
 // FIXME: At some point we may want to just limit it to one thread per signal, but
 // for now, I'm allowing multiple threads.  We should reevaluate this later in the project
@@ -101,8 +100,7 @@ struct signal_t
 	const function_t*	function;
 };
 
-class signalList_t
-{
+class signalList_t {
 public:
 	idList<signal_t, TAG_ENTITY> signal[ NUM_SIGNALS ];
 };
@@ -174,8 +172,7 @@ inline void	ReadFromBitMsg( netBoolEvent_t& netEvent, const idBitMsg& msg )
 }
 
 
-class idEntity : public idClass
-{
+class idEntity : public idClass {
 public:
 	static const int		MAX_PVS_AREAS = 4;
 	static const uint32		INVALID_PREDICTION_KEY = 0xFFFFFFFF;
@@ -200,8 +197,8 @@ public:
 	int						dormantStart;			// time that the entity was first closed off from player
 	bool					cinematic;				// during cinematics, entity will only think if cinematic is set
 	
-	renderViewParms_t* 			renderView;				// for camera views from this entity
-	idEntity* 				cameraTarget;			// any remoteRenderMap shaders will use this
+	renderViewParms_t * 	renderView;				// for camera views from this entity
+	idEntity * 				cameraTarget;			// any remoteRenderMap shaders will use this
 	
 	idList< idEntityPtr<idEntity>, TAG_ENTITY >	targets;		// when this entity is activated these entities entity are activated
 	
@@ -229,7 +226,7 @@ public:
 	
 	bool					noGrab;
 	
-	renderEntityParms_t			xrayEntity;
+	renderEntityParms_t		xrayEntity;
 	qhandle_t				xrayEntityHandle;
 	const idDeclSkin* 		xraySkin;
 	
@@ -403,7 +400,7 @@ public:
 	
 	// scripting
 	virtual bool			ShouldConstructScriptObjectAtSpawn() const;
-	virtual idThread* 		ConstructScriptObject();
+	virtual idThread * 		ConstructScriptObject();
 	virtual void			DeconstructScriptObject();
 	void					SetSignal( signalNum_t signalnum, idThread* thread, const function_t* function );
 	void					ClearSignal( idThread* thread, signalNum_t signalnum );
@@ -428,8 +425,7 @@ public:
 	idCurve_Spline<idVec3>* GetSpline() const;
 	virtual void			ShowEditingDialog();
 	
-	enum
-	{
+	enum {
 		EVENT_STARTSOUNDSHADER,
 		EVENT_STOPSOUNDSHADER,
 		EVENT_MAXEVENTS
@@ -510,7 +506,7 @@ public:
 	}
 	
 protected:
-	renderEntityParms_t			renderEntity;						// used to present a model to the renderer
+	renderEntityParms_t		renderEntity;						// used to present a model to the renderer
 	int						modelDefHandle;						// handle to static renderer model
 	refSound_t				refSound;							// used to present sound to the audio engine
 	
@@ -659,8 +655,7 @@ typedef struct damageEffect_s
 	struct damageEffect_s* 	next;
 } damageEffect_t;
 
-class idAnimatedEntity : public idEntity
-{
+class idAnimatedEntity : public idEntity {
 public:
 	CLASS_PROTOTYPE( idAnimatedEntity );
 	
@@ -689,15 +684,14 @@ public:
 	
 	virtual bool			ClientReceiveEvent( int event, int time, const idBitMsg& msg );
 	
-	enum
-	{
+	enum {
 		EVENT_ADD_DAMAGE_EFFECT = idEntity::EVENT_MAXEVENTS,
 		EVENT_MAXEVENTS
 	};
 	
 protected:
 	idAnimator				animator;
-	damageEffect_t* 		damageEffects;
+	damageEffect_t * 		damageEffects;
 	
 private:
 	void					Event_GetJointHandle( const char* jointname );
@@ -737,20 +731,17 @@ ID_INLINE SetTimeState::SetTimeState( int timeGroup )
 
 ID_INLINE void SetTimeState::PushState( int timeGroup )
 {
-
 	// Don't mess with time in Multiplayer
 	if( !common->IsMultiplayer() )
-	{
-	
+	{	
 		activated = true;
 		
 		// determine previous fast setting
-		if( gameLocal.time == gameLocal.slow.time )
+		if( gameLocal.GetGameTimeMs() == gameLocal.slow.time )
 		{
 			previousFast = false;
 		}
-		else
-		{
+		else {
 			previousFast = true;
 		}
 		
@@ -759,8 +750,7 @@ ID_INLINE void SetTimeState::PushState( int timeGroup )
 		{
 			fast = true;
 		}
-		else
-		{
+		else {
 			fast = false;
 		}
 		

@@ -75,7 +75,7 @@ void idSmokeParticles::Init()
 
 	renderEntity.Clear();
 	renderEntity.bounds.Clear();
-	renderEntity.axis = mat3_identity;
+	renderEntity.axis.Identity();
 	renderEntity.shaderParms[ SHADERPARM_RED ]	= 1.0f;
 	renderEntity.shaderParms[ SHADERPARM_GREEN ]= 1.0f;
 	renderEntity.shaderParms[ SHADERPARM_BLUE ]	= 1.0f;
@@ -128,7 +128,7 @@ idSmokeParticles::FreeSmokes
 */
 void idSmokeParticles::FreeSmokes()
 {
-	for( int activeStageNum = 0; activeStageNum < activeStages.Num(); activeStageNum++ )
+	for( int activeStageNum = 0; activeStageNum < activeStages.Num(); ++activeStageNum )
 	{
 		singleSmoke_t* smoke, *next, *last;
 		
@@ -153,7 +153,7 @@ void idSmokeParticles::FreeSmokes()
 				// put the particle on the free list
 				smoke->next = freeSmokes;
 				freeSmokes = smoke;
-				numActiveSmokes--;
+				--numActiveSmokes;
 				continue;
 			}
 			
@@ -164,7 +164,7 @@ void idSmokeParticles::FreeSmokes()
 		{
 			// remove this from the activeStages list
 			activeStages.RemoveIndex( activeStageNum );
-			activeStageNum--;
+			--activeStageNum;
 		}
 	}
 }
@@ -197,8 +197,8 @@ bool idSmokeParticles::EmitSmoke( const idDeclParticle* smoke, const int systemS
 		return false;
 	}
 	
-	assert( gameLocal.time == 0 || systemStartTime <= gameLocal.time );
-	if( systemStartTime > gameLocal.time )
+	assert( gameLocal.GetGameTimeMs() == 0 || systemStartTime <= gameLocal.GetGameTimeMs() );
+	if( systemStartTime > gameLocal.GetGameTimeMs() )
 	{
 		return false;
 	}
@@ -228,13 +228,13 @@ bool idSmokeParticles::EmitSmoke( const idDeclParticle* smoke, const int systemS
 		// see how many particles we should emit this tic
 		// FIXME: smoke.privateStartTime += stage->timeOffset;
 		int	finalParticleTime = stage->cycleMsec * stage->spawnBunching;
-		int	deltaMsec = gameLocal.time - systemStartTime;
+		int	deltaMsec = gameLocal.GetGameTimeMs() - systemStartTime;
 		
 		int	nowCount = 0, prevCount = 0;
 		if( finalParticleTime == 0 )
 		{
 			// if spawnBunching is 0, they will all come out at once
-			if( gameLocal.time == systemStartTime )
+			if( gameLocal.GetGameTimeMs() == systemStartTime )
 			{
 				prevCount = -1;
 				nowCount = stage->totalParticles - 1;
@@ -251,7 +251,7 @@ bool idSmokeParticles::EmitSmoke( const idDeclParticle* smoke, const int systemS
 			{
 				nowCount = stage->totalParticles - 1;
 			}
-			prevCount = idMath::Floor( ( ( float )( deltaMsec - ( gameLocal.time - gameLocal.previousTime ) ) / finalParticleTime ) * stage->totalParticles );
+			prevCount = idMath::Floor( ( ( float )( deltaMsec - ( gameLocal.GetGameTimeMs() - gameLocal.GetPreviousGameTimeMs() ) ) / finalParticleTime ) * stage->totalParticles );
 			if( prevCount < -1 )
 			{
 				prevCount = -1;
@@ -452,12 +452,12 @@ bool idSmokeParticles::UpdateRenderEntity( renderEntityParms_t* renderEntity, co
 idSmokeParticles::ModelCallback
 ================
 */
-bool idSmokeParticles::ModelCallback( renderEntityParms_t* renderEntity, const renderViewParms_t* renderView )
+bool idSmokeParticles::ModelCallback( renderEntityParms_t* renderEntityParms, const renderViewParms_t* renderViewParms )
 {
 	// update the particles
 	if( gameLocal.smokeParticles )
 	{
-		return gameLocal.smokeParticles->UpdateRenderEntity( renderEntity, renderView );
+		return gameLocal.smokeParticles->UpdateRenderEntity( renderEntityParms, renderViewParms );
 	}
 	
 	return true;

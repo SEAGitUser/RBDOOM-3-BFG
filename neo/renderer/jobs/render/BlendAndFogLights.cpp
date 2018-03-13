@@ -81,7 +81,7 @@ static void RB_T_BlendLight( const drawSurf_t* drawSurfs, const viewLight_t* vLi
 	mode to the framebuffer, instead of interacting with the surface texture
 =====================
 */
-static void RB_BlendLight( const drawSurf_t* drawSurfs, const drawSurf_t* drawSurfs2, const viewLight_t* vLight )
+static void RB_BlendLight( const drawSurf_t * const drawSurfs, const drawSurf_t * const drawSurfs2, const viewLight_t * const vLight )
 {
 	if( drawSurfs == NULL )
 		return;
@@ -94,7 +94,8 @@ static void RB_BlendLight( const drawSurf_t* drawSurfs, const drawSurf_t* drawSu
 	renderProgManager.BindShader_BlendLight();
 
 	// texture 1 will get the falloff texture
-	GL_BindTexture( 1, vLight->falloffImage );
+	///GL_BindTexture( 1, vLight->falloffImage );
+	renderProgManager.SetRenderParm( RENDERPARM_LIGHTFALLOFFMAP, vLight->falloffImage );
 
 	// texture 0 will get the projected texture
 	GL_SelectTexture( 0 );
@@ -110,7 +111,8 @@ static void RB_BlendLight( const drawSurf_t* drawSurfs, const drawSurf_t* drawSu
 
 		GL_State( GLS_DEPTHMASK | stage->drawStateBits | GLS_DEPTHFUNC_EQUAL );
 
-		GL_BindTexture( 0, stage->texture.image );
+		///GL_BindTexture( 0, stage->texture.image );
+		renderProgManager.SetRenderParm( RENDERPARM_LIGHTPROJECTMAP, stage->texture.image );
 
 		RB_LoadShaderTextureMatrix( regs, &stage->texture );
 
@@ -176,10 +178,12 @@ static void RB_ScreenSpaceBlendLight( const viewLight_t * const vLight )
 	GL_DepthBoundsTest( vLight->scissorRect.zmin, vLight->scissorRect.zmax );
 
 	// texture 2 will get the currentDepthImage
-	GL_BindTexture( 2, renderImageManager->currentDepthImage );
+	///GL_BindTexture( 2, renderImageManager->currentDepthImage );
+	renderProgManager.SetRenderParm( RENDERPARM_CURRENTDEPTHMAP, renderImageManager->currentDepthImage );
 
 	// texture 1 will get the falloff texture
-	GL_BindTexture( 1, vLight->falloffImage );
+	///GL_BindTexture( 1, vLight->falloffImage );
+	renderProgManager.SetRenderParm( RENDERPARM_LIGHTFALLOFFMAP, vLight->falloffImage );
 
 	// texture 0 will get the projected texture	
 	GL_SelectTexture( 0 );
@@ -195,7 +199,8 @@ static void RB_ScreenSpaceBlendLight( const viewLight_t * const vLight )
 
 		//GL_State( GLS_DEPTHMASK | stage->drawStateBits | GLS_DEPTHFUNC_EQUAL );
 
-		GL_BindTexture( 0, stage->texture.image );
+		///GL_BindTexture( 0, stage->texture.image );
+		renderProgManager.SetRenderParm( RENDERPARM_LIGHTPROJECTMAP, stage->texture.image );
 
 		RB_LoadShaderTextureMatrix( regs, &stage->texture );
 
@@ -317,9 +322,11 @@ static void RB_FogPass( const drawSurf_t* drawSurfs, const drawSurf_t* drawSurfs
 	const float a = ( lightColor[ 3 ] <= 1.0f )? ( -0.5f / DEFAULT_FOG_DISTANCE ) : ( -0.5f / lightColor[ 3 ] );
 
 	// texture 0 is the falloff image
-	GL_BindTexture( 0, renderImageManager->fogImage );
+	///GL_BindTexture( 0, renderImageManager->fogImage );
+	renderProgManager.SetRenderParm( RENDERPARM_FOGMAP, renderImageManager->fogImage );
 	// texture 1 is the entering plane fade correction
-	GL_BindTexture( 1, renderImageManager->fogEnterImage );
+	///GL_BindTexture( 1, renderImageManager->fogEnterImage );
+	renderProgManager.SetRenderParm( RENDERPARM_FOGENTERMAP, renderImageManager->fogEnterImage );
 
 	idRenderPlane fogPlane;
 

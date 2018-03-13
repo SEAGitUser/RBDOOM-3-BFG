@@ -30,6 +30,7 @@ If you have questions concerning this license or the applicable additional terms
 #pragma hdrstop
 #include "precompiled.h"
 
+#include "../sys_local.h"
 #include "win_local.h"
 
 #pragma warning(disable:4740)	// warning C4740: flow in or out of inline asm code suppresses global optimization
@@ -117,7 +118,8 @@ double Sys_ClockTicksPerSecond() {
 		LPBYTE ProcSpeed;
 		DWORD buflen, ret;
 
-		if ( !RegOpenKeyEx( HKEY_LOCAL_MACHINE, "HARDWARE\\DESCRIPTION\\System\\CentralProcessor\\0", 0, KEY_READ, &hKey ) ) {
+		if( !RegOpenKeyEx( HKEY_LOCAL_MACHINE, "HARDWARE\\DESCRIPTION\\System\\CentralProcessor\\0", 0, KEY_READ, &hKey ) ) 
+		{
 			ProcSpeed = 0;
 			buflen = sizeof( ProcSpeed );
 			ret = RegQueryValueEx( hKey, "~MHz", NULL, NULL, (LPBYTE) &ProcSpeed, &buflen );
@@ -894,7 +896,7 @@ static bitFlag_t statusWordFlags[] = {
 Sys_FPU_PrintStateFlags
 ===============
 */
-int Sys_FPU_PrintStateFlags( char *ptr, int ctrl, int stat, int tags, int inof, int inse, int opof, int opse ) {
+static int Sys_FPU_PrintStateFlags( char *ptr, int ctrl, int stat, int tags, int inof, int inse, int opof, int opse ) {
 	int i, length = 0;
 
 	length += sprintf( ptr+length,	"CTRL = %08x\n"
@@ -929,7 +931,7 @@ int Sys_FPU_PrintStateFlags( char *ptr, int ctrl, int stat, int tags, int inof, 
 Sys_FPU_StackIsEmpty
 ===============
 */
-bool Sys_FPU_StackIsEmpty()
+bool idSysLocal::FPU_StackIsEmpty()
 {
 #if !defined(_WIN64)
 	__asm {
@@ -951,7 +953,7 @@ empty:
 Sys_FPU_ClearStack
 ===============
 */
-void Sys_FPU_ClearStack()
+void idSysLocal::FPU_ClearStack()
 {
 #if !defined(_WIN64)
 	__asm {
@@ -979,7 +981,7 @@ Sys_FPU_GetState
   gets the FPU state without changing the state
 ===============
 */
-const char *Sys_FPU_GetState()
+const char * idSysLocal::FPU_GetState()
 {
 #if defined(_WIN64)
 	return "TODO Sys_FPU_GetState()";
@@ -1088,7 +1090,7 @@ const char *Sys_FPU_GetState()
 Sys_FPU_EnableExceptions
 ===============
 */
-void Sys_FPU_EnableExceptions( int exceptions )
+void idSysLocal::FPU_EnableExceptions( int exceptions )
 {
 #if !defined(_WIN64)
 	__asm {
@@ -1111,7 +1113,7 @@ void Sys_FPU_EnableExceptions( int exceptions )
 Sys_FPU_SetPrecision
 ===============
 */
-void Sys_FPU_SetPrecision( int precision )
+void idSysLocal::FPU_SetPrecision( int precision )
 {
 #if !defined(_WIN64)
 	short precisionBitTable[4] = { 0, 1, 3, 0 };
@@ -1136,7 +1138,7 @@ void Sys_FPU_SetPrecision( int precision )
 Sys_FPU_SetRounding
 ================
 */
-void Sys_FPU_SetRounding( int rounding )
+void idSysLocal::FPU_SetRounding( int rounding )
 {
 #if !defined(_WIN64)
 	short roundingBitTable[4] = { 0, 1, 2, 3 };
@@ -1161,7 +1163,7 @@ void Sys_FPU_SetRounding( int rounding )
 Sys_FPU_SetDAZ
 ================
 */
-void Sys_FPU_SetDAZ( bool enable )
+void idSysLocal::FPU_SetDAZ( bool enable )
 {
 #if !defined(_WIN64)
 	DWORD dwData;
@@ -1185,7 +1187,7 @@ void Sys_FPU_SetDAZ( bool enable )
 Sys_FPU_SetFTZ
 ================
 */
-void Sys_FPU_SetFTZ( bool enable ) 
+void idSysLocal::FPU_SetFTZ( bool enable ) 
 {
 #if !defined(_WIN64)
 	DWORD dwData;

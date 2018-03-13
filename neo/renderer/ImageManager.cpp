@@ -431,6 +431,7 @@ idImage * idImageManager::ImageFromFile( const char* _name, textureFilter_t filt
 		declManager->MediaPrint( "DEFAULTED\n" );
 		return defaultImage;
 	}
+	//SEA: _defaultCube ?
 
 	if( idStr::Icmpn( _name, "fonts", 5 ) == 0 || idStr::Icmpn( _name, "newfonts", 8 ) == 0 )
 	{
@@ -452,7 +453,7 @@ idImage * idImageManager::ImageFromFile( const char* _name, textureFilter_t filt
 	int hash = name.FileNameHash();
 	for( int i = imageHash.First( hash ); i != -1; i = imageHash.Next( i ) )
 	{
-		idImage* image = images[i];
+		idImage* image = images[ i ];
 		if( name.Icmp( image->GetName() ) == 0 )
 		{
 			// the built in's, like _white and _flat always match the other options
@@ -506,8 +507,7 @@ idImage * idImageManager::ImageFromFile( const char* _name, textureFilter_t filt
 		image->ActuallyLoadImage( false );	// load is from front end
 		declManager->MediaPrint( "%ix%i %s\n", image->GetUploadWidth(), image->GetUploadHeight(), image->GetName() );
 	}
-	else
-	{
+	else {
 		declManager->MediaPrint( "%s\n", image->GetName() );
 	}
 	
@@ -857,7 +857,7 @@ void idImageManager::Preload( const idPreloadManifest& manifest, const bool& map
 		// preload this levels images
 		common->Printf( "Preloading images...\n" );
 		preloadingMapImages = mapPreload;
-		int	start = Sys_Milliseconds();
+		int	start = sys->Milliseconds();
 		int numLoaded = 0;
 		
 		//fileSystem->StartPreload( preloadImageFiles );
@@ -871,7 +871,7 @@ void idImageManager::Preload( const idPreloadManifest& manifest, const bool& map
 			}
 		}
 		//fileSystem->StopPreload();
-		int	end = Sys_Milliseconds();
+		int	end = sys->Milliseconds();
 		common->Printf( "%05d images preloaded ( or were already loaded ) in %5.1f seconds\n", numLoaded, ( end - start ) * 0.001 );
 		common->Printf( "----------------------------------------\n" );
 		preloadingMapImages = false;
@@ -918,10 +918,10 @@ void idImageManager::EndLevelLoad()
 	insideLevelLoad = false;
 	
 	common->Printf( "----- idImageManager::EndLevelLoad -----\n" );
-	int start = Sys_Milliseconds();
+	int start = sys->Milliseconds();
 	int	loadCount = LoadLevelImages( true );
 	
-	int	end = Sys_Milliseconds();
+	int	end = sys->Milliseconds();
 	common->Printf( "%5i images loaded in %5.1f seconds\n", loadCount, ( end - start ) * 0.001 );
 	common->Printf( "----------------------------------------\n" );
 	//R_ListImages_f( idCmdArgs( "sorted sorted", false ) );

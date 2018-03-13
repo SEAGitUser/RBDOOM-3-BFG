@@ -350,7 +350,7 @@ public:
 		int					lastResourceTime;			// Used to throttle the sending of resources
 		
 		int					lastHeartBeat;
-		int					nextPing;					// next Sys_Milliseconds when I'll send this peer a RELIABLE_PING
+		int					nextPing;					// next sys->Milliseconds when I'll send this peer a RELIABLE_PING
 		int					lastPingRtt;
 		bool				needToSubmitPendingSnap;
 		int					lastSnapJobTime;			// Last time a snapshot was sent to the joblist for this peer

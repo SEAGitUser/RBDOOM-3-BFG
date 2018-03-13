@@ -53,16 +53,16 @@ idBindWindow::~idBindWindow()
 }
 
 
-const char* idBindWindow::HandleEvent( const sysEvent_t* event, bool* updateVisuals )
+const char* idBindWindow::HandleEvent( const idSysEvent* event, bool* updateVisuals )
 {
 	static char ret[ 256 ];
 	
-	if( !( event->evType == SE_KEY && event->evValue2 ) )
+	if( !( event->IsKeyEvent() && event->IsKeyDown() ) )
 	{
 		return "";
 	}
 	
-	int key = event->evValue;
+	auto key = event->GetKey();
 	
 	if( waitingOnKey )
 	{
@@ -73,7 +73,7 @@ const char* idBindWindow::HandleEvent( const sysEvent_t* event, bool* updateVisu
 		}
 		else
 		{
-			idStr::snPrintf( ret, sizeof( ret ), "bind %i \"%s\"", key, bindName.GetName() );
+			idStr::snPrintf( ret, sizeof( ret ), "bind %i \"%s\"", (int)key, bindName.GetName() );
 		}
 		return ret;
 	}

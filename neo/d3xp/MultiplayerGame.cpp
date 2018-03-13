@@ -129,7 +129,6 @@ idMultiplayerGame::idMultiplayerGame
 */
 idMultiplayerGame::idMultiplayerGame()
 {
-
 	teamFlags[0] = NULL;
 	teamFlags[1] = NULL;
 	
@@ -394,7 +393,6 @@ idMultiplayerGame::IsScoreboardActive
 */
 bool idMultiplayerGame::IsScoreboardActive()
 {
-
 	if( scoreboardManager != NULL )
 	{
 		return scoreboardManager->IsActive();
@@ -408,9 +406,8 @@ bool idMultiplayerGame::IsScoreboardActive()
 idMultiplayerGame::HandleGuiEvent
 ================
 */
-bool idMultiplayerGame::HandleGuiEvent( const sysEvent_t* sev )
+bool idMultiplayerGame::HandleGuiEvent( const idSysEvent* sev )
 {
-
 	if( scoreboardManager != NULL && scoreboardManager->IsActive() )
 	{
 		scoreboardManager->HandleGuiEvent( sev );
@@ -427,7 +424,6 @@ idMultiplayerGame::UpdateScoreboard
 */
 void idMultiplayerGame::UpdateScoreboard( idMenuHandler_Scoreboard* scoreboard, idPlayer* owner )
 {
-
 	if( owner == NULL )
 	{
 		return;
@@ -440,10 +436,8 @@ void idMultiplayerGame::UpdateScoreboard( idMenuHandler_Scoreboard* scoreboard, 
 	idList< mpScoreboardInfo > scoreboardInfo;
 	for( int i = 0; i < MAX_CLIENTS; ++i )
 	{
-	
 		if( i < gameLocal.numClients )
-		{
-		
+		{	
 			idEntity* ent = gameLocal.entities[ i ];
 			if( !ent || !ent->IsType( idPlayer::Type ) )
 			{
@@ -564,7 +558,7 @@ void idMultiplayerGame::UpdateScoreboard( idMenuHandler_Scoreboard* scoreboard, 
 	if( gameState == GAMEREVIEW )
 	{
 		int timeRemaining = nextStateSwitch - gameLocal.serverTime;
-		int ms = ( int ) ceilf( timeRemaining / 1000.0f );
+		int ms = ( int ) idMath::Ceil( timeRemaining / 1000.0f );
 		if( ms == 1 )
 		{
 			gameInfo = idLocalization::GetString( "#str_online_game_starts_in_second" );
@@ -680,7 +674,8 @@ const char* idMultiplayerGame::GameTime()
 		
 		idStr::snPrintf( buff, sizeof( buff ), "%i:%i%i", m, t, s );
 	}
-	return &buff[0];
+
+	return &buff[ 0 ];
 }
 
 /*
@@ -965,15 +960,14 @@ idPlayer* idMultiplayerGame::FragLeader()
 			return leader;
 		}
 	}
-	else
+
+	if( teamLead[ 0 ] && teamLead[ 1 ] )
 	{
-		if( teamLead[ 0 ] && teamLead[ 1 ] )
-		{
-			// even game in team play
-			return NULL;
-		}
-		return leader;
+		// even game in team play
+		return NULL;
 	}
+
+	return leader;
 }
 
 /*
@@ -1171,7 +1165,6 @@ idMultiplayerGame::PlayerDeath
 */
 void idMultiplayerGame::PlayerDeath( idPlayer* dead, idPlayer* killer, bool telefrag )
 {
-
 	// don't do PrintMessageEvent and shit
 	assert( !common->IsClient() );
 	
@@ -1256,7 +1249,6 @@ idMultiplayerGame::PlayerStats
 */
 void idMultiplayerGame::PlayerStats( int clientNum, char* data, const int len )
 {
-
 	idEntity* ent;
 	int team;
 	
@@ -1279,10 +1271,8 @@ void idMultiplayerGame::PlayerStats( int clientNum, char* data, const int len )
 		return;
 	}
 	
-	idStr::snPrintf( data, len, "team=%d score=%ld tks=%ld", team, playerState[ clientNum ].fragCount, playerState[ clientNum ].teamFragCount );
-	
-	return;
-	
+	idStr::snPrintf( data, len, "team=%d score=%ld tks=%ld", team, playerState[ clientNum ].fragCount, playerState[ clientNum ].teamFragCount );	
+	return;	
 }
 
 /*
@@ -1292,8 +1282,7 @@ idMultiplayerGame::DumpTourneyLine
 */
 void idMultiplayerGame::DumpTourneyLine()
 {
-	int i;
-	for( i = 0; i < gameLocal.numClients; i++ )
+	for( int i = 0; i < gameLocal.numClients; i++ )
 	{
 		if( gameLocal.entities[ i ] && gameLocal.entities[ i ]->IsType( idPlayer::Type ) )
 		{
@@ -1685,8 +1674,6 @@ bool idMultiplayerGame::Warmup()
 
 void idMultiplayerGame::GameHasBeenWon()
 {
-
-
 	// Only allow leaderboard submissions within public games.
 	const idMatchParameters& matchParameters = session->GetActingGameStateLobbyBase().GetMatchParms();
 	
@@ -2293,7 +2280,7 @@ void idMultiplayerGame::AddChatLine( const char* fmt, ... )
 		chatHistorySize++;
 	}
 	chatDataUpdated = true;
-	lastChatLineTime = Sys_Milliseconds();
+	lastChatLineTime = sys->Milliseconds();
 }
 
 /*
@@ -2307,7 +2294,7 @@ void idMultiplayerGame::DrawChat( idPlayer* player )
 	
 	if( player )
 	{
-		if( Sys_Milliseconds() - lastChatLineTime > CHAT_FADE_TIME )
+		if( sys->Milliseconds() - lastChatLineTime > CHAT_FADE_TIME )
 		{
 			if( chatHistorySize > 0 )
 			{
@@ -2321,7 +2308,7 @@ void idMultiplayerGame::DrawChat( idPlayer* player )
 				}
 				chatDataUpdated = true;
 			}
-			lastChatLineTime = Sys_Milliseconds();
+			lastChatLineTime = sys->Milliseconds();
 		}
 		if( chatDataUpdated )
 		{
@@ -2753,12 +2740,12 @@ void idMultiplayerGame::CheckRespawns( idPlayer* spectator )
 				{
 					if( IsGametypeTeamBased() || p->IsLeader() )                        /* CTF */
 					{
-#ifdef _DEBUG
+					#ifdef _DEBUG
 						if( gameLocal.gameType == GAME_TOURNEY )
 						{
 							assert( p->entityNumber == currentTourneyPlayer[ 0 ] || p->entityNumber == currentTourneyPlayer[ 1 ] );
 						}
-#endif
+					#endif
 						p->ServerSpectate( false );
 					}
 					else if( !p->IsLeader() )
@@ -3835,22 +3822,15 @@ idMultiplayerGame::GetGameModes
 */
 int idMultiplayerGame::GetGameModes( const char** * gameModes, const char** * gameModesDisplay )
 {
-
-	bool defaultValue = true;
-	
+	bool defaultValue = true;	
 	if( session->GetTitleStorageBool( "CTF_Enabled", defaultValue ) )
 	{
 		*gameModes = gameTypeNames_WithCTF;
-		*gameModesDisplay = gameTypeDisplayNames_WithCTF;
-		
+		*gameModesDisplay = gameTypeDisplayNames_WithCTF;		
 		return GAME_COUNT;
 	}
-	else
-	{
-	
-		*gameModes = gameTypeNames_WithoutCTF;
-		*gameModesDisplay = gameTypeDisplayNames_WithoutCTF;
-		
-		return GAME_COUNT - 1;
-	}
+
+	*gameModes = gameTypeNames_WithoutCTF;
+	*gameModesDisplay = gameTypeDisplayNames_WithoutCTF;		
+	return GAME_COUNT - 1;
 }

@@ -41,7 +41,7 @@ If you have questions concerning this license or the applicable additional terms
 
 extern const idEventDef EV_Weapon_State;
 
-typedef enum
+enum weaponStatus_t
 {
 	WP_READY,
 	WP_OUTOFAMMO,
@@ -49,7 +49,7 @@ typedef enum
 	WP_HOLSTERED,
 	WP_RISING,
 	WP_LOWERING
-} weaponStatus_t;
+};
 
 typedef int ammo_t;
 static const int AMMO_NUMTYPES = 16;
@@ -61,7 +61,7 @@ static const int LIGHTID_VIEW_MUZZLE_FLASH = 100;
 
 class idMoveableItem;
 
-typedef struct
+struct WeaponParticle_t
 {
 	char			name[64];
 	char			particlename[128];
@@ -71,9 +71,9 @@ typedef struct
 	bool			smoke;			//Is this a smoke particle
 	const idDeclParticle* particle;		//Used for smoke particles
 	idFuncEmitter*  emitter;		//Used for non-smoke particles
-} WeaponParticle_t;
+};
 
-typedef struct
+struct WeaponLight_t
 {
 	char			name[64];
 	bool			active;
@@ -81,10 +81,9 @@ typedef struct
 	jointHandle_t	joint;
 	int				lightHandle;
 	renderLightParms_t	light;
-} WeaponLight_t;
+};
 
-class idWeapon : public idAnimatedEntity
-{
+class idWeapon : public idAnimatedEntity {
 public:
 	CLASS_PROTOTYPE( idWeapon );
 	
@@ -145,10 +144,7 @@ public:
 	void					WeaponStolen();
 	void					ForceAmmoInClip();
 	
-	weaponStatus_t			GetStatus()
-	{
-		return status;
-	};
+	weaponStatus_t			GetStatus() { return status; };
 	
 	
 	// Script state management
@@ -166,10 +162,7 @@ public:
 	void					GetWeaponAngleOffsets( int* average, float* scale, float* max );
 	void					GetWeaponTimeOffsets( float* time, float* scale );
 	bool					BloodSplat( float size );
-	void					SetIsPlayerFlashlight( bool bl )
-	{
-		isPlayerFlashlight = bl;
-	}
+	void					SetIsPlayerFlashlight( bool bl ) { isPlayerFlashlight = bl; }
 	void					FlashlightOn();
 	void					FlashlightOff();
 	
@@ -188,16 +181,12 @@ public:
 	int						GetGrabberState() const;
 	
 	// Flashlight
-	idAnimatedEntity* 		GetWorldModel()
-	{
-		return worldModel.GetEntity();
-	}
+	idAnimatedEntity* 		GetWorldModel() { return worldModel.GetEntity(); }
 	
 	virtual void			WriteToSnapshot( idBitMsg& msg ) const;
 	virtual void			ReadFromSnapshot( const idBitMsg& msg );
 	
-	enum
-	{
+	enum {
 		EVENT_RELOAD = idEntity::EVENT_MAXEVENTS,
 		EVENT_ENDRELOAD,
 		EVENT_CHANGESKIN,
@@ -217,10 +206,7 @@ public:
 	
 	void					GetProjectileLaunchOriginAndAxis( idVec3& origin, idMat3& axis );
 	
-	const idDeclEntityDef* GetDeclEntityDef()
-	{
-		return weaponDef;
-	}
+	const idDeclEntityDef* GetDeclEntityDef() { return weaponDef; }
 	
 	friend class idPlayer;
 private:
@@ -290,14 +276,14 @@ private:
 	idStr					itemDesc;
 	
 	// view weapon gui light
-	renderLightParms_t			guiLight;
+	renderLightParms_t		guiLight;
 	int						guiLightHandle;
 	
 	// muzzle flash
-	renderLightParms_t			muzzleFlash;		// positioned on view weapon bone
+	renderLightParms_t		muzzleFlash;		// positioned on view weapon bone
 	int						muzzleFlashHandle;
 	
-	renderLightParms_t			worldMuzzleFlash;	// positioned on world weapon bone
+	renderLightParms_t		worldMuzzleFlash;	// positioned on world weapon bone
 	int						worldMuzzleFlashHandle;
 	
 	float					fraccos;
@@ -355,7 +341,7 @@ private:
 	
 	// new style muzzle smokes
 	const idDeclParticle* 	weaponSmoke;			// null if it doesn't smoke
-	int						weaponSmokeStartTime;	// set to gameLocal.time every weapon fire
+	int						weaponSmokeStartTime;	// set to gameLocal.GetGameTimeMs() every weapon fire
 	bool					continuousSmoke;		// if smoke is continuous ( chainsaw )
 	const idDeclParticle*   strikeSmoke;			// striking something in melee
 	int						strikeSmokeStartTime;	// timing
@@ -368,7 +354,7 @@ private:
 	// this also assumes a nozzle light atm
 	int						nozzleFxFade;		// time it takes to fade between the effects
 	int						lastAttack;			// last time an attack occured
-	renderLightParms_t			nozzleGlow;			// nozzle light
+	renderLightParms_t		nozzleGlow;			// nozzle light
 	int						nozzleGlowHandle;	// handle for nozzle light
 	
 	idVec3					nozzleGlowColor;	// color of the nozzle glow

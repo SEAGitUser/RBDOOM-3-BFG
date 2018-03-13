@@ -1216,7 +1216,7 @@ static void R_MakeAmbientMap_f( const idCmdArgs& args )
 	{
 		CommandlineProgressBar progressBar( outSize * outSize * 6 );
 
-		int	start = Sys_Milliseconds();
+		int	start = sys->Milliseconds();
 
 		for( i = 0; i < 6; i++ )
 		{
@@ -1271,7 +1271,7 @@ static void R_MakeAmbientMap_f( const idCmdArgs& args )
 			R_WritePNG( fullname, outBuffer, 4, outSize, outSize, true, "fs_basepath" );
 		}
 
-		int	end = Sys_Milliseconds();
+		int	end = sys->Milliseconds();
 
 		if( map == 0 )
 		{

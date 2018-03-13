@@ -127,7 +127,7 @@ public:
 	}
 	
 	void Render( idRenderSystem* gui, int time = 0, bool isSplitscreen = false );
-	bool HandleEvent( const sysEvent_t* event );
+	bool HandleEvent( const idSysEvent* event );
 	bool InhibitControl();
 	void ForceInhibitControl( bool val )
 	{

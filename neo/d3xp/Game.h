@@ -121,7 +121,7 @@ public:
 	// Makes rendering and sound system calls to display for a given clientNum.
 	virtual bool				Draw( int clientNum ) = 0;
 	
-	virtual bool				HandlePlayerGuiEvent( const sysEvent_t* ) = 0;
+	virtual bool				HandlePlayerGuiEvent( const idSysEvent* ) = 0;
 	
 	// Writes a snapshot of the server game state.
 	virtual void				ServerWriteSnapshot( idSnapShot& ) = 0;
@@ -174,7 +174,7 @@ public:
 	virtual void				Shell_ClosePause() = 0;
 	virtual void				Shell_Show( bool show ) = 0;
 	virtual bool				Shell_IsActive() const = 0;
-	virtual bool				Shell_HandleGuiEvent( const sysEvent_t* ) = 0;
+	virtual bool				Shell_HandleGuiEvent( const idSysEvent* ) = 0;
 	virtual void				Shell_Render() = 0;
 	virtual void				Shell_ResetMenu() = 0;
 	virtual void				Shell_SyncWithSession() = 0;

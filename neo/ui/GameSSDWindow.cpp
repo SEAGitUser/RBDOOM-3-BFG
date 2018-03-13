@@ -1488,9 +1488,8 @@ void idGameSSDWindow::ReadFromSaveGame( idFile* savefile )
 	}
 }
 
-const char* idGameSSDWindow::HandleEvent( const sysEvent_t* event, bool* updateVisuals )
+const char* idGameSSDWindow::HandleEvent( const idSysEvent* event, bool* updateVisuals )
 {
-
 	// need to call this to allow proper focus and capturing on embedded children
 	const char* ret = idWindow::HandleEvent( event, updateVisuals );
 	
@@ -1499,31 +1498,27 @@ const char* idGameSSDWindow::HandleEvent( const sysEvent_t* event, bool* updateV
 		return ret;
 	}
 	
-	int key = event->evValue;
-	
-	if( event->evType == SE_KEY )
-	{
-	
-		if( !event->evValue2 )
+	if( event->IsKeyEvent() )
+	{	
+		if( event->IsKeyUp() )
 		{
 			return ret;
 		}
 		
-		if( key == K_MOUSE1 || key == K_MOUSE2 )
+		if( event->GetKey() == K_MOUSE1 || event->GetKey() == K_MOUSE2 )
 		{
-			FireWeapon( key );
+			FireWeapon( event->GetKey() );
 		}
-		else
-		{
+		else {
 			return ret;
 		}
 	}
+
 	return ret;
 }
 
 idWinVar* idGameSSDWindow::GetWinVarByName( const char* _name, bool winLookup, drawWin_t** owner )
 {
-
 	idWinVar* retVar = NULL;
 	
 	if( idStr::Icmp( _name, "beginLevel" ) == 0 )

@@ -60,7 +60,7 @@ same texture matrix calculations a half dozen times.
 */
 
 // keep all of these on the stack, when they are static it makes material parsing non-reentrant
-typedef struct mtrParsingData_s {
+struct mtrParsingData_t {
 	bool			registerIsTemporary[ MAX_EXPRESSION_REGISTERS ];
 	float			shaderRegisters[ MAX_EXPRESSION_REGISTERS ];
 	expOp_t			shaderOps[ MAX_EXPRESSION_OPS ];
@@ -68,9 +68,23 @@ typedef struct mtrParsingData_s {
 
 	bool			registersAreConstant;
 	bool			forceOverlays;
-} mtrParsingData_t;
+
+	mtrParsingData_t() {
+		memset( this, 0, sizeof( mtrParsingData_t ) );
+	}
+};
 
 idCVar r_forceSoundOpAmplitude( "r_forceSoundOpAmplitude", "0", CVAR_FLOAT, "Don't call into the sound system for amplitudes" );
+
+void newShaderStage_t::Clear()
+{
+	allocManager.StaticFree( vectors );
+	vectors = nullptr;
+	allocManager.StaticFree( textures );
+	textures = nullptr;
+	program = -1;
+	numVectors = numTextures = 0;
+}
 
 /*
 =============
@@ -165,16 +179,17 @@ void idMaterial::FreeData()
 {
 	if( stages )
 	{
-		// delete any idCinematic textures
 		for( int i = 0; i < numStages; i++ )
 		{
+			// delete any idCinematic textures
 			if( stages[ i ].texture.cinematic != NULL )
-			{
+			{ 
 				delete stages[ i ].texture.cinematic;
 				stages[ i ].texture.cinematic = NULL;
 			}
 			if( stages[ i ].newStage != NULL )
 			{
+				stages[ i ].newStage->Clear();
 				allocManager.StaticFree( stages[ i ].newStage );
 				stages[ i ].newStage = NULL;
 			}
@@ -217,8 +232,7 @@ idImage* idMaterial::GetEditorImage() const
 		// _D3XP :: First check for a diffuse image, then use the first
 		if( numStages && stages )
 		{
-			int i;
-			for( i = 0; i < numStages; i++ )
+			for( int i = 0; i < numStages; i++ )
 			{
 				if( stages[ i ].lighting == SL_DIFFUSE )
 				{
@@ -231,13 +245,11 @@ idImage* idMaterial::GetEditorImage() const
 				editorImage = stages[ 0 ].texture.image;
 			}
 		}
-		else
-		{
+		else {
 			editorImage = renderImageManager->defaultImage;
 		}
 	}
-	else
-	{
+	else {
 		// look for an explicit one
 		editorImage = renderImageManager->ImageFromFile( editorImageName, TF_DEFAULT, TR_REPEAT, TD_DEFAULT );
 	}
@@ -251,77 +263,75 @@ idImage* idMaterial::GetEditorImage() const
 }
 
 // info parms
-typedef struct {
-	const char*	name;
-	int		clearSolid, surfaceFlags, contents;
-} infoParm_t;
+struct infoParm_t {
+	const char * name;
+	int	clearSolid, surfaceFlags, contents;
+};
 
-static infoParm_t	infoParms[] =
+static infoParm_t infoParms[] =
 {
 	// game relevant attributes
-	{"solid",		0,	0,	CONTENTS_SOLID },		// may need to override a clearSolid
-	{"water",		1,	0,	CONTENTS_WATER },		// used for water
-	{"playerclip",	0,	0,	CONTENTS_PLAYERCLIP },	// solid to players
-	{"monsterclip",	0,	0,	CONTENTS_MONSTERCLIP },	// solid to monsters
-	{"moveableclip", 0,	0,	CONTENTS_MOVEABLECLIP }, // solid to moveable entities
-	{"ikclip",		0,	0,	CONTENTS_IKCLIP },		// solid to IK
-	{"blood",		0,	0,	CONTENTS_BLOOD },		// used to detect blood decals
-	{"trigger",		0,	0,	CONTENTS_TRIGGER },		// used for triggers
-	{"aassolid",	0,	0,	CONTENTS_AAS_SOLID },	// solid for AAS
-	{"aasobstacle",	0,	0,	CONTENTS_AAS_OBSTACLE },// used to compile an obstacle into AAS that can be enabled/disabled
+	{"solid",				0,	0,	CONTENTS_SOLID },		// may need to override a clearSolid
+	{"water",				1,	0,	CONTENTS_WATER },		// used for water
+	{"playerclip",			0,	0,	CONTENTS_PLAYERCLIP },	// solid to players
+	{"monsterclip",			0,	0,	CONTENTS_MONSTERCLIP },	// solid to monsters
+	{"moveableclip",		0,	0,	CONTENTS_MOVEABLECLIP }, // solid to moveable entities
+	{"ikclip",				0,	0,	CONTENTS_IKCLIP },		// solid to IK
+	{"blood",				0,	0,	CONTENTS_BLOOD },		// used to detect blood decals
+	{"trigger",				0,	0,	CONTENTS_TRIGGER },		// used for triggers
+	{"aassolid",			0,	0,	CONTENTS_AAS_SOLID },	// solid for AAS
+	{"aasobstacle",			0,	0,	CONTENTS_AAS_OBSTACLE },// used to compile an obstacle into AAS that can be enabled/disabled
 	{"flashlight_trigger",	0,	0,	CONTENTS_FLASHLIGHT_TRIGGER }, // used for triggers that are activated by the flashlight
-	{"nonsolid",	1,	0,	0 },					// clears the solid flag
-	{"nullNormal",	0,	SURF_NULLNORMAL, 0 },		// renderbump will draw as 0x80 0x80 0x80
+	{"nonsolid",			1,	0,	0 },					// clears the solid flag
+	{"nullNormal",			0,	SURF_NULLNORMAL, 0 },		// renderbump will draw as 0x80 0x80 0x80
 
 	// utility relevant attributes
-	{"areaportal",	1,	0,	CONTENTS_AREAPORTAL },	// divides areas
-	{"qer_nocarve",	1,	0,	CONTENTS_NOCSG},		// don't cut brushes in editor
+	{"areaportal",			1,	0,	CONTENTS_AREAPORTAL },	// divides areas
+	{"qer_nocarve",			1,	0,	CONTENTS_NOCSG},		// don't cut brushes in editor
 
-	{"discrete",	1,	SURF_DISCRETE,	0 },		// surfaces should not be automatically merged together or
+	{"discrete",			1,	SURF_DISCRETE,	0 },		// surfaces should not be automatically merged together or
 	// clipped to the world,
 	// because they represent discrete objects like gui shaders
 	// mirrors, or autosprites
-	{"noFragment",	0,	SURF_NOFRAGMENT,	0 },
+	{"noFragment",			0,	SURF_NOFRAGMENT,	0 },
 
-	{"slick",		0,	SURF_SLICK,		0 },
-	{"collision",	0,	SURF_COLLISION,	0 },
-	{"noimpact",	0,	SURF_NOIMPACT,	0 },		// don't make impact explosions or marks
-	{"nodamage",	0,	SURF_NODAMAGE,	0 },		// no falling damage when hitting
-	{"ladder",		0,	SURF_LADDER,	0 },		// climbable
-	{"nosteps",		0,	SURF_NOSTEPS,	0 },		// no footsteps
+	{"slick",				0,	SURF_SLICK,		0 },
+	{"collision",			0,	SURF_COLLISION,	0 },
+	{"noimpact",			0,	SURF_NOIMPACT,	0 },		// don't make impact explosions or marks
+	{"nodamage",			0,	SURF_NODAMAGE,	0 },		// no falling damage when hitting
+	{"ladder",				0,	SURF_LADDER,	0 },		// climbable
+	{"nosteps",				0,	SURF_NOSTEPS,	0 },		// no footsteps
 
 	// material types for particle, sound, footstep feedback
-	{"metal",		0,  SURFTYPE_METAL,		0 },	// metal
-	{"stone",		0,  SURFTYPE_STONE,		0 },	// stone
-	{"flesh",		0,  SURFTYPE_FLESH,		0 },	// flesh
-	{"wood",		0,  SURFTYPE_WOOD,		0 },	// wood
-	{"cardboard",	0,	SURFTYPE_CARDBOARD,	0 },	// cardboard
-	{"liquid",		0,	SURFTYPE_LIQUID,	0 },	// liquid
-	{"glass",		0,	SURFTYPE_GLASS,		0 },	// glass
-	{"plastic",		0,	SURFTYPE_PLASTIC,	0 },	// plastic
-	{"ricochet",	0,	SURFTYPE_RICOCHET,	0 },	// behaves like metal but causes a ricochet sound
+	{"metal",				0,  SURFTYPE_METAL,		0 },	// metal
+	{"stone",				0,  SURFTYPE_STONE,		0 },	// stone
+	{"flesh",				0,  SURFTYPE_FLESH,		0 },	// flesh
+	{"wood",				0,  SURFTYPE_WOOD,		0 },	// wood
+	{"cardboard",			0,	SURFTYPE_CARDBOARD,	0 },	// cardboard
+	{"liquid",				0,	SURFTYPE_LIQUID,	0 },	// liquid
+	{"glass",				0,	SURFTYPE_GLASS,		0 },	// glass
+	{"plastic",				0,	SURFTYPE_PLASTIC,	0 },	// plastic
+	{"ricochet",			0,	SURFTYPE_RICOCHET,	0 },	// behaves like metal but causes a ricochet sound
 
 	// unassigned surface types
-	{"surftype10",	0,	SURFTYPE_10,	0 },
-	{"surftype11",	0,	SURFTYPE_11,	0 },
-	{"surftype12",	0,	SURFTYPE_12,	0 },
-	{"surftype13",	0,	SURFTYPE_13,	0 },
-	{"surftype14",	0,	SURFTYPE_14,	0 },
-	{"surftype15",	0,	SURFTYPE_15,	0 },
+	{"surftype10",			0,	SURFTYPE_10,	0 },
+	{"surftype11",			0,	SURFTYPE_11,	0 },
+	{"surftype12",			0,	SURFTYPE_12,	0 },
+	{"surftype13",			0,	SURFTYPE_13,	0 },
+	{"surftype14",			0,	SURFTYPE_14,	0 },
+	{"surftype15",			0,	SURFTYPE_15,	0 },
 };
-
-static const int numInfoParms = sizeof( infoParms ) / sizeof( infoParms[ 0 ] );
 
 /*
 ===============
 idMaterial::CheckSurfaceParm
 
-See if the current token matches one of the surface parm bit flags
+	See if the current token matches one of the surface parm bit flags
 ===============
 */
 bool idMaterial::CheckSurfaceParm( idToken* token )
 {
-	for( int i = 0; i < numInfoParms; i++ )
+	for( int i = 0; i < _countof( infoParms ); i++ )
 	{
 		if( !token->Icmp( infoParms[ i ].name ) )
 		{
@@ -346,7 +356,7 @@ bool idMaterial::CheckSurfaceParm( idToken* token )
 ===============
 idMaterial::MatchToken
 
-Sets defaultShader and returns false if the next token doesn't match
+	Sets defaultShader and returns false if the next token doesn't match
 ===============
 */
 bool idMaterial::MatchToken( idLexer& src, const char* match )
@@ -367,7 +377,6 @@ idMaterial::ParseSort
 void idMaterial::ParseSort( idLexer& src )
 {
 	idToken token;
-
 	if( !src.ReadTokenOnLine( &token ) )
 	{
 		src.Warning( "missing sort parameter" );
@@ -375,48 +384,47 @@ void idMaterial::ParseSort( idLexer& src )
 		return;
 	}
 
-	if( !token.Icmp( "subview" ) )
+	/*/*/if( token.is( "subview" ) )
 	{
 		sort = SS_SUBVIEW;
 	}
-	else if( !token.Icmp( "opaque" ) )
+	else if( token.is( "opaque" ) )
 	{
 		sort = SS_OPAQUE;
 	}
-	else if( !token.Icmp( "decal" ) )
+	else if( token.is( "decal" ) )
 	{
 		sort = SS_DECAL;
 	}
-	else if( !token.Icmp( "far" ) )
+	else if( token.is( "far" ) )
 	{
 		sort = SS_FAR;
 	}
-	else if( !token.Icmp( "medium" ) )
+	else if( token.is( "medium" ) )
 	{
 		sort = SS_MEDIUM;
 	}
-	else if( !token.Icmp( "close" ) )
+	else if( token.is( "close" ) )
 	{
 		sort = SS_CLOSE;
 	}
-	else if( !token.Icmp( "almostNearest" ) )
+	else if( token.is( "almostNearest" ) )
 	{
 		sort = SS_ALMOST_NEAREST;
 	}
-	else if( !token.Icmp( "nearest" ) )
+	else if( token.is( "nearest" ) )
 	{
 		sort = SS_NEAREST;
 	}
-	else if( !token.Icmp( "postProcess" ) )
+	else if( token.is( "postProcess" ) )
 	{
 		sort = SS_POST_PROCESS;
 	}
-	else if( !token.Icmp( "portalSky" ) )
+	else if( token.is( "portalSky" ) )
 	{
 		sort = SS_PORTAL_SKY;
 	}
-	else
-	{
+	else {
 		sort = atof( token );
 	}
 }
@@ -429,7 +437,6 @@ idMaterial::ParseStereoEye
 void idMaterial::ParseStereoEye( idLexer& src )
 {
 	idToken token;
-
 	if( !src.ReadTokenOnLine( &token ) )
 	{
 		src.Warning( "missing eye parameter" );
@@ -437,17 +444,15 @@ void idMaterial::ParseStereoEye( idLexer& src )
 		return;
 	}
 
-	if( !token.Icmp( "left" ) )
+	stereoEye = 0;
+
+	/*/*/if( token.is( "left" ) )
 	{
 		stereoEye = -1;
 	}
-	else if( !token.Icmp( "right" ) )
+	else if( token.is( "right" ) )
 	{
 		stereoEye = 1;
-	}
-	else
-	{
-		stereoEye = 0;
 	}
 }
 
@@ -460,11 +465,13 @@ void idMaterial::ParseDecalInfo( idLexer& src )
 {
 	idToken token;
 
-	decalInfo.stayTime = src.ParseFloat() * 1000;
-	decalInfo.fadeTime = src.ParseFloat() * 1000;
-	float	start[ 4 ], end[ 4 ];
+	decalInfo.stayTime = SEC2MS( src.ParseFloat() );
+	decalInfo.fadeTime = SEC2MS( src.ParseFloat() );
+
+	float start[ 4 ], end[ 4 ];
 	src.Parse1DMatrix( 4, start );
 	src.Parse1DMatrix( 4, end );
+
 	for( int i = 0; i < 4; i++ )
 	{
 		decalInfo.start[ i ] = start[ i ];
@@ -480,7 +487,6 @@ idMaterial::GetExpressionConstant
 int idMaterial::GetExpressionConstant( float f )
 {
 	int	i;
-
 	for( i = EXP_REG_NUM_PREDEFINED; i < numRegisters; i++ )
 	{
 		if( !pd->registerIsTemporary[ i ] && pd->shaderRegisters[ i ] == f )
@@ -496,7 +502,7 @@ int idMaterial::GetExpressionConstant( float f )
 	}
 	pd->registerIsTemporary[ i ] = false;
 	pd->shaderRegisters[ i ] = f;
-	numRegisters++;
+	++numRegisters;
 
 	return i;
 }
@@ -892,10 +898,10 @@ void idMaterial::ClearStage( materialStage_t* ss )
 
 	ss->conditionRegister = GetExpressionConstant( 1 );
 
-	ss->color.registers[ 0 ] =
-	ss->color.registers[ 1 ] =
-	ss->color.registers[ 2 ] =
-	ss->color.registers[ 3 ] = GetExpressionConstant( 1 );
+	ss->color.registers[ SHADERPARM_RED ] =
+	ss->color.registers[ SHADERPARM_GREEN ] =
+	ss->color.registers[ SHADERPARM_BLUE  ] =
+	ss->color.registers[ SHADERPARM_ALPHA ] = GetExpressionConstant( 1 );
 }
 
 /*
@@ -1003,7 +1009,7 @@ idMaterial::ParseBlend
 void idMaterial::ParseBlend( idLexer& src, materialStage_t* stage )
 {
 	idToken token;
-	int		srcBlend, dstBlend;
+	int	srcBlend, dstBlend;
 
 	if( !src.ReadToken( &token ) )
 	{
@@ -1064,59 +1070,63 @@ void idMaterial::ParseBlend( idLexer& src, materialStage_t* stage )
 ================
 idMaterial::ParseVertexParm
 
-If there is a single value, it will be repeated across all elements
-If there are two values, 3 = 0.0, 4 = 1.0
-if there are three values, 4 = 1.0
+	If there is a single value, it will be repeated across all elements
+	If there are two values, 3 = 0.0, 4 = 1.0
+	if there are three values, 4 = 1.0
 ================
 */
-void idMaterial::ParseVertexParm( idLexer& src, newShaderStage_t* newStage )
+void idMaterial::ParseVertexParm( idLexer& src, stageParseData_t* newStage )
 {
 	idToken	token;
 
 	src.ReadTokenOnLine( &token );
 	int	parm = token.GetIntValue();
-	if( !token.IsNumeric() || parm < 0 || parm >= MAX_VERTEX_PARMS )
+	if( !token.IsNumeric() || parm < 0 || parm >= MAX_STAGE_VECTORS )
 	{
-		common->Warning( "bad vertexParm number\n" );
+		common->Warning( "bad vectorParm number\n" );
 		SetMaterialFlag( MF_DEFAULTED );
 		return;
 	}
-	if( parm >= newStage->numVertexParms )
-	{
-		newStage->numVertexParms = parm + 1;
-	}
 
-	newStage->vertexParms[ parm ][ 0 ] = ParseExpression( src );
+	if( parm >= newStage->numVectors )
+	{
+		newStage->numVectors = parm + 1;
+	}
+	idStrStatic<16> parmDeclName;
+	parmDeclName.Format( "UserVec%i", parm );
+	newStage->vectors[ parm ].parmDecl = declManager->FindRenderParm( parmDeclName.c_str() );
+
+	newStage->vectors[ parm ].registers[ 0 ] = ParseExpression( src );
 
 	src.ReadTokenOnLine( &token );
 	if( !token[ 0 ] || token.Icmp( "," ) )
 	{
-		newStage->vertexParms[ parm ][ 1 ] =
-		newStage->vertexParms[ parm ][ 2 ] =
-		newStage->vertexParms[ parm ][ 3 ] = newStage->vertexParms[ parm ][ 0 ];
+		newStage->vectors[ parm ].registers[ 1 ] =
+		newStage->vectors[ parm ].registers[ 2 ] =
+		newStage->vectors[ parm ].registers[ 3 ] = newStage->vectors[ parm ].registers[ 0 ];
 		return;
 	}
 
-	newStage->vertexParms[ parm ][ 1 ] = ParseExpression( src );
+	newStage->vectors[ parm ].registers[ 1 ] = ParseExpression( src );
 
 	src.ReadTokenOnLine( &token );
 	if( !token[ 0 ] || token.Icmp( "," ) )
 	{
-		newStage->vertexParms[ parm ][ 2 ] = GetExpressionConstant( 0 );
-		newStage->vertexParms[ parm ][ 3 ] = GetExpressionConstant( 1 );
+		newStage->vectors[ parm ].registers[ 2 ] = GetExpressionConstant( 0 );
+		newStage->vectors[ parm ].registers[ 3 ] = GetExpressionConstant( 1 );
 		return;
 	}
 
-	newStage->vertexParms[ parm ][ 2 ] = ParseExpression( src );
+	newStage->vectors[ parm ].registers[ 2 ] = ParseExpression( src );
 
 	src.ReadTokenOnLine( &token );
 	if( !token[ 0 ] || token.Icmp( "," ) )
 	{
-		newStage->vertexParms[ parm ][ 3 ] = GetExpressionConstant( 1 );
+		newStage->vectors[ parm ].registers[ 3 ] = GetExpressionConstant( 1 );
 		return;
 	}
 
-	newStage->vertexParms[ parm ][ 3 ] = ParseExpression( src );
+	newStage->vectors[ parm ].registers[ 3 ] = ParseExpression( src );
 }
 
 /*
@@ -1124,12 +1134,12 @@ void idMaterial::ParseVertexParm( idLexer& src, newShaderStage_t* newStage )
 idMaterial::ParseVertexParm2
 ================
 */
-void idMaterial::ParseVertexParm2( idLexer& src, newShaderStage_t* newStage )
+void idMaterial::ParseVertexParm2( idLexer& src, stageParseData_t* newStage )
 {
 	idToken	token;
 	src.ReadTokenOnLine( &token );
 	int	parm = token.GetIntValue();
-	if( !token.IsNumeric() || parm < 0 || parm >= MAX_VERTEX_PARMS )
+	if( !token.IsNumeric() || parm < 0 || parm >= MAX_STAGE_VECTORS )
 	{
 		common->Warning( "bad vertexParm number\n" );
 		SetMaterialFlag( MF_DEFAULTED );
@@ -1138,40 +1148,47 @@ void idMaterial::ParseVertexParm2( idLexer& src, newShaderStage_t* newStage )
 
 	//auto decl = declManager->FindType( DECL_RENDERPARM, idStrStatic<96>().Format( "rpUserVec%i", parm ) )->Cast<idDeclRenderParm>();
 
-	if( parm >= newStage->numVertexParms )
+	if( parm >= newStage->numVectors )
 	{
-		newStage->numVertexParms = parm + 1;
+		newStage->numVectors = parm + 1;
 	}
 
-	newStage->vertexParms[ parm ][ 0 ] = ParseExpression( src );
+	idStrStatic<16> parmDeclName;
+	parmDeclName.Format( "UserVec%i", parm );
+	newStage->vectors[ parm ].parmDecl = declManager->FindRenderParm( parmDeclName.c_str() );
+
+	newStage->vectors[ parm ].registers[ 0 ] = ParseExpression( src );
 	MatchToken( src, "," );
-	newStage->vertexParms[ parm ][ 1 ] = ParseExpression( src );
+	newStage->vectors[ parm ].registers[ 1 ] = ParseExpression( src );
 	MatchToken( src, "," );
-	newStage->vertexParms[ parm ][ 2 ] = ParseExpression( src );
+	newStage->vectors[ parm ].registers[ 2 ] = ParseExpression( src );
 	MatchToken( src, "," );
-	newStage->vertexParms[ parm ][ 3 ] = ParseExpression( src );
+	newStage->vectors[ parm ].registers[ 3 ] = ParseExpression( src );
 }
 
 /*
 ================
 idMaterial::ParseFragmentMap
+
+ fragmentMap ...
 ================
 */
-void idMaterial::ParseFragmentMap( idLexer& src, newShaderStage_t* newStage )
+void idMaterial::ParseFragmentMap( idLexer& src, stageParseData_t* newStage )
 {
 	const char*	str;
 	idToken	token;
 
 	textureFilter_t tf = TF_DEFAULT;
 	textureRepeat_t trp = TR_REPEAT;
+
 	textureUsage_t td = TD_DEFAULT;
 	textureLayout_t cubeMap = IMG_LAYOUT_2D;
 
 	src.ReadTokenOnLine( &token );
 	int	unit = token.GetIntValue();
-	if( !token.IsNumeric() || unit < 0 || unit >= MAX_FRAGMENT_IMAGES )
+	if( !token.IsNumeric() || unit < 0 || unit >= MAX_STAGE_TEXTURES )
 	{
-		common->Warning( "bad fragmentMap number\n" );
+		common->Warning( "bad textureMap number\n" );
 		SetMaterialFlag( MF_DEFAULTED );
 		return;
 	}
@@ -1182,73 +1199,75 @@ void idMaterial::ParseFragmentMap( idLexer& src, newShaderStage_t* newStage )
 		td = TD_BUMP;
 	}
 
-	if( unit >= newStage->numFragmentProgramImages )
+	if( unit >= newStage->numTextures )
 	{
-		newStage->numFragmentProgramImages = unit + 1;
+		newStage->numTextures = unit + 1;
 	}
 
 	while( 1 )
 	{
 		src.ReadTokenOnLine( &token );
 
-		if( !token.Icmp( "normalMap" ) )
+		if( token.is( "normalMap" ) )
 		{
 			td = TD_BUMP;
 			continue;
 		}
-		if( !token.Icmp( "cubeMap" ) )
+		if( token.is( "cubeMap" ) )
 		{
 			cubeMap = IMG_LAYOUT_CUBE_NATIVE;
 			continue;
 		}
-		if( !token.Icmp( "cameraCubeMap" ) )
+		if( token.is( "cameraCubeMap" ) )
 		{
 			cubeMap = IMG_LAYOUT_CUBE_CAMERA;
 			continue;
 		}
-		if( !token.Icmp( "nearest" ) )
+
+		if( token.is( "nearest" ) )
 		{
 			tf = TF_NEAREST;
 			continue;
 		}
-		if( !token.Icmp( "linear" ) )
+		if( token.is( "linear" ) )
 		{
 			tf = TF_LINEAR;
 			continue;
 		}
-		if( !token.Icmp( "clamp" ) )
+		if( token.is( "clamp" ) )
 		{
 			trp = TR_CLAMP;
 			continue;
 		}
-		if( !token.Icmp( "noclamp" ) )
+		if( token.is( "noclamp" ) )
 		{
 			trp = TR_REPEAT;
 			continue;
 		}
-		if( !token.Icmp( "zeroclamp" ) )
+		if( token.is( "zeroclamp" ) )
 		{
 			trp = TR_CLAMP_TO_ZERO;
 			continue;
 		}
-		if( !token.Icmp( "alphazeroclamp" ) )
+		if( token.is( "alphazeroclamp" ) )
 		{
 			trp = TR_CLAMP_TO_ZERO_ALPHA;
 			continue;
 		}
-		if( !token.Icmp( "forceHighQuality" ) )
+		
+		if( token.is( "forceHighQuality" ) )
 		{
 			continue;
 		}
-		if( !token.Icmp( "highquality" ) )
+		if( token.is( "highquality" ) )
 		{
 			continue;
 		}
-		if( !token.Icmp( "uncompressed" ) )
+		if( token.is( "uncompressed" ) )
 		{
 			continue;
 		}
-		if( !token.Icmp( "nopicmip" ) )
+		if( token.is( "nopicmip" ) )
 		{
 			continue;
 		}
@@ -1257,13 +1276,18 @@ void idMaterial::ParseFragmentMap( idLexer& src, newShaderStage_t* newStage )
 		src.UnreadToken( &token );
 		break;
 	}
+
 	str = R_ParsePastImageProgram( src );
 
-	newStage->fragmentProgramImages[ unit ] = renderImageManager->ImageFromFile( str, tf, trp, td, cubeMap );
-	if( !newStage->fragmentProgramImages[ unit ] )
+	newStage->textures[ unit ].image = renderImageManager->ImageFromFile( str, tf, trp, td, cubeMap );
+	if( !newStage->textures[ unit ].image )
 	{
-		newStage->fragmentProgramImages[ unit ] = renderImageManager->defaultImage;
+		newStage->textures[ unit ].image = renderImageManager->defaultImage;
 	}
+
+	idStrStatic<16> parmDeclName;
+	parmDeclName.Format( "UserMap%i", unit );
+	newStage->textures[ unit ].parmDecl = declManager->FindRenderParm( parmDeclName.c_str() );
 }
 
 /*
@@ -1327,12 +1351,10 @@ An open brace has been parsed
 */
 void idMaterial::ParseStage( idLexer& src, const textureRepeat_t trpDefault )
 {
-	idToken				token;
-	const char*			str;
-	char				imageName[ MAX_IMAGE_NAME ];
-	int					a, b;
-	int					matrix[ 2 ][ 3 ];
-	newShaderStage_t	newStage;
+	idToken	token;
+	char imageName[ MAX_IMAGE_NAME ];
+	int	a, b;
+	int	matrix[ 2 ][ 3 ];
 
 	if( numStages >= MAX_SHADER_STAGES )
 	{
@@ -1347,8 +1369,11 @@ void idMaterial::ParseStage( idLexer& src, const textureRepeat_t trpDefault )
 
 	imageName[ 0 ] = 0;
 
-	memset( &newStage, 0, sizeof( newStage ) );
-	newStage.glslProgram = -1;
+	stageParseData_t newStage;
+	///memset( &newStage, 0, sizeof( newStage ) );
+	int program = -1;
+	int fragmentProgram = -1;
+	int vertexProgram = -1;
 
 	auto ss = &pd->parseStages[ numStages ];
 	auto ts = &ss->texture;
@@ -1801,12 +1826,13 @@ void idMaterial::ParseStage( idLexer& src, const textureRepeat_t trpDefault )
 			continue;
 		}
 
-		if( !token.Icmp( "program" ) )
+		if( token.is( "program" ) || token.is( "prog" ) )
 		{
 			if( src.ReadTokenOnLine( &token ) )
 			{
-				newStage.vertexProgram = renderProgManager.FindShader( token.c_str(), shaderType_e::SHT_VERTEX );
-				newStage.fragmentProgram = renderProgManager.FindShader( token.c_str(), shaderType_e::SHT_FRAGMENT );
+				///newStage.vertexProgram = renderProgManager.FindShader( token.c_str(), shaderType_e::SHT_VERTEX );
+				///newStage.fragmentProgram = renderProgManager.FindShader( token.c_str(), shaderType_e::SHT_FRAGMENT );
+				program = renderProgManager.FindRenderProgram( token )->Index();
 				idLib::Printf( S_COLOR_ORANGE "Token 'program %s' in %s" S_COLOR_DEFAULT "\n", token.c_str(), GetName() );
 			}
 			continue;
@@ -1815,7 +1841,8 @@ void idMaterial::ParseStage( idLexer& src, const textureRepeat_t trpDefault )
 		{
 			if( src.ReadTokenOnLine( &token ) )
 			{
-				newStage.fragmentProgram = renderProgManager.FindShader( token.c_str(), shaderType_e::SHT_FRAGMENT );
+				///newStage.fragmentProgram = renderProgManager.FindShader( token.c_str(), shaderType_e::SHT_FRAGMENT );
+				fragmentProgram = renderProgManager.FindRenderProgram( token )->Index();
 				idLib::Printf( S_COLOR_ORANGE "Token 'fragmentProgram %s' in %s" S_COLOR_DEFAULT "\n", token.c_str(), GetName() );
 			}
 			continue;
@@ -1824,7 +1851,8 @@ void idMaterial::ParseStage( idLexer& src, const textureRepeat_t trpDefault )
 		{
 			if( src.ReadTokenOnLine( &token ) )
 			{
-				newStage.vertexProgram = renderProgManager.FindShader( token.c_str(), shaderType_e::SHT_VERTEX );
+				///newStage.vertexProgram = renderProgManager.FindShader( token.c_str(), shaderType_e::SHT_VERTEX );
+				vertexProgram = renderProgManager.FindRenderProgram( token )->Index();
 				idLib::Printf( S_COLOR_ORANGE "Token 'vertexProgram %s' in %s" S_COLOR_DEFAULT "\n", token.c_str(), GetName() );
 			}
 			continue;
@@ -1854,15 +1882,37 @@ void idMaterial::ParseStage( idLexer& src, const textureRepeat_t trpDefault )
 	}
 
 	// if we are using newStage, allocate a copy of it
-	if( newStage.fragmentProgram || newStage.vertexProgram )
+	///if( newStage.fragmentProgram || newStage.vertexProgram )
+	if( program != -1 || fragmentProgram != -1 || vertexProgram != -1 )
 	{
-		newStage.glslProgram = renderProgManager.FindGLSLProgram( GetName(), newStage.vertexProgram, newStage.fragmentProgram );
-		ss->newStage = allocManager.StaticAlloc<newShaderStage_t>();
-		*( ss->newStage ) = newStage;
+		///newStage.glslProgram = renderProgManager.FindGLSLProgram( GetName(), newStage.vertexProgram, newStage.fragmentProgram );		
+		ss->newStage = allocManager.StaticAlloc< newShaderStage_t >();
+		///memcpy( ss->newStage, &newStage, sizeof( newShaderStage_t ) );		
+		
+		// Copy parsed parms
+
+		ss->newStage->program = program;
+		if( ss->newStage->program == -1 ) {
+			ss->newStage->program = ( fragmentProgram != -1 )? fragmentProgram : vertexProgram;
+		}
+		release_assert( ss->newStage->program != -1 );
+
+		ss->newStage->numVectors = newStage.numVectors;
+		ss->newStage->numTextures = newStage.numTextures;
+
+		ss->newStage->vectors = allocManager.StaticAlloc< stageVector_t >( newStage.numVectors );
+		ss->newStage->textures = allocManager.StaticAlloc< stageTexture_t >( newStage.numTextures );
+
+		for( uint32 i = 0; i < newStage.numVectors; i++ ) {
+			ss->newStage->vectors[ i ] = newStage.vectors[ i ];
+		}
+		for( uint32 i = 0; i < newStage.numTextures; i++ ) {
+			ss->newStage->textures[ i ] = newStage.textures[ i ];
+		}
 	}
 
 	// successfully parsed a stage
-	numStages++;
+	++numStages;
 
 	// select a compressed depth based on what the stage is
 	if( td == TD_DEFAULT )
@@ -1882,7 +1932,7 @@ void idMaterial::ParseStage( idLexer& src, const textureRepeat_t trpDefault )
 	{
 		// create new coverage stage
 		auto & newCoverageStage = pd->parseStages[ numStages ];
-		numStages++;
+		++numStages;
 		// copy it
 		newCoverageStage = *ss;
 		// toggle alphatest off for the current stage so it doesn't get called during the depth fill pass
@@ -1890,21 +1940,21 @@ void idMaterial::ParseStage( idLexer& src, const textureRepeat_t trpDefault )
 		// toggle alpha test on for the coverage stage
 		newCoverageStage.hasAlphaTest = true;
 		newCoverageStage.lighting = SL_COVERAGE;
-		auto & coverageTS = newCoverageStage.texture;
+		///auto & coverageTS = newCoverageStage.texture;
 
 		// now load the image with all the parms we parsed for the coverage stage
 		if( imageName[ 0 ] )
 		{
-			coverageTS.image = renderImageManager->ImageFromFile( imageName, tf, trp, TD_COVERAGE, cubeMap );
-			if( !coverageTS.image )
+			newCoverageStage.texture.image = renderImageManager->ImageFromFile( imageName, tf, trp, TD_COVERAGE, cubeMap );
+			if( !newCoverageStage.texture.image )
 			{
-				coverageTS.image = renderImageManager->defaultImage;
+				newCoverageStage.texture.image = renderImageManager->defaultImage;
 			}
 		}
-		else if( !coverageTS.cinematic && !coverageTS.dynamic && !ss->newStage )
+		else if( !newCoverageStage.texture.cinematic && !newCoverageStage.texture.dynamic && !ss->newStage )
 		{
 			common->Warning( "material '%s' had stage with no image", GetName() );
-			coverageTS.image = renderImageManager->defaultImage;
+			newCoverageStage.texture.image = renderImageManager->defaultImage;
 		}
 	}
 
@@ -2025,15 +2075,15 @@ void idMaterial::ParseDeform( idLexer& src )
 ==============
 idMaterial::AddImplicitStages
 
-If a material has diffuse or specular stages without any
-bump stage, add an implicit _flat bumpmap stage.
+	If a material has diffuse or specular stages without any
+	bump stage, add an implicit _flat bumpmap stage.
 
-If a material has a bump stage but no diffuse or specular
-stage, add a _white diffuse stage.
+	If a material has a bump stage but no diffuse or specular
+	stage, add a _white diffuse stage.
 
-It is valid to have either a diffuse or specular without the other.
+	It is valid to have either a diffuse or specular without the other.
 
-It is valid to have a reflection map and a bump map for bumpy reflection
+	It is valid to have a reflection map and a bump map for bumpy reflection
 ==============
 */
 void idMaterial::AddImplicitStages( const textureRepeat_t trpDefault /* = TR_REPEAT  */ )
@@ -2099,13 +2149,13 @@ void idMaterial::AddImplicitStages( const textureRepeat_t trpDefault /* = TR_REP
 ===============
 idMaterial::SortInteractionStages
 
-The renderer expects bump, then diffuse, then specular
-There can be multiple bump maps, followed by additional
-diffuse and specular stages, which allows cross-faded bump mapping.
+	The renderer expects bump, then diffuse, then specular
+	There can be multiple bump maps, followed by additional
+	diffuse and specular stages, which allows cross-faded bump mapping.
 
-Ambient stages can be interspersed anywhere, but they are
-ignored during interactions, and all the interaction
-stages are ignored during ambient drawing.
+	Ambient stages can be interspersed anywhere, but they are
+	ignored during interactions, and all the interaction
+	stages are ignored during ambient drawing.
 ===============
 */
 void idMaterial::SortInteractionStages()
@@ -2147,10 +2197,10 @@ void idMaterial::SortInteractionStages()
 =================
 idMaterial::ParseMaterial
 
-The current text pointer is at the explicit text definition of the
-Parse it into the global material variable. Later functions will optimize it.
+	The current text pointer is at the explicit text definition of the
+	Parse it into the global material variable. Later functions will optimize it.
 
-If there is any error during parsing, defaultShader will be set.
+	If there is any error during parsing, defaultShader will be set.
 =================
 */
 void idMaterial::ParseMaterial( idLexer& src )
@@ -2592,12 +2642,11 @@ bool idMaterial::Parse( const char* text, const int textLength, bool allowBinary
 	// reset to the unparsed state
 	CommonInit();
 
-	memset( &parsingData, 0, sizeof( parsingData ) );
-
 	pd = &parsingData;	// this is only valid during parse
 
-	// parse it
+	// parse it ---------
 	ParseMaterial( src );
+	// ------------------
 
 	// if we are doing an fs_copyfiles, also reference the editorImage
 	if( cvarSystem->GetCVarInteger( "fs_copyFiles" ) )
@@ -2612,7 +2661,7 @@ bool idMaterial::Parse( const char* text, const int textLength, bool allowBinary
 	{
 		if( pd->parseStages[ i ].lighting == SL_AMBIENT )
 		{
-			numAmbientStages++;
+			++numAmbientStages;
 		}
 	}
 
@@ -2621,8 +2670,7 @@ bool idMaterial::Parse( const char* text, const int textLength, bool allowBinary
 	{
 		hasSubview = true;
 	}
-	else
-	{
+	else {
 		hasSubview = false;
 		for( int i = 0; i < numStages; i++ )
 		{
@@ -2653,14 +2701,12 @@ bool idMaterial::Parse( const char* text, const int textLength, bool allowBinary
 			( pd->parseStages[ 0 ].drawStateBits & GLS_SRCBLEND_BITS ) == GLS_SRCBLEND_DST_COLOR ||
 			( pd->parseStages[ 0 ].drawStateBits & GLS_SRCBLEND_BITS ) == GLS_SRCBLEND_ONE_MINUS_DST_COLOR ||
 			( pd->parseStages[ 0 ].drawStateBits & GLS_SRCBLEND_BITS ) == GLS_SRCBLEND_DST_ALPHA ||
-			( pd->parseStages[ 0 ].drawStateBits & GLS_SRCBLEND_BITS ) == GLS_SRCBLEND_ONE_MINUS_DST_ALPHA
-			)
+			( pd->parseStages[ 0 ].drawStateBits & GLS_SRCBLEND_BITS ) == GLS_SRCBLEND_ONE_MINUS_DST_ALPHA ) 
 		{
 			// blended with the destination
 			coverage = MC_TRANSLUCENT;
 		}
-		else
-		{
+		else {
 			coverage = MC_OPAQUE;
 		}
 	}
@@ -2670,8 +2716,7 @@ bool idMaterial::Parse( const char* text, const int textLength, bool allowBinary
 	{
 		SetMaterialFlag( MF_NOSHADOWS );
 	}
-	else
-	{
+	else {
 		// mark the contents as opaque
 		contentFlags |= CONTENTS_OPAQUE;
 	}
@@ -2681,8 +2726,7 @@ bool idMaterial::Parse( const char* text, const int textLength, bool allowBinary
 	{
 		editorAlpha = 0.5;
 	}
-	else
-	{
+	else {
 		editorAlpha = 1.0;
 	}
 
@@ -2697,8 +2741,7 @@ bool idMaterial::Parse( const char* text, const int textLength, bool allowBinary
 		{
 			sort = SS_MEDIUM;
 		}
-		else
-		{
+		else {
 			sort = SS_OPAQUE;
 		}
 	}
@@ -2721,9 +2764,9 @@ bool idMaterial::Parse( const char* text, const int textLength, bool allowBinary
 		}
 		if( pStage->newStage )
 		{
-			for( int j = 0; j < pStage->newStage->numFragmentProgramImages; j++ )
+			for( int j = 0; j < pStage->newStage->numTextures; j++ )
 			{
-				if( pStage->newStage->fragmentProgramImages[ j ] == renderImageManager->originalCurrentRenderImage )
+				if( pStage->newStage->textures[ j ].image == renderImageManager->originalCurrentRenderImage )
 				{
 					if( sort != SS_PORTAL_SKY )
 					{
@@ -2753,8 +2796,7 @@ bool idMaterial::Parse( const char* text, const int textLength, bool allowBinary
 			// translucent surfaces can extend past the exactly marked depth buffer
 			pStage->drawStateBits |= GLS_DEPTHFUNC_LESS | GLS_DEPTHMASK;
 		}
-		else
-		{
+		else {
 			// opaque and perforated surfaces must exactly match the depth buffer,
 			// which gets alpha test correct
 			pStage->drawStateBits |= GLS_DEPTHFUNC_EQUAL | GLS_DEPTHMASK;
@@ -2768,8 +2810,7 @@ bool idMaterial::Parse( const char* text, const int textLength, bool allowBinary
 		// explicitly flaged in material definition
 		allowOverlays = true;
 	}
-	else
-	{
+	else {
 		if( !IsDrawn() )
 		{
 			allowOverlays = false;
@@ -2842,8 +2883,7 @@ bool idMaterial::Parse( const char* text, const int textLength, bool allowBinary
 idMaterial::Print
 ===================
 */
-const char* opNames[] =
-{
+const char* opNames[] = {
 	"OP_TYPE_ADD",
 	"OP_TYPE_SUBTRACT",
 	"OP_TYPE_MULTIPLY",
@@ -2874,8 +2914,7 @@ void idMaterial::Print() const
 		{
 			common->Printf( "%i = %s[ %i ]\n", op->c, declManager->DeclByIndex( DECL_TABLE, op->a )->GetName(), op->b );
 		}
-		else
-		{
+		else {
 			common->Printf( "%i = %i %s %i\n", op->c, op->a, opNames[ op->opType ], op->b );
 		}
 	}
@@ -2927,8 +2966,8 @@ void idMaterial::EvaluateRegisters(
 	const float		floatTime,
 	idSoundEmitter* soundEmitter ) const
 {
-	int		i, b;
-	expOp_t*	op;
+	int	i, b;
+	expOp_t * op;
 
 	// copy the material constants
 	for( i = EXP_REG_NUM_PREDEFINED; i < numRegisters; i++ )
@@ -2938,16 +2977,16 @@ void idMaterial::EvaluateRegisters(
 
 	// copy the local and global parameters
 	registers[ EXP_REG_TIME ] = floatTime;
-	registers[ EXP_REG_PARM0 ] = localShaderParms[ 0 ];
-	registers[ EXP_REG_PARM1 ] = localShaderParms[ 1 ];
-	registers[ EXP_REG_PARM2 ] = localShaderParms[ 2 ];
-	registers[ EXP_REG_PARM3 ] = localShaderParms[ 3 ];
-	registers[ EXP_REG_PARM4 ] = localShaderParms[ 4 ];
-	registers[ EXP_REG_PARM5 ] = localShaderParms[ 5 ];
-	registers[ EXP_REG_PARM6 ] = localShaderParms[ 6 ];
-	registers[ EXP_REG_PARM7 ] = localShaderParms[ 7 ];
-	registers[ EXP_REG_PARM8 ] = localShaderParms[ 8 ];
-	registers[ EXP_REG_PARM9 ] = localShaderParms[ 9 ];
+	registers[ EXP_REG_PARM0 ]  = localShaderParms[ 0 ];
+	registers[ EXP_REG_PARM1 ]  = localShaderParms[ 1 ];
+	registers[ EXP_REG_PARM2 ]  = localShaderParms[ 2 ];
+	registers[ EXP_REG_PARM3 ]  = localShaderParms[ 3 ];
+	registers[ EXP_REG_PARM4 ]  = localShaderParms[ 4 ];
+	registers[ EXP_REG_PARM5 ]  = localShaderParms[ 5 ];
+	registers[ EXP_REG_PARM6 ]  = localShaderParms[ 6 ];
+	registers[ EXP_REG_PARM7 ]  = localShaderParms[ 7 ];
+	registers[ EXP_REG_PARM8 ]  = localShaderParms[ 8 ];
+	registers[ EXP_REG_PARM9 ]  = localShaderParms[ 9 ];
 	registers[ EXP_REG_PARM10 ] = localShaderParms[ 10 ];
 	registers[ EXP_REG_PARM11 ] = localShaderParms[ 11 ];
 	registers[ EXP_REG_GLOBAL0 ] = globalShaderParms[ 0 ];
@@ -2983,7 +3022,7 @@ void idMaterial::EvaluateRegisters(
 				break;
 			case OP_TYPE_TABLE:
 			{
-				const idDeclTable* table = static_cast< const idDeclTable* >( declManager->DeclByIndex( DECL_TABLE, op->a ) );
+				auto table = declManager->DeclByIndex( DECL_TABLE, op->a )->Cast<idDeclTable>();
 				registers[ op->c ] = table->TableLookup( registers[ op->b ] );
 			}
 			break;
@@ -2996,8 +3035,7 @@ void idMaterial::EvaluateRegisters(
 				{
 					registers[ op->c ] = soundEmitter->CurrentAmplitude();
 				}
-				else
-				{
+				else {
 					registers[ op->c ] = 0;
 				}
 				break;
@@ -3218,7 +3256,12 @@ idMaterial::Size
 */
 size_t idMaterial::Size() const
 {
-	return sizeof( idMaterial );
+	size_t size = sizeof( idMaterial );
+	/*if( )
+	{
+		TODO
+	}*/
+	return size;
 }
 
 /*
@@ -3245,10 +3288,8 @@ bool idMaterial::SetDefaultText()
 		SetText( generated );
 		return true;
 	}
-	else
-	{
-		return false;
-	}
+
+	return false;
 }
 
 /*
@@ -3256,8 +3297,7 @@ bool idMaterial::SetDefaultText()
 idMaterial::DefaultDefinition
 ===================
 */
-const char* idMaterial::DefaultDefinition() const
-{
+const char* idMaterial::DefaultDefinition() const {
 	return
 		"{\n"
 		"\t"	"{\n"
@@ -3295,11 +3335,11 @@ void idMaterial::ReloadImages( bool force ) const
 	{
 		if( stages[ i ].newStage )
 		{
-			for( int j = 0; j < stages[ i ].newStage->numFragmentProgramImages; j++ )
+			for( int j = 0; j < stages[ i ].newStage->numTextures; j++ )
 			{
-				if( stages[ i ].newStage->fragmentProgramImages[ j ] )
+				if( stages[ i ].newStage->textures[ j ].image )
 				{
-					stages[ i ].newStage->fragmentProgramImages[ j ]->Reload( force );
+					stages[ i ].newStage->textures[ j ].image->Reload( force );
 				}
 			}
 		}

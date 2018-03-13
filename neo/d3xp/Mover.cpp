@@ -31,7 +31,7 @@ If you have questions concerning this license or the applicable additional terms
 
 #include "Game_local.h"
 
-// _D3XP : rename all gameLocal.time to gameLocal.slow.time for merge!
+// _D3XP : rename all gameLocal.GetGameTimeMs() to gameLocal.slow.time for merge!
 
 // a mover will update any gui entities in it's target list with
 // a key/val pair of "mover" "state" from below.. guis can represent
@@ -1280,17 +1280,13 @@ idMover::Event_MoveAccelerateTo
 */
 void idMover::Event_MoveAccelerateTo( float speed, float time )
 {
-	float v;
-	idVec3 org, dir;
-	int at;
-	
 	if( time < 0 )
 	{
 		gameLocal.Error( "idMover::Event_MoveAccelerateTo: cannot set acceleration time less than 0." );
 	}
 	
-	dir = physicsObj.GetLinearVelocity();
-	v = dir.Normalize();
+	idVec3 dir = physicsObj.GetLinearVelocity();
+	float v = dir.Normalize();
 	
 	// if not moving already
 	if( v == 0.0f )
@@ -1304,10 +1300,11 @@ void idMover::Event_MoveAccelerateTo( float speed, float time )
 		return;
 	}
 	
-	at = idPhysics::SnapTimeToPhysicsFrame( SEC2MS( time ) );
+	int at = idPhysics::SnapTimeToPhysicsFrame( SEC2MS( time ) );
 	
 	lastCommand	= MOVER_MOVING;
 	
+	idVec3 org;
 	physicsObj.GetLocalOrigin( org );
 	
 	move.stage			= ACCELERATION_STAGE;
@@ -1327,17 +1324,13 @@ idMover::Event_MoveDecelerateTo
 */
 void idMover::Event_MoveDecelerateTo( float speed, float time )
 {
-	float v;
-	idVec3 org, dir;
-	int dt;
-	
 	if( time < 0 )
 	{
 		gameLocal.Error( "idMover::Event_MoveDecelerateTo: cannot set deceleration time less than 0." );
 	}
 	
-	dir = physicsObj.GetLinearVelocity();
-	v = dir.Normalize();
+	idVec3 dir = physicsObj.GetLinearVelocity();
+	float v = dir.Normalize();
 	
 	// if not moving already
 	if( v == 0.0f )
@@ -1351,10 +1344,11 @@ void idMover::Event_MoveDecelerateTo( float speed, float time )
 		return;
 	}
 	
-	dt = idPhysics::SnapTimeToPhysicsFrame( SEC2MS( time ) );
+	int dt = idPhysics::SnapTimeToPhysicsFrame( SEC2MS( time ) );
 	
 	lastCommand	= MOVER_MOVING;
 	
+	idVec3 org;
 	physicsObj.GetLocalOrigin( org );
 	
 	move.stage			= DECELERATION_STAGE;
@@ -1374,13 +1368,12 @@ idMover::Event_RotateDownTo
 */
 void idMover::Event_RotateDownTo( int axis, float angle )
 {
-	idAngles ang;
-	
 	if( ( axis < 0 ) || ( axis > 2 ) )
 	{
 		gameLocal.Error( "Invalid axis" );
 	}
 	
+	idAngles ang;
 	physicsObj.GetLocalAngles( ang );
 	
 	dest_angles[ axis ] = angle;
@@ -1399,13 +1392,12 @@ idMover::Event_RotateUpTo
 */
 void idMover::Event_RotateUpTo( int axis, float angle )
 {
-	idAngles ang;
-	
 	if( ( axis < 0 ) || ( axis > 2 ) )
 	{
 		gameLocal.Error( "Invalid axis" );
 	}
 	
+	idAngles ang;
 	physicsObj.GetLocalAngles( ang );
 	
 	dest_angles[ axis ] = angle;
@@ -1435,13 +1427,11 @@ idMover::Event_Rotate
 */
 void idMover::Event_Rotate( idAngles& angles )
 {
-	idAngles ang;
-	
 	if( rotate_thread )
 	{
 		DoneRotating();
 	}
-	
+	idAngles ang;
 	physicsObj.GetLocalAngles( ang );
 	dest_angles = ang + angles * ( move_time - ( acceltime + deceltime ) / 2 ) * 0.001f;
 	
@@ -1455,13 +1445,11 @@ idMover::Event_RotateOnce
 */
 void idMover::Event_RotateOnce( idAngles& angles )
 {
-	idAngles ang;
-	
 	if( rotate_thread )
 	{
 		DoneRotating();
 	}
-	
+	idAngles ang;
 	physicsObj.GetLocalAngles( ang );
 	dest_angles = ang + angles;
 	
@@ -1475,8 +1463,7 @@ idMover::Event_Bob
 */
 void idMover::Event_Bob( float speed, float phase, idVec3& depth )
 {
-	idVec3 org;
-	
+	idVec3 org;	
 	physicsObj.GetLocalOrigin( org );
 	physicsObj.SetLinearExtrapolation( extrapolation_t( EXTRAPOLATION_DECELSINE | EXTRAPOLATION_NOSTOP ), speed * 1000 * phase, speed * 500, org, depth * 2.0f, vec3_origin );
 }
@@ -1585,15 +1572,12 @@ idMover::Event_RemoveInitialSplineAngles
 */
 void idMover::Event_RemoveInitialSplineAngles()
 {
-	idCurve_Spline<idVec3>* spline;
-	idAngles ang;
-	
-	spline = physicsObj.GetSpline();
+	auto spline = physicsObj.GetSpline();
 	if( !spline )
 	{
 		return;
 	}
-	ang = spline->GetCurrentFirstDerivative( 0 ).ToAngles();
+	idAngles ang = spline->GetCurrentFirstDerivative( 0 ).ToAngles();
 	physicsObj.SetAngularExtrapolation( EXTRAPOLATION_NONE, 0, 0, -ang, ang_zero, ang_zero );
 }
 
@@ -1604,8 +1588,6 @@ idMover::Event_StartSpline
 */
 void idMover::Event_StartSpline( idEntity* splineEntity )
 {
-	idCurve_Spline<idVec3>* spline;
-	
 	if( !splineEntity )
 	{
 		return;
@@ -1614,7 +1596,7 @@ void idMover::Event_StartSpline( idEntity* splineEntity )
 	// Needed for savegames
 	splineEnt = splineEntity;
 	
-	spline = splineEntity->GetSpline();
+	auto spline = splineEntity->GetSpline();
 	if( !spline )
 	{
 		return;
@@ -1886,7 +1868,6 @@ idElevator::Spawn
 void idElevator::Spawn()
 {
 	idStr str;
-	int len1;
 	
 	lastFloor = 0;
 	currentFloor = 0;
@@ -1896,7 +1877,7 @@ void idElevator::Spawn()
 	returnTime = spawnArgs.GetFloat( "returnTime" );
 	returnFloor = spawnArgs.GetInt( "returnFloor" );
 	
-	len1 = strlen( "floorPos_" );
+	int len1 = idStr::Length( "floorPos_" );
 	const idKeyValue* kv = spawnArgs.MatchPrefix( "floorPos_", NULL );
 	while( kv )
 	{
@@ -3246,7 +3227,7 @@ void idMover_Binary::Use_BinaryMover( idEntity* activator )
 	if( moverState == MOVER_POS1 )
 	{
 		// FIXME: start moving 1 ms later, because if this was player
-		// triggered, gameLocal.time hasn't been advanced yet
+		// triggered, gameLocal.GetGameTimeMs() hasn't been advanced yet
 		MatchActivateTeam( MOVER_1TO2, gameLocal.GetTimeGroupTime( TIME_GROUP1 ) + 1 );
 		
 		SetGuiStates( guiBinaryMoverStates[MOVER_1TO2] );
@@ -3341,9 +3322,7 @@ key/val will be set to any renderEntity->gui's on the list
 */
 void idMover_Binary::SetGuiState( const char* key, const char* val ) const
 {
-	int i;
-	
-	for( i = 0; i < guiTargets.Num(); i++ )
+	for( int i = 0; i < guiTargets.Num(); i++ )
 	{
 		idEntity* ent = guiTargets[ i ].GetEntity();
 		if( ent )
@@ -4804,7 +4783,7 @@ void idPlat::RunPhysics_NoBlocking()
 	}
 	*/
 	startTime = gameLocal.GetPreviousGameTimeMs();
-	endTime = gameLocal.GetTime();
+	endTime = gameLocal.GetGameTimeMs();
 	
 	gameLocal.push.InitSavingPushedEntityPositions();
 	blockedPart = NULL;
@@ -4903,8 +4882,7 @@ void idPlat::ClientThink( const int curTime, const float fraction, const bool pr
 				trigger->Link( gameLocal.clip, this, 0, masterOrigin + localTriggerOrigin * masterAxis, localTriggerAxis * masterAxis );
 			}
 		}
-	}
-	*/
+	}*/
 }
 
 /*
@@ -4913,14 +4891,14 @@ idPlat::Think
 ================
 */
 void idPlat::Think()
-{
-	idVec3 masterOrigin;
-	idMat3 masterAxis;
-	
+{	
 	idMover_Binary::Think();
 	
 	if( thinkFlags & TH_PHYSICS )
 	{
+		idVec3 masterOrigin;
+		idMat3 masterAxis;
+
 		// update trigger position
 		if( GetMasterPosition( masterOrigin, masterAxis ) )
 		{

@@ -186,7 +186,7 @@ idCommonLocal::MenuEvent
 Executes any commands returned by the gui
 ==============
 */
-bool idCommonLocal::MenuEvent( const sysEvent_t* event )
+bool idCommonLocal::MenuEvent( const idSysEvent* event )
 {
 
 	if( session->GetSignInManager().ProcessInputEvent( event ) )

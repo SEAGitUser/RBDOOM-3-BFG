@@ -1043,7 +1043,7 @@ void idAI::Spawn()
 	
 	if( af_push_moveables )
 	{
-		af.SetupPose( this, gameLocal.time );
+		af.SetupPose( this, gameLocal.GetGameTimeMs() );
 		af.GetPhysics()->EnableClip();
 	}
 	
@@ -1182,7 +1182,7 @@ void idAI::DormantEnd()
 	{
 		for( int i = 0; i < particles.Num(); i++ )
 		{
-			particles[i].time = gameLocal.time;
+			particles[i].time = gameLocal.GetGameTimeMs();
 		}
 	}
 	
@@ -1307,7 +1307,7 @@ void idAI::Think()
 	if( fl.hidden && allowHiddenMovement )
 	{
 		// UpdateAnimation won't call frame commands when hidden, so call them here when we allow hidden movement
-		animator.ServiceAnims( gameLocal.previousTime, gameLocal.time );
+		animator.ServiceAnims( gameLocal.GetPreviousGameTimeMs(), gameLocal.GetGameTimeMs() );
 	}
 	/*	this still draws in retail builds.. not sure why.. don't care at this point.
 		if ( !aas && developer.GetBool() && !fl.hidden && !num_cinematics ) {
@@ -1736,14 +1736,14 @@ void idAI::StopMove( moveStatus_t status )
 	AI_DEST_UNREACHABLE	= false;
 	AI_OBSTACLE_IN_PATH = false;
 	AI_BLOCKED			= false;
-	move.startTime		= gameLocal.time;
+	move.startTime		= gameLocal.GetGameTimeMs();
 	move.duration		= 0;
 	move.range			= 0.0f;
 	move.speed			= 0.0f;
 	move.anim			= 0;
 	move.moveDir.Zero();
 	move.lastMoveOrigin.Zero();
-	move.lastMoveTime	= gameLocal.time;
+	move.lastMoveTime	= gameLocal.GetGameTimeMs();
 }
 
 /*
@@ -1767,7 +1767,7 @@ bool idAI::FaceEnemy()
 	move.moveDest		= physicsObj.GetOrigin();
 	move.moveCommand	= MOVE_FACE_ENEMY;
 	move.moveStatus		= MOVE_STATUS_WAITING;
-	move.startTime		= gameLocal.time;
+	move.startTime		= gameLocal.GetGameTimeMs();
 	move.speed			= 0.0f;
 	AI_MOVE_DONE		= true;
 	AI_FORWARD			= false;
@@ -1797,7 +1797,7 @@ bool idAI::FaceEntity( idEntity* ent )
 	move.moveDest		= physicsObj.GetOrigin();
 	move.moveCommand	= MOVE_FACE_ENTITY;
 	move.moveStatus		= MOVE_STATUS_WAITING;
-	move.startTime		= gameLocal.time;
+	move.startTime		= gameLocal.GetGameTimeMs();
 	move.speed			= 0.0f;
 	AI_MOVE_DONE		= true;
 	AI_FORWARD			= false;
@@ -1823,7 +1823,7 @@ bool idAI::DirectMoveToPosition( const idVec3& pos )
 	move.goalEntity		= NULL;
 	move.moveCommand	= MOVE_TO_POSITION_DIRECT;
 	move.moveStatus		= MOVE_STATUS_MOVING;
-	move.startTime		= gameLocal.time;
+	move.startTime		= gameLocal.GetGameTimeMs();
 	move.speed			= fly_speed;
 	AI_MOVE_DONE		= false;
 	AI_DEST_UNREACHABLE = false;
@@ -1859,7 +1859,7 @@ bool idAI::MoveToEnemyHeight()
 	move.goalEntity		= enemyEnt;
 	move.moveCommand	= MOVE_TO_ENEMYHEIGHT;
 	move.moveStatus		= MOVE_STATUS_MOVING;
-	move.startTime		= gameLocal.time;
+	move.startTime		= gameLocal.GetGameTimeMs();
 	move.speed			= 0.0f;
 	AI_MOVE_DONE		= false;
 	AI_DEST_UNREACHABLE = false;
@@ -1937,7 +1937,7 @@ bool idAI::MoveToEnemy()
 	if( move.moveCommand != MOVE_TO_ENEMY )
 	{
 		move.moveCommand	= MOVE_TO_ENEMY;
-		move.startTime		= gameLocal.time;
+		move.startTime		= gameLocal.GetGameTimeMs();
 	}
 	
 	move.moveDest		= pos;
@@ -2017,7 +2017,7 @@ bool idAI::MoveToEntity( idEntity* ent )
 	
 	if( ( move.moveCommand != MOVE_TO_ENTITY ) || ( move.goalEntity.GetEntity() != ent ) )
 	{
-		move.startTime		= gameLocal.time;
+		move.startTime		= gameLocal.GetGameTimeMs();
 		move.goalEntity		= ent;
 		move.moveCommand	= MOVE_TO_ENTITY;
 	}
@@ -2089,7 +2089,7 @@ bool idAI::MoveOutOfRange( idEntity* ent, float range )
 	move.moveStatus		= MOVE_STATUS_MOVING;
 	move.range			= range;
 	move.speed			= fly_speed;
-	move.startTime		= gameLocal.time;
+	move.startTime		= gameLocal.GetGameTimeMs();
 	AI_MOVE_DONE		= false;
 	AI_DEST_UNREACHABLE = false;
 	AI_FORWARD			= true;
@@ -2146,7 +2146,7 @@ bool idAI::MoveToAttackPosition( idEntity* ent, int attack_anim )
 	move.moveCommand	= MOVE_TO_ATTACK_POSITION;
 	move.moveStatus		= MOVE_STATUS_MOVING;
 	move.speed			= fly_speed;
-	move.startTime		= gameLocal.time;
+	move.startTime		= gameLocal.GetGameTimeMs();
 	move.anim			= attack_anim;
 	AI_MOVE_DONE		= false;
 	AI_DEST_UNREACHABLE = false;
@@ -2199,7 +2199,7 @@ bool idAI::MoveToPosition( const idVec3& pos )
 	move.goalEntity		= NULL;
 	move.moveCommand	= MOVE_TO_POSITION;
 	move.moveStatus		= MOVE_STATUS_MOVING;
-	move.startTime		= gameLocal.time;
+	move.startTime		= gameLocal.GetGameTimeMs();
 	move.speed			= fly_speed;
 	AI_MOVE_DONE		= false;
 	AI_DEST_UNREACHABLE = false;
@@ -2252,7 +2252,7 @@ bool idAI::MoveToCover( idEntity* entity, const idVec3& hideFromPos )
 	move.goalEntity		= entity;
 	move.moveCommand	= MOVE_TO_COVER;
 	move.moveStatus		= MOVE_STATUS_MOVING;
-	move.startTime		= gameLocal.time;
+	move.startTime		= gameLocal.GetGameTimeMs();
 	move.speed			= fly_speed;
 	AI_MOVE_DONE		= false;
 	AI_DEST_UNREACHABLE = false;
@@ -2274,7 +2274,7 @@ bool idAI::SlideToPosition( const idVec3& pos, float time )
 	move.goalEntity		= NULL;
 	move.moveCommand	= MOVE_SLIDE_TO_POSITION;
 	move.moveStatus		= MOVE_STATUS_MOVING;
-	move.startTime		= gameLocal.time;
+	move.startTime		= gameLocal.GetGameTimeMs();
 	move.duration		= idPhysics::SnapTimeToPhysicsFrame( SEC2MS( time ) );
 	AI_MOVE_DONE		= false;
 	AI_DEST_UNREACHABLE = false;
@@ -2312,7 +2312,7 @@ bool idAI::WanderAround()
 	
 	move.moveCommand	= MOVE_WANDER;
 	move.moveStatus		= MOVE_STATUS_MOVING;
-	move.startTime		= gameLocal.time;
+	move.startTime		= gameLocal.GetGameTimeMs();
 	move.speed			= fly_speed;
 	AI_MOVE_DONE		= false;
 	AI_FORWARD			= true;
@@ -2412,7 +2412,7 @@ bool idAI::NewWanderDir( const idVec3& dest )
 	float	d[ 3 ];
 	float	tdir, olddir, turnaround;
 	
-	move.nextWanderTime = gameLocal.time + ( gameLocal.random.RandomFloat() * 500 + 500 );
+	move.nextWanderTime = gameLocal.GetGameTimeMs() + ( gameLocal.random.RandomFloat() * 500 + 500 );
 	
 	olddir = idMath::AngleNormalize360( ( int )( current_yaw / 45 ) * 45 );
 	turnaround = idMath::AngleNormalize360( olddir - 180 );
@@ -2570,7 +2570,7 @@ bool idAI::GetMovePos( idVec3& seekPos )
 	
 	move.moveStatus = MOVE_STATUS_MOVING;
 	result = false;
-	if( gameLocal.time > move.blockTime )
+	if( gameLocal.GetGameTimeMs() > move.blockTime )
 	{
 		if( move.moveCommand == MOVE_WANDER )
 		{
@@ -2605,7 +2605,7 @@ bool idAI::GetMovePos( idVec3& seekPos )
 	if( !result )
 	{
 		// wander around
-		if( ( gameLocal.time > move.nextWanderTime ) || !StepDirection( move.wanderYaw ) )
+		if( ( gameLocal.GetGameTimeMs() > move.nextWanderTime ) || !StepDirection( move.wanderYaw ) )
 		{
 			result = NewWanderDir( move.moveDest );
 			if( !result )
@@ -2702,14 +2702,14 @@ void idAI::BlockedFailSafe()
 			( physicsObj.GetOrigin() - move.lastMoveOrigin ).LengthSqr() > idMath::Square( blockedRadius ) )
 	{
 		move.lastMoveOrigin = physicsObj.GetOrigin();
-		move.lastMoveTime = gameLocal.time;
+		move.lastMoveTime = gameLocal.GetGameTimeMs();
 	}
-	if( move.lastMoveTime < gameLocal.time - blockedMoveTime )
+	if( move.lastMoveTime < gameLocal.GetGameTimeMs() - blockedMoveTime )
 	{
-		if( lastAttackTime < gameLocal.time - blockedAttackTime )
+		if( lastAttackTime < gameLocal.GetGameTimeMs() - blockedAttackTime )
 		{
 			AI_BLOCKED = true;
-			move.lastMoveTime = gameLocal.time;
+			move.lastMoveTime = gameLocal.GetGameTimeMs();
 		}
 	}
 }
@@ -2763,13 +2763,12 @@ void idAI::Turn()
 		animator.CurrentAnim( ANIMCHANNEL_TORSO )->SetSyncedAnimWeight( 1, frac );
 		
 		// get the total rotation from the start of the anim
-		animator.GetDeltaRotation( 0, gameLocal.time, rotateAxis );
+		animator.GetDeltaRotation( 0, gameLocal.GetGameTimeMs(), rotateAxis );
 		current_yaw = idMath::AngleNormalize180( anim_turn_yaw + rotateAxis[ 0 ].ToYaw() );
 	}
-	else
-	{
+	else {
 		diff = idMath::AngleNormalize180( ideal_yaw - current_yaw );
-		turnVel += AI_TURN_SCALE * diff * MS2SEC( gameLocal.time - gameLocal.previousTime );
+		turnVel += AI_TURN_SCALE * diff * MS2SEC( gameLocal.GetGameTimeMs() - gameLocal.GetPreviousGameTimeMs() );
 		if( turnVel > turnRate )
 		{
 			turnVel = turnRate;
@@ -2778,15 +2777,15 @@ void idAI::Turn()
 		{
 			turnVel = -turnRate;
 		}
-		turnAmount = turnVel * MS2SEC( gameLocal.time - gameLocal.previousTime );
+		turnAmount = turnVel * MS2SEC( gameLocal.GetGameTimeMs() - gameLocal.GetPreviousGameTimeMs() );
 		if( ( diff >= 0.0f ) && ( turnAmount >= diff ) )
 		{
-			turnVel = diff / MS2SEC( gameLocal.time - gameLocal.previousTime );
+			turnVel = diff / MS2SEC( gameLocal.GetGameTimeMs() - gameLocal.GetPreviousGameTimeMs() );
 			turnAmount = diff;
 		}
 		else if( ( diff <= 0.0f ) && ( turnAmount <= diff ) )
 		{
-			turnVel = diff / MS2SEC( gameLocal.time - gameLocal.previousTime );
+			turnVel = diff / MS2SEC( gameLocal.GetGameTimeMs() - gameLocal.GetPreviousGameTimeMs() );
 			turnAmount = diff;
 		}
 		current_yaw += turnAmount;
@@ -2900,7 +2899,7 @@ void idAI::GetMoveDelta( const idMat3& oldaxis, const idMat3& axis, idVec3& delt
 	idVec3 oldModelOrigin;
 	idVec3 modelOrigin;
 	
-	animator.GetDelta( gameLocal.previousTime, gameLocal.time, delta );
+	animator.GetDelta( gameLocal.GetPreviousGameTimeMs(), gameLocal.GetGameTimeMs(), delta );
 	delta = axis * delta;
 	
 	if( modelOffset != vec3_zero )
@@ -3076,7 +3075,7 @@ void idAI::AnimMove()
 	if( move.moveCommand < NUM_NONMOVING_COMMANDS )
 	{
 		move.lastMoveOrigin.Zero();
-		move.lastMoveTime = gameLocal.time;
+		move.lastMoveTime = gameLocal.GetGameTimeMs();
 	}
 	
 	move.obstacle = NULL;
@@ -3107,9 +3106,9 @@ void idAI::AnimMove()
 	
 	if( move.moveCommand == MOVE_SLIDE_TO_POSITION )
 	{
-		if( gameLocal.time < move.startTime + move.duration )
+		if( gameLocal.GetGameTimeMs() < move.startTime + move.duration )
 		{
-			goalPos = move.moveDest - move.moveDir * MS2SEC( move.startTime + move.duration - gameLocal.time );
+			goalPos = move.moveDest - move.moveDir * MS2SEC( move.startTime + move.duration - gameLocal.GetGameTimeMs() );
 			delta = goalPos - oldorigin;
 			delta.z = 0.0f;
 		}
@@ -3197,7 +3196,7 @@ idVec3 Seek( idVec3& vel, const idVec3& org, const idVec3& goal, float predictio
 	// predict our position
 	predictedPos = org + vel * prediction;
 	goalDelta = goal - predictedPos;
-	seekVel = goalDelta * MS2SEC( gameLocal.time - gameLocal.previousTime );
+	seekVel = goalDelta * MS2SEC( gameLocal.GetGameTimeMs() - gameLocal.GetPreviousGameTimeMs() );
 	
 	return seekVel;
 }
@@ -3224,7 +3223,7 @@ void idAI::SlideMove()
 	if( move.moveCommand < NUM_NONMOVING_COMMANDS )
 	{
 		move.lastMoveOrigin.Zero();
-		move.lastMoveTime = gameLocal.time;
+		move.lastMoveTime = gameLocal.GetGameTimeMs();
 	}
 	
 	move.obstacle = NULL;
@@ -3247,9 +3246,9 @@ void idAI::SlideMove()
 	
 	if( move.moveCommand == MOVE_SLIDE_TO_POSITION )
 	{
-		if( gameLocal.time < move.startTime + move.duration )
+		if( gameLocal.GetGameTimeMs() < move.startTime + move.duration )
 		{
-			goalPos = move.moveDest - move.moveDir * MS2SEC( move.startTime + move.duration - gameLocal.time );
+			goalPos = move.moveDest - move.moveDir * MS2SEC( move.startTime + move.duration - gameLocal.GetGameTimeMs() );
 		}
 		else
 		{
@@ -3274,8 +3273,8 @@ void idAI::SlideMove()
 	
 	// seek the goal position
 	goalDelta = goalPos - predictedPos;
-	vel -= vel * AI_FLY_DAMPENING * MS2SEC( gameLocal.time - gameLocal.previousTime );
-	vel += goalDelta * MS2SEC( gameLocal.time - gameLocal.previousTime );
+	vel -= vel * AI_FLY_DAMPENING * MS2SEC( gameLocal.GetGameTimeMs() - gameLocal.GetPreviousGameTimeMs() );
+	vel += goalDelta * MS2SEC( gameLocal.GetGameTimeMs() - gameLocal.GetPreviousGameTimeMs() );
 	
 	// cap our speed
 	vel = vel.Truncate( fly_speed );
@@ -3407,9 +3406,9 @@ void idAI::AddFlyBob( idVec3& vel )
 	
 	if( fly_bob_strength )
 	{
-		t = MS2SEC( gameLocal.time + entityNumber * 497 );
+		t = MS2SEC( gameLocal.GetGameTimeMs() + entityNumber * 497 );
 		fly_bob_add = ( viewAxis[ 1 ] * idMath::Sin16( t * fly_bob_horz ) + viewAxis[ 2 ] * idMath::Sin16( t * fly_bob_vert ) ) * fly_bob_strength;
-		vel += fly_bob_add * MS2SEC( gameLocal.time - gameLocal.previousTime );
+		vel += fly_bob_add * MS2SEC( gameLocal.GetGameTimeMs() - gameLocal.GetPreviousGameTimeMs() );
 		if( ai_debugMove.GetBool() )
 		{
 			const idVec3& origin = physicsObj.GetOrigin();
@@ -3499,11 +3498,11 @@ void idAI::AdjustFlySpeed( idVec3& vel )
 	float speed;
 	
 	// apply dampening
-	vel -= vel * AI_FLY_DAMPENING * MS2SEC( gameLocal.time - gameLocal.previousTime );
+	vel -= vel * AI_FLY_DAMPENING * MS2SEC( gameLocal.GetGameTimeMs() - gameLocal.GetPreviousGameTimeMs() );
 	
 	// gradually speed up/slow down to desired speed
 	speed = vel.Normalize();
-	speed += ( move.speed - speed ) * MS2SEC( gameLocal.time - gameLocal.previousTime );
+	speed += ( move.speed - speed ) * MS2SEC( gameLocal.GetGameTimeMs() - gameLocal.GetPreviousGameTimeMs() );
 	if( speed < 0.0f )
 	{
 		speed = 0.0f;
@@ -3561,7 +3560,7 @@ void idAI::FlyMove()
 	
 	if( ai_debugMove.GetBool() )
 	{
-		gameLocal.Printf( "%d: %s: %s, vel = %.2f, sp = %.2f, maxsp = %.2f\n", gameLocal.time, name.c_str(), moveCommandString[ move.moveCommand ], physicsObj.GetLinearVelocity().Length(), move.speed, fly_speed );
+		gameLocal.Printf( "%d: %s: %s, vel = %.2f, sp = %.2f, maxsp = %.2f\n", gameLocal.GetGameTimeMs(), name.c_str(), moveCommandString[ move.moveCommand ], physicsObj.GetLinearVelocity().Length(), move.speed, fly_speed );
 	}
 	
 	if( move.moveCommand != MOVE_TO_POSITION_DIRECT )
@@ -3617,7 +3616,7 @@ void idAI::FlyMove()
 		}
 		else if( moveResult == MM_BLOCKED )
 		{
-			move.blockTime = gameLocal.time + 500;
+			move.blockTime = gameLocal.GetGameTimeMs() + 500;
 			AI_BLOCKED = true;
 		}
 	}
@@ -3841,18 +3840,18 @@ const idDeclParticle* idAI::SpawnParticlesOnJoint( particleEmitter_t& pe, const 
 	}
 	else
 	{
-		animator.GetJointTransform( pe.joint, gameLocal.time, origin, axis );
+		animator.GetJointTransform( pe.joint, gameLocal.GetGameTimeMs(), origin, axis );
 		origin = renderEntity.origin + origin * renderEntity.axis;
 		
 		BecomeActive( TH_UPDATEPARTICLES );
-		if( !gameLocal.time )
+		if( !gameLocal.GetGameTimeMs() )
 		{
 			// particles with time of 0 don't show, so set the time differently on the first frame
 			pe.time = 1;
 		}
 		else
 		{
-			pe.time = gameLocal.time;
+			pe.time = gameLocal.GetGameTimeMs();
 		}
 		pe.particle = static_cast<const idDeclParticle*>( declManager->FindType( DECL_PARTICLE, particleName ) );
 		gameLocal.smokeParticles->EmitSmoke( pe.particle, pe.time, gameLocal.random.CRandomFloat(), origin, axis, timeGroup /*_D3XP*/ );
@@ -3911,7 +3910,7 @@ void idAI::Killed( idEntity* inflictor, idEntity* attacker, int damage, const id
 	if( head.GetEntity() )
 	{
 		head.GetEntity()->StopSound( SND_CHANNEL_VOICE, false );
-		head.GetEntity()->GetAnimator()->ClearAllAnims( gameLocal.time, 100 );
+		head.GetEntity()->GetAnimator()->ClearAllAnims( gameLocal.GetGameTimeMs(), 100 );
 	}
 	
 	disableGravity = false;
@@ -3954,7 +3953,7 @@ void idAI::Killed( idEntity* inflictor, idEntity* attacker, int damage, const id
 	{
 		// lost soul is only case that does not use a ragdoll and has a model_death so get the death sound in here
 		StartSound( "snd_death", SND_CHANNEL_VOICE, 0, false, NULL );
-		renderEntity.shaderParms[ SHADERPARM_TIMEOFFSET ] = -MS2SEC( gameLocal.time );
+		renderEntity.shaderParms[ SHADERPARM_TIMEOFFSET ] = -MS2SEC( gameLocal.GetGameTimeMs() );
 		SetModel( modelDeath );
 		physicsObj.SetLinearVelocity( vec3_zero );
 		physicsObj.PutToRest();
@@ -4762,7 +4761,7 @@ idAI::BeginAttack
 void idAI::BeginAttack( const char* name )
 {
 	attack = name;
-	lastAttackTime = gameLocal.time;
+	lastAttackTime = gameLocal.GetGameTimeMs();
 }
 
 /*
@@ -4926,7 +4925,7 @@ idProjectile* idAI::LaunchProjectile( const char* jointname, idEntity* target, b
 	ang = dir.ToAngles();
 	
 	// adjust his aim so it's not perfect.  uses sine based movement so the tracers appear less random in their spread.
-	float t = MS2SEC( gameLocal.time + entityNumber * 497 );
+	float t = MS2SEC( gameLocal.GetGameTimeMs() + entityNumber * 497 );
 	ang.pitch += idMath::Sin16( t * 5.1 ) * attack_accuracy;
 	ang.yaw	+= idMath::Sin16( t * 6.7 ) * attack_accuracy;
 	
@@ -4968,7 +4967,7 @@ idProjectile* idAI::LaunchProjectile( const char* jointname, idEntity* target, b
 	
 	TriggerWeaponEffects( muzzle );
 	
-	lastAttackTime = gameLocal.time;
+	lastAttackTime = gameLocal.GetGameTimeMs();
 	
 	return lastProjectile;
 }
@@ -5152,10 +5151,10 @@ bool idAI::AttackMelee( const char* meleeDefName )
 		
 		if( enemyEnt->health <= damage )
 		{
-			int	t = gameLocal.time - player->lastSavingThrowTime;
+			int	t = gameLocal.GetGameTimeMs() - player->lastSavingThrowTime;
 			if( t > SAVING_THROW_TIME )
 			{
-				player->lastSavingThrowTime = gameLocal.time;
+				player->lastSavingThrowTime = gameLocal.GetGameTimeMs();
 				t = 0;
 			}
 			if( t < 1000 )
@@ -5197,7 +5196,7 @@ bool idAI::AttackMelee( const char* meleeDefName )
 	
 	enemyEnt->Damage( this, this, globalKickDir, meleeDefName, 1.0f, INVALID_JOINT );
 	
-	lastAttackTime = gameLocal.time;
+	lastAttackTime = gameLocal.GetGameTimeMs();
 	
 	return true;
 }
@@ -5217,7 +5216,7 @@ void idAI::PushWithAF()
 	int num_pushed;
 	
 	num_pushed = 0;
-	af.ChangePose( this, gameLocal.time );
+	af.ChangePose( this, gameLocal.GetGameTimeMs() );
 	int num = af.EntitiesTouchingAF( touchList );
 	for( i = 0; i < num; i++ )
 	{
@@ -5280,7 +5279,7 @@ void idAI::GetMuzzle( const char* jointname, idVec3& muzzle, idMat3& axis )
 		{
 			gameLocal.Error( "Unknown joint '%s' on %s", jointname, GetEntityDefName() );
 		}
-		GetJointWorldTransform( joint, gameLocal.time, muzzle, axis );
+		GetJointWorldTransform( joint, gameLocal.GetGameTimeMs(), muzzle, axis );
 	}
 }
 
@@ -5301,17 +5300,17 @@ void idAI::TriggerWeaponEffects( const idVec3& muzzle )
 	
 	// muzzle flash
 	// offset the shader parms so muzzle flashes show up
-	renderEntity.shaderParms[SHADERPARM_TIMEOFFSET] = -MS2SEC( gameLocal.time );
+	renderEntity.shaderParms[SHADERPARM_TIMEOFFSET] = -MS2SEC( gameLocal.GetGameTimeMs() );
 	renderEntity.shaderParms[ SHADERPARM_DIVERSITY ] = gameLocal.random.CRandomFloat();
 	
 	if( flashJointWorld != INVALID_JOINT )
 	{
-		GetJointWorldTransform( flashJointWorld, gameLocal.time, org, axis );
+		GetJointWorldTransform( flashJointWorld, gameLocal.GetGameTimeMs(), org, axis );
 		
 		if( worldMuzzleFlash.lightRadius.x > 0.0f )
 		{
 			worldMuzzleFlash.axis = axis;
-			worldMuzzleFlash.shaderParms[SHADERPARM_TIMEOFFSET] = -MS2SEC( gameLocal.time );
+			worldMuzzleFlash.shaderParms[SHADERPARM_TIMEOFFSET] = -MS2SEC( gameLocal.GetGameTimeMs() );
 			if( worldMuzzleFlashHandle != - 1 )
 			{
 				gameRenderWorld->UpdateLightDef( worldMuzzleFlashHandle, &worldMuzzleFlash );
@@ -5320,7 +5319,7 @@ void idAI::TriggerWeaponEffects( const idVec3& muzzle )
 			{
 				worldMuzzleFlashHandle = gameRenderWorld->AddLightDef( &worldMuzzleFlash );
 			}
-			muzzleFlashEnd = gameLocal.time + flashTime;
+			muzzleFlashEnd = gameLocal.GetGameTimeMs() + flashTime;
 			UpdateVisuals();
 		}
 	}
@@ -5335,7 +5334,7 @@ void idAI::UpdateMuzzleFlash()
 {
 	if( worldMuzzleFlashHandle != -1 )
 	{
-		if( gameLocal.time >= muzzleFlashEnd )
+		if( gameLocal.GetGameTimeMs() >= muzzleFlashEnd )
 		{
 			gameRenderWorld->FreeLightDef( worldMuzzleFlashHandle );
 			worldMuzzleFlashHandle = -1;
@@ -5343,8 +5342,8 @@ void idAI::UpdateMuzzleFlash()
 		else
 		{
 			idVec3 muzzle;
-			animator.GetJointTransform( flashJointWorld, gameLocal.time, muzzle, worldMuzzleFlash.axis );
-			animator.GetJointTransform( flashJointWorld, gameLocal.time, muzzle, worldMuzzleFlash.axis );
+			animator.GetJointTransform( flashJointWorld, gameLocal.GetGameTimeMs(), muzzle, worldMuzzleFlash.axis );
+			animator.GetJointTransform( flashJointWorld, gameLocal.GetGameTimeMs(), muzzle, worldMuzzleFlash.axis );
 			muzzle = physicsObj.GetOrigin() + ( muzzle + modelOffset ) * viewAxis * physicsObj.GetGravityAxis();
 			worldMuzzleFlash.origin = muzzle;
 			gameRenderWorld->UpdateLightDef( worldMuzzleFlashHandle, &worldMuzzleFlash );
@@ -5432,7 +5431,7 @@ void idAI::SetChatSound()
 		chat_snd = declManager->FindSound( snd );
 		
 		// set the next chat time
-		chat_time = gameLocal.time + chat_min + gameLocal.random.RandomFloat() * ( chat_max - chat_min );
+		chat_time = gameLocal.GetGameTimeMs() + chat_min + gameLocal.random.RandomFloat() * ( chat_max - chat_min );
 	}
 	else
 	{
@@ -5480,7 +5479,7 @@ idAI::PlayChatter
 void idAI::PlayChatter()
 {
 	// check if it's time to play a chat sound
-	if( AI_DEAD || !chat_snd || ( chat_time > gameLocal.time ) )
+	if( AI_DEAD || !chat_snd || ( chat_time > gameLocal.GetGameTimeMs() ) )
 	{
 		return;
 	}
@@ -5488,7 +5487,7 @@ void idAI::PlayChatter()
 	StartSoundShader( chat_snd, SND_CHANNEL_VOICE, 0, false, NULL );
 	
 	// set the next chat time
-	chat_time = gameLocal.time + chat_min + gameLocal.random.RandomFloat() * ( chat_max - chat_min );
+	chat_time = gameLocal.GetGameTimeMs() + chat_min + gameLocal.random.RandomFloat() * ( chat_max - chat_min );
 }
 
 /*
@@ -5518,7 +5517,7 @@ void idAI::UpdateParticles()
 				}
 				else
 				{
-					animator.GetJointTransform( particles[i].joint, gameLocal.time, realVector, realAxis );
+					animator.GetJointTransform( particles[i].joint, gameLocal.GetGameTimeMs(), realVector, realAxis );
 					realAxis *= renderEntity.axis;
 					realVector = physicsObj.GetOrigin() + ( realVector + modelOffset ) * ( viewAxis * physicsObj.GetGravityAxis() );
 				}
@@ -5527,7 +5526,7 @@ void idAI::UpdateParticles()
 				{
 					if( restartParticles )
 					{
-						particles[i].time = gameLocal.time;
+						particles[i].time = gameLocal.GetGameTimeMs();
 					}
 					else
 					{
@@ -5558,7 +5557,7 @@ void idAI::TriggerParticles( const char* jointName )
 	{
 		if( particles[i].joint == jointNum )
 		{
-			particles[i].time = gameLocal.time;
+			particles[i].time = gameLocal.GetGameTimeMs();
 			BecomeActive( TH_UPDATEPARTICLES );
 		}
 	}
@@ -5584,7 +5583,7 @@ void idAI::TriggerFX( const char* joint, const char* fx )
 			return;
 		}
 		
-		GetJointWorldTransform( jointNum, gameLocal.time, joint_origin, joint_axis );
+		GetJointWorldTransform( jointNum, gameLocal.GetGameTimeMs(), joint_origin, joint_axis );
 		idEntityFx::StartFx( fx, &joint_origin, &joint_axis, this, true );
 	}
 }
@@ -5604,9 +5603,9 @@ idEntity* idAI::StartEmitter( const char* name, const char* joint, const char* p
 	idVec3 offset;
 	idMat3 axis;
 	
-	GetJointWorldTransform( jointNum, gameLocal.time, offset, axis );
+	GetJointWorldTransform( jointNum, gameLocal.GetGameTimeMs(), offset, axis );
 	
-	/*animator.GetJointTransform( jointNum, gameLocal.time, offset, axis );
+	/*animator.GetJointTransform( jointNum, gameLocal.GetGameTimeMs(), offset, axis );
 	offset = GetPhysics()->GetOrigin() + offset * GetPhysics()->GetAxis();
 	axis = axis * GetPhysics()->GetAxis();*/
 	
@@ -5727,7 +5726,7 @@ bool idAI::UpdateAnimationControllers()
 	}
 	else
 	{
-		GetJointWorldTransform( orientationJoint, gameLocal.time, orientationJointPos, orientationJointAxis );
+		GetJointWorldTransform( orientationJoint, gameLocal.GetGameTimeMs(), orientationJointPos, orientationJointAxis );
 		orientationJointYaw = orientationJointAxis[ 2 ].ToYaw();
 		orientationJointAxis = idAngles( 0.0f, orientationJointYaw, 0.0f ).ToMat3();
 	}
@@ -5736,11 +5735,11 @@ bool idAI::UpdateAnimationControllers()
 	{
 		if( headEnt )
 		{
-			headEnt->GetJointWorldTransform( focusJoint, gameLocal.time, eyepos, axis );
+			headEnt->GetJointWorldTransform( focusJoint, gameLocal.GetGameTimeMs(), eyepos, axis );
 		}
 		else
 		{
-			GetJointWorldTransform( focusJoint, gameLocal.time, eyepos, axis );
+			GetJointWorldTransform( focusJoint, gameLocal.GetGameTimeMs(), eyepos, axis );
 		}
 		eyeOffset.z = eyepos.z - physicsObj.GetOrigin().z;
 		if( ai_debugMove.GetBool() )
@@ -5768,7 +5767,7 @@ bool idAI::UpdateAnimationControllers()
 	idActor::UpdateAnimationControllers();
 	
 	idEntity* focusEnt = focusEntity.GetEntity();
-	if( !allowJointMod || !allowEyeFocus || ( gameLocal.time >= focusTime ) )
+	if( !allowJointMod || !allowEyeFocus || ( gameLocal.GetGameTimeMs() >= focusTime ) )
 	{
 		focusPos = GetEyePosition() + orientationJointAxis[ 0 ] * 512.0f;
 	}
@@ -5820,22 +5819,22 @@ bool idAI::UpdateAnimationControllers()
 		idAngles angDelta = diff - eyeAng;
 		if( !angDelta.Compare( ang_zero, 0.1f ) )
 		{
-			alignHeadTime = gameLocal.time;
+			alignHeadTime = gameLocal.GetGameTimeMs();
 		}
 		else
 		{
-			alignHeadTime = gameLocal.time + ( 0.5f + 0.5f * gameLocal.random.RandomFloat() ) * focusAlignTime;
+			alignHeadTime = gameLocal.GetGameTimeMs() + ( 0.5f + 0.5f * gameLocal.random.RandomFloat() ) * focusAlignTime;
 		}
 	}
 	
 	if( idMath::Fabs( newLookAng.yaw ) < 0.1f )
 	{
-		alignHeadTime = gameLocal.time;
+		alignHeadTime = gameLocal.GetGameTimeMs();
 	}
 	
-	if( ( gameLocal.time >= alignHeadTime ) || ( gameLocal.time < forceAlignHeadTime ) )
+	if( ( gameLocal.GetGameTimeMs() >= alignHeadTime ) || ( gameLocal.GetGameTimeMs() < forceAlignHeadTime ) )
 	{
-		alignHeadTime = gameLocal.time + ( 0.5f + 0.5f * gameLocal.random.RandomFloat() ) * focusAlignTime;
+		alignHeadTime = gameLocal.GetGameTimeMs() + ( 0.5f + 0.5f * gameLocal.random.RandomFloat() ) * focusAlignTime;
 		destLookAng = newLookAng;
 		destLookAng.Clamp( lookMin, lookMax );
 	}

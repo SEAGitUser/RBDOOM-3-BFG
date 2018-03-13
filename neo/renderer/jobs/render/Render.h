@@ -1,6 +1,11 @@
 
 #include "../../tr_local.h"
 
+static ID_INLINE GLuint GetGLObject( void * apiObject ) {
+#pragma warning( suppress: 4311 4302 )
+	return reinterpret_cast<GLuint>( apiObject );
+}
+
 extern idCVar stereoRender_swapEyes;
 extern idCVar r_skipInteractionFastPath;
 
@@ -19,11 +24,11 @@ const int INTERACTION_TEXUNIT_JITTER = 6;
 // complex light / surface interactions are broken up into multiple passes of a
 // simple interaction shader
 struct drawInteraction_t {
-	const drawSurf_t* 	surf;
+	const drawSurf_t * 	surf;
 
-	idImage* 			bumpImage;
-	idImage* 			diffuseImage;
-	idImage* 			specularImage;
+	idImage * 			bumpImage;
+	idImage * 			diffuseImage;
+	idImage * 			specularImage;
 
 	idRenderVector		diffuseColor;	// may have a light color baked into it
 	idRenderVector		specularColor;	// may have a light color baked into it

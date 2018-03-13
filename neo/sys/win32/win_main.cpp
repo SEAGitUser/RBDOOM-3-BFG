@@ -238,7 +238,7 @@ void Sys_Error( const char *error, ... )
 
 	timeEndPeriod( 1 );
 
-	Sys_ShutdownInput();
+	sys->ShutdownInput();
 
 	GLimp_Shutdown();
 
@@ -277,7 +277,7 @@ void Sys_Launch( const char * path, idCmdArgs & args, void * data, unsigned int 
 
 	strcpy( szPathOrig, va( "\"%s\" %s", Sys_EXEPath(), ( const char * )data ) );
 
-	if( !CreateProcess( NULL, szPathOrig, NULL, NULL, FALSE, 0, NULL, NULL, &si, &pi ) )
+	if( !::CreateProcess( NULL, szPathOrig, NULL, NULL, FALSE, 0, NULL, NULL, &si, &pi ) )
 	{
 		idLib::Error( "Could not start process: '%s' ", szPathOrig );
 		return;
@@ -339,20 +339,21 @@ Sys_Quit
 void Sys_Quit()
 {
 	timeEndPeriod( 1 );
-	Sys_ShutdownInput();
+	sys->ShutdownInput();
 	Sys_DestroyConsole();
-	ExitProcess( 0 );
+	::ExitProcess( 0 );
 }
+
+#define MAXPRINTMSG 4096
 
 /*
 ==============
 Sys_Printf
 ==============
 */
-#define MAXPRINTMSG 4096
-void Sys_Printf( const char *fmt, ... )
+void idSysLocal::Printf( const char *fmt, ... )
 {
-	char		msg[ MAXPRINTMSG ];
+	char msg[ MAXPRINTMSG ];
 
 	va_list argptr;
 	va_start( argptr, fmt );
@@ -360,7 +361,7 @@ void Sys_Printf( const char *fmt, ... )
 	va_end( argptr );
 	msg[ sizeof( msg ) - 1 ] = '\0';
 
-	OutputDebugString( msg );
+	::OutputDebugString( msg );
 
 	if( win32.win_outputEditString.GetBool() && idLib::IsMainThread() )
 	{
@@ -373,8 +374,7 @@ void Sys_Printf( const char *fmt, ... )
 Sys_DebugPrintf
 ==============
 */
-#define MAXPRINTMSG 4096
-void Sys_DebugPrintf( const char *fmt, ... )
+void idSysLocal::DebugPrintf( const char *fmt, ... )
 {
 	char msg[ MAXPRINTMSG ];
 
@@ -384,7 +384,7 @@ void Sys_DebugPrintf( const char *fmt, ... )
 	msg[ sizeof( msg ) - 1 ] = '\0';
 	va_end( argptr );
 
-	OutputDebugString( msg );
+	::OutputDebugString( msg );
 }
 
 /*
@@ -392,14 +392,14 @@ void Sys_DebugPrintf( const char *fmt, ... )
 Sys_DebugVPrintf
 ==============
 */
-void Sys_DebugVPrintf( const char *fmt, va_list arg )
+void idSysLocal::DebugVPrintf( const char *fmt, va_list arg )
 {
 	char msg[ MAXPRINTMSG ];
 
 	idStr::vsnPrintf( msg, MAXPRINTMSG - 1, fmt, arg );
 	msg[ sizeof( msg ) - 1 ] = '\0';
 
-	OutputDebugString( msg );
+	::OutputDebugString( msg );
 }
 
 /*
@@ -679,27 +679,27 @@ int Sys_ListFiles( const char *directory, const char *extension, idStrList &list
 Sys_GetClipboardData
 ================
 */
-char *Sys_GetClipboardData()
+char * idSysLocal::GetClipboardData()
 {
 	char *data = NULL;
 	char *cliptext;
 
-	if( OpenClipboard( NULL ) != 0 )
+	if( ::OpenClipboard( NULL ) != 0 )
 	{
 		HANDLE hClipboardData;
 
-		if( ( hClipboardData = GetClipboardData( CF_TEXT ) ) != 0 )
+		if( ( hClipboardData = ::GetClipboardData( CF_TEXT ) ) != 0 )
 		{
-			if( ( cliptext = ( char * )GlobalLock( hClipboardData ) ) != 0 )
+			if( ( cliptext = ( char * )::GlobalLock( hClipboardData ) ) != 0 )
 			{
-				data = ( char * )Mem_Alloc( GlobalSize( hClipboardData ) + 1, TAG_CRAP );
+				data = ( char * )Mem_Alloc( ::GlobalSize( hClipboardData ) + 1, TAG_CRAP );
 				strcpy( data, cliptext );
-				GlobalUnlock( hClipboardData );
+				::GlobalUnlock( hClipboardData );
 
 				strtok( data, "\n\r\b" );
 			}
 		}
-		CloseClipboard();
+		::CloseClipboard();
 	}
 	return data;
 }
@@ -709,19 +709,16 @@ char *Sys_GetClipboardData()
 Sys_SetClipboardData
 ================
 */
-void Sys_SetClipboardData( const char *string )
+void idSysLocal::SetClipboardData( const char *string )
 {
-	HGLOBAL HMem;
-	char *PMem;
-
 	// allocate memory block
-	HMem = ( char * )::GlobalAlloc( GMEM_MOVEABLE | GMEM_DDESHARE, strlen( string ) + 1 );
+	HGLOBAL HMem = ( char * )::GlobalAlloc( GMEM_MOVEABLE | GMEM_DDESHARE, strlen( string ) + 1 );
 	if( HMem == NULL )
 	{
 		return;
 	}
 	// lock allocated memory and obtain a pointer
-	PMem = ( char * )::GlobalLock( HMem );
+	char * PMem = ( char * )::GlobalLock( HMem );
 	if( PMem == NULL )
 	{
 		return;
@@ -731,18 +728,18 @@ void Sys_SetClipboardData( const char *string )
 	// unlock allocated memory
 	::GlobalUnlock( HMem );
 	// open Clipboard
-	if( !OpenClipboard( 0 ) )
+	if( !::OpenClipboard( 0 ) )
 	{
 		::GlobalFree( HMem );
 		return;
 	}
 	// remove current Clipboard contents
-	EmptyClipboard();
+	::EmptyClipboard();
 	// supply the memory handle to the Clipboard
-	SetClipboardData( CF_TEXT, HMem );
+	::SetClipboardData( CF_TEXT, HMem );
 	HMem = 0;
 	// close Clipboard
-	CloseClipboard();
+	::CloseClipboard();
 }
 
 /*
@@ -945,9 +942,9 @@ DLL Loading
 Sys_DLL_Load
 =====================
 */
-intptr_t Sys_DLL_Load( const char *dllName )
+intptr_t idSysLocal::DLL_Load( const char *dllName )
 {
-	HINSTANCE libHandle = LoadLibrary( dllName );
+	HINSTANCE libHandle = ::LoadLibrary( dllName );
 	return ( intptr_t )libHandle;
 }
 
@@ -956,10 +953,10 @@ intptr_t Sys_DLL_Load( const char *dllName )
 Sys_DLL_GetProcAddress
 =====================
 */
-void *Sys_DLL_GetProcAddress( intptr_t dllHandle, const char *procName )
+void * idSysLocal::DLL_GetProcAddress( intptr_t dllHandle, const char *procName )
 {
 	// RB: added missing cast
-	return ( void* )GetProcAddress( ( HINSTANCE )dllHandle, procName );
+	return ( void* )::GetProcAddress( ( HINSTANCE )dllHandle, procName );
 }
 
 /*
@@ -967,12 +964,10 @@ void *Sys_DLL_GetProcAddress( intptr_t dllHandle, const char *procName )
 Sys_DLL_Unload
 =====================
 */
-void Sys_DLL_Unload( intptr_t dllHandle )
+void idSysLocal::DLL_Unload( intptr_t dllHandle )
 {
 	if( !dllHandle )
-	{
 		return;
-	}
 
 	if( FreeLibrary( ( HINSTANCE )dllHandle ) == 0 )
 	{
@@ -1004,7 +999,7 @@ EVENT LOOP
 #define	MAX_QUED_EVENTS		256
 #define	MASK_QUED_EVENTS	( MAX_QUED_EVENTS - 1 )
 
-sysEvent_t	eventQue[ MAX_QUED_EVENTS ];
+idSysEvent	eventQue[ MAX_QUED_EVENTS ];
 int			eventHead = 0;
 int			eventTail = 0;
 
@@ -1012,50 +1007,44 @@ int			eventTail = 0;
 ================
 Sys_QueEvent
 
-Ptr should either be null, or point to a block of data that can
-be freed by the game later.
+	Ptr should either be null, or point to a block of data that can
+	be freed by the game later.
 ================
 */
-void Sys_QueEvent( sysEventType_t type, int value, int value2, int ptrLength, void *ptr, int inputDeviceNum )
+void idSysLocal::QueEvent( sysEventType_t type, int value, int value2, int ptrLength, void *ptr, int inputDeviceNum )
 {
-	sysEvent_t * ev = &eventQue[ eventHead & MASK_QUED_EVENTS ];
+	auto ev = &eventQue[ eventHead & MASK_QUED_EVENTS ];
 
 	if( eventHead - eventTail >= MAX_QUED_EVENTS )
 	{
-		common->Printf( "Sys_QueEvent: overflow\n" );
+		common->Printf( "sys->QueEvent: overflow\n" );
+
 		// we are discarding an event, but don't leak memory
-		if( ev->evPtr )
-		{
-			Mem_Free( ev->evPtr );
-		}
-		eventTail++;
+		ev->FreeData();
+
+		++eventTail;
 	}
 
-	eventHead++;
+	++eventHead;
 
-	ev->evType = type;
-	ev->evValue = value;
-	ev->evValue2 = value2;
-	ev->evPtrLength = ptrLength;
-	ev->evPtr = ptr;
-	ev->inputDevice = inputDeviceNum;
+	ev->Init( type, value, value2, ptrLength, ptr, inputDeviceNum );
 }
 
 /*
 =============
 Sys_PumpEvents
 
-This allows windows to be moved during renderbump
+	This allows windows to be moved during renderbump
 =============
 */
-void Sys_PumpEvents()
+static void Sys_PumpEvents()
 {
 	MSG msg;
 
 	// pump the message loop
-	while( PeekMessage( &msg, NULL, 0, 0, PM_NOREMOVE ) )
+	while( ::PeekMessage( &msg, NULL, 0, 0, PM_NOREMOVE ) )
 	{
-		if( !GetMessage( &msg, NULL, 0, 0 ) )
+		if( !::GetMessage( &msg, NULL, 0, 0 ) )
 		{
 			common->Quit();
 		}
@@ -1066,13 +1055,12 @@ void Sys_PumpEvents()
 			// don't ever let the event times run backwards
 //			common->Printf( "Sys_PumpEvents: win32.sysMsgTime (%i) > msg.time (%i)\n", win32.sysMsgTime, msg.time );
 		}
-		else
-		{
+		else {
 			win32.sysMsgTime = msg.time;
 		}
 
-		TranslateMessage( &msg );
-		DispatchMessage( &msg );
+		::TranslateMessage( &msg );
+		::DispatchMessage( &msg );
 	}
 }
 
@@ -1081,11 +1069,9 @@ void Sys_PumpEvents()
 Sys_GenerateEvents
 ================
 */
-void Sys_GenerateEvents()
+void idSysLocal::ProcessOSEvents()
 {
 	static int entered = false;
-	char *s;
-
 	if( entered )
 	{
 		return;
@@ -1099,16 +1085,10 @@ void Sys_GenerateEvents()
 	IN_Frame();
 
 	// check for console commands
-	s = Sys_ConsoleInput();
-	if( s )
-	{
-		char	*b;
-		int		len;
-
-		len = strlen( s ) + 1;
-		b = ( char * )Mem_Alloc( len, TAG_EVENTS );
-		strcpy( b, s );
-		Sys_QueEvent( SE_CONSOLE, 0, 0, len, b, 0 );
+	char * s = Sys_ConsoleInput();
+	if( s ) {
+		char * b = Mem_CopyString( s );
+		sys->QueEvent( SE_CONSOLE, 0, 0, idStr::Length( s ) + 1, b, 0 );
 	}
 
 	entered = false;
@@ -1119,7 +1099,7 @@ void Sys_GenerateEvents()
 Sys_ClearEvents
 ================
 */
-void Sys_ClearEvents()
+void idSysLocal::ClearEvents()
 {
 	eventHead = eventTail = 0;
 }
@@ -1129,16 +1109,16 @@ void Sys_ClearEvents()
 Sys_GetEvent
 ================
 */
-sysEvent_t Sys_GetEvent()
+idSysEvent idSysLocal::GetEvent()
 {
-	sysEvent_t	ev;
-
 	// return if we have data
 	if( eventHead > eventTail )
 	{
-		eventTail++;
+		++eventTail;
 		return eventQue[ ( eventTail - 1 ) & MASK_QUED_EVENTS ];
 	}
+
+	idSysEvent ev;
 
 	// return the empty event
 	memset( &ev, 0, sizeof( ev ) );
@@ -1157,8 +1137,8 @@ Restart the input subsystem
 */
 void Sys_In_Restart_f( const idCmdArgs &args )
 {
-	Sys_ShutdownInput();
-	Sys_InitInput();
+	sys->ShutdownInput();
+	sys->InitInput();
 }
 
 /*
@@ -1514,12 +1494,12 @@ void EmailCrashReport( LPSTR messageText )
 {
 	static int lastEmailTime = 0;
 
-	if( Sys_Milliseconds() < lastEmailTime + 10000 )
+	if( sys->Milliseconds() < lastEmailTime + 10000 )
 	{
 		return;
 	}
 
-	lastEmailTime = Sys_Milliseconds();
+	lastEmailTime = sys->Milliseconds();
 
 	HINSTANCE mapi = LoadLibrary( "MAPI32.DLL" );
 	if( mapi )
@@ -1707,25 +1687,25 @@ int WINAPI WinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLin
 	timeBeginPeriod( 1 );
 
 	// get the initial time base
-	Sys_Milliseconds();
+	sys->Milliseconds();
 
 #ifdef DEBUG
 	// disable the painfully slow MS heap check every 1024 allocs
 	_CrtSetDbgFlag( 0 );
 #endif
 
-	//	Sys_FPU_EnableExceptions( TEST_FPU_EXCEPTIONS );
-	Sys_FPU_SetPrecision( FPU_PRECISION_DOUBLE_EXTENDED );
+	//sys->FPU_EnableExceptions( TEST_FPU_EXCEPTIONS );
+	sys->FPU_SetPrecision( FPU_PRECISION_DOUBLE_EXTENDED );
 
 	common->Init( 0, NULL, lpCmdLine );
 
 #if TEST_FPU_EXCEPTIONS != 0
-	common->Printf( Sys_FPU_GetState() );
+	common->Printf( sys->FPU_GetState() );
 #endif
 
 	if( win32.win_notaskkeys.GetInteger() )
 	{
-		DisableTaskKeys( TRUE, FALSE, /*( win32.win_notaskkeys.GetInteger() == 2 )*/ FALSE );
+		::DisableTaskKeys( TRUE, FALSE, /*( win32.win_notaskkeys.GetInteger() == 2 )*/ FALSE );
 	}
 
 	// hide or show the early console as necessary
@@ -1733,8 +1713,7 @@ int WINAPI WinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLin
 	{
 		Sys_ShowConsole( 1, true );
 	}
-	else
-	{
+	else {
 		Sys_ShowConsole( 0, false );
 	}
 
@@ -1758,7 +1737,7 @@ int WINAPI WinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLin
 	#endif
 
 		// set exceptions, even if some crappy syscall changes them!
-		Sys_FPU_EnableExceptions( TEST_FPU_EXCEPTIONS );
+		sys->FPU_EnableExceptions( TEST_FPU_EXCEPTIONS );
 
 		// run the game
 		common->Frame();

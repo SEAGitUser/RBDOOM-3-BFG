@@ -207,6 +207,7 @@ struct renderProgData_t
 	bool			hasOptionalSkinning;
 	bool			hasFragClip;
 	bool			hasDepthOutput;
+	bool			hasForcedEarlyFragTests;
 	//bool hasBranchStripping;
 	vertexMask_t	vertexMask;
 	//int fragmentOutputs;
@@ -300,6 +301,8 @@ public:
 
 	void *				GetAPIObject() const { return apiObject; }
 	bool				IsValidAPIObject() const { return( !!apiObject ); }
+	void				Bind() const;
+	void				CommitUniforms() const;
 
 	const progParmList_t &	GetVecParms() const { return vecParms; }
 	const progParmList_t &	GetTexParms() const { return texParms; }

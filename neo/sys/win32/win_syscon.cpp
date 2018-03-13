@@ -162,7 +162,7 @@ static LRESULT WINAPI ConWndProc( HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lP
 				else
 				{
 					cmdString = Mem_CopyString( "quit" );
-					Sys_QueEvent( SE_CONSOLE, 0, 0, idStr::Length( cmdString ) + 1, cmdString, 0 );
+					sys->QueEvent( SE_CONSOLE, 0, 0, idStr::Length( cmdString ) + 1, cmdString, 0 );
 				}
 			}
 			else if( wParam == CLEAR_ID )
@@ -271,7 +271,7 @@ LRESULT WINAPI InputLineWndProc( HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lPa
 				strcat( s_wcd.consoleText, "\n" );
 				SetWindowText( s_wcd.hwndInputLine, "" );
 				
-				Sys_Printf( "]%s\n", s_wcd.consoleField.GetBuffer() );
+				sys->Printf( "]%s\n", s_wcd.consoleField.GetBuffer() );
 				
 				// copy line to history buffer
 				s_wcd.historyEditLines[s_wcd.nextHistoryLine % COMMAND_HISTORY] = s_wcd.consoleField;

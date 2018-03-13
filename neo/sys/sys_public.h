@@ -106,7 +106,9 @@ enum sysEventType_t
 	SE_MOUSE_ABSOLUTE,		// evValue and evValue2 are absolute coordinates in the window's client area.
 	SE_MOUSE_LEAVE,			// evValue and evValue2 are meaninless, this indicates the mouse has left the client area.
 	SE_JOYSTICK,			// evValue is an axis number and evValue2 is the current state (-127 to 127)
-	SE_CONSOLE				// evPtr is a char*, from typing something at a non-game console
+	SE_CONSOLE,				// evPtr is a char*, from typing something at a non-game console
+	
+	SE_GUI,					// an event generated specifically for guis
 };
 
 enum sys_mEvents
@@ -417,47 +419,67 @@ enum keyNum_t
 	K_LAST_KEY
 };
 
-struct sysEvent_t
-{
+class idSysEvent {
+protected:
 	sysEventType_t	evType;
+
 	int				evValue;
 	int				evValue2;
+
 	int				evPtrLength;		// bytes of data pointed to by evPtr, for journaling
-	void* 			evPtr;				// this must be manually freed if not NULL
+	void * 			evPtr;				// this must be manually freed if not NULL
 	
 	int				inputDevice;
-	bool			IsKeyEvent() const
+
+public:
+	idSysEvent() :
+		evPtrLength( 0 ),
+		evPtr( nullptr )
 	{
-		return evType == SE_KEY;
 	}
-	bool			IsMouseEvent() const
+	//~idSysEvent() {}
+
+	ID_INLINE void	Init( sysEventType_t type, int value, int value2, int ptrLength, void* ptr, int inputDevice = 0 )
 	{
-		return evType == SE_MOUSE;
+		evType = type;
+		evValue = value;
+		evValue2 = value2;
+		evPtrLength = ptrLength;
+		evPtr = ptr;
+		inputDevice;
 	}
-	bool			IsCharEvent() const
-	{
-		return evType == SE_CHAR;
-	}
-	bool			IsJoystickEvent() const
-	{
-		return evType == SE_JOYSTICK;
-	}
-	bool			IsKeyDown() const
-	{
-		return evValue2 != 0;
-	}
-	keyNum_t		GetKey() const
-	{
-		return static_cast< keyNum_t >( evValue );
-	}
-	int				GetXCoord() const
-	{
-		return evValue;
-	}
-	int				GetYCoord() const
-	{
-		return evValue2;
-	}
+
+	ID_INLINE bool			IsEmptyEvent() const { return( evType == SE_NONE ); }
+	ID_INLINE bool			IsKeyEvent() const { return( evType == SE_KEY ); }
+	ID_INLINE bool			IsMouseMoveEvent() const { return( evType == SE_MOUSE || evType == SE_MOUSE_ABSOLUTE ); }
+	ID_INLINE bool			IsRelativeXYMouseCoords() const { return( evType == SE_MOUSE ); }
+	ID_INLINE bool			IsAbsoluteXYMouseCoords() const { return( evType == SE_MOUSE_ABSOLUTE ); }
+	ID_INLINE bool			IsMouseLeaveEvent() const { return( evType == SE_MOUSE_LEAVE ); }
+	//ID_INLINE bool			IsRealMouseEvent( void ) const { return evType == SE_MOUSE; }
+	//ID_INLINE bool			IsMouseEvent( void ) const { return evType == SE_MOUSE || evType == SE_CONTROLLER_MOUSE; }
+	//ID_INLINE bool			IsControllerMouseEvent( void ) const { return evType == SE_CONTROLLER_MOUSE; }
+	//ID_INLINE bool			IsMouseButtonEvent( void ) const { return evType == SE_MOUSE_BUTTON; }
+	ID_INLINE bool			IsCharEvent() const { return( evType == SE_CHAR ); }
+	ID_INLINE bool			IsJoystickEvent() const { return( evType == SE_JOYSTICK ); }
+	ID_INLINE bool			IsConsoleEvent() const { return( evType == SE_CONSOLE ); }
+
+	ID_INLINE bool			IsKeyDown() const { return( evValue2 != 0 ); }
+	ID_INLINE bool			IsKeyUp() const { return( evValue2 == 0 ); }
+
+	ID_INLINE keyNum_t		GetKey() const { return static_cast< keyNum_t >( evValue ); }
+	ID_INLINE wchar_t		GetChar() const { return evValue; }
+	ID_INLINE const char *	GetCommand() const { return reinterpret_cast< const char* >( evPtr ); }
+	ID_INLINE int			GetXCoord() const { return evValue; }
+	ID_INLINE int			GetYCoord() const { return evValue2; }
+	ID_INLINE int			GetAxisID() const { return evValue; } // SE_JOYSTICK
+	ID_INLINE int			GetCurrentState() const { return evValue2; } // SE_JOYSTICK
+
+	ID_INLINE int			GetInputDevice() const { return inputDevice; }
+
+	void					FreeData();
+
+	bool					Write( idFile * );
+	bool					Read( idFile * );
 };
 
 struct sysMemoryStats_t
@@ -488,29 +510,12 @@ void			Sys_Quit();
 
 bool			Sys_AlreadyRunning();
 
-// note that this isn't journaled...
-char* 			Sys_GetClipboardData();
-void			Sys_SetClipboardData( const char* string );
-
-// will go to the various text consoles
-// NOT thread safe - never use in the async paths
-void			Sys_Printf( VERIFY_FORMAT_STRING const char* msg, ... );
-
-// guaranteed to be thread-safe
-void			Sys_DebugPrintf( VERIFY_FORMAT_STRING const char* fmt, ... );
-void			Sys_DebugVPrintf( const char* fmt, va_list arg );
-
 // a decent minimum sleep time to avoid going below the process scheduler speeds
 #define			SYS_MINSLEEP	20
 
 // allow game to yield CPU time
 // NOTE: due to SYS_MINSLEEP this is very bad portability karma, and should be completely removed
 void			Sys_Sleep( int msec );
-
-// Sys_Milliseconds should only be used for profiling purposes,
-// any game related timing information should come from event timestamps
-int				Sys_Milliseconds();
-uint64			Sys_Microseconds();
 
 // for accurate performance testing
 double			Sys_GetClockTicks();
@@ -520,29 +525,7 @@ double			Sys_ClockTicksPerSecond();
 cpuid_t			Sys_GetProcessorId();
 const char* 	Sys_GetProcessorString();
 
-// returns true if the FPU stack is empty
-bool			Sys_FPU_StackIsEmpty();
 
-// empties the FPU stack
-void			Sys_FPU_ClearStack();
-
-// returns the FPU state as a string
-const char* 	Sys_FPU_GetState();
-
-// enables the given FPU exceptions
-void			Sys_FPU_EnableExceptions( int exceptions );
-
-// sets the FPU precision
-void			Sys_FPU_SetPrecision( int precision );
-
-// sets the FPU rounding mode
-void			Sys_FPU_SetRounding( int rounding );
-
-// sets Flush-To-Zero mode (only available when CPUID_FTZ is set)
-void			Sys_FPU_SetFTZ( bool enable );
-
-// sets Denormals-Are-Zero mode (only available when CPUID_DAZ is set)
-void			Sys_FPU_SetDAZ( bool enable );
 
 // returns amount of drive space in path
 int				Sys_GetDriveFreeSpace( const char* path );
@@ -560,24 +543,6 @@ bool			Sys_UnlockMemory( void* ptr, int bytes );
 
 // set amount of physical work memory
 void			Sys_SetPhysicalWorkMemory( int minBytes, int maxBytes );
-
-// DLL loading, the path should be a fully qualified OS path to the DLL file to be loaded
-
-// RB: 64 bit fixes, changed int to intptr_t
-intptr_t		Sys_DLL_Load( const char* dllName );
-void* 			Sys_DLL_GetProcAddress( intptr_t dllHandle, const char* procName );
-void			Sys_DLL_Unload( intptr_t dllHandle );
-// RB end
-
-// event generation
-void			Sys_GenerateEvents();
-sysEvent_t		Sys_GetEvent();
-void			Sys_ClearEvents();
-
-// input is tied to windows, so it needs to be started up and shut down whenever
-// the main window is recreated
-void			Sys_InitInput();
-void			Sys_ShutdownInput();
 
 // keyboard input polling
 int				Sys_PollKeyboardInputEvents();
@@ -767,8 +732,7 @@ idJoystick is managed by each platform's local Sys implementation, and
 provides full *Joy Pad* support (the most common device, these days).
 ================================================
 */
-class idJoystick
-{
+class idJoystick {
 public:
 	virtual			~idJoystick() { }
 	
@@ -808,36 +772,73 @@ enum inputType_t
 ==============================================================
 */
 
-class idSys
-{
+class idSys {
 public:
+	virtual					~idSys() { }
+
+	// input is tied to windows, so it needs to be started up and shut down whenever
+	// the main window is recreated
+	virtual void			InitInput() = 0;
+	virtual void			ShutdownInput() = 0;
+
+	// will go to the various text consoles
+	// NOT thread safe - never use in the async paths
+	virtual void			Printf( VERIFY_FORMAT_STRING const char* msg, ... ) = 0;
+
+	// guaranteed to be thread-safe
 	virtual void			DebugPrintf( VERIFY_FORMAT_STRING const char* fmt, ... ) = 0;
 	virtual void			DebugVPrintf( const char* fmt, va_list arg ) = 0;
+
+	// Sys_Milliseconds should only be used for profiling purposes,
+	// any game related timing information should come from event timestamps.
+	virtual int32			Milliseconds() const = 0;
+	virtual uint64			Microseconds() const = 0;
 	
 	virtual double			GetClockTicks() = 0;
 	virtual double			ClockTicksPerSecond() = 0;
 	virtual cpuid_t			GetProcessorId() = 0;
 	virtual const char* 	GetProcessorString() = 0;
+
+	// empties the FPU stack
+	virtual void			FPU_ClearStack() = 0;
+	// sets the FPU precision
+	virtual void			FPU_SetPrecision( int precision ) = 0;
+	// sets the FPU rounding mode
+	virtual void			FPU_SetRounding( int rounding ) = 0;
+	// returns the FPU state as a string
 	virtual const char* 	FPU_GetState() = 0;
+	// returns true if the FPU stack is empty
 	virtual bool			FPU_StackIsEmpty() = 0;
+	// sets Flush-To-Zero mode (only available when CPUID_FTZ is set)
 	virtual void			FPU_SetFTZ( bool enable ) = 0;
+	// sets Denormals-Are-Zero mode (only available when CPUID_DAZ is set)
 	virtual void			FPU_SetDAZ( bool enable ) = 0;
-	
+	// enables the given FPU exceptions
 	virtual void			FPU_EnableExceptions( int exceptions ) = 0;
 	
 	virtual bool			LockMemory( void* ptr, int bytes ) = 0;
 	virtual bool			UnlockMemory( void* ptr, int bytes ) = 0;
 	
-	virtual int				DLL_Load( const char* dllName ) = 0;
-	virtual void* 			DLL_GetProcAddress( int dllHandle, const char* procName ) = 0;
-	virtual void			DLL_Unload( int dllHandle ) = 0;
+	// DLL loading, the path should be a fully qualified OS path to the DLL file to be loaded.
+	virtual intptr_t		DLL_Load( const char* dllName ) = 0;
+	virtual void * 			DLL_GetProcAddress( intptr_t dllHandle, const char* procName ) = 0;
+	virtual void			DLL_Unload( intptr_t dllHandle ) = 0;
 	virtual void			DLL_GetFileName( const char* baseName, char* dllName, int maxLength ) = 0;
 	
-	virtual sysEvent_t		GenerateMouseButtonEvent( int button, bool down ) = 0;
-	virtual sysEvent_t		GenerateMouseMoveEvent( int deltax, int deltay ) = 0;
+	virtual void			ProcessOSEvents() = 0;
+
+	virtual idSysEvent		GenerateMouseButtonEvent( int button, bool down ) = 0;
+	virtual idSysEvent		GenerateMouseMoveEvent( int deltax, int deltay ) = 0;
+	virtual idSysEvent		GetEvent() = 0;
+	virtual void			QueEvent( sysEventType_t type, int value, int value2, int ptrLength = 0, void *ptr = nullptr, int inputDeviceNum = 0 ) = 0;
+	virtual void			ClearEvents() = 0;
 	
 	virtual void			OpenURL( const char* url, bool quit ) = 0;
 	virtual void			StartProcess( const char* exePath, bool quit ) = 0;
+
+	// note that this isn't journaled...
+	virtual char * 			GetClipboardData() = 0;
+	virtual void			SetClipboardData( const char * string ) = 0;
 };
 
 extern idSys* 				sys;

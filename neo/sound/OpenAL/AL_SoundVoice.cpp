@@ -170,11 +170,11 @@ void idSoundVoice_OpenAL::Create( const idSoundSample* leadinSample_, const idSo
 		{
 			if( loopingSample == NULL || loopingSample == leadinSample )
 			{
-				idLib::Printf( "%dms: %i created for %s\n", Sys_Milliseconds(), openalSource, leadinSample ? leadinSample->GetName() : "<null>" );
+				idLib::Printf( "%dms: %i created for %s\n", sys->Milliseconds(), openalSource, leadinSample ? leadinSample->GetName() : "<null>" );
 			}
 			else
 			{
-				idLib::Printf( "%dms: %i created for %s and %s\n", Sys_Milliseconds(), openalSource, leadinSample ? leadinSample->GetName() : "<null>", loopingSample ? loopingSample->GetName() : "<null>" );
+				idLib::Printf( "%dms: %i created for %s and %s\n", sys->Milliseconds(), openalSource, leadinSample ? leadinSample->GetName() : "<null>", loopingSample ? loopingSample->GetName() : "<null>" );
 			}
 		}
 	}
@@ -203,7 +203,7 @@ void idSoundVoice_OpenAL::DestroyInternal()
 	{
 		if( s_debugHardware.GetBool() )
 		{
-			idLib::Printf( "%dms: %i destroyed\n", Sys_Milliseconds(), openalSource );
+			idLib::Printf( "%dms: %i destroyed\n", sys->Milliseconds(), openalSource );
 		}
 		
 		alDeleteSources( 1, &openalSource );
@@ -248,7 +248,7 @@ void idSoundVoice_OpenAL::Start( int offsetMS, int ssFlags )
 {
 	if( s_debugHardware.GetBool() )
 	{
-		idLib::Printf( "%dms: %i starting %s @ %dms\n", Sys_Milliseconds(), openalSource, leadinSample ? leadinSample->GetName() : "<null>", offsetMS );
+		idLib::Printf( "%dms: %i starting %s @ %dms\n", sys->Milliseconds(), openalSource, leadinSample ? leadinSample->GetName() : "<null>", offsetMS );
 	}
 	
 	if( !leadinSample )
@@ -579,7 +579,7 @@ void idSoundVoice_OpenAL::Pause()
 	
 	if( s_debugHardware.GetBool() )
 	{
-		idLib::Printf( "%dms: %i pausing %s\n", Sys_Milliseconds(), openalSource, leadinSample ? leadinSample->GetName() : "<null>" );
+		idLib::Printf( "%dms: %i pausing %s\n", sys->Milliseconds(), openalSource, leadinSample ? leadinSample->GetName() : "<null>" );
 	}
 	
 	alSourcePause( openalSource );
@@ -601,7 +601,7 @@ void idSoundVoice_OpenAL::UnPause()
 	
 	if( s_debugHardware.GetBool() )
 	{
-		idLib::Printf( "%dms: %i unpausing %s\n", Sys_Milliseconds(), openalSource, leadinSample ? leadinSample->GetName() : "<null>" );
+		idLib::Printf( "%dms: %i unpausing %s\n", sys->Milliseconds(), openalSource, leadinSample ? leadinSample->GetName() : "<null>" );
 	}
 	
 	alSourcePlay( openalSource );
@@ -625,7 +625,7 @@ void idSoundVoice_OpenAL::Stop()
 	{
 		if( s_debugHardware.GetBool() )
 		{
-			idLib::Printf( "%dms: %i stopping %s\n", Sys_Milliseconds(), openalSource, leadinSample ? leadinSample->GetName() : "<null>" );
+			idLib::Printf( "%dms: %i stopping %s\n", sys->Milliseconds(), openalSource, leadinSample ? leadinSample->GetName() : "<null>" );
 		}
 		
 		alSourceStop( openalSource );

@@ -130,25 +130,24 @@ void idChoiceWindow::UpdateVars( bool read, bool force )
 	}
 }
 
-const char* idChoiceWindow::HandleEvent( const sysEvent_t* event, bool* updateVisuals )
+const char* idChoiceWindow::HandleEvent( const idSysEvent* event, bool* updateVisuals )
 {
-	int key;
+	assert( event!= nullptr );
+
 	bool runAction = false;
 	bool runAction2 = false;
 	
-	if( event->evType == SE_KEY )
+	if( event->IsKeyEvent() )
 	{
-		key = event->evValue;
-		
-		if( key == K_RIGHTARROW || key == K_KP_6 || key == K_MOUSE1 )
+		if( event->GetKey() == K_RIGHTARROW || event->GetKey() == K_KP_6 || event->GetKey() == K_MOUSE1 )
 		{
 			// never affects the state, but we want to execute script handlers anyway
-			if( !event->evValue2 )
+			if( event->IsKeyUp() )
 			{
 				RunScript( ON_ACTIONRELEASE );
 				return cmd;
 			}
-			currentChoice++;
+			++currentChoice;
 			if( currentChoice >= choices.Num() )
 			{
 				currentChoice = 0;
@@ -156,15 +155,15 @@ const char* idChoiceWindow::HandleEvent( const sysEvent_t* event, bool* updateVi
 			runAction = true;
 		}
 		
-		if( key == K_LEFTARROW || key == K_KP_4 || key == K_MOUSE2 )
+		if( event->GetKey() == K_LEFTARROW || event->GetKey() == K_KP_4 || event->GetKey() == K_MOUSE2 )
 		{
 			// never affects the state, but we want to execute script handlers anyway
-			if( !event->evValue2 )
+			if( event->IsKeyUp() )
 			{
 				RunScript( ON_ACTIONRELEASE );
 				return cmd;
 			}
-			currentChoice--;
+			--currentChoice;
 			if( currentChoice < 0 )
 			{
 				currentChoice = choices.Num() - 1;
@@ -172,22 +171,19 @@ const char* idChoiceWindow::HandleEvent( const sysEvent_t* event, bool* updateVi
 			runAction = true;
 		}
 		
-		if( !event->evValue2 )
+		if( event->IsKeyUp() )
 		{
 			// is a key release with no action catch
 			return "";
 		}
 		
 	}
-	else if( event->evType == SE_CHAR )
-	{
-	
-		key = event->evValue;
-		
+	else if( event->IsCharEvent() )
+	{	
 		int potentialChoice = -1;
 		for( int i = 0; i < choices.Num(); i++ )
 		{
-			if( toupper( key ) == toupper( choices[i][0] ) )
+			if( toupper( event->GetChar() ) == toupper( choices[i][0] ) )
 			{
 				if( i < currentChoice && potentialChoice < 0 )
 				{
@@ -210,8 +206,7 @@ const char* idChoiceWindow::HandleEvent( const sysEvent_t* event, bool* updateVi
 		runAction2 = true;
 		
 	}
-	else
-	{
+	else {
 		return "";
 	}
 	

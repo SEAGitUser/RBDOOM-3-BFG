@@ -29,7 +29,9 @@ If you have questions concerning this license or the applicable additional terms
 #pragma hdrstop
 #include "precompiled.h"
 
+#include "../sys_local.h"
 #include "win_local.h"
+
 #include <lmerr.h>
 #include <lmcons.h>
 #include <lmwksta.h>
@@ -68,7 +70,7 @@ If you have questions concerning this license or the applicable additional terms
 Sys_Milliseconds
 ================
 */
-int Sys_Milliseconds()
+int32 idSysLocal::Milliseconds() const
 {
 	static DWORD sys_timeBase = timeGetTime();
 	return timeGetTime() - sys_timeBase;
@@ -79,7 +81,7 @@ int Sys_Milliseconds()
 Sys_Microseconds
 ========================
 */
-uint64 Sys_Microseconds()
+uint64 idSysLocal::Microseconds() const
 {
 	static uint64 ticksPerMicrosecondTimes1024 = 0;
 	

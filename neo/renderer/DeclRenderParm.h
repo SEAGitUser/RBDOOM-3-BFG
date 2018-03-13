@@ -197,6 +197,8 @@ public:
 	void							Set( idImage* image ) const;
 	///void							Set( idCinematic* cinematic ) const;
 
+	void							SetDefaultData() const;
+
 	float *							GetDefaultVector() const { return const_cast< float* >( m_defaults.vector ); }
 	idImage *						GetDefaultImage() const { return const_cast< idImage* >( m_defaults.texture.image ); }
 	int								GetDefaultAttribIndex() const { return m_defaults.attrib; }

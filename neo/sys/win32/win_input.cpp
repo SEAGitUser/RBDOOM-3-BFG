@@ -31,6 +31,7 @@ If you have questions concerning this license or the applicable additional terms
 #include "precompiled.h"
 #include "../sys_session_local.h"
 
+#include "../sys_local.h"
 #include "win_local.h"
 
 #define DINPUT_BUFFERSIZE           256
@@ -202,16 +203,13 @@ IN_InitDIMouse
 */
 bool IN_InitDIMouse()
 {
-	HRESULT		hr;
-	
 	if( win32.g_pdi == NULL )
 	{
 		return false;
 	}
 	
 	// obtain an interface to the system mouse device.
-	hr = win32.g_pdi->CreateDevice( GUID_SysMouse, &win32.g_pMouse, NULL );
-	
+	HRESULT hr = win32.g_pdi->CreateDevice( GUID_SysMouse, &win32.g_pMouse, NULL );	
 	if( FAILED( hr ) )
 	{
 		common->Printf( "mouse: Couldn't open DI mouse device\n" );
@@ -232,8 +230,7 @@ bool IN_InitDIMouse()
 	}
 	
 	// set the cooperativity level.
-	hr = win32.g_pMouse->SetCooperativeLevel( win32.hWnd, DISCL_EXCLUSIVE | DISCL_FOREGROUND );
-	
+	hr = win32.g_pMouse->SetCooperativeLevel( win32.hWnd, DISCL_EXCLUSIVE | DISCL_FOREGROUND );	
 	if( FAILED( hr ) )
 	{
 		common->Printf( "mouse: Couldn't set DI coop level\n" );
@@ -281,16 +278,13 @@ IN_ActivateMouse
 */
 void IN_ActivateMouse()
 {
-	int i;
-	HRESULT hr;
-	
 	if( !win32.in_mouse.GetBool() || win32.mouseGrabbed || !win32.g_pMouse )
 	{
 		return;
 	}
 	
 	win32.mouseGrabbed = true;
-	for( i = 0; i < 10; i++ )
+	for( int i = 0; i < 10; i++ )
 	{
 		if( ::ShowCursor( false ) < 0 )
 		{
@@ -299,7 +293,7 @@ void IN_ActivateMouse()
 	}
 	
 	// we may fail to reacquire if the window has been recreated
-	hr = win32.g_pMouse->Acquire();
+	HRESULT hr = win32.g_pMouse->Acquire();
 	if( FAILED( hr ) )
 	{
 		return;
@@ -316,8 +310,6 @@ IN_DeactivateMouse
 */
 void IN_DeactivateMouse()
 {
-	int i;
-	
 	if( !win32.g_pMouse || !win32.mouseGrabbed )
 	{
 		return;
@@ -325,7 +317,7 @@ void IN_DeactivateMouse()
 	
 	win32.g_pMouse->Unacquire();
 	
-	for( i = 0; i < 10; i++ )
+	for( int i = 0; i < 10; i++ )
 	{
 		if( ::ShowCursor( true ) >= 0 )
 		{
@@ -356,16 +348,16 @@ void IN_DeactivateMouseIfWindowed()
 ============================================================
 */
 
-
 /*
 ===========
 Sys_ShutdownInput
 ===========
 */
-void Sys_ShutdownInput()
+void idSysLocal::ShutdownInput()
 {
 	IN_DeactivateMouse();
 	IN_DeactivateKeyboard();
+
 	if( win32.g_pKeyboard )
 	{
 		win32.g_pKeyboard->Release();
@@ -390,7 +382,7 @@ void Sys_ShutdownInput()
 Sys_InitInput
 ===========
 */
-void Sys_InitInput()
+void idSysLocal::InitInput()
 {
 	common->Printf( "\n------- Input Initialization -------\n" );
 	IN_InitDirectInput();
@@ -419,7 +411,7 @@ Called every frame, even if not generating commands
 */
 void IN_Frame()
 {
-	bool	shouldGrab = true;
+	bool shouldGrab = true;
 	
 	if( !win32.in_mouse.GetBool() )
 	{
@@ -453,17 +445,16 @@ void IN_Frame()
 		{
 			IN_DeactivateMouse();
 		}
-		else
-		{
+		else {
 			IN_ActivateMouse();
 			
-#if 0	// if we can't reacquire, try reinitializing
+		#if 0	// if we can't reacquire, try reinitializing
 			if( !IN_InitDIMouse() )
 			{
 				win32.in_mouse.SetBool( false );
 				return;
 			}
-#endif
+		#endif
 		}
 	}
 }
@@ -507,8 +498,7 @@ int Sys_PollKeyboardInputEvents()
 	}
 	
 	dwElements = DINPUT_BUFFERSIZE;
-	hr = win32.g_pKeyboard->GetDeviceData( sizeof( DIDEVICEOBJECTDATA ),
-										   polled_didod, &dwElements, 0 );
+	hr = win32.g_pKeyboard->GetDeviceData( sizeof( DIDEVICEOBJECTDATA ), polled_didod, &dwElements, 0 );
 	if( hr != DI_OK )
 	{
 		// We got an error or we got DI_BUFFEROVERFLOW.
@@ -623,7 +613,7 @@ int Sys_ReturnKeyboardInputEvent( const int n, int& ch, bool& state )
 		// windows doesn't send keydown events to the WndProc for this key.
 		// ctrl and alt are handled here to get around windows sending ctrl and
 		// alt messages when the right-alt is pressed on non-US 102 keyboards.
-		Sys_QueEvent( SE_KEY, ch, state, 0, NULL, 0 );
+		sys->QueEvent( SE_KEY, ch, state, 0, NULL, 0 );
 	}
 	return ch;
 }
@@ -680,7 +670,7 @@ int Sys_PollMouseInputEvents( int mouseEvents[MAX_MOUSE_EVENTS][2] )
 			const bool mouseDown = ( polled_didod[i].dwData & 0x80 ) == 0x80;
 			mouseEvents[i][0] = M_ACTION1 + mouseButton;
 			mouseEvents[i][1] = mouseDown;
-			Sys_QueEvent( SE_KEY, K_MOUSE1 + mouseButton, mouseDown, 0, NULL, 0 );
+			sys->QueEvent( SE_KEY, K_MOUSE1 + mouseButton, mouseDown, 0, NULL, 0 );
 		}
 		else
 		{
@@ -691,13 +681,13 @@ int Sys_PollMouseInputEvents( int mouseEvents[MAX_MOUSE_EVENTS][2] )
 			{
 				mouseEvents[i][0] = M_DELTAX;
 				mouseEvents[i][1] = polled_didod[i].dwData;
-				Sys_QueEvent( SE_MOUSE, polled_didod[i].dwData, 0, 0, NULL, 0 );
+				sys->QueEvent( SE_MOUSE, polled_didod[i].dwData, 0, 0, NULL, 0 );
 			}
 			else if( diaction == DIMOFS_Y )
 			{
 				mouseEvents[i][0] = M_DELTAY;
 				mouseEvents[i][1] = polled_didod[i].dwData;
-				Sys_QueEvent( SE_MOUSE, 0, polled_didod[i].dwData, 0, NULL, 0 );
+				sys->QueEvent( SE_MOUSE, 0, polled_didod[i].dwData, 0, NULL, 0 );
 			}
 			else if( diaction == DIMOFS_Z )
 			{
@@ -706,11 +696,11 @@ int Sys_PollMouseInputEvents( int mouseEvents[MAX_MOUSE_EVENTS][2] )
 				{
 					const int value = ( int )polled_didod[i].dwData / WHEEL_DELTA;
 					const int key = value < 0 ? K_MWHEELDOWN : K_MWHEELUP;
-					const int iterations = abs( value );
+					const int iterations = idMath::Abs( value );
 					for( int i = 0; i < iterations; i++ )
 					{
-						Sys_QueEvent( SE_KEY, key, true, 0, NULL, 0 );
-						Sys_QueEvent( SE_KEY, key, false, 0, NULL, 0 );
+						sys->QueEvent( SE_KEY, key, true, 0, NULL, 0 );
+						sys->QueEvent( SE_KEY, key, false, 0, NULL, 0 );
 					}
 				}
 			}
@@ -763,7 +753,7 @@ void JoystickSamplingThread( void* data )
 	while( 1 )
 	{
 		// hopefully we see close to 4000 usec each loop
-		int	now = Sys_Microseconds();
+		int	now = sys->Microseconds();
 		int	delta;
 		if( prevTime == 0 )
 		{
@@ -795,8 +785,7 @@ void JoystickSamplingThread( void* data )
 					{
 						nextCheck[i] = 0;
 					}
-					else
-					{
+					else {
 						nextCheck[i] = now + waitTime;
 					}
 				}
@@ -823,12 +812,12 @@ void JoystickSamplingThread( void* data )
 				// Switch from using cs->current to current to reduce chance of Load-Hit-Store on consoles
 				
 				threadPacket[threadCount & 255] = current.dwPacketNumber;
-#if 0
+			#if 0
 				if( xis.dwPacketNumber == oldXis[ inputDeviceNum ].dwPacketNumber )
 				{
 					return numEvents;
 				}
-#endif
+			#endif
 				cs->buttonBits |= current.Gamepad.wButtons;
 			}
 		}
@@ -954,14 +943,14 @@ void idJoystickWin32::PostInputEvent( int inputDeviceNum, int event, int value, 
 		if( joyAxis[inputDeviceNum][axis] != percent )
 		{
 			joyAxis[inputDeviceNum][axis] = percent;
-			Sys_QueEvent( SE_JOYSTICK, axis, percent, 0, NULL, inputDeviceNum );
+			sys->QueEvent( SE_JOYSTICK, axis, percent, 0, NULL, inputDeviceNum );
 		}
 	}
 	
 	// These events are used for actual game input
-	events[numEvents].event = event;
-	events[numEvents].value = value;
-	numEvents++;
+	events[ numEvents ].event = event;
+	events[ numEvents ].value = value;
+	++numEvents;
 }
 
 /*
@@ -1104,6 +1093,6 @@ void idJoystickWin32::PushButton( int inputDeviceNum, int key, bool value )
 	if( buttonStates[inputDeviceNum][key] != value )
 	{
 		buttonStates[inputDeviceNum][key] = value;
-		Sys_QueEvent( SE_KEY, key, value, 0, NULL, inputDeviceNum );
+		sys->QueEvent( SE_KEY, key, value, 0, NULL, inputDeviceNum );
 	}
 }

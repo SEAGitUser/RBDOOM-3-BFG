@@ -306,7 +306,7 @@ void idMenuHandler::Update()
 	
 	if( gui != NULL && gui->IsActive() )
 	{
-		gui->Render( renderSystem, Sys_Milliseconds() );
+		gui->Render( renderSystem, sys->Milliseconds() );
 	}
 }
 
@@ -348,7 +348,7 @@ void idMenuHandler::UpdateMenuDisplay( int menu )
 idMenuHandler::Update
 ================================================
 */
-bool idMenuHandler::HandleGuiEvent( const sysEvent_t* sev )
+bool idMenuHandler::HandleGuiEvent( const idSysEvent* sev )
 {
 
 	if( gui != NULL && activeScreen != -1 )
@@ -488,7 +488,7 @@ void idMenuHandler::PumpWidgetActionRepeater()
 		return;
 	}
 	
-	if( actionRepeater.nextRepeatTime > Sys_Milliseconds() )
+	if( actionRepeater.nextRepeatTime > sys->Milliseconds() )
 	{
 		return;
 	}
@@ -496,11 +496,11 @@ void idMenuHandler::PumpWidgetActionRepeater()
 	// need to hold down longer on the first iteration before we continue to scroll
 	if( actionRepeater.numRepetitions == 0 )
 	{
-		actionRepeater.nextRepeatTime = Sys_Milliseconds() + 400;
+		actionRepeater.nextRepeatTime = sys->Milliseconds() + 400;
 	}
 	else
 	{
-		actionRepeater.nextRepeatTime = Sys_Milliseconds() + actionRepeater.repeatDelay;
+		actionRepeater.nextRepeatTime = sys->Milliseconds() + actionRepeater.repeatDelay;
 	}
 	
 	if( verify( actionRepeater.widget != NULL ) )

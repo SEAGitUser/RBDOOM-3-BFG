@@ -451,7 +451,7 @@ void idParallelJobList_Threads::Submit( idParallelJobList_Threads* waitForJobLis
 	memset( &deferredThreadStats, 0, sizeof( deferredThreadStats ) );
 	deferredThreadStats.numExecutedJobs = jobList.Num() - numSyncs * 2;
 	deferredThreadStats.numExecutedSyncs = numSyncs;
-	deferredThreadStats.submitTime = Sys_Microseconds();
+	deferredThreadStats.submitTime = sys->Microseconds();
 	deferredThreadStats.startTime = 0;
 	deferredThreadStats.endTime = 0;
 	deferredThreadStats.waitTime = 0;
@@ -510,7 +510,7 @@ void idParallelJobList_Threads::Wait()
 		}
 		
 		bool waited = false;
-		uint64 waitStart = Sys_Microseconds();
+		uint64 waitStart = sys->Microseconds();
 		
 		while( signalJobCount[signalJobCount.Num() - 1].GetValue() > 0 )
 		{
@@ -529,7 +529,7 @@ void idParallelJobList_Threads::Wait()
 		numSyncs = 0;
 		lastSignalJob = 0;
 		
-		uint64 waitEnd = Sys_Microseconds();
+		uint64 waitEnd = sys->Microseconds();
 		deferredThreadStats.waitTime = waited ? ( waitEnd - waitStart ) : 0;
 	}
 	memcpy( & threadStats, & deferredThreadStats, sizeof( threadStats ) );
@@ -642,7 +642,7 @@ int idParallelJobList_Threads::RunJobsInternal( unsigned int threadNum, threadJo
 	
 	if( deferredThreadStats.startTime == 0 )
 	{
-		deferredThreadStats.startTime = Sys_Microseconds();	// first time any thread is running jobs from this list
+		deferredThreadStats.startTime = sys->Microseconds();	// first time any thread is running jobs from this list
 	}
 	
 	int result = RUN_OK;
@@ -740,12 +740,12 @@ int idParallelJobList_Threads::RunJobsInternal( unsigned int threadNum, threadJo
 		
 		// execute the next job
 		{
-			uint64 jobStart = Sys_Microseconds();
+			uint64 jobStart = sys->Microseconds();
 			
 			jobList[state.nextJobIndex].function( jobList[state.nextJobIndex].data );
 			jobList[state.nextJobIndex].executed = 1;
 			
-			uint64 jobEnd = Sys_Microseconds();
+			uint64 jobEnd = sys->Microseconds();
 			deferredThreadStats.threadExecTime[threadNum] += jobEnd - jobStart;
 			
 #ifndef _DEBUG
@@ -773,7 +773,7 @@ int idParallelJobList_Threads::RunJobsInternal( unsigned int threadNum, threadJo
 			// if this was the very last job of the job list
 			if( state.signalIndex == signalJobCount.Num() - 1 )
 			{
-				deferredThreadStats.endTime = Sys_Microseconds();
+				deferredThreadStats.endTime = sys->Microseconds();
 				return ( result | RUN_DONE );
 			}
 		}
@@ -791,7 +791,7 @@ idParallelJobList_Threads::RunJobs
 */
 int idParallelJobList_Threads::RunJobs( unsigned int threadNum, threadJobListState_t& state, bool singleJob )
 {
-	uint64 start = Sys_Microseconds();
+	uint64 start = sys->Microseconds();
 	
 	numThreadsExecuting.Increment();
 	
@@ -799,7 +799,7 @@ int idParallelJobList_Threads::RunJobs( unsigned int threadNum, threadJobListSta
 	
 	numThreadsExecuting.Decrement();
 	
-	deferredThreadStats.threadTotalTime[threadNum] += Sys_Microseconds() - start;
+	deferredThreadStats.threadTotalTime[threadNum] += sys->Microseconds() - start;
 	
 	return result;
 }

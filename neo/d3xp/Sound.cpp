@@ -166,7 +166,7 @@ void idSound::Event_Trigger( idEntity* activator )
 	{
 		if( common->IsMultiplayer() )
 		{
-			if( refSound.referenceSound && ( gameLocal.time < playingUntilTime ) )
+			if( refSound.referenceSound && ( gameLocal.GetGameTimeMs() < playingUntilTime ) )
 			{
 				DoSound( false );
 			}
@@ -207,7 +207,7 @@ idSound::Think
 */
 void idSound::Think()
 {
-	idAngles	ang;
+	///idAngles	ang;
 	
 	// run physics
 	RunPhysics();
@@ -223,7 +223,6 @@ idSound::UpdateChangableSpawnArgs
 */
 void idSound::UpdateChangeableSpawnArgs( const idDict* source )
 {
-
 	idEntity::UpdateChangeableSpawnArgs( source );
 	
 	if( source )
@@ -302,7 +301,7 @@ void idSound::DoSound( bool play )
 	if( play )
 	{
 		StartSoundShader( refSound.shader, SND_CHANNEL_ANY, refSound.parms.soundShaderFlags, true, &playingUntilTime );
-		playingUntilTime += gameLocal.time;
+		playingUntilTime += gameLocal.GetGameTimeMs();
 	}
 	else
 	{

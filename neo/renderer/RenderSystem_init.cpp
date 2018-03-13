@@ -357,8 +357,7 @@ static void R_CheckPortableExtensions()
 		{
 			glConfig.driverType = GLDRV_OPENGL_MESA_CORE_PROFILE;
 		}
-		else
-		{
+		else {
 			glConfig.driverType = GLDRV_OPENGL_MESA;
 		}
 	}
@@ -369,14 +368,18 @@ static void R_CheckPortableExtensions()
 	{
 		glConfig.multitextureAvailable = true;
 	}
-	else
-	{
+	else {
 		glConfig.multitextureAvailable = GLEW_ARB_multitexture != 0;
 	}
 	
 	// GL_EXT_direct_state_access
 	glConfig.directStateAccess = GLEW_EXT_direct_state_access != 0;
+
+	// GL_ARB_texture_storage
+	glConfig.ARB_texture_storage = GLEW_ARB_texture_storage != 0;
 	
+	// GL_ARB_buffer_storage
+	glConfig.ARB_buffer_storage = GLEW_ARB_buffer_storage != 0;
 	
 	// GL_ARB_texture_compression + GL_S3_s3tc
 	// DRI drivers may have GL_ARB_texture_compression but no GL_EXT_texture_compression_s3tc
@@ -384,8 +387,7 @@ static void R_CheckPortableExtensions()
 	{
 		glConfig.textureCompressionAvailable = true;
 	}
-	else
-	{
+	else {
 		glConfig.textureCompressionAvailable = GLEW_ARB_texture_compression != 0 && GLEW_EXT_texture_compression_s3tc != 0;
 	}
 	// GL_EXT_texture_filter_anisotropic
@@ -395,8 +397,7 @@ static void R_CheckPortableExtensions()
 		glGetFloatv( GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &glConfig.maxTextureAnisotropy );
 		common->Printf( "   maxTextureAnisotropy: %f\n", glConfig.maxTextureAnisotropy );
 	}
-	else
-	{
+	else {
 		glConfig.maxTextureAnisotropy = 1;
 	}
 	
@@ -408,8 +409,7 @@ static void R_CheckPortableExtensions()
 	{
 		common->Printf( "...using %s\n", "GL_EXT_texture_lod_bias" );
 	}
-	else
-	{
+	else {
 		common->Printf( "X..%s not found\n", "GL_EXT_texture_lod_bias" );
 	}
 	
@@ -426,8 +426,7 @@ static void R_CheckPortableExtensions()
 	{
 		glConfig.vertexBufferObjectAvailable = true;
 	}
-	else
-	{
+	else {
 		glConfig.vertexBufferObjectAvailable = GLEW_ARB_vertex_buffer_object != 0;
 	}
 	
@@ -470,10 +469,10 @@ static void R_CheckPortableExtensions()
 	if( glConfig.uniformBufferAvailable )
 	{
 		glGetIntegerv( GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, ( GLint* )&glConfig.uniformBufferOffsetAlignment );
-		if( glConfig.uniformBufferOffsetAlignment < 256 )
-		{
+		if( glConfig.uniformBufferOffsetAlignment < 256 ) {
 			glConfig.uniformBufferOffsetAlignment = 256;
 		}
+		glGetIntegerv( GL_MAX_UNIFORM_BLOCK_SIZE, ( GLint* )&glConfig.uniformBufferMaxSize );
 	}
 	// RB: make GPU skinning optional for weak OpenGL drivers
 	glConfig.gpuSkinningAvailable = glConfig.uniformBufferAvailable && ( glConfig.driverType == GLDRV_OPENGL3X || glConfig.driverType == GLDRV_OPENGL32_CORE_PROFILE || glConfig.driverType == GLDRV_OPENGL32_COMPATIBILITY_PROFILE );
@@ -554,6 +553,16 @@ static void R_CheckPortableExtensions()
 									  0, NULL, true );
 		}
 	}
+
+	//////////////////////////////////////////////////////////////
+
+	// The maximum number of texels allowed in the texel array of a texture buffer object. Value must be at least 65536.
+	glConfig.max_texture_buffer_size = 0;
+	glGetIntegerv( GL_MAX_TEXTURE_BUFFER_SIZE, &glConfig.max_texture_buffer_size );
+
+	// The minimum required alignment for texture buffer sizes and offset. The initial value is 1.
+	glConfig.texture_buffer_offset_alignment = 0;
+	glGetIntegerv( GL_TEXTURE_BUFFER_OFFSET_ALIGNMENT, &glConfig.texture_buffer_offset_alignment );
 
 	//////////////////////////////////////////////////////////////
 
@@ -833,7 +842,7 @@ void R_InitOpenGL()
 	console->Resize();
 	
 	// input and sound systems need to be tied to the new window
-	Sys_InitInput();
+	sys->InitInput();
 	
 	// get our config strings
 	glConfig.vendor_string = ( const char* )glGetString( GL_VENDOR );
@@ -1193,7 +1202,7 @@ void R_VidRestart_f( const idCmdArgs& args )
 	if( full )
 	{
 		// free all of our texture numbers
-		Sys_ShutdownInput();
+		sys->ShutdownInput();
 		renderImageManager->PurgeAllImages();
 		// free the context and close the window
 		GLimp_Shutdown();

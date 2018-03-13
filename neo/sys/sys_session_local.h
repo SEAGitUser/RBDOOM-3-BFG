@@ -511,7 +511,7 @@ public:
 	virtual void			InviteParty() = 0;
 	virtual void			ShowPartySessions() = 0;
 	
-	virtual bool			ProcessInputEvent( const sysEvent_t* ev ) = 0;
+	virtual bool			ProcessInputEvent( const idSysEvent* ev ) = 0;
 	
 	// Play with Friends server listing
 	virtual int				NumServers() const = 0;

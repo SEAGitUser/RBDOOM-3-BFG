@@ -1,71 +1,10 @@
-/*
-===========================================================================
-
-Doom 3 BFG Edition GPL Source Code
-Copyright (C) 1993-2012 id Software LLC, a ZeniMax Media company.
-Copyright (C) 2013-2016 Robert Beckebans
-
-This file is part of the Doom 3 BFG Edition GPL Source Code ("Doom 3 BFG Edition Source Code").
-
-Doom 3 BFG Edition Source Code is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-
-Doom 3 BFG Edition Source Code is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with Doom 3 BFG Edition Source Code.  If not, see <http://www.gnu.org/licenses/>.
-
-In addition, the Doom 3 BFG Edition Source Code is also subject to certain additional terms. You should have received a copy of these additional terms immediately following the terms and conditions of the GNU General Public License which accompanied the Doom 3 BFG Edition Source Code.  If not, please request a copy in writing from id Software at the address below.
-
-If you have questions concerning this license or the applicable additional terms, you may contact in writing id Software LLC, c/o ZeniMax Media Inc., Suite 120, Rockville, Maryland 20850 USA.
-
-===========================================================================
-*/
 #ifndef __RENDERPROGS_H__
 #define __RENDERPROGS_H__
 
-// This enum list corresponds to the global constant register indecies as defined in global.inc for all
-// shaders.  We used a shared pool to keeps things simple.  If something changes here then it also
-// needs to change in global.inc and vice versa
 enum renderParm_t
 {
-	// For backwards compatibility, do not change the order of the first 17 items
-	RENDERPARM_SCREENCORRECTIONFACTOR = 0,
-	RENDERPARM_WINDOWCOORD,
-	RENDERPARM_DIFFUSEMODIFIER,
-	RENDERPARM_SPECULARMODIFIER,
-	
-	RENDERPARM_LOCALLIGHTORIGIN,
-	RENDERPARM_LOCALVIEWORIGIN,
-	
-	RENDERPARM_LIGHTPROJECTION_S,
-	RENDERPARM_LIGHTPROJECTION_T,
-	RENDERPARM_LIGHTPROJECTION_Q,
-	RENDERPARM_LIGHTFALLOFF_S,
-	
-	RENDERPARM_BUMPMATRIX_S,
-	RENDERPARM_BUMPMATRIX_T,
-	
-	RENDERPARM_DIFFUSEMATRIX_S,
-	RENDERPARM_DIFFUSEMATRIX_T,
-	
-	RENDERPARM_SPECULARMATRIX_S,
-	RENDERPARM_SPECULARMATRIX_T,
-	
-	RENDERPARM_VERTEXCOLOR_MODULATE,
-	RENDERPARM_VERTEXCOLOR_ADD,
-	
-	// The following are new and can be in any order
-	
-	RENDERPARM_COLOR,
-	RENDERPARM_VIEWORIGIN,
-	RENDERPARM_GLOBALEYEPOS,
-	
+	// For backwards compatibility, do not change the order of items
+
 	RENDERPARM_MVPMATRIX_X,
 	RENDERPARM_MVPMATRIX_Y,
 	RENDERPARM_MVPMATRIX_Z,
@@ -75,16 +14,64 @@ enum renderParm_t
 	RENDERPARM_MODELMATRIX_Y,
 	RENDERPARM_MODELMATRIX_Z,
 	RENDERPARM_MODELMATRIX_W,
-	
-	RENDERPARM_PROJMATRIX_X,
-	RENDERPARM_PROJMATRIX_Y,
-	RENDERPARM_PROJMATRIX_Z,
-	RENDERPARM_PROJMATRIX_W,
-	
+
 	RENDERPARM_MODELVIEWMATRIX_X,
 	RENDERPARM_MODELVIEWMATRIX_Y,
 	RENDERPARM_MODELVIEWMATRIX_Z,
 	RENDERPARM_MODELVIEWMATRIX_W,
+
+	RENDERPARM_INVERSEMODELVIEWMATRIX_X,
+	RENDERPARM_INVERSEMODELVIEWMATRIX_Y,
+	RENDERPARM_INVERSEMODELVIEWMATRIX_Z,
+	RENDERPARM_INVERSEMODELVIEWMATRIX_W,
+	
+	//RENDERPARM_PROJMATRIX_X,
+	//RENDERPARM_PROJMATRIX_Y,
+	//RENDERPARM_PROJMATRIX_Z,
+	//RENDERPARM_PROJMATRIX_W,
+
+	RENDERPARM_AMBIENT_COLOR,
+
+	RENDERPARM_ENABLE_SKINNING,
+	RENDERPARM_ALPHA_TEST,
+
+	RENDERPARM_SCREENCORRECTIONFACTOR,
+	//RENDERPARM_WINDOWCOORD,
+	RENDERPARM_OVERBRIGHT,
+
+	RENDERPARM_GLOBALLIGHTORIGIN,
+
+	RENDERPARM_LOCALLIGHTORIGIN,
+	RENDERPARM_LOCALVIEWORIGIN,
+
+	RENDERPARM_LIGHTPROJECTION_S,
+	RENDERPARM_LIGHTPROJECTION_T,
+	RENDERPARM_LIGHTPROJECTION_P,
+	RENDERPARM_LIGHTPROJECTION_Q,
+	RENDERPARM_LIGHTFALLOFF_S,
+
+	RENDERPARM_BASELIGHTPROJECT_S,
+	RENDERPARM_BASELIGHTPROJECT_T,
+	RENDERPARM_BASELIGHTPROJECT_R,
+	RENDERPARM_BASELIGHTPROJECT_Q,
+
+	RENDERPARM_DIFFUSEMODIFIER,
+	RENDERPARM_SPECULARMODIFIER,
+	RENDERPARM_COLORMODIFIER,
+
+	RENDERPARM_BUMPMATRIX_S,
+	RENDERPARM_BUMPMATRIX_T,
+
+	RENDERPARM_DIFFUSEMATRIX_S,
+	RENDERPARM_DIFFUSEMATRIX_T,
+
+	RENDERPARM_SPECULARMATRIX_S,
+	RENDERPARM_SPECULARMATRIX_T,
+
+	RENDERPARM_VERTEXCOLOR_MODULATE,
+	RENDERPARM_VERTEXCOLOR_ADD,
+	RENDERPARM_VERTEXCOLOR_MAD, //SEA
+	RENDERPARM_COLOR,
 	
 	RENDERPARM_TEXTUREMATRIX_S,
 	RENDERPARM_TEXTUREMATRIX_T,
@@ -102,73 +89,138 @@ enum renderParm_t
 	RENDERPARM_WOBBLESKY_X,
 	RENDERPARM_WOBBLESKY_Y,
 	RENDERPARM_WOBBLESKY_Z,
-	
-	RENDERPARM_OVERBRIGHT,
-	RENDERPARM_ENABLE_SKINNING,
-	RENDERPARM_ALPHA_TEST,
-	
-	// RB begin
-	RENDERPARM_AMBIENT_COLOR,
-	
-	RENDERPARM_GLOBALLIGHTORIGIN,
+
 	RENDERPARM_JITTERTEXSCALE,
 	RENDERPARM_JITTERTEXOFFSET,
-	RENDERPARM_CASCADEDISTANCES,
+	//RENDERPARM_CASCADEDISTANCES,
+	
+	//RENDERPARM_VIEWORIGIN,
+	//RENDERPARM_GLOBALEYEPOS,
+	
+	RENDERPARM_USERVEC0,
+	RENDERPARM_USERVEC1,
+	RENDERPARM_USERVEC2,
+	RENDERPARM_USERVEC3,
+	RENDERPARM_USERVEC4,
+	RENDERPARM_USERVEC5,
+	RENDERPARM_USERVEC6,
+	RENDERPARM_USERVEC7,
+	RENDERPARM_USERVEC8,
+	RENDERPARM_USERVEC9,
+	RENDERPARM_USERVEC10,
+	RENDERPARM_USERVEC11,
+	RENDERPARM_USERVEC12,
+	RENDERPARM_USERVEC13,
+	RENDERPARM_USERVEC14,
+	RENDERPARM_USERVEC15,
+	RENDERPARM_USERVEC16,
+	RENDERPARM_USERVEC17,
+	RENDERPARM_USERVEC18,
+	RENDERPARM_USERVEC19,
+	RENDERPARM_USERVEC20,
+	RENDERPARM_USERVEC21,
+	RENDERPARM_USERVEC22,
+	RENDERPARM_USERVEC23,
+	RENDERPARM_USERVEC24,
+	RENDERPARM_USERVEC25,
+	RENDERPARM_USERVEC26,
+	RENDERPARM_USERVEC27,
+	RENDERPARM_USERVEC28,
+	RENDERPARM_USERVEC29,
+	RENDERPARM_USERVEC30,
+	RENDERPARM_USERVEC31,
 
-	RENDERPARM_VERTEXCOLOR_MAD,		//SEA
+	// Textures -------------------------------------
+	
+	RENDERPARM_BUMPMAP,
+	RENDERPARM_DIFFUSEMAP,
+	RENDERPARM_SPECULARMAP,
 
-	RENDERPARM_BASELIGHTPROJECT_S,	//SEA
-	RENDERPARM_BASELIGHTPROJECT_T,	//SEA
-	RENDERPARM_BASELIGHTPROJECT_R,	//SEA
-	RENDERPARM_BASELIGHTPROJECT_Q,	//SEA
-	
-	RENDERPARM_SHADOW_MATRIX_0_X,	// rpShadowMatrices[6 * 4]
-	RENDERPARM_SHADOW_MATRIX_0_Y,
-	RENDERPARM_SHADOW_MATRIX_0_Z,
-	RENDERPARM_SHADOW_MATRIX_0_W,
-	
-	RENDERPARM_SHADOW_MATRIX_1_X,
-	RENDERPARM_SHADOW_MATRIX_1_Y,
-	RENDERPARM_SHADOW_MATRIX_1_Z,
-	RENDERPARM_SHADOW_MATRIX_1_W,
-	
-	RENDERPARM_SHADOW_MATRIX_2_X,
-	RENDERPARM_SHADOW_MATRIX_2_Y,
-	RENDERPARM_SHADOW_MATRIX_2_Z,
-	RENDERPARM_SHADOW_MATRIX_2_W,
-	
-	RENDERPARM_SHADOW_MATRIX_3_X,
-	RENDERPARM_SHADOW_MATRIX_3_Y,
-	RENDERPARM_SHADOW_MATRIX_3_Z,
-	RENDERPARM_SHADOW_MATRIX_3_W,
-	
-	RENDERPARM_SHADOW_MATRIX_4_X,
-	RENDERPARM_SHADOW_MATRIX_4_Y,
-	RENDERPARM_SHADOW_MATRIX_4_Z,
-	RENDERPARM_SHADOW_MATRIX_4_W,
-	
-	RENDERPARM_SHADOW_MATRIX_5_X,
-	RENDERPARM_SHADOW_MATRIX_5_Y,
-	RENDERPARM_SHADOW_MATRIX_5_Z,
-	RENDERPARM_SHADOW_MATRIX_5_W,
-	// RB end
+	RENDERPARM_LIGHTPROJECTMAP,
+	RENDERPARM_LIGHTFALLOFFMAP,
+
+	RENDERPARM_MAP,
+	RENDERPARM_CUBEMAP,
+	RENDERPARM_ENVIROCUBEMAP,
+	RENDERPARM_MASKMAP,
+	RENDERPARM_COVERAGEMAP,
+
+	RENDERPARM_MAPY,
+	RENDERPARM_MAPCR,
+	RENDERPARM_MAPCB,
+
+	RENDERPARM_FOGMAP,
+	RENDERPARM_FOGENTERMAP,
+
+	RENDERPARM_NOFALLOFFMAP,
+	RENDERPARM_SCRATCHIMAGE,
+	RENDERPARM_SCRATCHIMAGE2,
+	RENDERPARM_ACCUMMAP,
+
+	RENDERPARM_CURRENTRENDERMAP,
+	RENDERPARM_CURRENTDEPTHMAP,
+
+	RENDERPARM_JITTERMAP,
+
+	RENDERPARM_RANDOMIMAGE256,
+	RENDERPARM_GRAINMAP,
+
+	RENDERPARM_VIEWNORMALMAP,
+
+	RENDERPARM_SHADOWBUFFERMAP,
+	RENDERPARM_SHADOWBUFFERDEBUGMAP,
+
+	RENDERPARM_BLOOMRENDERMAP,
+
+	RENDERPARM_SMAAINPUTIMAGE,
+	RENDERPARM_SMAAAREAIMAGE,
+	RENDERPARM_SMAASEARCHIMAGE,
+	RENDERPARM_SMAAEDGESIMAGE,
+	RENDERPARM_SMAABLENDIMAGE,
+
+	RENDERPARM_EDITORMAP,
+
+	RENDERPARM_USERMAP0,
+	RENDERPARM_USERMAP1,
+	RENDERPARM_USERMAP2,
+	RENDERPARM_USERMAP3,
+	RENDERPARM_USERMAP4,
+	RENDERPARM_USERMAP5,
+	RENDERPARM_USERMAP6,
+	RENDERPARM_USERMAP7,
+	RENDERPARM_USERMAP8,
+	RENDERPARM_USERMAP9,
+	RENDERPARM_USERMAP10,
+	RENDERPARM_USERMAP11,
+	RENDERPARM_USERMAP12,
+	RENDERPARM_USERMAP13,
+	RENDERPARM_USERMAP14,
+	RENDERPARM_USERMAP15,
+	//RENDERPARM_USERMAP16,
+	//RENDERPARM_USERMAP17,
+	//RENDERPARM_USERMAP18,
+	//RENDERPARM_USERMAP19,
+	//RENDERPARM_USERMAP20,
+	//RENDERPARM_USERMAP21,
+	//RENDERPARM_USERMAP22,
+	//RENDERPARM_USERMAP23,
+	//RENDERPARM_USERMAP24,
+	//RENDERPARM_USERMAP25,
+	//RENDERPARM_USERMAP26,
+	//RENDERPARM_USERMAP27,
+	//RENDERPARM_USERMAP28,
+	//RENDERPARM_USERMAP29,
+	//RENDERPARM_USERMAP30,
+	//RENDERPARM_USERMAP31,
 	
 	RENDERPARM_TOTAL,
-	RENDERPARM_USER = 128,
 };
-
-
-struct glslUniformLocation_t
-{
-	int		parmIndex;
-	GLint	uniformIndex;
-};
-
-
 
 /*
 ================================================================================================
-idRenderProgManager
+
+	idRenderProgManager
+
 ================================================================================================
 */
 class idRenderProgManager {
@@ -177,276 +229,264 @@ public:
 	idRenderProgManager();
 	virtual ~idRenderProgManager();
 	
-	void	Init();
-	void	Shutdown();
+	void				Init();
+	void				Shutdown();
 	
-	idRenderVector & GetRenderParm( renderParm_t rp );
-	void	SetRenderParm( renderParm_t rp, const float* value );
-	void	SetRenderParms( renderParm_t rp, const float* values, int numValues );
-	
-	int		FindVertexShader( const char* name );
-	int		FindGeometryShader( const char* name );
-	int		FindFragmentShader( const char* name );
-	int		FindShader( const char* name, shaderType_e shaderType );
-	
-	// RB: added progIndex to handle many custom renderprogs
-	void BindShader( int progIndex, int vIndex, int gIndex, int fIndex, bool builtin );
-	// RB end
+	idRenderVector &	GetRenderParm( renderParm_t );
+	void				SetRenderParm( renderParm_t, idImage * );
+	void				SetRenderParm( renderParm_t, const idRenderVector & );
+	void				SetRenderParm( renderParm_t, const float * value );
+	ID_INLINE void		SetRenderParms( renderParm_t rp, const float * values, int numValues ) 
+	{
+		for( int i = 0; i < numValues; i++ ) {
+			SetRenderParm( ( renderParm_t )( rp + i ), values + ( i * 4 ) );
+		}
+	}
+		
+	// this should only be called via the reload shader console command
+	void				LoadAllShaders( bool bPrint );
+	void				KillAllShaders();
+
+	///void				CommitUniforms();
+	void				ZeroUniforms();
+	///void				SetUniformValue( renderParm_t, const float* value );
+
+	const idDeclRenderProg * FindRenderProgram( const char * progName ) const;
+	ID_INLINE const idDeclRenderProg * GetCurrentRenderProgram() const { return mCurrentDeclRenderProg; }
+	void				BindRenderProgram( const idDeclRenderProg * );
+	// unbind the currently bound render program
+	void				Unbind();
+
+	// the joints buffer should only be bound for vertex programs that use joints
+	ID_INLINE bool		ShaderUsesJoints() const { return GetCurrentRenderProgram()->HasHardwareSkinning(); }
+	// the rpEnableSkinning render parm should only be set for vertex programs that use it
+	ID_INLINE bool		ShaderHasOptionalSkinning() const { return GetCurrentRenderProgram()->HasOptionalSkinning(); }
+
+	// Builtin programs -----------------------------------------------------
 	
 	void BindShader_GUI( ) {
-		BindShader_Builtin( BUILTIN_GUI );
+		BindProg_Builtin( BUILTIN_GUI );
 	}
 	
 	void BindShader_Color( const bool skinning ) {
-		BindShader_Builtin( skinning ? BUILTIN_COLOR_SKINNED : BUILTIN_COLOR );
+		BindProg_Builtin( skinning ? BUILTIN_COLOR_SKINNED : BUILTIN_COLOR );
 	}
 
 	// RB begin
 	void BindShader_VertexColor() {
-		BindShader_Builtin( BUILTIN_VERTEX_COLOR );
+		BindProg_Builtin( BUILTIN_VERTEX_COLOR );
 	}
 
 	void BindShader_AmbientLighting( const bool skinning ) {
-		BindShader_Builtin( skinning ? BUILTIN_AMBIENT_LIGHTING_SKINNED : BUILTIN_AMBIENT_LIGHTING );
+		BindProg_Builtin( skinning ? BUILTIN_AMBIENT_LIGHTING_SKINNED : BUILTIN_AMBIENT_LIGHTING );
 	}
 
 	void BindShader_SmallGeometryBuffer( const bool skinning ) {
-		BindShader_Builtin( skinning ? BUILTIN_SMALL_GEOMETRY_BUFFER_SKINNED : BUILTIN_SMALL_GEOMETRY_BUFFER );
+		BindProg_Builtin( skinning ? BUILTIN_SMALL_GEOMETRY_BUFFER_SKINNED : BUILTIN_SMALL_GEOMETRY_BUFFER );
 	}
 	// RB end
 
 //SEA ->
 	void BindShader_GBufferSml( const bool skinning ) {
-		BindShader_Builtin( skinning ? BUILTIN_SMALL_GBUFFER_SML_SKINNED : BUILTIN_SMALL_GBUFFER_SML );
+		BindProg_Builtin( skinning ? BUILTIN_SMALL_GBUFFER_SML_SKINNED : BUILTIN_SMALL_GBUFFER_SML );
 	}
 	void BindShader_DepthWorld() {
-		BindShader_Builtin( BUILTIN_DEPTH_WORLD );
+		BindProg_Builtin( BUILTIN_DEPTH_WORLD );
 	}
 	void BindShader_FillShadowDepthBufferOnePass() {
-		//BindShader_Builtin( BUILTIN_DEPTH_WORLD );
+		//BindProg_Builtin( BUILTIN_DEPTH_WORLD );
 	}
 	void BindShader_ScreenSpaceBlendLight()
 	{
-		BindShader_Builtin( BUILTIN_BLENDLIGHT_SCREENSPACE );
+		BindProg_Builtin( BUILTIN_BLENDLIGHT_SCREENSPACE );
 	}
 //SEA <-
 
 	void BindShader_Texture() {
-		BindShader_Builtin( BUILTIN_TEXTURED );
+		BindProg_Builtin( BUILTIN_TEXTURED );
 	}
 
 	void BindShader_TextureVertexColor( const bool skinning ) {
-		BindShader_Builtin( skinning ? BUILTIN_TEXTURE_VERTEXCOLOR_SKINNED : BUILTIN_TEXTURE_VERTEXCOLOR );
+		BindProg_Builtin( skinning ? BUILTIN_TEXTURE_VERTEXCOLOR_SKINNED : BUILTIN_TEXTURE_VERTEXCOLOR );
 	};
 
 	void BindShader_TextureVertexColor_sRGB() {
-		BindShader_Builtin( BUILTIN_TEXTURE_VERTEXCOLOR_SRGB );
+		BindProg_Builtin( BUILTIN_TEXTURE_VERTEXCOLOR_SRGB );
 	};
 
 	void BindShader_TextureTexGenVertexColor() {
-		BindShader_Builtin( BUILTIN_TEXTURE_TEXGEN_VERTEXCOLOR );
+		BindProg_Builtin( BUILTIN_TEXTURE_TEXGEN_VERTEXCOLOR );
 	};
 
 	void BindShader_Interaction( const bool skinning ) {
-		BindShader_Builtin( skinning ? BUILTIN_INTERACTION_SKINNED : BUILTIN_INTERACTION );
+		BindProg_Builtin( skinning ? BUILTIN_INTERACTION_SKINNED : BUILTIN_INTERACTION );
 	}
 	void BindShader_InteractionAmbient( const bool skinning ) {
-		BindShader_Builtin( skinning ? BUILTIN_INTERACTION_AMBIENT_SKINNED : BUILTIN_INTERACTION_AMBIENT );
+		BindProg_Builtin( skinning ? BUILTIN_INTERACTION_AMBIENT_SKINNED : BUILTIN_INTERACTION_AMBIENT );
 	}
 
 	// RB begin
 	void BindShader_Interaction_ShadowMapping_Spot( const bool skinning ) {
-		BindShader_Builtin( skinning ? BUILTIN_INTERACTION_SHADOW_MAPPING_SPOT_SKINNED : BUILTIN_INTERACTION_SHADOW_MAPPING_SPOT );
+		BindProg_Builtin( skinning ? BUILTIN_INTERACTION_SHADOW_MAPPING_SPOT_SKINNED : BUILTIN_INTERACTION_SHADOW_MAPPING_SPOT );
 	}
 	void BindShader_Interaction_ShadowMapping_Point( const bool skinning ) {
-		BindShader_Builtin( skinning ? BUILTIN_INTERACTION_SHADOW_MAPPING_POINT_SKINNED : BUILTIN_INTERACTION_SHADOW_MAPPING_POINT );
+		BindProg_Builtin( skinning ? BUILTIN_INTERACTION_SHADOW_MAPPING_POINT_SKINNED : BUILTIN_INTERACTION_SHADOW_MAPPING_POINT );
 	}
 	void BindShader_Interaction_ShadowMapping_Parallel( const bool skinning ) {
-		BindShader_Builtin( skinning ? BUILTIN_INTERACTION_SHADOW_MAPPING_PARALLEL_SKINNED : BUILTIN_INTERACTION_SHADOW_MAPPING_PARALLEL );
+		BindProg_Builtin( skinning ? BUILTIN_INTERACTION_SHADOW_MAPPING_PARALLEL_SKINNED : BUILTIN_INTERACTION_SHADOW_MAPPING_PARALLEL );
 	}
 	// RB end
 
 	void BindShader_SimpleShade() {
-		BindShader_Builtin( BUILTIN_SIMPLESHADE );
+		BindProg_Builtin( BUILTIN_SIMPLESHADE );
 	}
 
 	void BindShader_Environment( const bool skinning ) {
-		BindShader_Builtin( skinning ? BUILTIN_ENVIRONMENT_SKINNED : BUILTIN_ENVIRONMENT );
+		BindProg_Builtin( skinning ? BUILTIN_ENVIRONMENT_SKINNED : BUILTIN_ENVIRONMENT );
 	}
 
 	void BindShader_BumpyEnvironment( const bool skinning ) {
-		BindShader_Builtin( skinning ? BUILTIN_BUMPY_ENVIRONMENT_SKINNED : BUILTIN_BUMPY_ENVIRONMENT );
+		BindProg_Builtin( skinning ? BUILTIN_BUMPY_ENVIRONMENT_SKINNED : BUILTIN_BUMPY_ENVIRONMENT );
 	}
 
 	void BindShader_Depth( const bool skinning ) {
-		BindShader_Builtin( skinning ? BUILTIN_DEPTH_SKINNED : BUILTIN_DEPTH );
+		BindProg_Builtin( skinning ? BUILTIN_DEPTH_SKINNED : BUILTIN_DEPTH );
 	}
 
 	void BindShader_Shadow( const bool skinning ) {
-		// RB: no FFP fragment rendering anymore
-		//BindShader( -1, builtinShaders[BUILTIN_SHADOW], -1, true );
-		BindShader_Builtin( skinning ? BUILTIN_SHADOW_SKINNED : BUILTIN_SHADOW );
-		// RB end
+		BindProg_Builtin( skinning ? BUILTIN_SHADOW_SKINNED : BUILTIN_SHADOW );
 	}
 
 	void BindShader_ShadowDebug( const bool skinning ) {
-		BindShader_Builtin( skinning ? BUILTIN_SHADOW_DEBUG_SKINNED : BUILTIN_SHADOW_DEBUG );
+		BindProg_Builtin( skinning ? BUILTIN_SHADOW_DEBUG_SKINNED : BUILTIN_SHADOW_DEBUG );
 	}
 
 	void BindShader_BlendLight() {
-		BindShader_Builtin( BUILTIN_BLENDLIGHT );
+		BindProg_Builtin( BUILTIN_BLENDLIGHT );
 	}
 
 	void BindShader_Fog( const bool skinning ) {
-		BindShader_Builtin( skinning ? BUILTIN_FOG_SKINNED : BUILTIN_FOG );
+		BindProg_Builtin( skinning ? BUILTIN_FOG_SKINNED : BUILTIN_FOG );
 	}
 
 	void BindShader_SkyBox() {
-		BindShader_Builtin( BUILTIN_SKYBOX );
+		BindProg_Builtin( BUILTIN_SKYBOX );
 	}
 	
 	void BindShader_WobbleSky() {
-		BindShader_Builtin( BUILTIN_WOBBLESKY );
+		BindProg_Builtin( BUILTIN_WOBBLESKY );
 	}
 	
 	void BindShader_StereoDeGhost() {
-		BindShader_Builtin( BUILTIN_STEREO_DEGHOST );
+		BindProg_Builtin( BUILTIN_STEREO_DEGHOST );
 	}
 	
 	void BindShader_StereoWarp() {
-		BindShader_Builtin( BUILTIN_STEREO_WARP );
+		BindProg_Builtin( BUILTIN_STEREO_WARP );
 	}
 	
 	void BindShader_StereoInterlace() {
-		BindShader_Builtin( BUILTIN_STEREO_INTERLACE );
+		BindProg_Builtin( BUILTIN_STEREO_INTERLACE );
 	}
 	
 	void BindShader_PostProcess() {
-		BindShader_Builtin( BUILTIN_POSTPROCESS );
+		BindProg_Builtin( BUILTIN_POSTPROCESS );
 	}
 	
 	void BindShader_Screen() {
-		BindShader_Builtin( BUILTIN_SCREEN );
+		BindProg_Builtin( BUILTIN_SCREEN );
 	}
 	
 	void BindShader_Tonemap() {
-		BindShader_Builtin( BUILTIN_TONEMAP );
+		BindProg_Builtin( BUILTIN_TONEMAP );
 	}
 	
 	void BindShader_Brightpass() {
-		BindShader_Builtin( BUILTIN_BRIGHTPASS );
+		BindProg_Builtin( BUILTIN_BRIGHTPASS );
 	}
 	
 	void BindShader_HDRGlareChromatic() {
-		BindShader_Builtin( BUILTIN_HDR_GLARE_CHROMATIC );
+		BindProg_Builtin( BUILTIN_HDR_GLARE_CHROMATIC );
 	}
 	
 	void BindShader_HDRDebug() {
-		BindShader_Builtin( BUILTIN_HDR_DEBUG );
+		BindProg_Builtin( BUILTIN_HDR_DEBUG );
 	}
 	
 	void BindShader_SMAA_EdgeDetection() {
-		BindShader_Builtin( BUILTIN_SMAA_EDGE_DETECTION );
+		BindProg_Builtin( BUILTIN_SMAA_EDGE_DETECTION );
 	}
 	
 	void BindShader_SMAA_BlendingWeightCalculation() {
-		BindShader_Builtin( BUILTIN_SMAA_BLENDING_WEIGHT_CALCULATION );
+		BindProg_Builtin( BUILTIN_SMAA_BLENDING_WEIGHT_CALCULATION );
 	}
 	
 	void BindShader_SMAA_NeighborhoodBlending() {
-		BindShader_Builtin( BUILTIN_SMAA_NEIGHBORHOOD_BLENDING );
+		BindProg_Builtin( BUILTIN_SMAA_NEIGHBORHOOD_BLENDING );
 	}
 	
 	void BindShader_AmbientOcclusion() {
-		BindShader_Builtin( BUILTIN_AMBIENT_OCCLUSION );
+		BindProg_Builtin( BUILTIN_AMBIENT_OCCLUSION );
 	}
 	
 	void BindShader_AmbientOcclusionAndOutput() {
-		BindShader_Builtin( BUILTIN_AMBIENT_OCCLUSION_AND_OUTPUT );
+		BindProg_Builtin( BUILTIN_AMBIENT_OCCLUSION_AND_OUTPUT );
 	}
 	
 	void BindShader_AmbientOcclusionBlur() {
-		BindShader_Builtin( BUILTIN_AMBIENT_OCCLUSION_BLUR );
+		BindProg_Builtin( BUILTIN_AMBIENT_OCCLUSION_BLUR );
 	}
 	
 	void BindShader_AmbientOcclusionBlurAndOutput() {
-		BindShader_Builtin( BUILTIN_AMBIENT_OCCLUSION_BLUR_AND_OUTPUT );
+		BindProg_Builtin( BUILTIN_AMBIENT_OCCLUSION_BLUR_AND_OUTPUT );
 	}
 	
 	void BindShader_AmbientOcclusionMinify() {
-		BindShader_Builtin( BUILTIN_AMBIENT_OCCLUSION_MINIFY );
+		BindProg_Builtin( BUILTIN_AMBIENT_OCCLUSION_MINIFY );
 	}
 	
 	void BindShader_AmbientOcclusionReconstructCSZ() {
-		BindShader_Builtin( BUILTIN_AMBIENT_OCCLUSION_RECONSTRUCT_CSZ );
+		BindProg_Builtin( BUILTIN_AMBIENT_OCCLUSION_RECONSTRUCT_CSZ );
 	}
 	
 	void BindShader_DeepGBufferRadiosity() {
-		BindShader_Builtin( BUILTIN_DEEP_GBUFFER_RADIOSITY_SSGI );
+		BindProg_Builtin( BUILTIN_DEEP_GBUFFER_RADIOSITY_SSGI );
 	}
 	
 	void BindShader_DeepGBufferRadiosityBlur() {
-		BindShader_Builtin( BUILTIN_DEEP_GBUFFER_RADIOSITY_BLUR );
+		BindProg_Builtin( BUILTIN_DEEP_GBUFFER_RADIOSITY_BLUR );
 	}
 	
 	void BindShader_DeepGBufferRadiosityBlurAndOutput() {
-		BindShader_Builtin( BUILTIN_DEEP_GBUFFER_RADIOSITY_BLUR_AND_OUTPUT );
+		BindProg_Builtin( BUILTIN_DEEP_GBUFFER_RADIOSITY_BLUR_AND_OUTPUT );
 	}
 	
 #if 0
 	void BindShader_ZCullReconstruct() {
-		BindShader_Builtin( BUILTIN_ZCULL_RECONSTRUCT );
+		BindProg_Builtin( BUILTIN_ZCULL_RECONSTRUCT );
 	}
 #endif
 	
 	void BindShader_Bink() {
-		BindShader_Builtin( BUILTIN_BINK );
+		BindProg_Builtin( BUILTIN_BINK );
 	}
 	
 	void BindShader_BinkGUI() {
-		BindShader_Builtin( BUILTIN_BINK_GUI );
+		BindProg_Builtin( BUILTIN_BINK_GUI );
 	}
 	
 	void BindShader_MotionBlur() {
-		BindShader_Builtin( BUILTIN_MOTION_BLUR );
+		BindProg_Builtin( BUILTIN_MOTION_BLUR );
 	}
 	
 	void BindShader_DebugShadowMap() {
-		BindShader_Builtin( BUILTIN_DEBUG_SHADOWMAP );
+		BindProg_Builtin( BUILTIN_DEBUG_SHADOWMAP );
 	}
 	// RB end
 	
-	// the joints buffer should only be bound for vertex programs that use joints
-	bool		ShaderUsesJoints() const { return vertShaders[ currentVertShader ].usesJoints; }
-	// the rpEnableSkinning render parm should only be set for vertex programs that use it
-	bool		ShaderHasOptionalSkinning() const { return vertShaders[ currentVertShader ].optionalSkinning; }
-	
-	// unbind the currently bound render program
-	void		Unbind();
-	
-	// RB begin
-	bool		IsShaderBound() const;
-	// RB end
-	
-	// this should only be called via the reload shader console command
-	void		LoadAllShaders();
-	void		KillAllShaders();
-
-	void		CommitUniforms();
-	void		ZeroUniforms();
-	void		SetUniformValue( const renderParm_t rp, const float* value );
-	
-	static const int MAX_GLSL_USER_PARMS = 8;
-	const char*	GetGLSLParmName( int rp ) const;
-	int			GetGLSLCurrentProgram() const { return currentRenderProgram; }
-	int			FindGLSLProgram( const char* name, int vIndex, int fIndex );
-
 protected:
-
-	void	LoadShader( int index, shaderType_e shaderType );
 	
-	enum
-	{
+	enum {
 		BUILTIN_GUI,
 		BUILTIN_COLOR,
 		// RB begin
@@ -533,148 +573,15 @@ protected:
 		
 		MAX_BUILTINS
 	};
-	int builtinShaders[MAX_BUILTINS];
-	void BindShader_Builtin( int i )
+	idArray<const idDeclRenderProg *, MAX_BUILTINS> builtinProgs;
+	ID_INLINE void BindProg_Builtin( int i ) 
 	{
-		BindShader( -1, builtinShaders[i], builtinShaders[i], builtinShaders[i], true );
+		BindRenderProgram( builtinProgs[ i ] );
 	}
-	
-	enum shaderFeature_t
-	{
-		USE_GPU_SKINNING,
-		LIGHT_POINT,
-		LIGHT_PARALLEL,
-		BRIGHTPASS,
-		HDR_DEBUG,
-		USE_SRGB,
-		
-		MAX_SHADER_MACRO_NAMES,
-	};
-	
-	static const char* GLSLMacroNames[MAX_SHADER_MACRO_NAMES];
-	const char*	GetGLSLMacroName( shaderFeature_t sf ) const;
-	
-	GLuint	LoadGLSLShader( shaderType_e, const char* name, const char* nameOutSuffix, uint32 shaderFeatures, bool builtin, idList<int>& uniforms );
-	void	LoadGLSLProgram( const int programIndex, const int vertexShaderIndex, const int geometryShaderIndex, const int fragmentShaderIndex );
-	GLuint  CreateGLSLShaderObject( shaderType_e, const char * sourceGLSL, const char * fileName ) const;
 
-	void TestParseProg();
-	bool ParseProg( const char* text, const int textLength, const char* progName, int baseLine );
+	idArray<const idDeclRenderParm *, RENDERPARM_TOTAL> builtinParms;
 
-	static const GLuint INVALID_PROGID = MAX_UNSIGNED_TYPE( GLuint );
-	typedef idHandle<GLuint, INVALID_PROGID> idGLSLShader;
-		
-	struct vertShader_t
-	{
-		vertShader_t() : progId( INVALID_PROGID ), usesJoints( false ), optionalSkinning( false ), shaderFeatures( 0 ), builtin( false ) {
-		}
-		idStr		name;
-		idStr		nameOutSuffix;
-		GLuint		progId;
-		bool		usesJoints;
-		bool		optionalSkinning;
-		uint32		shaderFeatures;		// RB: Cg compile macros
-		bool		builtin;			// RB: part of the core shaders built into the executable
-		idList<int>	uniforms;
-	};
-	struct geomShader_t 
-	{
-		geomShader_t() : progId( INVALID_PROGID ), shaderFeatures( 0 ), builtin( false ) {
-		}
-		idStr		name;
-		idStr		nameOutSuffix;
-		GLuint		progId;
-		uint32		shaderFeatures;		// RB: Cg compile macros
-		bool		builtin;			// RB: part of the core shaders built into the executable
-		idList<int>	uniforms;
-	};
-	struct fragShader_t
-	{
-		fragShader_t() : progId( INVALID_PROGID ), shaderFeatures( 0 ), builtin( false ) {
-		}
-		idStr		name;
-		idStr		nameOutSuffix;
-		GLuint		progId;
-		uint32		shaderFeatures;
-		bool		builtin;
-		idList<int>	uniforms;
-	};
-	
-	struct glslProgram_t
-	{
-		glslProgram_t() : progId( INVALID_PROGID ),
-			vertShaderIndex( -1 ),
-			geomShaderIndex( -1 ),
-			fragShaderIndex( -1 ),
-				vertUniformArray( -1 ),
-				geomUniformArray( -1 ),
-				fragUniformArray( -1 ) {
-		}
-		idStr	name;
-		GLuint	progId;
-		vertexMask_t vertexMask;
-		int			vertShaderIndex;
-		int			geomShaderIndex;
-		int			fragShaderIndex;
-		GLint			vertUniformArray;
-		GLint			geomUniformArray;
-		GLint			fragUniformArray;
-		idList<glslUniformLocation_t> uniformLocations;
-	};
-	int	currentRenderProgram;
-	idList<glslProgram_t, TAG_RENDER> glslPrograms;
-	idStaticList< idRenderVector, RENDERPARM_USER + MAX_GLSL_USER_PARMS > glslUniforms;
-	
-	int	currentVertShader = -1;
-	int	currentGeomShader = -1;
-	int	currentFragShader = -1;
-	idList<vertShader_t, TAG_RENDER> vertShaders;
-	idList<geomShader_t, TAG_RENDER> geomShaders;
-	idList<fragShader_t, TAG_RENDER> fragShaders;
-
-	/////////////////////////////////////
-
-	enum shaderFlags_t {
-
-	};
-
-	struct glslShader_t 
-	{
-		shaderType_e	type;
-		idStrStatic<128> name;
-		idStrStatic<64> nameOutSuffix;
-		GLuint			objectID;
-		uint32			flags;
-		idList<int>		uniforms;
-
-		glslShader_t() : objectID( INVALID_PROGID ), flags( 0 ) {
-		}
-		bool HasFlag( int flag ) const { return( ( flags & flag ) != 0 ); }
-		void SetFlag( const int flag ) { flags |= flag; }
-		void ClearFlag( const int flag ) { flags &= ~flag; }
-	};
-	idArray< idList< glslShader_t, TAG_RENDER >, SHT_MAX > m_shaders;
-	idArray< int, SHT_MAX > m_currentShaders;
-
-	struct glslProg_t 
-	{
-		idStrStatic<128> name;
-		GLuint			objectID;
-		vertexMask_t	vertexMask;
-
-		idArray< int, SHT_MAX >	shaderIndexes;
-		idArray< GLint, SHT_MAX > uniformArrays;
-
-		glslProg_t() : objectID( INVALID_PROGID ) 
-		{
-			for( int i = 0; i < SHT_MAX; i++ ) {
-				shaderIndexes[ i ] = -1;
-			}
-			for( int i = 0; i < SHT_MAX; i++ ) {
-				uniformArrays[ i ] = -1;
-			}
-		}
-	};
+	const idDeclRenderProg * mCurrentDeclRenderProg;
 };
 
 extern idRenderProgManager renderProgManager;

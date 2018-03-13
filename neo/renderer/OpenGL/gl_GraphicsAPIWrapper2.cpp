@@ -72,12 +72,12 @@ GL_SetupDrawCall
 void GL_SetupMDParm( const drawSurf_t * const surf )
 {
 	idVertexBuffer vertexBuffer;
-	vertexCache.GetVertexBuffer( surf->vertexCache, &vertexBuffer );
+	vertexCache.GetVertexBuffer( surf->vertexCache, vertexBuffer );
 	const GLint vertOffset = vertexBuffer.GetOffset();
 	const GLuint vbo = GetGLObject( vertexBuffer.GetAPIObject() );
 
 	idIndexBuffer indexBuffer;
-	vertexCache.GetIndexBuffer( surf->indexCache, &indexBuffer );
+	vertexCache.GetIndexBuffer( surf->indexCache, indexBuffer );
 	const GLintptr indexOffset = indexBuffer.GetOffset();
 	const GLuint ibo = GetGLObject( indexBuffer.GetAPIObject() );
 
@@ -362,7 +362,7 @@ void GL_Qube( int instanceCount )
 	*/
 
 
-	renderProgManager.CommitUniforms();
+	renderProgManager.GetCurrentRenderProgram()->CommitUniforms();
 
 	// No buffers, no vertex attributes
 
