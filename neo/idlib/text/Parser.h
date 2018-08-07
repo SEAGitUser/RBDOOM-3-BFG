@@ -70,16 +70,6 @@ struct define_t {
 	//idListNode<define_t> hashNode;
 };
 
-// indents used for conditional compilation directives:
-// #if, #else, #elif, #ifdef, #ifndef
-struct indent_t {
-	int				type;						// indent type
-	int				skip;						// true if skipping current indent
-	int				skipElse;					// true if any following else sections should be skipped
-	idLexer *		script;						// script the indent was in
-	indent_t *		next;						// next indent on the indent stack
-};
-
 typedef void( *pragmaFunc_t )( void *data, const char *pragma );
 
 class idParser {
@@ -190,22 +180,27 @@ public:
 	const ID_TIME_T		GetFileTime() const;
 	// returns the current line number
 	const int			GetLineNum() const;
+
 	// print an error message
 	void				Error( VERIFY_FORMAT_STRING const char* str, ... ) const;
 	// print a warning message
 	void				Warning( VERIFY_FORMAT_STRING const char* str, ... ) const;
+
 	// for enumerating only the current level
 	int					GetCurrentDependency() const;
 	// walk all included files, start from 0 to enumerate all
 	const char*			GetNextDependency( int &index ) const;
+
 	// returns true if at the end of the file
 	bool				EndOfFile();
+
 	// add a global define that will be added to all opened sources
 	static bool			AddGlobalDefine( const char* string );
 	// remove the given global define
 	static bool			RemoveGlobalDefine( const char* name );
 	// remove all global defines
 	static void			RemoveAllGlobalDefines();
+
 	// set the base folder to load files from
 	static void			SetBaseFolder( const char* path );
 
@@ -217,6 +212,16 @@ public:
 	void PopDefineScope();
 
 protected:
+
+	// indents used for conditional compilation directives:
+	// #if, #else, #elif, #ifdef, #ifndef
+	struct indent_t {
+		int				type;						// indent type
+		int				skip;						// true if skipping current indent
+		int				skipElse;					// true if any following else sections should be skipped
+		idLexer *		script;						// script the indent was in
+		indent_t *		next;						// next indent on the indent stack
+	};
 
 	///typedef idLinkedList<define_t, &define_t::listNode> defineList_t;
 
@@ -252,8 +257,8 @@ protected:
 		includeLevel;
 		fileName;
 	}
-	idList<idParser::indent_t,11>
-	idList<idParser::idDependency,11>
+	idList<indent_t>	indentstack;
+	idList<idDependency> dependencies;
 	*/
 
 protected:

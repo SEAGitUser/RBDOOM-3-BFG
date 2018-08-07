@@ -99,6 +99,9 @@ template< typename Type >
 class idBitFlags {
 	Type flags;
 public:
+	idBitFlags() { flags = ( Type )0; }
+	idBitFlags( Type other ) : flags( other ) {}
+
 	// set specific flag(s)
 	void SetFlag( const Type flag )
 	{
@@ -112,16 +115,24 @@ public:
 	// test for existance of specific flag(s)
 	bool HasFlag( const Type flag ) const
 	{
-		return( this->flags & flag ) != 0;
+		return ( this->flags & flag ) != 0;
 	}
 	void Clear()
 	{
-		flags = 0;
+		flags = ( Type )0;
 	}
 
 	void operator = ( Type other )
 	{
 		flags = other;
+	}
+	size_t Size() const
+	{
+		return sizeof( *this );
+	}
+	bool IsEmpty() const
+	{
+		return( flags == ( Type )0 );
 	}
 };
 

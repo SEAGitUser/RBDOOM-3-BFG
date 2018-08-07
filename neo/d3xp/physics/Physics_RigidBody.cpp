@@ -447,7 +447,7 @@ void idPhysics_RigidBody::DebugDraw()
 	
 	if( rb_showMass.GetBool() )
 	{
-		gameRenderWorld->DrawText( va( "\n%1.2f", mass ), current.i.position, 0.08f, colorCyan, gameLocal.GetLocalPlayer()->viewAngles.ToMat3(), 1 );
+		gameRenderWorld->DrawText( va( "\n%1.2f", mass ), current.i.position, 0.08f, idColor::cyan.ToVec4(), gameLocal.GetLocalPlayer()->viewAngles.ToMat3(), 1 );
 	}
 	
 	if( rb_showInertia.GetBool() )
@@ -457,7 +457,7 @@ void idPhysics_RigidBody::DebugDraw()
 									   I[0].x, I[0].y, I[0].z,
 									   I[1].x, I[1].y, I[1].z,
 									   I[2].x, I[2].y, I[2].z ),
-								   current.i.position, 0.05f, colorCyan, gameLocal.GetLocalPlayer()->viewAngles.ToMat3(), 1 );
+								   current.i.position, 0.05f, idColor::cyan.ToVec4(), gameLocal.GetLocalPlayer()->viewAngles.ToMat3(), 1 );
 	}
 	
 	if( rb_showVelocity.GetBool() )

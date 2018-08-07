@@ -38,7 +38,7 @@ public:
 	float					width, height;
 	bool					visible;
 	
-	idVec4					entColor;
+	idColor					entColor;
 	idVec2					position;
 	float					rotation;
 	float					rotationSpeed;

@@ -651,11 +651,11 @@ void idCameraAnim::GetViewParms( renderViewParms_t* view )
 	static idVec3 lastFrameVec( 0.0f, 0.0f, 0.0f );
 	if( gameLocal.GetGameTimeMs() != lastFrame )
 	{
-		gameRenderWorld->DebugBounds( colorCyan, idBounds( view->vieworg ).Expand( 16.0f ), vec3_origin, 1 );
-		gameRenderWorld->DebugLine( colorRed, view->vieworg, view->vieworg + idVec3( 0.0f, 0.0f, 2.0f ), 10000, false );
-		gameRenderWorld->DebugLine( colorCyan, lastFrameVec, view->vieworg, 10000, false );
-		gameRenderWorld->DebugLine( colorYellow, view->vieworg + view->viewaxis[ 0 ] * 64.0f, view->vieworg + view->viewaxis[ 0 ] * 66.0f, 10000, false );
-		gameRenderWorld->DebugLine( colorOrange, view->vieworg + view->viewaxis[ 0 ] * 64.0f, view->vieworg + view->viewaxis[ 0 ] * 64.0f + idVec3( 0.0f, 0.0f, 2.0f ), 10000, false );
+		gameRenderWorld->DebugBounds( idColor::cyan.ToVec4(), idBounds( view->vieworg ).Expand( 16.0f ), vec3_origin, 1 );
+		gameRenderWorld->DebugLine( idColor::red.ToVec4(), view->vieworg, view->vieworg + idVec3( 0.0f, 0.0f, 2.0f ), 10000, false );
+		gameRenderWorld->DebugLine( idColor::cyan.ToVec4(), lastFrameVec, view->vieworg, 10000, false );
+		gameRenderWorld->DebugLine( idColor::yellow.ToVec4(), view->vieworg + view->viewaxis[ 0 ] * 64.0f, view->vieworg + view->viewaxis[ 0 ] * 66.0f, 10000, false );
+		gameRenderWorld->DebugLine( idColor::orange.ToVec4(), view->vieworg + view->viewaxis[ 0 ] * 64.0f, view->vieworg + view->viewaxis[ 0 ] * 64.0f + idVec3( 0.0f, 0.0f, 2.0f ), 10000, false );
 		lastFrameVec = view->vieworg;
 		lastFrame = gameLocal.GetGameTimeMs();
 	}

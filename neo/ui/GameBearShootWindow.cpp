@@ -53,7 +53,7 @@ BSEntity::BSEntity( idGameBearShootWindow* _game )
 	game = _game;
 	visible = true;
 	
-	entColor = colorWhite;
+	entColor = idColor::white.ToVec4();
 	materialName = "";
 	material = NULL;
 	width = height = 8;
@@ -167,21 +167,21 @@ void BSEntity::Update( float timeslice )
 	}
 	
 	// Fades
-	if( fadeIn && entColor.w < 1.f )
+	if( fadeIn && entColor.a < 1.f )
 	{
-		entColor.w += 1 * timeslice;
-		if( entColor.w >= 1.f )
+		entColor.a += 1 * timeslice;
+		if( entColor.a >= 1.f )
 		{
-			entColor.w = 1.f;
+			entColor.a = 1.f;
 			fadeIn = false;
 		}
 	}
-	if( fadeOut && entColor.w > 0.f )
+	if( fadeOut && entColor.a > 0.f )
 	{
-		entColor.w -= 1 * timeslice;
-		if( entColor.w <= 0.f )
+		entColor.a -= 1 * timeslice;
+		if( entColor.a <= 0.f )
 		{
-			entColor.w = 0.f;
+			entColor.a = 0.f;
 			fadeOut = false;
 		}
 	}
@@ -735,7 +735,7 @@ void idGameBearShootWindow::UpdateBear()
 				goal->position.y = 164;
 				goal->velocity.Zero();
 				goal->velocity.y = ( currentLevel - 1 ) * 30;
-				goal->entColor.w = 0.f;
+				goal->entColor.a = 0.0f;
 				goal->fadeIn = true;
 				goal->fadeOut = false;
 				
@@ -745,7 +745,7 @@ void idGameBearShootWindow::UpdateBear()
 				helicopter->position.y = 100;
 				helicopter->velocity.Zero();
 				helicopter->velocity.y = goal->velocity.y;
-				helicopter->entColor.w = 0.f;
+				helicopter->entColor.a = 0.0f;
 				helicopter->fadeIn = true;
 				helicopter->fadeOut = false;
 			}
@@ -801,11 +801,8 @@ idGameBearShootWindow::UpdateButtons
 */
 void idGameBearShootWindow::UpdateButtons()
 {
-
 	if( onFire )
 	{
-		idVec2 vec;
-		
 		gui->HandleNamedEvent( "DisableFireButton" );
 		common->SW()->PlayShaderDirectly( "arcade_sargeshoot" );
 		
@@ -813,9 +810,10 @@ void idGameBearShootWindow::UpdateButtons()
 		bearScale = 1.f;
 		bear->SetSize( BEAR_SIZE, BEAR_SIZE );
 		
-		vec.x = idMath::Cos( DEG2RAD( turretAngle ) );
+		idVec2 vec;
+		idMath::SinCos( DEG2RAD( turretAngle ), vec.y, vec.x );
 		vec.x += ( 1 - vec.x ) * 0.18f;
-		vec.y = -idMath::Sin( DEG2RAD( turretAngle ) );
+		vec.y = -vec.y;
 		
 		turretForce = bearTurretForce.GetFloat();
 		
@@ -827,7 +825,7 @@ void idGameBearShootWindow::UpdateButtons()
 		gunblast->position.x = 55 + ( 96 * vec.x );
 		gunblast->position.y = 310 + ( 100 * vec.y );
 		gunblast->SetVisible( true );
-		gunblast->entColor.w = 1.f;
+		gunblast->entColor.a = 1.0f;
 		gunblast->rotation = turretAngle;
 		gunblast->fadeOut = true;
 		

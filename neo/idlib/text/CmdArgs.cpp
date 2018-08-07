@@ -36,11 +36,9 @@ idCmdArgs::operator=
 */
 void idCmdArgs::operator=( const idCmdArgs& args )
 {
-	int i;
-	
 	argc = args.argc;
 	memcpy( tokenized, args.tokenized, MAX_COMMAND_STRING );
-	for( i = 0; i < argc; i++ )
+	for( int i = 0; i < argc; i++ )
 	{
 		argv[ i ] = tokenized + ( args.argv[ i ] - args.tokenized );
 	}
@@ -215,8 +213,7 @@ void idCmdArgs::AppendArg( const char* text )
 		argv[ 0 ] = tokenized;
 		idStr::Copynz( tokenized, text, sizeof( tokenized ) );
 	}
-	else
-	{
+	else {
 		argv[ argc ] = argv[ argc - 1 ] + idStr::Length( argv[ argc - 1 ] ) + 1;
 		idStr::Copynz( argv[ argc ], text, sizeof( tokenized ) - ( argv[ argc ] - tokenized ) );
 		argc++;

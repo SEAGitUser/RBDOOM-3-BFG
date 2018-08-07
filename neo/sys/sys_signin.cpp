@@ -255,7 +255,7 @@ localUserHandle_t idSignInManagerBase::GetUniqueLocalUserHandle( const char* nam
 {
 	idHashing::MD5_CTX ctx;
 	unsigned char	digest[16];
-	int64			clockTicks = Sys_GetClockTicks();
+	int64 clockTicks = sys->GetClockTicks();
 	
 	idHashing::MD5_Init( &ctx );
 	idHashing::MD5_Update( &ctx, ( const unsigned char* )name, idStr::Length( name ) );
@@ -263,8 +263,8 @@ localUserHandle_t idSignInManagerBase::GetUniqueLocalUserHandle( const char* nam
 	idHashing::MD5_Final( &ctx, ( unsigned char* )digest );
 	
 	// Quantize the 128 bit hash down to the number of bits needed for a localUserHandle_t
-	const int STRIDE_BYTES	= sizeof( localUserHandle_t::userHandleType_t );
-	const int NUM_LOOPS		= 16 / STRIDE_BYTES;
+	const int STRIDE_BYTES = sizeof( localUserHandle_t::userHandleType_t );
+	const int NUM_LOOPS	= 16 / STRIDE_BYTES;
 	
 	localUserHandle_t::userHandleType_t handle = 0;
 	

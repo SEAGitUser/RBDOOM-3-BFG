@@ -48,22 +48,22 @@ public:
 	idStaticList();
 	idStaticList( const idStaticList<type, size>& other );
 	~idStaticList<type, size>();
-	
+
 	void				Clear();										// marks the list as empty.  does not deallocate or intialize data.
 	int					Num() const;									// returns number of elements in list
 	int					Max() const;									// returns the maximum number of elements in the list
 	void				SetNum( int newnum );								// set number of elements in list
-	
+
 	// sets the number of elements in list and initializes any newly allocated elements to the given value
 	void				SetNum( int newNum, const type& initValue );
-	
+
 	size_t				Allocated() const;							// returns total size of allocated memory
 	size_t				Size() const;									// returns total size of allocated memory including size of list type
 	size_t				MemoryUsed() const;							// returns size of the used elements in the list
-	
+
 	const type& 		operator[]( int index ) const;
 	type& 				operator[]( int index );
-	
+
 	type* 				Ptr();										// returns a pointer to the list
 	const type* 		Ptr() const;									// returns a pointer to the list
 	type* 				Alloc();										// returns reference to a new data element at the end of the list.  returns NULL when full.
@@ -80,15 +80,15 @@ public:
 	bool				Remove( const type& obj );							// remove the element
 	void				Swap( idStaticList<type, size>& other );				// swap the contents of the lists
 	void				DeleteContents( bool clear );						// delete the contents of the list
-	
+
 	void				Sort( const idSort<type>& sort = idSort_QuickDefault<type>() );
-	
+
 	ID_INLINE void		FillZero() { memset( list, 0, Allocated() ); }
 
 private:
 	int					num;
 	type 				list[ size ];
-	
+
 private:
 	// resizes list to the given number of elements
 	void				Resize( int newsize );
@@ -174,14 +174,12 @@ list to NULL.
 template<class type, int size>
 ID_INLINE void idStaticList<type, size>::DeleteContents( bool clear )
 {
-	int i;
-	
-	for( i = 0; i < num; i++ )
+	for( int i = 0; i < num; i++ )
 	{
 		delete list[ i ];
 		list[ i ] = NULL;
 	}
-	
+
 	if( clear )
 	{
 		Clear();
@@ -297,7 +295,7 @@ ID_INLINE const type& idStaticList<type, size>::operator[]( int index ) const
 {
 	assert( index >= 0 );
 	assert( index < num );
-	
+
 	return list[ index ];
 }
 
@@ -314,7 +312,7 @@ ID_INLINE type& idStaticList<type, size>::operator[]( int index )
 {
 	assert( index >= 0 );
 	assert( index < num );
-	
+
 	return list[ index ];
 }
 
@@ -366,7 +364,7 @@ ID_INLINE type* idStaticList<type, size>::Alloc()
 	{
 		return NULL;
 	}
-	
+
 	return &list[ num++ ];
 }
 
@@ -386,7 +384,7 @@ ID_INLINE int idStaticList<type, size>::Append( type const& obj )
 	if( num < size )
 	{
 		list[ num ] = obj;
-		num++;
+		++num;
 		return num - 1;
 	}
 	return -1;
@@ -411,7 +409,7 @@ ID_INLINE int idStaticList<type, size>::Insert( type const& obj, int index )
 	{
 		return -1;
 	}
-	
+
 	assert( index >= 0 );
 	if( index < 0 )
 	{
@@ -421,12 +419,12 @@ ID_INLINE int idStaticList<type, size>::Insert( type const& obj, int index )
 	{
 		index = num;
 	}
-	
+
 	for( int i = num; i > index; --i )
 	{
 		list[ i ] = list[ i - 1 ];
 	}
-	
+
 	num++;
 	list[ index ] = obj;
 	return index;
@@ -445,7 +443,7 @@ template<class type, int size>
 ID_INLINE int idStaticList<type, size>::Append( const idStaticList<type, size>& other )
 {
 	int n = other.Num();
-	
+
 	if( num + n > size )
 	{
 		n = size - num;
@@ -468,7 +466,7 @@ Adds the data to the list if it doesn't already exist.  Returns the index of the
 template<class type, int size>
 ID_INLINE int idStaticList<type, size>::AddUnique( type const& obj )
 {
-	int index = FindIndex( obj );	
+	int index = FindIndex( obj );
 	return ( index < 0 )? Append( obj ) : index;
 }
 
@@ -488,7 +486,7 @@ ID_INLINE int idStaticList<type, size>::FindIndex( type const& obj ) const
 		{
 			return i;
 		}
-	}	
+	}
 	// Not found
 	return -1;
 }
@@ -503,7 +501,7 @@ Searches for the specified data in the list and returns it's address. Returns NU
 template<class type, int size>
 ID_INLINE type* idStaticList<type, size>::Find( type const& obj ) const
 {
-	int i = FindIndex( obj );	
+	int i = FindIndex( obj );
 	return ( i >= 0 )? (( type* )&list[ i ]) : NULL;
 }
 
@@ -526,7 +524,7 @@ ID_INLINE int idStaticList<type, size>::FindNull() const
 		{
 			return i;
 		}
-	}	
+	}
 	// Not found
 	return -1;
 }
@@ -545,10 +543,10 @@ template<class type, int size>
 ID_INLINE int idStaticList<type, size>::IndexOf( type const* objptr ) const
 {
 	int index = objptr - list;
-	
+
 	assert( index >= 0 );
 	assert( index < num );
-	
+
 	return index;
 }
 
@@ -566,18 +564,18 @@ ID_INLINE bool idStaticList<type, size>::RemoveIndex( int index )
 {
 	assert( index >= 0 );
 	assert( index < num );
-	
+
 	if( ( index < 0 ) || ( index >= num ) )
 	{
 		return false;
 	}
-	
-	num--;
+
+	--num;
 	for( int i = index; i < num; ++i )
 	{
 		list[ i ] = list[ i + 1 ];
 	}
-	
+
 	return true;
 }
 
@@ -602,13 +600,13 @@ ID_INLINE bool idStaticList<_type_, size>::RemoveIndexFast( int index )
 	{
 		return false;
 	}
-	
+
 	num--;
 	if( index != num )
 	{
 		list[ index ] = list[ num ];
 	}
-	
+
 	return true;
 }
 
@@ -661,20 +659,20 @@ template< class type, int size >
 ID_INLINE void idStaticList<type, size>::Resize( int newsize )
 {
 	assert( newsize >= 0 );
-	
+
 	// free up the list if no data is being reserved
 	if( newsize <= 0 )
 	{
 		Clear();
 		return;
 	}
-	
+
 	if( newsize == size )
 	{
 		// not changing the size, so just exit
 		return;
 	}
-	
+
 	assert( newsize < size );
 	return;
 }

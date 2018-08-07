@@ -35,9 +35,11 @@ Contains the Image implementation for OpenGL.
 ================================================================================================
 */
 
+#include "gl_header.h"
+
 #include "../tr_local.h"
 
-struct glTextureObject_t 
+struct glTextureObject_t
 {
 	glTextureObject_t() : target( GL_TEXTURE_2D ), uploadTarget( GL_TEXTURE_2D ), texnum( GL_NONE ),
 		internalFormat( GL_RGBA8 ), dataFormat( GL_RGBA ), dataType( GL_UNSIGNED_BYTE ) {
@@ -114,7 +116,7 @@ struct glTextureObject_t
 	}
 
 	// target
-	// 
+	//
 	/*void * PackTextureInfo()
 	{
 		uint64 apiObject = texnum;
@@ -200,14 +202,24 @@ struct glTextureObject_t
 				dataType = GL_UNSIGNED_INT_24_8;
 				break;
 
-			case FMT_RG11F_B10F://SEA
+			case FMT_RGB10_A2://SEA
+				internalFormat = GL_RGB10_A2;
+				dataFormat = GL_RGBA;
+				dataType = GL_UNSIGNED_INT_2_10_10_10_REV; // GL_UNSIGNED_INT_10_10_10_2 ?
+				break;
+			case FMT_RG11B10F://SEA
 				internalFormat = GL_R11F_G11F_B10F;
 				dataFormat = GL_RGB;
-				dataType = GL_FLOAT; // GL_UNSIGNED_INT_10F_11F_11F_REV
+				dataType = GL_HALF_FLOAT; // GL_UNSIGNED_INT_10F_11F_11F_REV ?
 				break;
 			case FMT_RG16F://SEA
 				internalFormat = GL_RG16F;
 				dataFormat = GL_RG;
+				dataType = GL_HALF_FLOAT;
+				break;
+			case FMT_R16F://SEA
+				internalFormat = GL_R16F;
+				dataFormat = GL_R;
 				dataType = GL_HALF_FLOAT;
 				break;
 			case FMT_RGBA16F:
@@ -252,19 +264,19 @@ void idImage::SubImageUpload( int mipLevel, int x, int y, int z, int width, int 
 	assert( x >= 0 && y >= 0 && mipLevel >= 0 && width >= 0 && height >= 0 && mipLevel < opts.numLevels );
 
 	int compressedSize = 0;
-	
+
 	if( IsCompressed() )
 	{
 		assert( !( x & 3 ) && !( y & 3 ) );
-		
+
 		// compressed size may be larger than the dimensions due to padding to quads
 		int quadW = ( width + 3 ) & ~3;
 		int quadH = ( height + 3 ) & ~3;
 		compressedSize = quadW * quadH * BitsForFormat( opts.format ) / 8;
-		
+
 		int padW = ( opts.width + 3 ) & ~3;
 		int padH = ( opts.height + 3 ) & ~3;
-		
+
 		assert( x + width <= padW && y + height <= padH );
 		// upload the non-aligned value, OpenGL understands that there
 		// will be padding
@@ -286,19 +298,19 @@ void idImage::SubImageUpload( int mipLevel, int x, int y, int z, int width, int 
 	}
 
 	glBindTexture( tex.target, tex.texnum );
-	
+
 	if( pixelPitch != 0 )
 	{
 		glPixelStorei( GL_UNPACK_ROW_LENGTH, pixelPitch );
 	}
-	
+
 	if( opts.format == FMT_RGB565 )
 	{
 #if !defined(USE_GLES3)
 		glPixelStorei( GL_UNPACK_SWAP_BYTES, GL_TRUE );
 #endif
 	}
-	
+
 #if defined(DEBUG) || defined(__ANDROID__)
 	GL_CheckErrors();
 #endif
@@ -307,7 +319,7 @@ void idImage::SubImageUpload( int mipLevel, int x, int y, int z, int width, int 
 		glCompressedTexSubImage2D( tex.uploadTarget, mipLevel, x, y, width, height, tex.internalFormat, compressedSize, pic );
 	}
 	else
-	{	
+	{
 		// make sure the pixel store alignment is correct so that lower mips get created
 		// properly for odd shaped textures - this fixes the mip mapping issues with
 		// fonts
@@ -319,14 +331,14 @@ void idImage::SubImageUpload( int mipLevel, int x, int y, int z, int width, int 
 		else {
 			glPixelStorei( GL_UNPACK_ALIGNMENT, 1 );
 		}
-		
+
 		glTexSubImage2D( tex.uploadTarget, mipLevel, x, y, width, height, tex.dataFormat, tex.dataType, pic );
 	}
-	
+
 #if defined(DEBUG) || defined(__ANDROID__)
 	GL_CheckErrors();
 #endif
-	
+
 	if( opts.format == FMT_RGB565 )
 	{
 		glPixelStorei( GL_UNPACK_SWAP_BYTES, GL_FALSE );
@@ -356,8 +368,8 @@ void idImage::SetTexParameters()
 {
 	glTextureObject_t tex;
 	tex.DeriveTargetInfo( this );
-		
-	switch( filter )
+
+	switch( sampOpts.filter )
 	{
 		case TF_DEFAULT:
 			if( r_useTrilinearFiltering.GetBool() ) {
@@ -387,13 +399,13 @@ void idImage::SetTexParameters()
 			break;
 
 		default:
-			common->FatalError( "%s: bad texture filter %d", GetName(), filter );
+			common->FatalError( "%s: bad texture filter %i", GetName(), sampOpts.filter );
 	}
-	
+
 	if( glConfig.anisotropicFilterAvailable )
 	{
 		// only do aniso filtering on mip mapped images
-		if( filter == TF_DEFAULT )
+		if( sampOpts.filter == TF_DEFAULT )
 		{
 			int aniso = r_maxAnisotropicFiltering.GetInteger();
 			if( aniso > glConfig.maxTextureAnisotropy )
@@ -411,20 +423,22 @@ void idImage::SetTexParameters()
 			glTexParameterf( tex.target, GL_TEXTURE_MAX_ANISOTROPY_EXT, 1 );
 		}
 	}
-	
+
 	// RB: disabled use of unreliable extension that can make the game look worse
-	/*
-	if( glConfig.textureLODBiasAvailable && ( usage != TD_FONT ) )
+
+	/*if( glConfig.textureLODBiasAvailable && ( usage != TD_FONT ) )
 	{
 		// use a blurring LOD bias in combination with high anisotropy to fix our aliasing grate textures...
-		glTexParameterf( target, GL_TEXTURE_LOD_BIAS_EXT, 0.5 ); //r_lodBias.GetFloat() );
-	}
-	*/
+		glTexParameterf( tex.target, GL_TEXTURE_LOD_BIAS, 0.5 ); r_lodBias.GetFloat() );
+
+		glTexParameterf( tex.target, GL_TEXTURE_LOD_BIAS, sampOpts.lodBias );
+	}*/
+
 	// RB end
-	
+
 	// set the wrap/clamp modes		GL_MIRRORED_REPEAT  GL_MIRROR_CLAMP_TO_EDGE(4.4)
 	// Initially, glALL is set to GL_REPEAT.
-	switch( repeat )
+	switch( sampOpts.wrap )
 	{
 		case TR_REPEAT:
 		{
@@ -433,7 +447,7 @@ void idImage::SetTexParameters()
 			if( opts.textureType == TT_3D ) {
 				glTexParameterf( tex.target, GL_TEXTURE_WRAP_R, GL_REPEAT );
 			}
-		} 
+		}
 		break;
 		case TR_MIRROR:
 		{
@@ -453,7 +467,7 @@ void idImage::SetTexParameters()
 			if( opts.textureType == TT_3D ) {
 				glTexParameterf( tex.target, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_BORDER );
 			}
-		} 
+		}
 		break;
 		case TR_CLAMP_TO_ZERO_ALPHA:
 		{
@@ -464,7 +478,7 @@ void idImage::SetTexParameters()
 			if( opts.textureType == TT_3D ) {
 				glTexParameterf( tex.target, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_BORDER );
 			}
-		} 
+		}
 		break;
 		case TR_CLAMP:
 		{
@@ -473,18 +487,19 @@ void idImage::SetTexParameters()
 			if( opts.textureType == TT_3D ) {
 				glTexParameterf( tex.target, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE );
 			}
-		} 
+		}
 		break;
 		default:
-			common->FatalError( "%s: bad texture repeat %d", GetName(), repeat );
+			common->FatalError( "%s: bad texture repeat %i", GetName(), sampOpts.wrap );
 	}
-	
+
 	// RB: added shadow compare parameters for shadow map textures
-	if( usage == TD_SHADOWMAP )
+	//if( usage == TD_SHADOWMAP )
 	//if( opts.format == FMT_DEPTH || opts.format == FMT_DEPTH_STENCIL )
+	if( sampOpts.depthCompareMode )
 	{
 		glTexParameteri( tex.target, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_R_TO_TEXTURE );
-		glTexParameteri( tex.target, GL_TEXTURE_COMPARE_FUNC, GL_LEQUAL );
+		glTexParameteri( tex.target, GL_TEXTURE_COMPARE_FUNC, GL_LESS );
 	}
 }
 
@@ -502,9 +517,11 @@ void idImage::EnableDepthCompareModeOGL()
 	// GL_LUMINANCE = ddd1
 	// GL_ALPHA = 000d
 	// GL_RED = d001
-	glTexParameteri( tex.target, GL_DEPTH_TEXTURE_MODE, GL_INTENSITY );
+	//glTexParameteri( tex.target, GL_DEPTH_TEXTURE_MODE, GL_INTENSITY );
 	glTexParameteri( tex.target, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_R_TO_TEXTURE );
-	glTexParameteri( tex.target, GL_TEXTURE_COMPARE_FUNC, GL_LEQUAL );
+	glTexParameteri( tex.target, GL_TEXTURE_COMPARE_FUNC, GL_LESS );
+
+	sampOpts.depthCompareMode = true;
 }
 
 /*
@@ -526,10 +543,8 @@ void idImage::AllocImage()
 	// have filled in the parms.  We must have the values set, or
 	// an image match from a shader before OpenGL starts would miss
 	// the generated texture
-	if( !tr.IsOpenGLRunning() )
-	{
+	if( !tr.IsRenderDeviceRunning() )
 		return;
-	}
 
 	// generate the texture number
 	{
@@ -556,8 +571,8 @@ void idImage::AllocImage()
 	GLsizei w = idMath::Max( opts.width, 1 );
 	GLsizei h = idMath::Max( opts.height, 1 );
 	GLsizei depth = idMath::Max( opts.depth, 1 );
-	const GLint numLevels = idMath::Max( opts.numLevels, 1 );
-	const GLint numSamples = idMath::Max( opts.numSamples, 1 );
+	GLint numLevels = idMath::Max( opts.numLevels, 1 );
+	GLint numSamples = idMath::Max( opts.numSamples, 1 );
 
 	if( glConfig.ARB_texture_storage )
 	{
@@ -581,15 +596,15 @@ void idImage::AllocImage()
 			// 3D, 2DArray, CUBEArray
 			glTexStorage3D( tex.target, numLevels, tex.internalFormat, w, h, depth );
 		}
-	} 
+	}
 	else {
 		if( opts.IsMultisampled() && opts.textureType == TT_2D )
 		{
 			assert( numLevels < 1 && opts.textureType == TT_2D );
-			if( opts.IsArray() ) 
+			if( opts.IsArray() )
 			{
 				glTexImage3DMultisample( GL_TEXTURE_2D_MULTISAMPLE_ARRAY, numSamples, tex.internalFormat, w, h, depth, GL_FALSE );
-			} 
+			}
 			else {
 				glTexImage2DMultisample( GL_TEXTURE_2D_MULTISAMPLE, numSamples, tex.internalFormat, w, h, GL_FALSE );
 			}
@@ -657,13 +672,15 @@ void idImage::AllocImage()
 		}
 
 		GL_CheckErrors();
+
+		// Non sampler parameters:
+		glTexParameteri( tex.target, GL_TEXTURE_BASE_LEVEL, 0 );
+		glTexParameteri( tex.target, GL_TEXTURE_MAX_LEVEL, numLevels - 1 );
 	}
 
-	// Non sampler parameters
+	GL_CheckErrors();
 
-	glTexParameteri( tex.target, GL_TEXTURE_BASE_LEVEL, 0 );
-	glTexParameteri( tex.target, GL_TEXTURE_MAX_LEVEL, numLevels - 1 );
-
+	// Non sampler parameters:
 	// ALPHA, LUMINANCE, LUMINANCE_ALPHA, and INTENSITY have been removed
 	// in OpenGL 3.2. In order to mimic those modes, we use the swizzle operators
 
@@ -696,14 +713,14 @@ void idImage::AllocImage()
 		GLint swizzleMask[] = { GL_RED, GL_GREEN, GL_BLUE, GL_ALPHA };
 		glTexParameteriv( tex.target, GL_TEXTURE_SWIZZLE_RGBA, swizzleMask );
 	}
-	
+
 	// see if we messed anything up
 	GL_CheckErrors();
-	
-	// Sampler parameters 
+
+	// Sampler parameters
 	//SEA: TODO real sampler
 	SetTexParameters();
-	
+
 	GL_CheckErrors();
 }
 
@@ -716,7 +733,7 @@ void idImage::PurgeImage()
 {
 	if( IsLoaded() )
 	{
-		GLuint texnum[ 1 ] = { reinterpret_cast<GLuint>( apiObject ) };
+		GLuint texnum[ 1 ] = { GetGLObject( apiObject ) };
 		glDeleteTextures( 1, texnum );	// this should be the ONLY place it is ever called!
 		apiObject = nullptr;
 	}
@@ -738,11 +755,11 @@ idImage::SetSamplerState
 */
 void idImage::SetSamplerState( textureFilter_t tf, textureRepeat_t tr )
 {
-	if( tf == filter && tr == repeat )
+	if( tf == sampOpts.filter && tr == sampOpts.wrap )
 		return;
 
-	filter = tf;
-	repeat = tr;
+	sampOpts.filter = tf;
+	sampOpts.wrap = tr;
 
 	glTextureObject_t tex;
 	tex.DeriveTargetInfo( this );

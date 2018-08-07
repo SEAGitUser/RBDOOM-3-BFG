@@ -48,20 +48,21 @@ const char* renderLogMainBlockLabels[] =
 	ASSERT_ENUM_STRING( MRB_NONE,							0 ),
 	ASSERT_ENUM_STRING( MRB_BEGIN_DRAWING_VIEW,				1 ),
 	ASSERT_ENUM_STRING( MRB_FILL_DEPTH_BUFFER,				2 ),
-	ASSERT_ENUM_STRING( MRB_AMBIENT_PASS,					3 ), // RB
-	ASSERT_ENUM_STRING( MRB_DRAW_INTERACTIONS,				4 ),
-	ASSERT_ENUM_STRING( MRB_DRAW_SHADER_PASSES,				5 ),
-	ASSERT_ENUM_STRING( MRB_FOG_ALL_LIGHTS,					6 ),
-	ASSERT_ENUM_STRING( MRB_DRAW_SHADER_PASSES_POST,		7 ),
-	ASSERT_ENUM_STRING( MRB_DRAW_DEBUG_TOOLS,				8 ),
-	ASSERT_ENUM_STRING( MRB_CAPTURE_COLORBUFFER,			9 ),
-	ASSERT_ENUM_STRING( MRB_POSTPROCESS,					10 ),
-	ASSERT_ENUM_STRING( MRB_GPU_SYNC,						11 ),
-	ASSERT_ENUM_STRING( MRB_END_FRAME,						12 ),
-	ASSERT_ENUM_STRING( MRB_BINK_FRAME,						13 ),
-	ASSERT_ENUM_STRING( MRB_BINK_NEXT_FRAME,				14 ),
-	ASSERT_ENUM_STRING( MRB_TOTAL,							15 ),
-	ASSERT_ENUM_STRING( MRB_MAX,							16 )
+	ASSERT_ENUM_STRING( MRB_FILL_GBUFFER,					3 ),
+	ASSERT_ENUM_STRING( MRB_AMBIENT_PASS,					4 ),
+	ASSERT_ENUM_STRING( MRB_DRAW_INTERACTIONS,				5 ),
+	ASSERT_ENUM_STRING( MRB_DRAW_SHADER_PASSES,				6 ),
+	ASSERT_ENUM_STRING( MRB_FOG_ALL_LIGHTS,					7 ),
+	ASSERT_ENUM_STRING( MRB_DRAW_SHADER_PASSES_POST,		8 ),
+	ASSERT_ENUM_STRING( MRB_DRAW_DEBUG_TOOLS,				9 ),
+	ASSERT_ENUM_STRING( MRB_CAPTURE_COLORBUFFER,			10 ),
+	ASSERT_ENUM_STRING( MRB_POSTPROCESS,					11 ),
+	ASSERT_ENUM_STRING( MRB_GPU_SYNC,						12 ),
+	ASSERT_ENUM_STRING( MRB_END_FRAME,						13 ),
+	ASSERT_ENUM_STRING( MRB_BINK_FRAME,						14 ),
+	ASSERT_ENUM_STRING( MRB_BINK_NEXT_FRAME,				15 ),
+	ASSERT_ENUM_STRING( MRB_TOTAL,							16 ),
+	ASSERT_ENUM_STRING( MRB_MAX,							17 )
 };
 
 //extern uint64 Sys_Microseconds();
@@ -88,10 +89,12 @@ idCVar r_pix( "r_pix", "0", CVAR_INTEGER, "print GPU/CPU event timing" );
 
 static const int	MAX_PIX_EVENTS = 256;
 // defer allocation of this until needed, so we don't waste lots of memory
-pixEvent_t* 		pixEvents;	// [MAX_PIX_EVENTS]
+pixEvent_t * 		pixEvents;	// [MAX_PIX_EVENTS]
 int					numPixEvents;
 int					numPixLevels;
 static GLuint		timeQueryIds[ MAX_PIX_EVENTS ];
+
+#define USE_GPU_TIMING 0
 
 /*
 ========================
@@ -102,7 +105,7 @@ FIXME: this is not thread safe on the PC
 */
 void PC_BeginNamedEvent( const char* szName, ... )
 {
-#if 0
+#if USE_GPU_TIMING
 	if( !r_pix.GetBool() )
 	{
 		return;
@@ -134,9 +137,9 @@ void PC_BeginNamedEvent( const char* szName, ... )
 	glBeginQuery( GL_TIME_ELAPSED_EXT, timeQueryIds[ numPixEvents ] );
 	GL_CheckErrors();
 
-	pixEvent_t* ev = &pixEvents[ numPixEvents++ ];
-	strncpy( ev->name, szName, sizeof( ev->name ) - 1 );
-	ev->cpuTime = sys->Microseconds();
+	pixEvent_t & ev = pixEvents[ numPixEvents++ ];
+	strncpy( ev.name, szName, sizeof( ev.name ) - 1 );
+	ev.cpuTime = sys->Microseconds();
 #endif
 }
 
@@ -147,7 +150,7 @@ PC_EndNamedEvent
 */
 void PC_EndNamedEvent()
 {
-#if 0
+#if USE_GPU_TIMING
 	if( !r_pix.GetBool() )
 	{
 		return;
@@ -166,8 +169,8 @@ void PC_EndNamedEvent()
 		return;
 	}
 
-	pixEvent_t* ev = &pixEvents[ numPixEvents - 1 ];
-	ev->cpuTime = sys->Microseconds() - ev->cpuTime;
+	pixEvent_t & ev = pixEvents[ numPixEvents - 1 ];
+	ev.cpuTime = sys->Microseconds() - ev.cpuTime;
 
 	GL_CheckErrors();
 	glEndQuery( GL_TIME_ELAPSED_EXT );
@@ -182,7 +185,7 @@ PC_EndFrame
 */
 void PC_EndFrame()
 {
-#if 0
+#if USE_GPU_TIMING
 	if( !r_pix.GetBool() )
 	{
 		return;
@@ -258,9 +261,6 @@ void idRenderLog::StartFrame()
 	indentString[ 0 ] = '\0';
 	activeLevel = r_logLevel.GetInteger();
 
-	struct tm *newtime;
-	time_t	aclock;
-
 	char ospath[ MAX_OSPATH ];
 
 	char qpath[ 128 ];
@@ -272,7 +272,7 @@ void idRenderLog::StartFrame()
 		char qpath[128];
 		sprintf( qpath, "renderlog_%04i.txt", r_logFile.GetInteger() );
 		idStr finalPath = fileSystem->RelativePathToOSPath( qpath );
-		fileSystem->RelativePathToOSPath( qpath, ospath, MAX_OSPATH ,FSPATH_BASE );
+		fileSystem->RelativePathToOSPath( qpath, ospath, MAX_OSPATH, FSPATH_BASE );
 		if ( !fileSystem->FileExists( finalPath.c_str() ) ) {
 			break; // use this name
 		}
@@ -296,9 +296,10 @@ void idRenderLog::StartFrame()
 	idLib::Printf( "Opened logfile %s\n", ospath );
 
 	// write the time out to the top of the file
+	time_t aclock;
 	time( &aclock );
-	newtime = localtime( &aclock );
-	const char* str = asctime( newtime );
+	tm *newtime = localtime( &aclock );
+	const char *str = asctime( newtime );
 	logFile->Printf( "// %s", str );
 	logFile->Printf( "// %s\n\n", com_version.GetString() );
 

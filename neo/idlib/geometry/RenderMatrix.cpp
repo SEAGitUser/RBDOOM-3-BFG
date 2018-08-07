@@ -1566,22 +1566,25 @@ void idRenderMatrix::CopyMatrix( const idRenderMatrix& matrix, idVec4& row0, idV
 	_mm_store_ps( row2.ToFloatPtr(), r2 );
 	_mm_store_ps( row3.ToFloatPtr(), r3 );
 #else
-	row0[ 0] = matrix.m[ 0];
-	row0[1] = matrix.m[ 1];
-	row0[2] = matrix.m[ 2];
-	row0[3] = matrix.m[ 3];
-	row1[ 0] = matrix.m[ 4];
-	row1[1] = matrix.m[ 5];
-	row1[2] = matrix.m[ 6];
-	row1[3] = matrix.m[ 7];
-	row2[ 0] = matrix.m[ 8];
-	row2[1] = matrix.m[ 9];
-	row2[2] = matrix.m[10];
-	row2[3] = matrix.m[11];
-	row3[ 0] = matrix.m[12];
-	row3[1] = matrix.m[13];
-	row3[2] = matrix.m[14];
-	row3[3] = matrix.m[15];
+	row0[ 0 ] = matrix.m[ 0 ];
+	row0[ 1 ] = matrix.m[ 1 ];
+	row0[ 2 ] = matrix.m[ 2 ];
+	row0[ 3 ] = matrix.m[ 3 ];
+
+	row1[ 0 ] = matrix.m[ 4 ];
+	row1[ 1 ] = matrix.m[ 5 ];
+	row1[ 2 ] = matrix.m[ 6 ];
+	row1[ 3 ] = matrix.m[ 7 ];
+
+	row2[ 0 ] = matrix.m[ 8 ];
+	row2[ 1 ] = matrix.m[ 9 ];
+	row2[ 2 ] = matrix.m[ 10 ];
+	row2[ 3 ] = matrix.m[ 11 ];
+
+	row3[ 0 ] = matrix.m[ 12 ];
+	row3[ 1 ] = matrix.m[ 13 ];
+	row3[ 2 ] = matrix.m[ 14 ];
+	row3[ 3 ] = matrix.m[ 15 ];
 #endif
 }
 

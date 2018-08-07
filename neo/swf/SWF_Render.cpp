@@ -468,15 +468,15 @@ void idSWF::RenderSprite( idRenderSystem* gui, idSWFSpriteInstance* spriteInstan
 	{
 		swfRect_t rect = CalcRect( spriteInstance, renderState );
 
-		DrawRect( gui, rect, colorRed );
+		DrawRect( gui, rect, idColor::red.ToVec4() );
 
 		if( swf_show.GetInteger() > 1 )
 		{
-			idVec4 color = colorWhite;
+			idVec4 color = idColor::white.ToVec4();
 
 			if( spriteInstance->parent != NULL && spriteInstance->parent == mainspriteInstance )
 			{
-				color = colorCyan;
+				color = idColor::cyan.ToVec4();
 			}
 
 			idStr str;
@@ -484,7 +484,7 @@ void idSWF::RenderSprite( idRenderSystem* gui, idSWFSpriteInstance* spriteInstan
 			sprintf( str, "%s\n%s", spriteInstance->name.c_str(), GetName() );
 
 			DrawText( gui, str, 0.35f, 0, color, swfRect_t( rect.tl.x, rect.tl.y, 300, 40 ), false );
-			//DrawText( gui, str, 0.25 * 2, 0, colorWhite, swfRect_t( rect.tl.x, rect.tl.y, 300, 40 ), false );
+			//DrawText( gui, str, 0.25 * 2, 0, idColor::white.ToVec4(), swfRect_t( rect.tl.x, rect.tl.y, 300, 40 ), false );
 		}
 	}
 	// RB end
@@ -503,11 +503,12 @@ idSWF::GLStateForBlendMode
 */
 uint64 idSWF::GLStateForRenderState( const swfRenderState_t& renderState )
 {
-	uint64 extraGLState = GLS_OVERRIDE | GLS_DEPTHFUNC_LESS | GLS_DEPTHMASK; // SWF GL State always overrides what's set in the material
+	uint64 extraGLState = GLS_OVERRIDE | GLS_DEPTHFUNC_LEQUAL | GLS_DEPTHMASK; 
+	// SWF GL State always overrides what's set in the material
 
 	if( renderState.activeMasks > 0 )
 	{
-		extraGLState |= GLS_STENCIL_FUNC_EQUAL | GLS_STENCIL_MAKE_REF( 128 + renderState.activeMasks ) | GLS_STENCIL_MAKE_MASK( 255 );
+		extraGLState |= GLS_STENCIL_FUNC_EQUAL | GLS_STENCIL_MAKE_REF( STENCIL_SHADOW_TEST_VALUE + renderState.activeMasks ) | GLS_STENCIL_MAKE_MASK( 255 );
 	}
 	else if( renderState.activeMasks == STENCIL_INCR )
 	{
@@ -529,7 +530,7 @@ uint64 idSWF::GLStateForRenderState( const swfRenderState_t& renderState )
 			return extraGLState | ( GLS_SRCBLEND_ONE | GLS_DSTBLEND_ONE | GLS_BLENDOP_MIN );
 		case 5: // lighten : dst = max( dst, src )
 			return extraGLState | ( GLS_SRCBLEND_ONE | GLS_DSTBLEND_ONE | GLS_BLENDOP_MAX );
-		case 4: // screen : dst = dst + src - dst*src ( we only do dst - dst * src, we could do the extra + src with another pass if we need to)
+		case 4: // screen : dst = dst + src - dst*src ( we only do dst - dst * src, we could do the extra + src with another pass if we need to) SEA:???
 			return extraGLState | ( GLS_SRCBLEND_DST_COLOR | GLS_DSTBLEND_ONE | GLS_BLENDOP_SUB );
 		case 14: // hardlight : src < 0.5 ? multiply : screen
 		case 13: // overlay : dst < 0.5 ? multiply  : screen
@@ -1683,7 +1684,7 @@ void idSWF::RenderEditText( idRenderSystem* gui, idSWFTextInstance* textInstance
 				float t2 = 1.0f;
 
 				//uint32 color = gui->GetColor();
-				idVec4 imgColor = colorWhite;
+				idVec4 imgColor = idColor::white.ToVec4();
 				imgColor.w = defaultColor.w;
 				gui->SetColor( imgColor );
 				DrawStretchPic( idVec4( topl.x, topl.y, s1, t1 ), idVec4( topr.x, topr.y, s2, t1 ), idVec4( br.x, br.y, s2, t2 ), idVec4( bl.x, bl.y, s1, t2 ), icon.material );
@@ -1752,7 +1753,7 @@ void idSWF::RenderEditText( idRenderSystem* gui, idSWFTextInstance* textInstance
 				idVec2 dsbr = matrix.Transform( idVec2( dsX + glyphW, dsY + glyphH ) );
 				idVec2 dsbl = matrix.Transform( idVec2( dsX, dsY + glyphH ) );
 
-				idVec4 dsColor = colorBlack;
+				idVec4 dsColor = idColor::black.ToVec4();
 				dsColor.w = defaultColor.w;
 				gui->SetColor( dsColor );
 				DrawStretchPic( idVec4( dstopl.x, dstopl.y, s1, t1 ), idVec4( dstopr.x, dstopr.y, s2, t1 ), idVec4( dsbr.x, dsbr.y, s2, t2 ), idVec4( dsbl.x, dsbl.y, s1, t2 ), glyph.material );
@@ -1760,7 +1761,7 @@ void idSWF::RenderEditText( idRenderSystem* gui, idSWFTextInstance* textInstance
 			}
 			else if( textInstance->HasStroke() )
 			{
-				idVec4 strokeColor = colorBlack;
+				idVec4 strokeColor = idColor::black.ToVec4();
 				strokeColor.w = textInstance->GetStrokeStrength() * defaultColor.w;
 				gui->SetColor( strokeColor );
 				for( int index = 0; index < 4; ++index )
@@ -1998,8 +1999,8 @@ void idSWF::DrawRect( idRenderSystem* gui, const swfRect_t& rect, const idVec4& 
 
 	float x = rect.tl.x;
 	float y = rect.tl.y;
-	float w = fabs( rect.br.x - rect.tl.x );
-	float h = fabs( rect.br.y - rect.tl.y );
+	float w = idMath::Fabs( rect.br.x - rect.tl.x );
+	float h = idMath::Fabs( rect.br.y - rect.tl.y );
 
 	float size = 1;
 
@@ -2048,14 +2049,13 @@ int idSWF::DrawText( idRenderSystem* gui, float x, float y, float scale, idVec4 
 		{
 			// I'm not sure if inline text color codes are used anywhere in the game,
 			// they may only be needed for multi-color user names
-			idVec4		newColor;
+			idVec4 newColor;
 			uint32 colorIndex = drawText.UTF8Char( charIndex );
 			if( colorIndex == C_COLOR_DEFAULT )
 			{
 				newColor = color;
 			}
-			else
-			{
+			else {
 				newColor = idStr::ColorForIndex( colorIndex );
 				newColor[ 3 ] = color[ 3 ];
 			}
@@ -2120,21 +2120,21 @@ int idSWF::DrawText( idRenderSystem* gui, float x, float y, float scale, idVec4 
 
 int idSWF::DrawText( idRenderSystem* gui, const char* text, float textScale, int textAlign, idVec4 color, const swfRect_t& rectDraw, bool wrap, int cursor, bool calcOnly, idList<int>* breaks, int limit )
 {
-	int			count = 0;
-	int			charIndex = 0;
-	int			lastBreak = 0;
-	float		y = 0.0f;
-	float		textWidth = 0.0f;
-	float		textWidthAtLastBreak = 0.0f;
+	int		count = 0;
+	int		charIndex = 0;
+	int		lastBreak = 0;
+	float	y = 0.0f;
+	float	textWidth = 0.0f;
+	float	textWidthAtLastBreak = 0.0f;
 
-	float		charSkip = idMath::Ftoi( debugFont->GetMaxCharWidth( textScale ) ) + 1;
-	float		lineSkip = idMath::Ftoi( debugFont->GetMaxCharWidth( textScale ) );
+	float	charSkip = idMath::Ftoi( debugFont->GetMaxCharWidth( textScale ) ) + 1;
+	float	lineSkip = idMath::Ftoi( debugFont->GetMaxCharWidth( textScale ) );
 
-	bool		lineBreak = false;
-	bool		wordBreak = false;
+	bool	lineBreak = false;
+	bool	wordBreak = false;
 
-	float		rectWidth = fabs( rectDraw.br.x - rectDraw.tl.x );
-	float		rectHeight = fabs( rectDraw.br.y - rectDraw.tl.y );
+	float	rectWidth = idMath::Fabs( rectDraw.br.x - rectDraw.tl.x );
+	float	rectHeight = idMath::Fabs( rectDraw.br.y - rectDraw.tl.y );
 
 	idStr drawText = text;
 	idStr textBuffer;

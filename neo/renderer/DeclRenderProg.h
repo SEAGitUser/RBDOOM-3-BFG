@@ -11,10 +11,11 @@
 enum progTarget_t {
 	PT_PC,
 	PT_PC_D3D,
-	PT_360,
-	PT_DURANGO,
-	PT_PS3,
-	PT_ORBIS,
+	PT_PC_VK,
+	//PT_360,
+	//PT_DURANGO,
+	//PT_PS3,
+	//PT_ORBIS,
 	PT_NUM_TARGETS
 };
 
@@ -23,7 +24,7 @@ r_loadPrecompiledShaders
 r_dumpGeneratedGLSL
 r_amdShaderLinkCrashWorkaroundTest
 
-	struct progValidation_t 
+	struct progValidation_t
 	{
 		idTokenStatic<512> varType;
 		idTokenStatic<512> varName;
@@ -85,7 +86,7 @@ r_amdShaderLinkCrashWorkaroundTest
 	DECALPROJ_PLANAR,
 	DECALPROJ_SPHERICAL,
 	decalProjType_t
-	
+
 */
 
 static const int32 PC_ATTRIB_INDEX_POSITION		= 0;
@@ -98,19 +99,19 @@ static const int32 PC_ATTRIB_INDEX_COLOR2		= 5;
 /*
 ================================================
  vertexMask_e
- 
+
  NOTE: There is a PS3 dependency between the bit flag specified here and the vertex
  attribute index and attribute semantic specified in DeclRenderProg.cpp because the
  stored render prog vertexMask is initialized with cellCgbGetVertexConfiguration().
  The ATTRIB_INDEX_ defines are used to make sure the vertexMask_e and attrib assignment
  in DeclRenderProg.cpp are in sync.
- 
+
  Even though VERTEX_MASK_XYZ_SHORT and VERTEX_MASK_ST_SHORT are not real attributes,
  they come before the VERTEX_MASK_MORPH to reduce the range of vertex program
  permutations defined by the vertexMask_e bits on the Xbox 360 (see MAX_VERTEX_DECLARATIONS).
 ================================================
 */
-enum vertexMask_e : int32 
+enum vertexMask_e : int32
 {
 	VERTEX_MASK_POSITION	= BIT( PC_ATTRIB_INDEX_POSITION ),
 	VERTEX_MASK_ST			= BIT( PC_ATTRIB_INDEX_ST ),
@@ -121,7 +122,7 @@ enum vertexMask_e : int32
 };
 typedef idBitFlags<int32> vertexMask_t;
 
-enum vertexAttributeIndex_e 
+/*enum vertexAttributeIndex_e
 {
 	VS_IN_POSITION,
 	VS_IN_NORMAL,
@@ -130,9 +131,9 @@ enum vertexAttributeIndex_e
 	VS_IN_ST,
 	VS_IN_TANGENT,
 	VS_IN_MAX
-};
+};*/
 
-enum vertexFormat_t 
+/*enum vertexFormat_t
 {
 	VFMT_HALF_FLOAT,
 	VFMT_FLOAT​,
@@ -150,9 +151,9 @@ enum vertexFormat_t
 	UNSIGNED_INT_2_10_10_10_REV,
 	UNSIGNED_INT_10F_11F_11F_REV,
 	VFMT_MAX,
-};
+};*/
 
-enum shaderType_e 
+enum shaderType_e
 {
 	SHT_VERTEX,
 	SHT_TESS_CTRL,		// GL_TESS_CONTROL / DX_HULL
@@ -163,7 +164,7 @@ enum shaderType_e
 	SHT_COMPUTE = SHT_MAX,
 };
 
-enum autospriteType_t 
+/*enum autospriteType_t
 {
 	AUTOSPRITE_NONE,
 	AUTOSPRITE_VIEW_ORIENTED,
@@ -171,15 +172,35 @@ enum autospriteType_t
 	AUTOSPRITE_X_AXIS_ALIGNED,
 	AUTOSPRITE_Y_AXIS_ALIGNED,
 	AUTOSPRITE_Z_AXIS_ALIGNED,
-};
+};*/
 
-enum parmUsage_t
+/*enum parmUsage_t
 {
 	PARM_USAGE_VERTEX,
 	PARM_USAGE_FRAGMENT,
 	PARM_USAGE_TEXTURE,
 	PARM_USAGE_SAMPLER,
 	PARM_USAGE_ALL,
+};*/
+
+typedef idList< const idDeclRenderParm *, TAG_RENDERPROG> progParmList_t;
+
+enum renderProgFlags_t
+{
+	//hasInteractions				= BIT( 1 ),
+	//hasAlphaToCoverage			= BIT( 2 ),
+	HAS_COVERAGE_OUTPUT				= BIT( 3 ),
+	HAS_STENCIL_OUTPUT				= BIT( 4 ),
+	//has16BitScaleBias				= BIT( 5 ),
+	HAS_HARDWARE_SKINNING			= BIT( 6 ),
+	//hasVertexTexture				= BIT( 7 ),
+	HAS_OPTIONAL_SKINNING			= BIT( 8 ),
+	HAS_FRAG_OUTPUT					= BIT( 9 ),
+	HAS_MRT_OUTPUT					= BIT( 10 ),
+	HAS_FRAG_CLIP					= BIT( 11 ),
+	HAS_DEPTH_OUTPUT				= BIT( 12 ),
+	HAS_FORCED_EARLY_FRAG_TESTS		= BIT( 13 ),
+	//hasBranchStripping			= BIT( 14 ),
 };
 
 struct renderProgData_t
@@ -187,28 +208,20 @@ struct renderProgData_t
 	//int inheritsFrom;
 	//int compoundCheckSum;
 	//int parentCheckSum;
-	//int dependencies;
-	//int dependenciesTimestamp;
-	uint64			glState;
+	idStrList dependencies;
+	ID_TIME_T dependenciesTimestamp;
 	//int parmBlock;
 	//int vertexParms;
 	//int fragmentParms;
 	//int textureParms;
 	//int samplerParms;
-	uint32			flags;
+	progParmList_t		vecParms;
+	progParmList_t		texParms;
+
+	idBitFlags<uint64>	glState;
+	idBitFlags<uint32>	flags;
 	//int stageSort;
-	//bool			hasInteractions;
-	//bool			hasAlphaToCoverage;
-	bool			hasCoverageOutput;
-	bool			hasStencilOutput;
-	//bool			has16BitScaleBias;
-	bool			hasHardwareSkinning;
-	//bool			hasVertexTexture;
-	bool			hasOptionalSkinning;
-	bool			hasFragClip;
-	bool			hasDepthOutput;
-	bool			hasForcedEarlyFragTests;
-	//bool hasBranchStripping;
+
 	vertexMask_t	vertexMask;
 	//int fragmentOutputs;
 	//int registerCountPS3;
@@ -217,10 +230,40 @@ struct renderProgData_t
 	//int fragmentCode;
 
 	void Clear() {
-		memset( this, 0, sizeof( renderProgData_t ) );
+		dependencies.Clear();
+		dependenciesTimestamp = 0;
+		vecParms.Clear();
+		texParms.Clear();
+		glState.Clear();
+		flags.Clear();
+		vertexMask.Clear();
 	}
-	void Read();
-	void Write();
+	size_t Size() const {
+		size_t size = 0;
+		size += dependencies.Size();
+		size += sizeof( dependenciesTimestamp );
+		size += vecParms.Size();
+		size += texParms.Size();
+		size += glState.Size();
+		size += flags.Size();
+		size += vertexMask.Size();
+		return size;
+	}
+	void operator = ( const renderProgData_t & other )
+	{
+		dependencies = other.dependencies;
+		dependenciesTimestamp = other.dependenciesTimestamp;
+
+		vecParms = other.vecParms;
+		texParms = other.texParms;
+
+		glState = other.glState;
+		flags = other.flags;
+		vertexMask = other.vertexMask;
+	}
+
+	void Read( idFile * );
+	void Write( idFile * );
 };
 
 /*struct shaderConstructInfo_t {
@@ -232,8 +275,6 @@ struct renderProgData_t
 	int inAttribs;
 	int outAttribs;
 };*/
-
-typedef idList< const idDeclRenderParm *, TAG_RENDERPROG> progParmList_t;
 
 /*class idParmBlock {
 public:
@@ -255,31 +296,42 @@ public:
 	virtual	~idDeclRenderProg();
 
 	// Override from idDecl
-	virtual const char *			DefaultDefinition() const final;
-	virtual bool					Parse( const char* text, const int textLength, bool allowBinaryVersion = false ) final;
-	virtual size_t					Size() const final;
-	virtual void					FreeData() final;
+	virtual const char *	DefaultDefinition() const final;
+	virtual bool			Parse( const char* text, const int textLength, bool allowBinaryVersion = false ) final;
+	virtual size_t			Size() const final;
+	virtual void			FreeData() final;
 
-	virtual void					Print() const;
-	virtual void					List() const;
+	virtual bool			SourceFileChanged() const;
 
-	void							Clear();
+	virtual void			Print() const;
+	virtual void			List() const;
+
+	void					Clear();
 
 	//void ReloadIfStale();
 	//void GetRenamed();
 	//void SetRenamed();
-	
-	bool				HasFlag( int flag ) const { return(( data.flags & flag ) != 0); }
-	//bool				Has16BitScaleBias() const { return data.has16BitScaleBias; }
-	bool				HasHardwareSkinning() const { return data.hasHardwareSkinning; }
-	bool				HasOptionalSkinning() const { return data.hasOptionalSkinning; }
-	bool				HasClipFragments() const { return data.hasFragClip; }
-	bool				WritesFragmentDepth() const { return data.hasDepthOutput; }
-	bool				ProgUsesParm( const idDeclRenderParm * parm ) const;
-	uint64				GetGLState() const { return data.glState; }
+
+	bool					HasFlag( renderProgFlags_t flag ) const { return data.flags.HasFlag( flag ); }
+	//bool					Has16BitScaleBias() const { return data.has16BitScaleBias; }
+	// the joints buffer should only be bound for vertex programs that use joints
+	bool					HasHardwareSkinning() const { return HasFlag( HAS_HARDWARE_SKINNING ); }
+	// the rpEnableSkinning render parm should only be set for vertex programs that use it
+	bool					HasOptionalSkinning() const { return HasFlag( HAS_OPTIONAL_SKINNING ); }
+	bool					HasClipFragments() const { return HasFlag( HAS_FRAG_CLIP ); }
+	bool					HasDepthOutput() const { return HasFlag( HAS_DEPTH_OUTPUT ); }
+	bool					HasFragOutput() const { return HasFlag( HAS_FRAG_OUTPUT ); }
+	bool					HasMRT() const { return HasFlag( HAS_MRT_OUTPUT ); }
+
+	auto					GetGLState() const { return data.glState; }
+	auto					GetVertexMask() const { return data.vertexMask; }
+
+	bool					ProgUsesParm( const idDeclRenderParm * parm ) const;
+	ID_INLINE const progParmList_t & GetVecParms() const { return data.vecParms; }
+	ID_INLINE const progParmList_t & GetTexParms() const { return data.texParms; }
+
 	//void GetParmBlock();
 	//void GetStageSort();
-	const vertexMask_t & GetVertexMask() const { return data.vertexMask; }
 
 	//void GetRenderProgData( renderProgData_t, renderProgParms_t, shaderConstructInfo_t );
 	//void VersionForLight();
@@ -299,29 +351,21 @@ public:
 	//void OpenFileReadWithOverride();
 	//void IsInOverrideMode();
 
-	void *				GetAPIObject() const { return apiObject; }
-	bool				IsValidAPIObject() const { return( !!apiObject ); }
-	void				Bind() const;
-	void				CommitUniforms() const;
+	void *					GetAPIObject() const { return apiObject; }
+	bool					IsValidAPIObject() const { return( apiObject != nullptr ); }
 
-	const progParmList_t &	GetVecParms() const { return vecParms; }
-	const progParmList_t &	GetTexParms() const { return texParms; }
-
-	const idUniformBuffer &	GetParmsUBO() const { return ubo; }
+	//const idUniformBuffer &	GetParmsUBO() const { return ubo; }
 
 private:
 
-	void				SetFlag( const int flag ) { data.flags |= flag; }
-	void				ClearFlag( const int flag ) { data.flags &= ~flag; }
-	
 	//bool				renamed;
-	
+
 	//int					inheritsFromDecl;
 	//uint32				shaderChecksum[ SHT_MAX ];
 	//bool				hasDerived;
 	//bool				partiallyLoaded;
 	//int					versions; // idArray < const idDeclRenderProg * , 3 >    [7] versions
-	
+
 	///void UploadTargetCode( int glslBinaryFilename, int path, int fBin, int fileData, int linked, int infologLength );
 
 	//uint16				vertexProgram;		// shaderConstructInfo_t
@@ -331,12 +375,9 @@ private:
 	//uint16				fragmentUniforms;	// renderProgParms_t
 
 private:
-
-	renderProgData_t	data;
-	progParmList_t		vecParms;
-	progParmList_t		texParms;
-	void *				apiObject;
-	idUniformBuffer		ubo;
+	renderProgData_t		data;
+	void *					apiObject;
+	//idUniformBuffer		ubo;
 };
 
 #endif /*__DECLRENDERPROG_H__*/

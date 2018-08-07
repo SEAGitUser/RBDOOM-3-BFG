@@ -115,7 +115,6 @@ If you have questions concerning this license or the applicable additional terms
 		#define WIN32
 	#endif
 
-
 #elif defined(__linux__) || defined(__FreeBSD__) || defined(__APPLE__) || defined(__GNUC__) || defined(__clang__)
 
 #define ID_PC

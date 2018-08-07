@@ -148,9 +148,7 @@ FreeBuildBrush
 */
 static void FreeBuildBrush()
 {
-	int		i;
-	
-	for( i = 0 ; i < buildBrush->numsides ; i++ )
+	for( int i = 0 ; i < buildBrush->numsides ; i++ )
 	{
 		if( buildBrush->sides[i].winding )
 		{
@@ -379,10 +377,9 @@ static void ParseSurface( const idMapPatch* patch, const idSurface* surface, con
 {
 	int				i;
 	mapTri_t*		tri;
-	primitive_t*		prim;
-	
-	prim = ( primitive_t* )Mem_Alloc( sizeof( *prim ), TAG_TOOLS );
-	memset( prim, 0, sizeof( *prim ) );
+
+	auto prim = ( primitive_t* )Mem_Alloc( sizeof( primitive_t ), TAG_TOOLS );
+	memset( prim, 0, sizeof( primitive_t ) );
 	prim->next = uEntity->primitives;
 	uEntity->primitives = prim;
 	
@@ -417,16 +414,14 @@ ParsePatch
 */
 static void ParsePatch( const idMapPatch* patch, int primitiveNum )
 {
-	const idMaterial* mat;
-	
 	if( dmapGlobals.noCurves )
 	{
 		return;
 	}
 	
-	c_numMapPatches++;
+	++c_numMapPatches;
 	
-	mat = declManager->FindMaterial( patch->GetMaterial() );
+	auto mat = declManager->FindMaterial( patch->GetMaterial() );
 	
 	idSurface_Patch* cp = new idSurface_Patch( *patch );
 	
@@ -478,15 +473,15 @@ static int ParsePolygonMesh( const MapPolygonMesh* mesh, int primitiveNum, int n
 		{
 			mapTri_t* tri = AllocTri();
 			
-#if 1
-			tri->v[0] = verts[ indexes[ j + 1] ];
-			tri->v[1] = verts[ indexes[ j + 0] ];
-			tri->v[2] = verts[ indexes[ 0 ] ];
-#else
-			tri->v[2] = verts[ indexes[ j + 1] ];
-			tri->v[1] = verts[ indexes[ j + 0] ];
-			tri->v[0] = verts[ indexes[ 0 ] ];
-#endif
+		#if 1
+			tri->v[ 0 ] = verts[ indexes[ j + 1 ] ];
+			tri->v[ 1 ] = verts[ indexes[ j + 0 ] ];
+			tri->v[ 2 ] = verts[ indexes[ 0 ] ];
+		#else
+			tri->v[ 2 ] = verts[ indexes[ j + 1 ] ];
+			tri->v[ 1 ] = verts[ indexes[ j + 0 ] ];
+			tri->v[ 0 ] = verts[ indexes[ 0 ] ];
+		#endif
 			
 			idPlane plane;
 			plane.FromPoints( tri->v[0].GetPosition(), tri->v[1].GetPosition(), tri->v[2].GetPosition() );
@@ -615,8 +610,7 @@ static void CreateMapLight( const idMapEntity* mapEnt )
 		common->Error( "Light at (%f,%f,%f) didn't have a name", light->def.GetOrigin().x, light->def.GetOrigin().y, light->def.GetOrigin().z );
 	}
 	
-	dmapGlobals.mapLights.Append( light );
-	
+	dmapGlobals.mapLights.Append( light );	
 }
 
 /*
@@ -627,21 +621,18 @@ CreateMapLights
 */
 static void CreateMapLights( const idMapFile* dmapFile )
 {
-	int		i;
 	const idMapEntity* mapEnt;
 	const char*	value;
 	
-	for( i = 0 ; i < dmapFile->GetNumEntities() ; i++ )
+	for( int i = 0 ; i < dmapFile->GetNumEntities() ; i++ )
 	{
 		mapEnt = dmapFile->GetEntity( i );
 		mapEnt->epairs.GetString( "classname", "", &value );
 		if( !idStr::Icmp( value, "light" ) )
 		{
 			CreateMapLight( mapEnt );
-		}
-		
-	}
-	
+		}	
+	}	
 }
 
 /*
@@ -729,8 +720,8 @@ bool LoadDMapFile( const char* filename )
 	common->Printf( "%5i entities\n", dmapGlobals.num_entities );
 	common->Printf( "%5i planes\n", dmapGlobals.mapPlanes.Num() );
 	common->Printf( "%5i areaportals\n", c_areaportals );
-	common->Printf( "size: %5.0f,%5.0f,%5.0f to %5.0f,%5.0f,%5.0f\n", mapBounds[0][0], mapBounds[0][1], mapBounds[0][2],
-					mapBounds[1][0], mapBounds[1][1], mapBounds[1][2] );
+	common->Printf( "size: %5.0f,%5.0f,%5.0f to %5.0f,%5.0f,%5.0f\n", 
+		mapBounds[0][0], mapBounds[0][1], mapBounds[0][2], mapBounds[1][0], mapBounds[1][1], mapBounds[1][2] );
 					
 	return true;
 }

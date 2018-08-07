@@ -134,9 +134,9 @@ void idWindow::CommonInit()
 	shear.Zero();
 	textScale = 0.35f;
 	backColor.Zero();
-	foreColor = idVec4( 1, 1, 1, 1 );
-	hoverColor = idVec4( 1, 1, 1, 1 );
-	matColor = idVec4( 1, 1, 1, 1 );
+	foreColor = idVec4( 1.0 );
+	hoverColor = idVec4( 1.0 );
+	matColor = idVec4( 1.0 );
 	borderColor.Zero();
 	background = NULL;
 	backGroundName = "";
@@ -345,15 +345,15 @@ void idWindow::Draw( int time, float x, float y )
 		shadowRect.x += textShadow;
 		shadowRect.y += textShadow;
 
-		dc->DrawText( shadowText, textScale, textAlign, colorBlack, shadowRect, !( flags & WIN_NOWRAP ), -1 );
+		dc->DrawText( shadowText, textScale, textAlign, idColor::black, shadowRect, !( flags & WIN_NOWRAP ), -1 );
 	}
 	dc->DrawText( text, textScale, textAlign, foreColor, textRect, !( flags & WIN_NOWRAP ), -1 );
 
 	if( gui_edit.GetBool() )
 	{
 		dc->EnableClipping( false );
-		dc->DrawText( va( "x: %i  y: %i", ( int )rect.x(), ( int )rect.y() ), 0.25, 0, dc->colorWhite, idRectangle( rect.x(), rect.y() - 15, 100, 20 ), false );
-		dc->DrawText( va( "w: %i  h: %i", ( int )rect.w(), ( int )rect.h() ), 0.25, 0, dc->colorWhite, idRectangle( rect.x() + rect.w(), rect.w() + rect.h() + 5, 100, 20 ), false );
+		dc->DrawText( va( "x: %i  y: %i", ( int )rect.x(), ( int )rect.y() ), 0.25, 0, idColor::white, idRectangle( rect.x(), rect.y() - 15, 100, 20 ), false );
+		dc->DrawText( va( "w: %i  h: %i", ( int )rect.w(), ( int )rect.h() ), 0.25, 0, idColor::white, idRectangle( rect.x() + rect.w(), rect.w() + rect.h() + 5, 100, 20 ), false );
 		dc->EnableClipping( true );
 	}
 }
@@ -1107,7 +1107,7 @@ void idWindow::DebugDraw( int time, float x, float y )
 		dc->EnableClipping( false );
 		if( gui_debug.GetInteger() == 1 )
 		{
-			dc->DrawRect( drawRect.x, drawRect.y, drawRect.w, drawRect.h, 1, idDeviceContext::colorRed );
+			dc->DrawRect( drawRect.x, drawRect.y, drawRect.w, drawRect.h, 1, idColor::red );
 		}
 		else if( gui_debug.GetInteger() == 2 )
 		{
@@ -1300,11 +1300,11 @@ void idWindow::DrawBackground( const idRectangle& drawRect )
 			scalex = drawRect.w / background->GetImageWidth();
 			scaley = drawRect.h / background->GetImageHeight();
 		}
-		else
-		{
+		else {
 			scalex = matScalex;
 			scaley = matScaley;
 		}
+
 		dc->DrawMaterial( drawRect.x, drawRect.y, drawRect.w, drawRect.h, background, matColor, scalex, scaley );
 	}
 }
@@ -1410,14 +1410,14 @@ void idWindow::Redraw( float x, float y, bool hud )
 
 	if( flags & WIN_SHOWTIME )
 	{
-		dc->DrawText( va( " %0.1f seconds\n%s", ( float )( time - timeLine ) / 1000, gui->State().GetString( "name" ) ), 0.35f, 0, dc->colorWhite, idRectangle( 100, 0, 80, 80 ), false );
+		dc->DrawText( va( " %0.1f seconds\n%s", ( float )( time - timeLine ) / 1000, gui->State().GetString( "name" ) ), 0.35f, 0, idColor::white, idRectangle( 100, 0, 80, 80 ), false );
 	}
 
 	if( flags & WIN_SHOWCOORDS )
 	{
 		dc->EnableClipping( false );
 		sprintf( str, "x: %i y: %i  cursorx: %i cursory: %i", ( int )rect.x(), ( int )rect.y(), ( int )gui->CursorX(), ( int )gui->CursorY() );
-		dc->DrawText( str, 0.25f, 0, dc->colorWhite, idRectangle( 0, 0, 100, 20 ), false );
+		dc->DrawText( str, 0.25f, 0, idColor::white, idRectangle( 0, 0, 100, 20 ), false );
 		dc->EnableClipping( true );
 	}
 
@@ -1505,8 +1505,8 @@ void idWindow::Redraw( float x, float y, bool hud )
 	{
 		dc->EnableClipping( false );
 		sprintf( str, "x: %1.f y: %1.f", gui->CursorX(), gui->CursorY() );
-		dc->DrawText( str, 0.25, 0, dc->colorWhite, idRectangle( 0, 0, 100, 20 ), false );
-		dc->DrawText( gui->GetSourceFile(), 0.25, 0, dc->colorWhite, idRectangle( 0, 20, 300, 20 ), false );
+		dc->DrawText( str, 0.25, 0, idColor::white, idRectangle( 0, 0, 100, 20 ), false );
+		dc->DrawText( gui->GetSourceFile(), 0.25, 0, idColor::white, idRectangle( 0, 20, 300, 20 ), false );
 		dc->EnableClipping( true );
 	}
 
@@ -1566,11 +1566,11 @@ void idWindow::CalcClientRect( float xofs, float yofs )
 		// and ignore the original positioning
 		if( flags & WIN_HCENTER )
 		{
-			drawRect.x = ( parent->rect.w() - rect.w() ) / 2;
+			drawRect.x = ( parent->rect.w() - rect.w() ) / 2.0;
 		}
 		else
 		{
-			drawRect.y = ( parent->rect.h() - rect.h() ) / 2;
+			drawRect.y = ( parent->rect.h() - rect.h() ) / 2.0;
 		}
 	}
 
@@ -1597,7 +1597,7 @@ void idWindow::CalcClientRect( float xofs, float yofs )
 		textRect.x += textAlignx;
 		textRect.y += textAligny;
 	}
-	origin.Set( rect.x() + ( rect.w() / 2 ), rect.y() + ( rect.h() / 2 ) );
+	origin.Set( rect.x() + ( rect.w() / 2.0 ), rect.y() + ( rect.h() / 2.0 ) );
 }
 
 /*
@@ -2446,7 +2446,6 @@ bool idWindow::ParseRegEntry( const char* name, idTokenParser* src )
 
 	// not predefined so just read the next token and add it to the state
 	idToken tok;
-	idVec4 v;
 	idWinInt* vari;
 	idWinFloat* varf;
 	idWinStr* vars;
@@ -3207,7 +3206,7 @@ intptr_t idWindow::ParseTerm( idTokenParser* src, idWinVar* var, intptr_t compon
 		return EmitOp( a, b, WOP_TYPE_TABLE );
 	}
 
-	if( var == NULL )
+	if( !var )
 	{
 		var = GetWinVarByName( token, true );
 	}
@@ -3229,44 +3228,43 @@ intptr_t idWindow::ParseTerm( idTokenParser* src, idWinVar* var, intptr_t compon
 					b = ParseExpression( src );
 					src->ExpectTokenString( "]" );
 				}
-				else
-				{
+				else {
 					src->UnreadToken( &token );
 				}
 			}
 			return EmitOp( a, b, WOP_TYPE_VAR );
 		}
-		else if( var->Cast<idWinFloat>() ) // dynamic_cast< idWinFloat* >( var ) )
+		else if( var->Cast<idWinFloat>() )
 		{
 			return EmitOp( a, b, WOP_TYPE_VARF );
 		}
-		else if( var->Cast<idWinInt>() ) // dynamic_cast< idWinInt* >( var ) )
+		else if( var->Cast<idWinInt>() )
 		{
 			return EmitOp( a, b, WOP_TYPE_VARI );
 		}
-		else if( var->Cast<idWinBool>() ) // dynamic_cast< idWinBool* >( var ) )
+		else if( var->Cast<idWinBool>() )
 		{
 			return EmitOp( a, b, WOP_TYPE_VARB );
 		}
-		else if( var->Cast<idWinStr>() ) // dynamic_cast< idWinStr* >( var ) )
+		else if( var->Cast<idWinStr>() )
 		{
 			return EmitOp( a, b, WOP_TYPE_VARS );
 		}
 		else {
 			src->Warning( "Var expression not vec4, float or int '%s'", token.c_str() );
 		}
+
 		return 0;
 	}
-	else {
-		// ugly but used for post parsing to fixup named vars
-		char* p = new( TAG_OLD_UI ) char[ token.Length() + 1 ];
-		strcpy( p, token );
-		// RB: 64 bit fixes, changed int to intptr_t
-		a = ( intptr_t )p;
-		// RB: 64 bit fixes, changed int to intptr_t
-		b = -2;
-		return EmitOp( a, b, WOP_TYPE_VAR );
-	}
+
+	// ugly but used for post parsing to fixup named vars
+	char* p = new( TAG_OLD_UI ) char[ token.Length() + 1 ];
+	strcpy( p, token );
+	// RB: 64 bit fixes, changed int to intptr_t
+	a = ( intptr_t )p;
+	// RB: 64 bit fixes, changed int to intptr_t
+	b = -2;
+	return EmitOp( a, b, WOP_TYPE_VAR );
 }
 
 /*
@@ -3426,7 +3424,7 @@ void idWindow::EvaluateRegisters( float* registers )
 	// copy the local and global parameters
 	registers[ WEXP_REG_TIME ] = gui->GetTime();
 
-	for( i = 0; i < oc; i++ )
+	for( i = 0; i < oc; ++i )
 	{
 		op = &ops[ i ];
 		if( op->b == -2 )
@@ -3450,8 +3448,7 @@ void idWindow::EvaluateRegisters( float* registers )
 					common->Warning( "Divide by zero in window '%s' in %s", GetName(), gui->GetSourceFile() );
 					registers[ op->c ] = registers[ op->a ];
 				}
-				else
-				{
+				else {
 					registers[ op->c ] = registers[ op->a ] / registers[ op->b ];
 				}
 				break;
@@ -3460,12 +3457,10 @@ void idWindow::EvaluateRegisters( float* registers )
 				b = b != 0 ? b : 1;
 				registers[ op->c ] = ( int )registers[ op->a ] % b;
 				break;
-			case WOP_TYPE_TABLE:
-			{
+			case WOP_TYPE_TABLE: {
 				auto table = declManager->DeclByIndex( DECL_TABLE, op->a )->Cast<idDeclTable>();
 				registers[ op->c ] = table->TableLookup( registers[ op->b ] );
-			}
-			break;
+				} break;
 			case WOP_TYPE_GT:
 				registers[ op->c ] = registers[ op->a ] > registers[ op->b ];
 				break;

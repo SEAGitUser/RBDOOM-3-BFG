@@ -495,7 +495,7 @@ void idCommonLocal::Error( const char* fmt, ... )
 	}
 	
 	// if we don't have GL running, make it a fatal error
-	if( !renderSystem->IsOpenGLRunning() )
+	if( !renderSystem->IsRenderDeviceRunning() )
 	{
 		code = ERP_FATAL;
 	}
@@ -524,8 +524,7 @@ void idCommonLocal::Error( const char* fmt, ... )
 			code = ERP_FATAL;
 		}
 	}
-	else
-	{
+	else {
 		errorCount = 0;
 	}
 	lastErrorTime = currentTime;
@@ -536,8 +535,7 @@ void idCommonLocal::Error( const char* fmt, ... )
 	idStr::vsnPrintf( errorMessage, sizeof( errorMessage ), fmt, argptr );
 	va_end( argptr );
 	errorMessage[sizeof( errorMessage ) - 1] = '\0';
-	
-	
+		
 	// copy the error message to the clip board
 	sys->SetClipboardData( errorMessage );
 	
@@ -557,8 +555,7 @@ void idCommonLocal::Error( const char* fmt, ... )
 		com_errorEntered = ERP_NONE;
 		throw idException( errorMessage );
 	}
-	else
-	{
+	else {
 		Printf( "********************\nERROR: %s\n********************\n", errorMessage );
 	}
 	
@@ -567,8 +564,7 @@ void idCommonLocal::Error( const char* fmt, ... )
 		cmdSystem->BufferCommandText( CMD_EXEC_NOW, "vid_restart partial windowed\n" );
 	}
 	
-	Sys_Error( "%s", errorMessage );
-	
+	Sys_Error( "%s", errorMessage );	
 }
 
 /*

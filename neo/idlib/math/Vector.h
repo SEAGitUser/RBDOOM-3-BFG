@@ -77,7 +77,7 @@ public:
 	idVec2& 		operator/=( const float a );
 	idVec2& 		operator*=( const float a );
 	
-	friend idVec2	operator*( const float a, const idVec2 b );
+	friend idVec2	operator*( const float a, const idVec2 & b );
 	
 	idVec2			Scale( const idVec2& a ) const;
 	
@@ -285,7 +285,7 @@ ID_INLINE idVec2 idVec2::operator/( const float a ) const
 	return idVec2( x * inva, y * inva );
 }
 
-ID_INLINE idVec2 operator*( const float a, const idVec2 b )
+ID_INLINE idVec2 operator*( const float a, const idVec2 & b )
 {
 	return idVec2( b.x * a, b.y * a );
 }
@@ -396,7 +396,8 @@ public:
 	idVec3& 		operator/=( const float a );
 	idVec3& 		operator*=( const float a );
 	
-	friend idVec3	operator*( const float a, const idVec3 b );
+	friend idVec3	operator*( const float a, const idVec3 & b );
+	friend idVec3	operator/( const float a, const idVec3 & b );
 	
 	bool			Compare( const idVec3& a ) const;							// exact compare, no epsilon
 	bool			Compare( const idVec3& a, const float epsilon ) const;		// compare with epsilon
@@ -512,12 +513,12 @@ ID_INLINE idVec3 idVec3::operator/( const float a ) const
 	return idVec3( x * inva, y * inva, z * inva );
 }
 
-ID_INLINE idVec3 operator*( const float a, const idVec3 b )
+ID_INLINE idVec3 operator*( const float a, const idVec3 & b )
 {
 	return idVec3( b.x * a, b.y * a, b.z * a );
 }
 
-ID_INLINE idVec3 operator/( const float a, const idVec3 b )
+ID_INLINE idVec3 operator/( const float a, const idVec3 & b )
 {
 	return idVec3( a / b.x, a / b.y, a / b.z );
 }
@@ -1023,7 +1024,7 @@ public:
 	idVec4& 		operator/=( const float a );
 	idVec4& 		operator*=( const float a );
 	
-	friend idVec4	operator*( const float a, const idVec4 b );
+	friend idVec4	operator*( const float a, const idVec4 & b );
 	
 	idVec4			Multiply( const idVec4& a ) const;
 	
@@ -1110,7 +1111,7 @@ ID_INLINE idVec4 idVec4::operator/( const float a ) const
 	return idVec4( x * inva, y * inva, z * inva, w * inva );
 }
 
-ID_INLINE idVec4 operator*( const float a, const idVec4 b )
+ID_INLINE idVec4 operator*( const float a, const idVec4 & b )
 {
 	return idVec4( b.x * a, b.y * a, b.z * a, b.w * a );
 }
@@ -1421,7 +1422,7 @@ public:
 	idVec6& 		operator+=( const idVec6& a );
 	idVec6& 		operator-=( const idVec6& a );
 	
-	friend idVec6	operator*( const float a, const idVec6 b );
+	friend idVec6	operator*( const float a, const idVec6 & b );
 	
 	bool			Compare( const idVec6& a ) const;							// exact compare, no epsilon
 	bool			Compare( const idVec6& a, const float epsilon ) const;		// compare with epsilon
@@ -1560,7 +1561,7 @@ ID_INLINE idVec6& idVec6::operator-=( const idVec6& a )
 	return *this;
 }
 
-ID_INLINE idVec6 operator*( const float a, const idVec6 b )
+ID_INLINE idVec6 operator*( const float a, const idVec6 & b )
 {
 	return b * a;
 }

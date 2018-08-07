@@ -41,7 +41,10 @@ If you have questions concerning this license or the applicable additional terms
 #define SAVE_PATH						"\\id Software\\RBDOOM 3 BFG"
 
 #define ENGINE_VERSION					"RBDOOM 3 BFG 1.1.0"	// printed in console
-// RB end
+#define ENGINE_VERSION_MAJOR	1
+#define ENGINE_VERSION_MINOR	1
+#define ENGINE_VERSION_PATCH	0
+#define ENGINE_NAME						"idTech4.5"
 
 #define	BASE_GAMEDIR					"base"
 
@@ -58,7 +61,7 @@ If you have questions concerning this license or the applicable additional terms
 
 // win32 info
 #define WIN32_CONSOLE_CLASS				"D3BFG_WinConsole"
-#define	WIN32_WINDOW_CLASS_NAME			"D3BFG"
+#define	WIN32_WINDOW_CLASS_NAME			"D3BFG_Render"
 #define	WIN32_FAKE_WINDOW_CLASS_NAME	"D3BFG_WGL_FAKE"
 
 // RB begin

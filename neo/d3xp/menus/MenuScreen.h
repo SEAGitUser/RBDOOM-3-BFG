@@ -31,8 +31,7 @@ If you have questions concerning this license or the applicable additional terms
 
 #include "../../renderer/tr_local.h"
 
-enum mainMenuTransition_t
-{
+enum mainMenuTransition_t {
 	MENU_TRANSITION_INVALID = -1,
 	MENU_TRANSITION_SIMPLE,
 	MENU_TRANSITION_ADVANCE,
@@ -40,8 +39,7 @@ enum mainMenuTransition_t
 	MENU_TRANSITION_FORCE
 };
 
-enum cursorState_t
-{
+enum cursorState_t {
 	CURSOR_NONE,
 	CURSOR_IN_COMBAT,
 	CURSOR_TALK,
@@ -54,21 +52,19 @@ enum cursorState_t
 idLBRowBlock
 ================================================
 */
-class idLBRowBlock
-{
+class idLBRowBlock {
 public:
 	idLBRowBlock() : lastTime( 0 ), startIndex( 0 ) {}
-	
+
 	int										lastTime;
 	int										startIndex;
 	idList< idLeaderboardCallback::row_t >	rows;
 };
 
-enum leaderboardFilterMode_t
-{
-	LEADERBOARD_FILTER_OVERALL	= 0,
-	LEADERBOARD_FILTER_MYSCORE	= 1,
-	LEADERBOARD_FILTER_FRIENDS	= 2
+enum leaderboardFilterMode_t {
+	LEADERBOARD_FILTER_OVERALL = 0,
+	LEADERBOARD_FILTER_MYSCORE = 1,
+	LEADERBOARD_FILTER_FRIENDS = 2
 };
 
 /*
@@ -76,12 +72,11 @@ enum leaderboardFilterMode_t
 idLBCache
 ================================================
 */
-class idLBCache
-{
+class idLBCache {
 public:
-	static const int NUM_ROW_BLOCKS		= 5;
+	static const int NUM_ROW_BLOCKS = 5;
 	static const leaderboardFilterMode_t DEFAULT_LEADERBOARD_FILTER = LEADERBOARD_FILTER_OVERALL;
-	
+
 	idLBCache() :
 		def( NULL ),
 		filter( DEFAULT_LEADERBOARD_FILTER ),
@@ -93,8 +88,9 @@ public:
 		entryIndex( 0 ),
 		rowOffset( 0 ),
 		localIndex( -1 ),
-		errorCode( LEADERBOARD_DISPLAY_ERROR_NONE ) {}
-		
+		errorCode( LEADERBOARD_DISPLAY_ERROR_NONE )
+	{}
+
 	void									Pump();
 	void									Reset();
 	void									SetLeaderboard( const leaderboardDefinition_t* 	def_, leaderboardFilterMode_t filter_ = DEFAULT_LEADERBOARD_FILTER );
@@ -109,7 +105,7 @@ public:
 	idLBRowBlock* 							FindFreeRowBlock();
 	void									Update( const idLeaderboardCallback* callback );
 	const idLeaderboardCallback::row_t* 	GetLeaderboardRow( int row );
-	
+
 	const leaderboardDefinition_t* 			GetLeaderboard() const
 	{
 		return def;
@@ -118,7 +114,7 @@ public:
 	{
 		return numRowsInLeaderboard;
 	}
-	
+
 	int										GetEntryIndex() const
 	{
 		return entryIndex;
@@ -135,7 +131,7 @@ public:
 	{
 		return errorCode;
 	}
-	
+
 	bool									IsRequestingRows() const
 	{
 		return requestingRows;
@@ -144,7 +140,7 @@ public:
 	{
 		return loadingNewLeaderboard;
 	}
-	
+
 	void									SetEntryIndex( int value )
 	{
 		entryIndex = value;
@@ -153,31 +149,31 @@ public:
 	{
 		rowOffset = value;
 	}
-	
+
 	void									DisplayGamerCardUI( const idLeaderboardCallback::row_t* row );
-	
+
 private:
 	leaderboardDisplayError_t				CallbackErrorToDisplayError( leaderboardError_t errorCode );
-	
-	idLBRowBlock					rowBlocks[NUM_ROW_BLOCKS];
-	
+
+	idLBRowBlock					rowBlocks[ NUM_ROW_BLOCKS ];
+
 	const leaderboardDefinition_t* 	def;
 	leaderboardFilterMode_t			filter;
-	
+
 	// Pending def and filter are simply used to queue up SetLeaderboard calls when the system is currently
 	// busy waiting on results from a previous SetLeaderboard/GetLeaderboardRow call.
 	// This is so we only have ONE request in-flight at any given time.
 	const leaderboardDefinition_t* 	pendingDef;
 	leaderboardFilterMode_t			pendingFilter;
-	
+
 	bool							requestingRows;				// True while requested rows are in flight
 	bool							loadingNewLeaderboard;		// True when changing to a new leaderboard (or filter type)
-	
+
 	int								numRowsInLeaderboard;		// Total rows in this leaderboard (they won't all be cached though)
 	int								entryIndex;					// Relative row offset (from top of viewing window)
 	int								rowOffset;					// Absolute row offset
 	int								localIndex;					// Row for the master local user (-1 means not on leaderboard)
-	
+
 	leaderboardDisplayError_t		errorCode;					// Error state of the leaderboard
 };
 
@@ -186,31 +182,29 @@ private:
 idMenuScreen
 ================================================
 */
-class idMenuScreen : public idMenuWidget
-{
+class idMenuScreen : public idMenuWidget {
 public:
 
 	idMenuScreen();
 	virtual ~idMenuScreen();
-	
+
 	virtual void				Update();
 	virtual void				UpdateCmds();
 	virtual void				HandleMenu( const mainMenuTransition_t type );
-	
+
 	virtual void				ShowScreen( const mainMenuTransition_t transitionType );
 	virtual void				HideScreen( const mainMenuTransition_t transitionType );
-	
+
 	virtual void				ObserveEvent( const idMenuWidget& widget, const idWidgetEvent& event );
 	virtual void				SetScreenGui( idSWF* gui )
 	{
 		menuGUI = gui;
 	}
-	
+
 protected:
 
 	idSWF* 	menuGUI;
 	mainMenuTransition_t	transition;
-	
 };
 
 /*
@@ -218,12 +212,11 @@ protected:
 idMenuScreen_PDA_UserData
 ================================================
 */
-class idMenuScreen_PDA_UserData : public idMenuScreen
-{
+class idMenuScreen_PDA_UserData : public idMenuScreen {
 public:
 
 	idMenuScreen_PDA_UserData() {}
-	
+
 	virtual ~idMenuScreen_PDA_UserData() {}
 	virtual void					Initialize( idMenuHandler* data );
 	virtual void					Update();
@@ -242,7 +235,7 @@ public:
 	{
 		return &pdaAudioFiles;
 	}
-	
+
 private:
 	idMenuWidget_PDA_UserData 			pdaUserData;
 	idMenuWidget_PDA_Objective 		pdaObjectiveSimple;
@@ -254,19 +247,16 @@ private:
 idMenuScreen_PDA_UserEmails
 ================================================
 */
-class idMenuScreen_PDA_UserEmails : public idMenuScreen
-{
+class idMenuScreen_PDA_UserEmails : public idMenuScreen {
 public:
 	idMenuScreen_PDA_UserEmails() :
 		readingEmails( false ),
 		scrollEmailInfo( false )
-	{
-	}
-	
+	{}
+
 	virtual ~idMenuScreen_PDA_UserEmails()
-	{
-	}
-	
+	{}
+
 	virtual void					Update();
 	virtual void					Initialize( idMenuHandler* data );
 	virtual void					ShowScreen( const mainMenuTransition_t transitionType );
@@ -277,7 +267,7 @@ public:
 	{
 		return pdaInbox;
 	}
-	
+
 	bool							ScrollCorrectList( idWidgetAction& action, const idWidgetEvent& event, idMenuWidget* widget );
 	void							ShowEmail( bool show );
 	void							UpdateEmail();
@@ -294,24 +284,21 @@ private:
 idMenuScreen_PDA_UserData
 ================================================
 */
-class idMenuScreen_PDA_VideoDisks : public idMenuScreen
-{
+class idMenuScreen_PDA_VideoDisks : public idMenuScreen {
 public:
 	idMenuScreen_PDA_VideoDisks() :
 		activeVideo( NULL )
-	{
-	}
-	
+	{}
+
 	virtual ~idMenuScreen_PDA_VideoDisks()
-	{
-	}
-	
+	{}
+
 	virtual void				Initialize( idMenuHandler* data );
 	virtual void				Update();
 	virtual void				ShowScreen( const mainMenuTransition_t transitionType );
 	virtual void				HideScreen( const mainMenuTransition_t transitionType );
 	virtual bool				HandleAction( idWidgetAction& action, const idWidgetEvent& event, idMenuWidget* widget, bool forceHandled = false );
-	
+
 	void						ToggleVideoDiskPlay();
 	void						UpdateVideoDetails();
 	void						SelectedVideoToPlay( int index );
@@ -336,22 +323,20 @@ private:
 idMenuScreen_PDA_UserData
 ================================================
 */
-class idMenuScreen_PDA_Inventory : public idMenuScreen
-{
+class idMenuScreen_PDA_Inventory : public idMenuScreen {
 public:
 	idMenuScreen_PDA_Inventory()
-	{
-	}
+	{}
 	virtual void				Initialize( idMenuHandler* data );
 	virtual void				Update();
 	virtual void				ShowScreen( const mainMenuTransition_t transitionType );
 	virtual void				HideScreen( const mainMenuTransition_t transitionType );
 	virtual bool				HandleAction( idWidgetAction& action, const idWidgetEvent& event, idMenuWidget* widget, bool forceHandled = false );
-	
+
 	void						EquipWeapon();
 	const char* 				GetWeaponName( int index );
 	bool						IsVisibleWeapon( int index );
-	
+
 private:
 	idMenuWidget_Carousel 			itemList;
 	idMenuWidget_InfoBox 			infoBox;
@@ -362,20 +347,18 @@ private:
 //idMenuScreen_Shell_Root
 //================================================
 //*/
-class idMenuScreen_Shell_Root : public idMenuScreen
-{
+class idMenuScreen_Shell_Root : public idMenuScreen {
 public:
 	idMenuScreen_Shell_Root() :
 		options( NULL ),
 		helpWidget( NULL )
-	{
-	}
+	{}
 	virtual void				Initialize( idMenuHandler* data );
 	virtual void				Update();
 	virtual void				ShowScreen( const mainMenuTransition_t transitionType );
 	virtual void				HideScreen( const mainMenuTransition_t transitionType );
 	virtual bool				HandleAction( idWidgetAction& action, const idWidgetEvent& event, idMenuWidget* widget, bool forceHandled = false );
-	
+
 	void						HandleExitGameBtn();
 	int							GetRootIndex();
 	void						SetRootIndex( int index );
@@ -383,7 +366,7 @@ public:
 	{
 		return helpWidget;
 	}
-	
+
 private:
 	idMenuWidget_DynamicList* 	options;
 	idMenuWidget_Help* 			helpWidget;
@@ -394,23 +377,21 @@ private:
 //idMenuScreen_Shell_Pause
 //================================================
 //*/
-class idMenuScreen_Shell_Pause : public idMenuScreen
-{
+class idMenuScreen_Shell_Pause : public idMenuScreen {
 public:
 	idMenuScreen_Shell_Pause() :
 		options( NULL ),
 		isMpPause( false )
-	{
-	}
+	{}
 	virtual void				Initialize( idMenuHandler* data );
 	virtual void				Update();
 	virtual void				ShowScreen( const mainMenuTransition_t transitionType );
 	virtual void				HideScreen( const mainMenuTransition_t transitionType );
 	virtual bool				HandleAction( idWidgetAction& action, const idWidgetEvent& event, idMenuWidget* widget, bool forceHandled = false );
-	
+
 	void						HandleExitGameBtn();
 	void						HandleRestartBtn();
-	
+
 private:
 	idMenuWidget_DynamicList* 	options;
 	bool						isMpPause;
@@ -421,8 +402,7 @@ private:
 //idMenuScreen_Shell_PressStart
 //================================================
 //*/
-class idMenuScreen_Shell_PressStart : public idMenuScreen
-{
+class idMenuScreen_Shell_PressStart : public idMenuScreen {
 public:
 	idMenuScreen_Shell_PressStart() :
 		startButton( NULL ),
@@ -431,8 +411,7 @@ public:
 		doomCover( NULL ),
 		doom2Cover( NULL ),
 		doom3Cover( NULL )
-	{
-	}
+	{}
 	virtual void				Initialize( idMenuHandler* data );
 	virtual void				Update();
 	virtual void				ShowScreen( const mainMenuTransition_t transitionType );
@@ -452,8 +431,7 @@ private:
 //idMenuScreen_Shell_PressStart
 //================================================
 //*/
-class idMenuScreen_Shell_GameSelect : public idMenuScreen
-{
+class idMenuScreen_Shell_GameSelect : public idMenuScreen {
 public:
 	idMenuScreen_Shell_GameSelect() :
 		startButton( NULL ),
@@ -462,8 +440,7 @@ public:
 		doomCover( NULL ),
 		doom2Cover( NULL ),
 		doom3Cover( NULL )
-	{
-	}
+	{}
 	virtual void				Initialize( idMenuHandler* data );
 	virtual void				Update();
 	virtual void				ShowScreen( const mainMenuTransition_t transitionType );
@@ -483,21 +460,19 @@ private:
 //idMenuScreen_Shell_Singleplayer
 //================================================
 //*/
-class idMenuScreen_Shell_Singleplayer : public idMenuScreen
-{
+class idMenuScreen_Shell_Singleplayer : public idMenuScreen {
 public:
 	idMenuScreen_Shell_Singleplayer() :
 		canContinue( false ),
 		options( NULL ),
 		btnBack( NULL )
-	{
-	}
+	{}
 	virtual void				Initialize( idMenuHandler* data );
 	virtual void				Update();
 	virtual void				ShowScreen( const mainMenuTransition_t transitionType );
 	virtual void				HideScreen( const mainMenuTransition_t transitionType );
 	virtual bool				HandleAction( idWidgetAction& action, const idWidgetEvent& event, idMenuWidget* widget, bool forceHandled = false );
-	
+
 	void						SetCanContinue( bool valid )
 	{
 		canContinue = valid;
@@ -514,14 +489,12 @@ private:
 //idMenuScreen_Shell_Settings
 //================================================
 //*/
-class idMenuScreen_Shell_Settings : public idMenuScreen
-{
+class idMenuScreen_Shell_Settings : public idMenuScreen {
 public:
 	idMenuScreen_Shell_Settings() :
 		options( NULL ),
 		btnBack( NULL )
-	{
-	}
+	{}
 	virtual void				Initialize( idMenuHandler* data );
 	virtual void				Update();
 	virtual void				ShowScreen( const mainMenuTransition_t transitionType );
@@ -532,21 +505,19 @@ private:
 	idMenuWidget_Button*			btnBack;
 };
 
-struct creditInfo_t
-{
-
+struct creditInfo_t {
 	creditInfo_t()
 	{
 		type = -1;
 		entry = "";
 	}
-	
+
 	creditInfo_t( int t, const char* val )
 	{
 		type = t;
 		entry = val;
 	}
-	
+
 	int type;
 	idStr entry;
 };
@@ -556,23 +527,21 @@ struct creditInfo_t
 //idMenuScreen_Shell_Credits
 //================================================
 //*/
-class idMenuScreen_Shell_Credits : public idMenuScreen
-{
+class idMenuScreen_Shell_Credits : public idMenuScreen {
 public:
 	idMenuScreen_Shell_Credits() :
 		btnBack( NULL ),
 		creditIndex( 0 )
-	{
-	}
+	{}
 	virtual void				Initialize( idMenuHandler* data );
 	virtual void				Update();
 	virtual void				ShowScreen( const mainMenuTransition_t transitionType );
 	virtual void				HideScreen( const mainMenuTransition_t transitionType );
 	virtual bool				HandleAction( idWidgetAction& action, const idWidgetEvent& event, idMenuWidget* widget, bool forceHandled = false );
-	
+
 	void						SetupCreditList();
 	void						UpdateCredits();
-	
+
 private:
 	idMenuWidget_Button*			btnBack;
 	idList< creditInfo_t >		creditList;
@@ -584,23 +553,20 @@ private:
 //idMenuScreen_Shell_Resolution
 //================================================
 //*/
-class idMenuScreen_Shell_Resolution : public idMenuScreen
-{
+class idMenuScreen_Shell_Resolution : public idMenuScreen {
 public:
 	idMenuScreen_Shell_Resolution() :
 		options( NULL ),
 		btnBack( NULL )
-	{
-	}
+	{}
 	virtual void				Initialize( idMenuHandler* data );
 	virtual void				Update();
 	virtual void				ShowScreen( const mainMenuTransition_t transitionType );
 	virtual void				HideScreen( const mainMenuTransition_t transitionType );
 	virtual bool				HandleAction( idWidgetAction& action, const idWidgetEvent& event, idMenuWidget* widget, bool forceHandled = false );
-	
+
 private:
-	struct optionData_t
-	{
+	struct optionData_t {
 		optionData_t()
 		{
 			fullscreen = -1;
@@ -630,9 +596,9 @@ private:
 		int vidmode;
 	};
 	idList<optionData_t>		optionData;
-	
+
 	optionData_t				originalOption;
-	
+
 	idMenuWidget_DynamicList* 	options;
 	idMenuWidget_Button*			btnBack;
 };
@@ -642,15 +608,13 @@ private:
 //idMenuScreen_Shell_Difficulty
 //================================================
 //*/
-class idMenuScreen_Shell_Difficulty : public idMenuScreen
-{
+class idMenuScreen_Shell_Difficulty : public idMenuScreen {
 public:
 	idMenuScreen_Shell_Difficulty() :
 		nightmareUnlocked( false ),
 		options( NULL ),
 		btnBack( NULL )
-	{
-	}
+	{}
 	virtual void				Initialize( idMenuHandler* data );
 	virtual void				Update();
 	virtual void				ShowScreen( const mainMenuTransition_t transitionType );
@@ -667,14 +631,12 @@ private:
 //idMenuScreen_Shell_Playstation
 //================================================
 //*/
-class idMenuScreen_Shell_Playstation : public idMenuScreen
-{
+class idMenuScreen_Shell_Playstation : public idMenuScreen {
 public:
 	idMenuScreen_Shell_Playstation() :
 		options( NULL ),
 		btnBack( NULL )
-	{
-	}
+	{}
 	virtual void				Initialize( idMenuHandler* data );
 	virtual void				Update();
 	virtual void				ShowScreen( const mainMenuTransition_t transitionType );
@@ -690,14 +652,12 @@ private:
 //idMenuScreen_Shell_ModeSelect
 //================================================
 //*/
-class idMenuScreen_Shell_ModeSelect : public idMenuScreen
-{
+class idMenuScreen_Shell_ModeSelect : public idMenuScreen {
 public:
 	idMenuScreen_Shell_ModeSelect() :
 		options( NULL ),
 		btnBack( NULL )
-	{
-	}
+	{}
 	virtual void				Initialize( idMenuHandler* data );
 	virtual void				Update();
 	virtual void				ShowScreen( const mainMenuTransition_t transitionType );
@@ -713,24 +673,22 @@ private:
 //idMenuScreen_GameBrowser
 //================================================
 //*/
-class idMenuScreen_Shell_GameBrowser : public idMenuScreen
-{
+class idMenuScreen_Shell_GameBrowser : public idMenuScreen {
 public:
 	idMenuScreen_Shell_GameBrowser() :
 		listWidget( NULL ),
 		btnBack( NULL )
-	{
-	}
-	
+	{}
+
 	virtual void				Initialize( idMenuHandler* data );
 	virtual void				ShowScreen( const mainMenuTransition_t transitionType );
 	virtual void				HideScreen( const mainMenuTransition_t transitionType );
 	virtual bool				HandleAction( idWidgetAction& action, const idWidgetEvent& event, idMenuWidget* widget, bool forceHandle = false );
-	
+
 	void						UpdateServerList();
 	void						OnServerListReady();
 	void						DescribeServer( const serverInfo_t& server, const int index );
-	
+
 private:
 	idMenuWidget_GameBrowserList* listWidget;
 	idMenuWidget_Button*				btnBack;
@@ -741,8 +699,7 @@ private:
 //idMenuScreen_Shell_Leaderboards
 //================================================
 //*/
-class idMenuScreen_Shell_Leaderboards : public idMenuScreen
-{
+class idMenuScreen_Shell_Leaderboards : public idMenuScreen {
 public:
 	idMenuScreen_Shell_Leaderboards() :
 		options( NULL ),
@@ -756,30 +713,28 @@ public:
 		lbIndex( 0 ),
 		refreshLeaderboard( false ),
 		refreshWhenMasterIsOnline( false )
-	{
-	}
-	
+	{}
+
 	virtual ~idMenuScreen_Shell_Leaderboards();
-	
+
 	virtual void				Initialize( idMenuHandler* data );
 	virtual void				Update();
 	virtual void				ShowScreen( const mainMenuTransition_t transitionType );
 	virtual void				HideScreen( const mainMenuTransition_t transitionType );
 	virtual bool				HandleAction( idWidgetAction& action, const idWidgetEvent& event, idMenuWidget* widget, bool forceHandled = false );
-	
+
 	void						UpdateLeaderboard( const idLeaderboardCallback* callback );
 	void						PumpLBCache();
 	void						RefreshLeaderboard();
-	void						ShowMessage( bool show, idStr message, bool spinner );
+	void						ShowMessage( bool show, const idStr & message, bool spinner );
 	void						ClearLeaderboard();
 	void 						SetLeaderboardIndex();
-	
+
 protected:
 
-	struct	doomLeaderboard_t
-	{
-		doomLeaderboard_t() : lb( NULL ) { }
-		doomLeaderboard_t( const leaderboardDefinition_t* _lb, idStr _name )
+	struct	doomLeaderboard_t {
+		doomLeaderboard_t() : lb( NULL ) {}
+		doomLeaderboard_t( const leaderboardDefinition_t* _lb, const idStr & _name )
 		{
 			lb = _lb;
 			name = _name;
@@ -787,9 +742,9 @@ protected:
 		const leaderboardDefinition_t* 	lb;
 		idStr					name;
 	};
-	
+
 	idList< doomLeaderboard_t >	leaderboards;
-	
+
 	idMenuWidget_DynamicList* 	options;
 	idMenuWidget_Button*			btnBack;
 	idMenuWidget_Button*			btnPrev;
@@ -808,8 +763,7 @@ protected:
 //idMenuScreen_Shell_Bindings
 //================================================
 //*/
-class idMenuScreen_Shell_Bindings : public idMenuScreen
-{
+class idMenuScreen_Shell_Bindings : public idMenuScreen {
 public:
 	idMenuScreen_Shell_Bindings() :
 		options( NULL ),
@@ -818,14 +772,13 @@ public:
 		txtBlinder( NULL ),
 		btnBack( NULL ),
 		bindingsChanged( false )
-	{
-	}
+	{}
 	virtual void				Initialize( idMenuHandler* data );
 	virtual void				Update();
 	virtual void				ShowScreen( const mainMenuTransition_t transitionType );
 	virtual void				HideScreen( const mainMenuTransition_t transitionType );
 	virtual bool				HandleAction( idWidgetAction& action, const idWidgetEvent& event, idMenuWidget* widget, bool forceHandled = false );
-	
+
 	void						SetBinding( int keyNum );
 	void						UpdateBindingDisplay();
 	void						ToggleWait( bool wait );
@@ -833,10 +786,10 @@ public:
 	{
 		bindingsChanged = changed;
 	}
-	
+
 protected:
 	void						HandleRestoreDefaults();
-	
+
 	idMenuWidget_DynamicList* 	options;
 	idMenuWidget_Button* 		restoreDefault;
 	idSWFSpriteInstance* 		blinder;
@@ -850,41 +803,38 @@ protected:
 //idMenuScreen_Shell_Dev
 //================================================
 //*/
-class idMenuScreen_Shell_Dev : public idMenuScreen
-{
+class idMenuScreen_Shell_Dev : public idMenuScreen {
 public:
 
-	struct devOption_t
-	{
+	struct devOption_t {
 		devOption_t()
 		{
 			map = "";
 			name = "";
 		};
-		
+
 		devOption_t( const char* m, const char* n )
 		{
 			map = m;
 			name = n;
 		}
-		
+
 		const char* 	map;
 		const char* 	name;
 	};
-	
+
 	idMenuScreen_Shell_Dev() :
 		options( NULL ),
 		btnBack( NULL )
-	{
-	}
+	{}
 	virtual void				Initialize( idMenuHandler* data );
 	virtual void				Update();
 	virtual void				ShowScreen( const mainMenuTransition_t transitionType );
 	virtual void				HideScreen( const mainMenuTransition_t transitionType );
 	virtual bool				HandleAction( idWidgetAction& action, const idWidgetEvent& event, idMenuWidget* widget, bool forceHandled = false );
-	
+
 	void						SetupDevOptions();
-	
+
 private:
 	idMenuWidget_DynamicList* 	options;
 	idMenuWidget_Button*			btnBack;
@@ -896,14 +846,12 @@ private:
 //idMenuScreen_Shell_NewGame
 //================================================
 //*/
-class idMenuScreen_Shell_NewGame : public idMenuScreen
-{
+class idMenuScreen_Shell_NewGame : public idMenuScreen {
 public:
 	idMenuScreen_Shell_NewGame() :
 		options( NULL ),
 		btnBack( NULL )
-	{
-	}
+	{}
 	virtual void				Initialize( idMenuHandler* data );
 	virtual void				Update();
 	virtual void				ShowScreen( const mainMenuTransition_t transitionType );
@@ -919,22 +867,20 @@ private:
 //idMenuScreen_Shell_Load
 //================================================
 //*/
-class idMenuScreen_Shell_Load : public idMenuScreen
-{
+class idMenuScreen_Shell_Load : public idMenuScreen {
 public:
 	idMenuScreen_Shell_Load() :
 		options( NULL ),
 		saveInfo( NULL ),
 		btnBack( NULL ),
 		btnDelete( NULL )
-	{
-	}
+	{}
 	virtual void				Initialize( idMenuHandler* data );
 	virtual void				Update();
 	virtual void				ShowScreen( const mainMenuTransition_t transitionType );
 	virtual void				HideScreen( const mainMenuTransition_t transitionType );
 	virtual bool				HandleAction( idWidgetAction& action, const idWidgetEvent& event, idMenuWidget* widget, bool forceHandled = false );
-	
+
 	void						UpdateSaveEnumerations();
 	void						LoadDamagedGame( int index );
 	void						LoadGame( int index );
@@ -943,7 +889,7 @@ public:
 	{
 		return sortedSaves;
 	}
-	
+
 private:
 	idMenuWidget_DynamicList* 	options;
 	idMenuWidget_Shell_SaveInfo* saveInfo;
@@ -957,16 +903,14 @@ private:
 //idMenuScreen_Shell_Save
 //================================================
 //*/
-class idMenuScreen_Shell_Save : public idMenuScreen
-{
+class idMenuScreen_Shell_Save : public idMenuScreen {
 public:
 	idMenuScreen_Shell_Save() :
 		btnBack( NULL ),
 		options( NULL ),
 		saveInfo( NULL ),
 		btnDelete( NULL )
-	{
-	}
+	{}
 	virtual void				Initialize( idMenuHandler* data );
 	virtual void				Update();
 	virtual void				ShowScreen( const mainMenuTransition_t transitionType );
@@ -976,11 +920,11 @@ public:
 	{
 		return sortedSaves;
 	}
-	
+
 	void						UpdateSaveEnumerations();
 	void						SaveGame( int index );
 	void						DeleteGame( int index );
-	
+
 private:
 	idMenuWidget_Button*			btnBack;
 	idMenuWidget_DynamicList* 		options;
@@ -994,8 +938,7 @@ private:
 //idMenuScreen_Shell_GameOptions
 //================================================
 //*/
-class idMenuScreen_Shell_GameOptions : public idMenuScreen
-{
+class idMenuScreen_Shell_GameOptions : public idMenuScreen {
 public:
 
 	/*
@@ -1003,11 +946,9 @@ public:
 	idMenuDataSource_GameSettings
 	================================================
 	*/
-	class idMenuDataSource_GameSettings : public idMenuDataSource
-	{
+	class idMenuDataSource_GameSettings : public idMenuDataSource {
 	public:
-		enum gameSettingFields_t
-		{
+		enum gameSettingFields_t {
 			GAME_FIELD_FOV,
 			GAME_FIELD_CHECKPOINTS,
 			GAME_FIELD_AUTO_SWITCH,
@@ -1018,36 +959,35 @@ public:
 			GAME_FIELD_MUZZLE_FLASHES,
 			MAX_GAME_FIELDS
 		};
-		
+
 		idMenuDataSource_GameSettings();
-		
+
 		// loads data
 		virtual void				LoadData();
-		
+
 		// submits data
 		virtual void				CommitData();
-		
+
 		// says whether something changed with the data
 		virtual bool				IsDataChanged() const;
-		
+
 		// retrieves a particular field for reading or updating
 		virtual idSWFScriptVar		GetField( const int fieldIndex ) const
 		{
 			return fields[ fieldIndex ];
 		}
-		
+
 		virtual void				AdjustField( const int fieldIndex, const int adjustAmount );
-		
+
 	private:
 		idStaticList< idSWFScriptVar, MAX_GAME_FIELDS >	fields;
 		idStaticList< idSWFScriptVar, MAX_GAME_FIELDS >	originalFields;
 	};
-	
+
 	idMenuScreen_Shell_GameOptions() :
 		options( NULL ),
 		btnBack( NULL )
-	{
-	}
+	{}
 	virtual void				Initialize( idMenuHandler* data );
 	virtual void				Update();
 	virtual void				ShowScreen( const mainMenuTransition_t transitionType );
@@ -1064,8 +1004,7 @@ private:
 //idMenuScreen_Shell_GameOptions
 //================================================
 //*/
-class idMenuScreen_Shell_MatchSettings : public idMenuScreen
-{
+class idMenuScreen_Shell_MatchSettings : public idMenuScreen {
 public:
 
 	/*
@@ -1073,37 +1012,35 @@ public:
 	idMenuDataSource_MatchSettings
 	================================================
 	*/
-	class idMenuDataSource_MatchSettings : public idMenuDataSource
-	{
+	class idMenuDataSource_MatchSettings : public idMenuDataSource {
 	public:
-		enum matchSettingFields_t
-		{
+		enum matchSettingFields_t {
 			MATCH_FIELD_MODE,
 			MATCH_FIELD_MAP,
 			MATCH_FIELD_TIME,
 			MATCH_FIELD_SCORE,
 			MAX_MATCH_FIELDS
 		};
-		
+
 		idMenuDataSource_MatchSettings();
-		
+
 		// loads data
 		virtual void				LoadData();
-		
+
 		// submits data
 		virtual void				CommitData();
-		
+
 		// says whether something changed with the data
 		virtual bool				IsDataChanged() const;
-		
+
 		// retrieves a particular field for reading or updating
 		virtual idSWFScriptVar		GetField( const int fieldIndex ) const
 		{
 			return fields[ fieldIndex ];
 		}
-		
+
 		virtual void				AdjustField( const int fieldIndex, const int adjustAmount );
-		
+
 		bool						MapChanged()
 		{
 			return updateMap;
@@ -1112,22 +1049,21 @@ public:
 		{
 			updateMap = false;
 		}
-		
+
 	private:
-	
+
 		void						GetModeName( int index, idStr& name );
 		void						GetMapName( int index, idStr& name );
-		
+
 		idStaticList< idSWFScriptVar, MAX_MATCH_FIELDS >	fields;
 		idStaticList< idSWFScriptVar, MAX_MATCH_FIELDS >	originalFields;
 		bool						updateMap;
 	};
-	
+
 	idMenuScreen_Shell_MatchSettings() :
 		options( NULL ),
 		btnBack( NULL )
-	{
-	}
+	{}
 	virtual void				Initialize( idMenuHandler* data );
 	virtual void				Update();
 	virtual void				ShowScreen( const mainMenuTransition_t transitionType );
@@ -1144,8 +1080,7 @@ private:
 //idMenuScreen_Shell_Controls
 //================================================
 //*/
-class idMenuScreen_Shell_Controls : public idMenuScreen
-{
+class idMenuScreen_Shell_Controls : public idMenuScreen {
 public:
 
 	/*
@@ -1153,46 +1088,43 @@ public:
 	idMenuDataSource_ControlSettings
 	================================================
 	*/
-	class idMenuDataSource_ControlSettings : public idMenuDataSource
-	{
+	class idMenuDataSource_ControlSettings : public idMenuDataSource {
 	public:
-		enum controlSettingFields_t
-		{
+		enum controlSettingFields_t {
 			CONTROLS_FIELD_INVERT_MOUSE,
 			CONTROLS_FIELD_GAMEPAD_ENABLED,
 			CONTROLS_FIELD_MOUSE_SENS,
 			MAX_CONTROL_FIELDS
 		};
-		
+
 		idMenuDataSource_ControlSettings();
-		
+
 		// loads data
 		virtual void				LoadData();
-		
+
 		// submits data
 		virtual void				CommitData();
-		
+
 		// says whether something changed with the data
 		virtual bool				IsDataChanged() const;
-		
+
 		// retrieves a particular field for reading or updating
 		virtual idSWFScriptVar		GetField( const int fieldIndex ) const
 		{
 			return fields[ fieldIndex ];
 		}
-		
+
 		virtual void				AdjustField( const int fieldIndex, const int adjustAmount );
-		
+
 	private:
 		idStaticList< idSWFScriptVar, MAX_CONTROL_FIELDS >	fields;
 		idStaticList< idSWFScriptVar, MAX_CONTROL_FIELDS >	originalFields;
 	};
-	
+
 	idMenuScreen_Shell_Controls() :
 		options( NULL ),
 		btnBack( NULL )
-	{
-	}
+	{}
 	virtual void				Initialize( idMenuHandler* data );
 	virtual void				Update();
 	virtual void				ShowScreen( const mainMenuTransition_t transitionType );
@@ -1209,8 +1141,7 @@ private:
 //idMenuScreen_Shell_Controls
 //================================================
 //*/
-class idMenuScreen_Shell_Gamepad : public idMenuScreen
-{
+class idMenuScreen_Shell_Gamepad : public idMenuScreen {
 public:
 
 	/*
@@ -1218,11 +1149,9 @@ public:
 	idMenuDataSource_ControlSettings
 	================================================
 	*/
-	class idMenuDataSource_GamepadSettings : public idMenuDataSource
-	{
+	class idMenuDataSource_GamepadSettings : public idMenuDataSource {
 	public:
-		enum controlSettingFields_t
-		{
+		enum controlSettingFields_t {
 			GAMEPAD_FIELD_LEFTY,
 			GAMEPAD_FIELD_INVERT,
 			GAMEPAD_FIELD_VIBRATE,
@@ -1232,36 +1161,35 @@ public:
 			GAMEPAD_FIELD_THRESHOLD,
 			MAX_GAMEPAD_FIELDS
 		};
-		
+
 		idMenuDataSource_GamepadSettings();
-		
+
 		// loads data
 		virtual void				LoadData();
-		
+
 		// submits data
 		virtual void				CommitData();
-		
+
 		// says whether something changed with the data
 		virtual bool				IsDataChanged() const;
-		
+
 		// retrieves a particular field for reading or updating
 		virtual idSWFScriptVar		GetField( const int fieldIndex ) const
 		{
 			return fields[ fieldIndex ];
 		}
-		
+
 		virtual void				AdjustField( const int fieldIndex, const int adjustAmount );
-		
+
 	private:
 		idStaticList< idSWFScriptVar, MAX_GAMEPAD_FIELDS >	fields;
 		idStaticList< idSWFScriptVar, MAX_GAMEPAD_FIELDS >	originalFields;
 	};
-	
+
 	idMenuScreen_Shell_Gamepad() :
 		options( NULL ),
 		btnBack( NULL )
-	{
-	}
+	{}
 	virtual void				Initialize( idMenuHandler* data );
 	virtual void				Update();
 	virtual void				ShowScreen( const mainMenuTransition_t transitionType );
@@ -1278,8 +1206,7 @@ private:
 //idMenuScreen_Shell_ControllerLayout
 //================================================
 //*/
-class idMenuScreen_Shell_ControllerLayout : public idMenuScreen
-{
+class idMenuScreen_Shell_ControllerLayout : public idMenuScreen {
 public:
 
 	/*
@@ -1287,50 +1214,47 @@ public:
 	idMenuDataSource_ControlSettings
 	================================================
 	*/
-	class idMenuDataSource_LayoutSettings : public idMenuDataSource
-	{
+	class idMenuDataSource_LayoutSettings : public idMenuDataSource {
 	public:
-		enum controlSettingFields_t
-		{
+		enum controlSettingFields_t {
 			LAYOUT_FIELD_LAYOUT,
 			MAX_LAYOUT_FIELDS,
 		};
-		
+
 		idMenuDataSource_LayoutSettings();
-		
+
 		// loads data
 		virtual void				LoadData();
-		
+
 		// submits data
 		virtual void				CommitData();
-		
+
 		// says whether something changed with the data
 		virtual bool				IsDataChanged() const;
-		
+
 		// retrieves a particular field for reading or updating
 		virtual idSWFScriptVar		GetField( const int fieldIndex ) const
 		{
 			return fields[ fieldIndex ];
 		}
-		
+
 		virtual void				AdjustField( const int fieldIndex, const int adjustAmount );
-		
+
 	private:
 		idStaticList< idSWFScriptVar, MAX_LAYOUT_FIELDS >	fields;
 		idStaticList< idSWFScriptVar, MAX_LAYOUT_FIELDS >	originalFields;
 	};
-	
+
 	idMenuScreen_Shell_ControllerLayout() :
 		options( NULL ),
 		btnBack( NULL )
-	{
-	}
+	{}
 	virtual void				Initialize( idMenuHandler* data );
 	virtual void				Update();
 	virtual void				ShowScreen( const mainMenuTransition_t transitionType );
 	virtual void				HideScreen( const mainMenuTransition_t transitionType );
 	virtual bool				HandleAction( idWidgetAction& action, const idWidgetEvent& event, idMenuWidget* widget, bool forceHandled = false );
-	
+
 	void						UpdateBindingInfo();
 private:
 
@@ -1344,8 +1268,7 @@ private:
 //idMenuScreen_Shell_SystemOptions
 //================================================
 //*/
-class idMenuScreen_Shell_SystemOptions : public idMenuScreen
-{
+class idMenuScreen_Shell_SystemOptions : public idMenuScreen {
 public:
 
 	/*
@@ -1353,11 +1276,9 @@ public:
 	idMenuDataSource_SystemSettings
 	================================================
 	*/
-	class idMenuDataSource_SystemSettings : public idMenuDataSource
-	{
+	class idMenuDataSource_SystemSettings : public idMenuDataSource {
 	public:
-		enum systemSettingFields_t
-		{
+		enum systemSettingFields_t {
 			SYSTEM_FIELD_FULLSCREEN,
 			SYSTEM_FIELD_FRAMERATE,
 			SYSTEM_FIELD_VSYNC,
@@ -1371,26 +1292,26 @@ public:
 			SYSTEM_FIELD_VOLUME,
 			MAX_SYSTEM_FIELDS
 		};
-		
+
 		idMenuDataSource_SystemSettings();
-		
+
 		// loads data
 		virtual void				LoadData();
-		
+
 		// submits data
 		virtual void				CommitData();
-		
+
 		// says whether something changed with the data
 		virtual bool				IsDataChanged() const;
-		
+
 		// retrieves a particular field for reading
 		virtual idSWFScriptVar		GetField( const int fieldIndex ) const;
-		
+
 		// updates a particular field value
 		virtual void				AdjustField( const int fieldIndex, const int adjustAmount );
-		
+
 		bool						IsRestartRequired() const;
-		
+
 	private:
 		int originalFramerate;
 		int originalAntialias;
@@ -1401,26 +1322,24 @@ public:
 		// RB begin
 		int originalShadowMapping;
 		// RB end
-		
-		idList<vidMode_t>			modeList;
+
+		vidModes_t modeList;
 	};
-	
+
 	idMenuScreen_Shell_SystemOptions() :
 		options( NULL ),
 		btnBack( NULL )
-	{
-	}
+	{}
 	virtual void				Initialize( idMenuHandler* data );
 	virtual void				Update();
 	virtual void				ShowScreen( const mainMenuTransition_t transitionType );
 	virtual void				HideScreen( const mainMenuTransition_t transitionType );
 	virtual bool				HandleAction( idWidgetAction& action, const idWidgetEvent& event, idMenuWidget* widget, bool forceHandled = false );
-	
+
 private:
 	idMenuWidget_DynamicList* 	options;
 	idMenuDataSource_SystemSettings	systemData;
-	idMenuWidget_Button*			btnBack;
-	
+	idMenuWidget_Button*		btnBack;
 };
 
 //*
@@ -1428,8 +1347,7 @@ private:
 //idMenuScreen_Shell_Stereoscopics
 //================================================
 //*/
-class idMenuScreen_Shell_Stereoscopics : public idMenuScreen
-{
+class idMenuScreen_Shell_Stereoscopics : public idMenuScreen {
 public:
 
 	/*
@@ -1437,47 +1355,44 @@ public:
 	idMenuDataSource_StereoSettings
 	================================================
 	*/
-	class idMenuDataSource_StereoSettings : public idMenuDataSource
-	{
+	class idMenuDataSource_StereoSettings : public idMenuDataSource {
 	public:
-		enum stereoSettingFields_t
-		{
+		enum stereoSettingFields_t {
 			STEREO_FIELD_ENABLE,
 			STEREO_FIELD_SEPERATION,
 			STEREO_FIELD_SWAP_EYES,
 			MAX_STEREO_FIELDS
 		};
-		
+
 		idMenuDataSource_StereoSettings();
-		
+
 		// loads data
 		virtual void				LoadData();
-		
+
 		// submits data
 		virtual void				CommitData();
-		
+
 		// says whether something changed with the data
 		virtual bool				IsDataChanged() const;
-		
+
 		// retrieves a particular field for reading or updating
 		virtual idSWFScriptVar		GetField( const int fieldIndex ) const;
-		
+
 		virtual void				AdjustField( const int fieldIndex, const int adjustAmount );
-		
+
 		bool						IsRestartRequired() const;
-		
+
 	private:
 		idStaticList< idSWFScriptVar, MAX_STEREO_FIELDS >	fields;
 		idStaticList< idSWFScriptVar, MAX_STEREO_FIELDS >	originalFields;
 	};
-	
+
 	idMenuScreen_Shell_Stereoscopics() :
 		options( NULL ),
 		btnBack( NULL ),
 		leftEyeMat( NULL ),
 		rightEyeMat( NULL )
-	{
-	}
+	{}
 	virtual void				Initialize( idMenuHandler* data );
 	virtual void				Update();
 	virtual void				ShowScreen( const mainMenuTransition_t transitionType );
@@ -1496,8 +1411,7 @@ private:
 //idMenuScreen_Shell_PartyLobby
 //================================================
 //*/
-class idMenuScreen_Shell_PartyLobby : public idMenuScreen
-{
+class idMenuScreen_Shell_PartyLobby : public idMenuScreen {
 public:
 	idMenuScreen_Shell_PartyLobby() :
 		isHost( false ),
@@ -1506,20 +1420,19 @@ public:
 		options( NULL ),
 		lobby( NULL ),
 		btnBack( NULL )
-	{
-	}
-	
+	{}
+
 	virtual void				Initialize( idMenuHandler* data );
 	virtual void				Update();
 	virtual void				ShowScreen( const mainMenuTransition_t transitionType );
 	virtual void				HideScreen( const mainMenuTransition_t transitionType );
 	virtual bool				HandleAction( idWidgetAction& action, const idWidgetEvent& event, idMenuWidget* widget, bool forceHandled = false );
-	
+
 	void						UpdateOptions();
 	void						UpdateLobby();
 	bool						CanKickSelectedPlayer( lobbyUserID_t& luid );
 	void						ShowLeaderboards();
-	
+
 private:
 
 	bool							isHost;
@@ -1536,8 +1449,7 @@ private:
 //idMenuScreen_Shell_GameLobby
 //================================================
 //*/
-class idMenuScreen_Shell_GameLobby : public idMenuScreen
-{
+class idMenuScreen_Shell_GameLobby : public idMenuScreen {
 public:
 	idMenuScreen_Shell_GameLobby() :
 		longCountdown( 0 ),
@@ -1549,9 +1461,8 @@ public:
 		options( NULL ),
 		lobby( NULL ),
 		btnBack( NULL )
-	{
-	}
-	
+	{}
+
 	virtual void				Initialize( idMenuHandler* data );
 	virtual void				Update();
 	virtual void				ShowScreen( const mainMenuTransition_t transitionType );
@@ -1559,17 +1470,17 @@ public:
 	virtual bool				HandleAction( idWidgetAction& action, const idWidgetEvent& event, idMenuWidget* widget, bool forceHandled = false );
 	void						UpdateLobby();
 	bool						CanKickSelectedPlayer( lobbyUserID_t& luid );
-	
+
 private:
 
 	int								longCountdown;
 	int								longCountRemaining;
 	int								shortCountdown;
-	
+
 	bool							isHost;
 	bool							isPeer;
 	bool							privateGameLobby;
-	
+
 	idMenuWidget_DynamicList* 		options;
 	idMenuWidget_LobbyList* 		lobby;
 	idMenuWidget_Button*				btnBack;
@@ -1581,8 +1492,7 @@ private:
 //idMenuScreen_HUD
 //================================================
 //*/
-class idMenuScreen_HUD : public idMenuScreen
-{
+class idMenuScreen_HUD : public idMenuScreen {
 public:
 
 	idMenuScreen_HUD() :
@@ -1644,14 +1554,13 @@ public:
 		cursorGrabber( 0 ),
 		cursorNone( 0 ),
 		showSoulCubeInfoOnLoad( false )
-	{
-	}
-	
+	{}
+
 	virtual void			Initialize( idMenuHandler* data );
 	virtual void			Update();
 	virtual void			ShowScreen( const mainMenuTransition_t transitionType );
 	virtual void			HideScreen( const mainMenuTransition_t transitionType );
-	
+
 	void					UpdateHealthArmor( idPlayer* player );
 	void					UpdateStamina( idPlayer* player );
 	void					UpdateLocation( idPlayer* player );
@@ -1686,9 +1595,9 @@ public:
 	{
 		showSoulCubeInfoOnLoad = show;
 	}
-	
+
 	// MULTIPLAYER
-	
+
 	void					ToggleMPInfo( bool show, bool showTeams, bool isCTF = false );
 	void					SetFlagState( int team, int state );
 	void					SetTeamScore( int team, int score );
@@ -1700,7 +1609,7 @@ public:
 	void					ShowNewItem( const char* name, const char* icon );
 	void					UpdateFlashlight( idPlayer* player );
 	void					UpdateChattingHud( idPlayer* player );
-	
+
 private:
 
 	idSWFScriptObject* 		weaponInfo;
@@ -1713,7 +1622,7 @@ private:
 	idSWFScriptObject* 		tipInfo;
 	idSWFScriptObject* 		mpChat;
 	idSWFScriptObject* 		mpWeapons;
-	
+
 	idSWFSpriteInstance* 	healthBorder;
 	idSWFSpriteInstance* 	healthPulse;
 	idSWFSpriteInstance* 	armorFrame;
@@ -1741,30 +1650,30 @@ private:
 	idSWFSpriteInstance* 	flashlight;
 	idSWFSpriteInstance* 	mpChatObject;
 	idSWFSpriteInstance* 	mpConnection;
-	
+
 	idSWFSpriteInstance* 	mpInfo;
 	idSWFSpriteInstance* 	mpHitInfo;
-	
+
 	idSWFTextInstance* 		locationName;
 	idSWFTextInstance* 		securityText;
 	idSWFTextInstance* 		newPDAName;
 	idSWFTextInstance* 		newPDAHeading;
 	idSWFTextInstance* 		newVideoHeading;
-	
+
 	idSWFTextInstance* 		mpMessage;
 	idSWFTextInstance* 		mpTime;
-	
+
 	int						audioLogPrevTime;
 	int						commPrevTime;
-	
+
 	bool					oxygenComm;
 	bool					inVaccuum;
-	
+
 	idStr					objTitle;
 	idStr					objDesc;
 	const idMaterial* 		objScreenshot;
 	idStr					objCompleteTitle;
-	
+
 	cursorState_t			cursorState;
 	int						cursorInCombat;
 	int						cursorTalking;
@@ -1773,7 +1682,7 @@ private:
 	int						cursorNone;
 	idStr					cursorAction;
 	idStr					cursorFocus;
-	
+
 	bool					showSoulCubeInfoOnLoad;
 };
 
@@ -1782,30 +1691,27 @@ private:
 //idMenuScreen_Scoreboard
 //================================================
 //*/
-class idMenuScreen_Scoreboard : public idMenuScreen
-{
+class idMenuScreen_Scoreboard : public idMenuScreen {
 public:
 
 	idMenuScreen_Scoreboard() :
 		playerList( NULL )
 	{
-	
 	}
-	
+
 	virtual void				Initialize( idMenuHandler* data );
 	virtual void				Update();
 	virtual void				ShowScreen( const mainMenuTransition_t transitionType );
 	virtual bool				HandleAction( idWidgetAction& action, const idWidgetEvent& event, idMenuWidget* widget, bool forceHandled = false );
-	
+
 	virtual void				SetPlayerData( idList< scoreboardInfo_t, TAG_IDLIB_LIST_MENU > data );
 	virtual void				UpdateTeamScores( int r, int b );
 	virtual void				UpdateGameInfo( idStr gameInfo );
 	virtual void				UpdateSpectating( idStr spectating, idStr follow );
 	virtual void				UpdateHighlight();
-	
+
 protected:
 	idMenuWidget_ScoreboardList* 		playerList;
-	
 };
 
 //*
@@ -1813,8 +1719,7 @@ protected:
 //idMenuScreen_Scoreboard_CTF
 //================================================
 //*/
-class idMenuScreen_Scoreboard_CTF : public idMenuScreen_Scoreboard
-{
+class idMenuScreen_Scoreboard_CTF : public idMenuScreen_Scoreboard {
 public:
 	virtual void				Initialize( idMenuHandler* data );
 };
@@ -1824,12 +1729,10 @@ public:
 //idMenuScreen_Scoreboard_Team
 //================================================
 //*/
-class idMenuScreen_Scoreboard_Team : public idMenuScreen_Scoreboard
-{
+class idMenuScreen_Scoreboard_Team : public idMenuScreen_Scoreboard {
 public:
 	virtual void				Initialize( idMenuHandler* data );
 };
-
 
 /*
 ========================

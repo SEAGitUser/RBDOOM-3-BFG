@@ -1410,7 +1410,6 @@ void idPVS::DrawPVS( const idVec3& source, const pvsType_t type ) const
 	exitPortal_t portal;
 	idPlane plane;
 	idVec3 offset;
-	idVec4* color;
 	
 	int sourceArea = gameRenderWorld->PointInArea( source );	
 	if( sourceArea == -1 )
@@ -1427,7 +1426,7 @@ void idPVS::DrawPVS( const idVec3& source, const pvsType_t type ) const
 			continue;
 		}
 		
-		color = ( j == sourceArea )? &colorRed : &colorCyan;;
+		auto & color = ( j == sourceArea )? idColor::red : idColor::cyan;
 		
 		n = gameRenderWorld->NumPortalsInArea( j );
 		
@@ -1442,7 +1441,7 @@ void idPVS::DrawPVS( const idVec3& source, const pvsType_t type ) const
 			offset = plane.Normal() * 4.0f;
 			for( k = 0; k < numPoints; k++ )
 			{
-				gameRenderWorld->DebugLine( *color, ( *portal.w )[k].ToVec3() + offset, ( *portal.w )[( k + 1 ) % numPoints].ToVec3() + offset );
+				gameRenderWorld->DebugLine( color.ToVec4(), ( *portal.w )[k].ToVec3() + offset, ( *portal.w )[( k + 1 ) % numPoints].ToVec3() + offset );
 			}
 		}
 	}
@@ -1461,7 +1460,6 @@ void idPVS::DrawPVS( const idBounds& source, const pvsType_t type ) const
 	exitPortal_t portal;
 	idPlane plane;
 	idVec3 offset;
-	idVec4* color;
 	
 	int num = gameRenderWorld->BoundsInAreas( source, areas, MAX_BOUNDS_AREAS );
 	if( !num )
@@ -1486,7 +1484,7 @@ void idPVS::DrawPVS( const idBounds& source, const pvsType_t type ) const
 			}
 		}
 
-		color = ( i < num )? &colorRed : &colorCyan;;
+		auto & color = ( i < num )? idColor::red : idColor::cyan;
 		
 		n = gameRenderWorld->NumPortalsInArea( j );
 		
@@ -1501,7 +1499,7 @@ void idPVS::DrawPVS( const idBounds& source, const pvsType_t type ) const
 			offset = plane.Normal() * 4.0f;
 			for( k = 0; k < numPoints; k++ )
 			{
-				gameRenderWorld->DebugLine( *color, ( *portal.w )[k].ToVec3() + offset, ( *portal.w )[( k + 1 ) % numPoints].ToVec3() + offset );
+				gameRenderWorld->DebugLine( color.ToVec4(), ( *portal.w )[k].ToVec3() + offset, ( *portal.w )[( k + 1 ) % numPoints].ToVec3() + offset );
 			}
 		}
 	}
@@ -1520,7 +1518,6 @@ void idPVS::DrawCurrentPVS( const pvsHandle_t handle, const idVec3& source ) con
 	exitPortal_t portal;
 	idPlane plane;
 	idVec3 offset;
-	idVec4* color;
 	
 	if( handle.i < 0 || handle.i >= MAX_CURRENT_PVS ||
 		handle.h != currentPVS[handle.i].handle.h )
@@ -1542,7 +1539,7 @@ void idPVS::DrawCurrentPVS( const pvsHandle_t handle, const idVec3& source ) con
 			continue;
 		}
 		
-		color = ( j == sourceArea )? &colorRed : &colorCyan;;
+		auto & color = ( j == sourceArea )? idColor::red : idColor::cyan;
 		
 		n = gameRenderWorld->NumPortalsInArea( j );
 		
@@ -1557,7 +1554,7 @@ void idPVS::DrawCurrentPVS( const pvsHandle_t handle, const idVec3& source ) con
 			offset = plane.Normal() * 4.0f;
 			for( k = 0; k < numPoints; k++ )
 			{
-				gameRenderWorld->DebugLine( *color, ( *portal.w )[k].ToVec3() + offset, ( *portal.w )[( k + 1 ) % numPoints].ToVec3() + offset );
+				gameRenderWorld->DebugLine( color.ToVec4(), ( *portal.w )[k].ToVec3() + offset, ( *portal.w )[( k + 1 ) % numPoints].ToVec3() + offset );
 			}
 		}
 	}

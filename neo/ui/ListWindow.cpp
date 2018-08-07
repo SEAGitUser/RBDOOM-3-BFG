@@ -549,7 +549,7 @@ void idListWindow::InitScroller( bool horizontal )
 
 void idListWindow::Draw( int time, float x, float y )
 {
-	idVec4 color;
+	idColor color;
 	idStr work;
 	int count = listItems.Num();
 	idRectangle rect = textRect;
@@ -565,8 +565,7 @@ void idListWindow::Draw( int time, float x, float y )
 		{
 			bottom -= sizeBias;
 		}
-		else
-		{
+		else {
 			width -= sizeBias;
 			rect.w = width;
 		}
@@ -585,8 +584,8 @@ void idListWindow::Draw( int time, float x, float y )
 			dc->DrawFilledRect( rect.x, rect.y + pixelOffset, rect.w, rect.h, borderColor );
 			if( flags & WIN_FOCUS )
 			{
-				idVec4 color = borderColor;
-				color.w = 1.0f;
+				idColor color = borderColor;
+				color.a = 1.0f;
 				dc->DrawRect( rect.x, rect.y + pixelOffset, rect.w, rect.h, 1.0f, color );
 			}
 		}
@@ -594,14 +593,14 @@ void idListWindow::Draw( int time, float x, float y )
 		rect.h = lineHeight - 1;
 		if( hover && !noEvents && Contains( rect, gui->CursorX(), gui->CursorY() ) )
 		{
-			color = hoverColor;
+			color = hoverColor.ToVec4();
 		}
 		else
 		{
-			color = foreColor;
+			color = foreColor.ToVec4();
 		}
 		rect.h = lineHeight + pixelOffset;
-		rect.y --;
+		rect.y--;
 		
 		if( tabInfo.Num() > 0 )
 		{
@@ -674,7 +673,7 @@ void idListWindow::Draw( int time, float x, float y )
 							iconRect.y = rect.y + rect.h - iconRect.h + tabInfo[tab].iconVOffset;
 						}
 						
-						dc->DrawMaterial( iconRect.x, iconRect.y, iconRect.w, iconRect.h, iconMat, idVec4( 1.0f, 1.0f, 1.0f, 1.0f ), 1.0f, 1.0f );
+						dc->DrawMaterial( iconRect.x, iconRect.y, iconRect.w, iconRect.h, iconMat, idColor::white, 1.0f, 1.0f );
 						
 					}
 				}

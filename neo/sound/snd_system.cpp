@@ -133,7 +133,7 @@ void idSoundSystemLocal::Restart()
 	{
 		hardware.Init();
 	}
-	
+
 	InitStreamBuffers();
 }
 
@@ -146,22 +146,21 @@ Initialize the SoundSystem.
 */
 void idSoundSystemLocal::Init()
 {
-
 	idLib::Printf( "----- Initializing Sound System ------\n" );
-	
+
 	soundTime = sys->Milliseconds();
 	random.SetSeed( soundTime );
-	
+
 	if( !s_noSound.GetBool() )
 	{
 		hardware.Init();
 		InitStreamBuffers();
 	}
-	
+
 	cmdSystem->AddCommand( "testSound", TestSound_f, 0, "tests a sound", idCmdSystem::ArgCompletion_SoundName );
 	cmdSystem->AddCommand( "s_restart", RestartSound_f, 0, "restart sound system" );
 	cmdSystem->AddCommand( "listSamples", ListSamples_f, 0, "lists all loaded sound samples" );
-	
+
 	idLib::Printf( "sound system initialized.\n" );
 	idLib::Printf( "--------------------------------------\n" );
 }
@@ -301,9 +300,9 @@ void idSoundSystemLocal::SetPlayingSoundWorld( idSoundWorld* soundWorld )
 		return;
 	}
 	idSoundWorldLocal* oldSoundWorld = currentSoundWorld;
-	
+
 	currentSoundWorld = static_cast<idSoundWorldLocal*>( soundWorld );
-	
+
 	if( oldSoundWorld != NULL )
 	{
 		oldSoundWorld->Update();
@@ -332,22 +331,22 @@ void idSoundSystemLocal::Render()
 	{
 		return;
 	}
-	
+
 	if( needsRestart )
 	{
 		needsRestart = false;
 		Restart();
 	}
-	
+
 	SCOPED_PROFILE_EVENT( "SoundSystem::Render" );
-	
+
 	if( currentSoundWorld != NULL )
 	{
 		currentSoundWorld->Update();
 	}
-	
+
 	hardware.Update();
-	
+
 	// The sound system doesn't use game time or anything like that because the sounds are decoded in real time.
 	soundTime = sys->Milliseconds();
 }
@@ -478,12 +477,12 @@ idSoundSample* idSoundSystemLocal::LoadSample( const char* name )
 	{
 		sample->SetLevelLoadReferenced();
 	}
-	
+
 	if( cvarSystem->GetCVarBool( "fs_buildgame" ) )
 	{
 		fileSystem->AddSamplePreload( canonical );
 	}
-	
+
 	return sample;
 }
 
@@ -498,23 +497,23 @@ void idSoundSystemLocal::StopVoicesWithSample( const idSoundSample* const sample
 {
 	for( int w = 0; w < soundWorlds.Num(); w++ )
 	{
-		idSoundWorldLocal* sw = soundWorlds[w];
+		idSoundWorldLocal* sw = soundWorlds[ w ];
 		if( sw == NULL )
 		{
 			continue;
 		}
 		for( int e = 0; e < sw->emitters.Num(); e++ )
 		{
-			idSoundEmitterLocal* emitter = sw->emitters[e];
+			idSoundEmitterLocal* emitter = sw->emitters[ e ];
 			if( emitter == NULL )
 			{
 				continue;
 			}
 			for( int i = 0; i < emitter->channels.Num(); i++ )
 			{
-				if( emitter->channels[i]->leadinSample == sample || emitter->channels[i]->loopingSample == sample )
+				if( emitter->channels[ i ]->leadinSample == sample || emitter->channels[ i ]->loopingSample == sample )
 				{
-					emitter->channels[i]->Mute();
+					emitter->channels[ i ]->Mute();
 				}
 			}
 		}
@@ -528,14 +527,206 @@ idSoundSystemLocal::FreeVoice
 */
 cinData_t idSoundSystemLocal::ImageForTime( const int milliseconds, const bool waveform )
 {
-	cinData_t cd;
-	cd.imageY = NULL;
-	cd.imageCr = NULL;
-	cd.imageCb = NULL;
-	cd.imageWidth = 0;
-	cd.imageHeight = 0;
-	cd.status = FMV_IDLE;
+#if 1
+	cinData_t cd = {};
 	return cd;
+#else
+	cinData_t ret = {};
+	int i, j;
+
+	if( !isInitialized || !snd_audio_hw )
+	{
+		memset( &ret, 0, sizeof( ret ) );
+		return ret;
+	}
+
+	Sys_EnterCriticalSection();
+
+	if( !graph )
+	{
+		graph = ( dword * ) Mem_Alloc( 256 * 128 * 4 );
+	}
+	memset( graph, 0, 256 * 128 * 4 );
+	float *accum = finalMixBuffer;	// unfortunately, these are already clamped
+	int time = sys->Milliseconds();
+
+	int numSpeakers = snd_audio_hw->GetNumberOfSpeakers();
+
+	if( !waveform )
+	{
+		for( j = 0; j < numSpeakers; j++ )
+		{
+			int meter = 0;
+			for( i = 0; i < MIXBUFFER_SAMPLES; i++ )
+			{
+				float result = idMath::Fabs( accum[ i*numSpeakers + j ] );
+				if( result > meter )
+				{
+					meter = result;
+				}
+			}
+
+			meter /= 256;		// 32768 becomes 128
+			if( meter > 128 )
+			{
+				meter = 128;
+			}
+			int offset;
+			int xsize;
+			if( numSpeakers == 6 )
+			{
+				offset = j * 40;
+				xsize = 20;
+			}
+			else
+			{
+				offset = j * 128;
+				xsize = 63;
+			}
+			int x, y;
+			dword color = 0xff00ff00;
+			for( y = 0; y < 128; y++ )
+			{
+				for( x = 0; x < xsize; x++ )
+				{
+					graph[ ( 127 - y ) * 256 + offset + x ] = color;
+				}
+			#if 0
+				if( y == 80 )
+				{
+					color = 0xff00ffff;
+				}
+				else if( y == 112 )
+				{
+					color = 0xff0000ff;
+				}
+			#endif
+				if( y > meter )
+				{
+					break;
+				}
+			}
+
+			if( meter > meterTops[ j ] )
+			{
+				meterTops[ j ] = meter;
+				meterTopsTime[ j ] = time + s_meterTopTime.GetInteger();
+			}
+			else if( time > meterTopsTime[ j ] && meterTops[ j ] > 0 )
+			{
+				meterTops[ j ]--;
+				if( meterTops[ j ] )
+				{
+					meterTops[ j ]--;
+				}
+			}
+		}
+
+		for( j = 0; j < numSpeakers; j++ )
+		{
+			int meter = meterTops[ j ];
+
+			int offset;
+			int xsize;
+			if( numSpeakers == 6 )
+			{
+				offset = j * 40;
+				xsize = 20;
+			}
+			else
+			{
+				offset = j * 128;
+				xsize = 63;
+			}
+			int x, y;
+			dword color;
+			if( meter <= 80 )
+			{
+				color = 0xff007f00;
+			}
+			else if( meter <= 112 )
+			{
+				color = 0xff007f7f;
+			}
+			else
+			{
+				color = 0xff00007f;
+			}
+			for( y = meter; y < 128 && y < meter + 4; y++ )
+			{
+				for( x = 0; x < xsize; x++ )
+				{
+					graph[ ( 127 - y ) * 256 + offset + x ] = color;
+				}
+			}
+		}
+	}
+	else {
+		dword colors[] = { 0xff007f00, 0xff007f7f, 0xff00007f, 0xff00ff00, 0xff00ffff, 0xff0000ff };
+
+		for( j = 0; j < numSpeakers; j++ )
+		{
+			int xx = 0;
+			float fmeter;
+			int step = MIXBUFFER_SAMPLES / 256;
+			for( i = 0; i < MIXBUFFER_SAMPLES; i += step )
+			{
+				fmeter = 0.0f;
+				for( int x = 0; x < step; x++ )
+				{
+					float result = accum[ ( i + x )*numSpeakers + j ];
+					result = result / 32768.0f;
+					fmeter += result;
+				}
+				fmeter /= 4.0f;
+				if( fmeter < -1.0f )
+				{
+					fmeter = -1.0f;
+				}
+				else if( fmeter > 1.0f )
+				{
+					fmeter = 1.0f;
+				}
+				int meter = ( fmeter * 63.0f );
+				graph[ ( meter + 64 ) * 256 + xx ] = colors[ j ];
+
+				if( meter < 0 )
+				{
+					meter = -meter;
+				}
+				if( meter > meterTops[ xx ] )
+				{
+					meterTops[ xx ] = meter;
+					meterTopsTime[ xx ] = time + 100;
+				}
+				else if( time>meterTopsTime[ xx ] && meterTops[ xx ] > 0 )
+				{
+					meterTops[ xx ]--;
+					if( meterTops[ xx ] )
+					{
+						meterTops[ xx ]--;
+					}
+				}
+				xx++;
+			}
+		}
+		for( i = 0; i < 256; i++ )
+		{
+			int meter = meterTops[ i ];
+			for( int y = -meter; y < meter; y++ )
+			{
+				graph[ ( y + 64 ) * 256 + i ] = colors[ j ];
+			}
+		}
+	}
+	ret.imageHeight = 128;
+	ret.imageWidth = 256;
+	ret.image = ( unsigned char * ) graph;
+
+	Sys_LeaveCriticalSection();
+
+	return ret;
+#endif
 }
 
 /*
@@ -568,10 +759,10 @@ void idSoundSystemLocal::Preload( idPreloadManifest& manifest )
 {
 
 	idStrStatic< MAX_OSPATH > filename;
-	
+
 	int	start = sys->Milliseconds();
 	int numLoaded = 0;
-	
+
 	idList< preloadSort_t > preloadSort;
 	preloadSort.Resize( manifest.NumResources() );
 	for( int i = 0; i < manifest.NumResources(); i++ )
@@ -597,9 +788,9 @@ void idSoundSystemLocal::Preload( idPreloadManifest& manifest )
 			}
 		}
 	}
-	
+
 	preloadSort.SortWithTemplate( idSort_Preload() );
-	
+
 	for( int i = 0; i < preloadSort.Num(); i++ )
 	{
 		const preloadSort_t& ps = preloadSort[ i ];
@@ -614,7 +805,7 @@ void idSoundSystemLocal::Preload( idPreloadManifest& manifest )
 			sample->SetLevelLoadReferenced();
 		}
 	}
-	
+
 	int	end = sys->Milliseconds();
 	common->Printf( "%05d sounds preloaded in %5.1f seconds\n", numLoaded, ( end - start ) * 0.001 );
 	common->Printf( "----------------------------------------\n" );
@@ -629,20 +820,20 @@ void idSoundSystemLocal::EndLevelLoad()
 {
 
 	insideLevelLoad = false;
-	
+
 	common->Printf( "----- idSoundSystemLocal::EndLevelLoad -----\n" );
 	int		start = sys->Milliseconds();
 	int		keepCount = 0;
 	int		loadCount = 0;
-	
+
 	idList< preloadSort_t > preloadSort;
 	preloadSort.Resize( samples.Num() );
-	
+
 	for( int i = 0; i < samples.Num(); i++ )
 	{
 		common->UpdateLevelLoadPacifier();
-		
-		
+
+
 		if( samples[i]->GetNeverPurge() )
 		{
 			continue;
@@ -676,12 +867,12 @@ void idSoundSystemLocal::EndLevelLoad()
 	for( int i = 0; i < preloadSort.Num(); i++ )
 	{
 		common->UpdateLevelLoadPacifier();
-		
-		
+
+
 		samples[ preloadSort[ i ].idx ]->LoadResource();
 	}
 	int	end = sys->Milliseconds();
-	
+
 	common->Printf( "%5i sounds loaded in %5.1f seconds\n", loadCount, ( end - start ) * 0.001 );
 	common->Printf( "----------------------------------------\n" );
 }

@@ -145,8 +145,8 @@ void R_FreeDerivedData()
 {
 	for( int j = 0; j < tr.worlds.Num(); j++ )
 	{
-		auto rw = tr.worlds[j];
-		
+		auto rw = tr.worlds[ j ];
+
 		for( int i = 0; i < rw->entityDefs.Num(); ++i )
 		{
 			if( rw->entityDefs[ i ] )
@@ -154,7 +154,7 @@ void R_FreeDerivedData()
 				rw->entityDefs[ i ]->FreeDerivedData( false, false );
 			}
 		}
-		
+
 		for( int i = 0; i < rw->lightDefs.Num(); ++i )
 		{
 			if( rw->lightDefs[ i ] )
@@ -174,8 +174,8 @@ void R_CheckForEntityDefsUsingModel( idRenderModel* model )
 {
 	for( int j = 0; j < tr.worlds.Num(); j++ )
 	{
-		auto rw = tr.worlds[j];
-		
+		auto rw = tr.worlds[ j ];
+
 		for( int i = 0; i < rw->entityDefs.Num(); ++i )
 		{
 			auto ent = rw->entityDefs[ i ];
@@ -258,23 +258,23 @@ void R_ModulateLights_f( const idCmdArgs& args )
 		common->Printf( "usage: modulateLights <redFloat> <greenFloat> <blueFloat>\n" );
 		return;
 	}
-	
-	float modulate[3];
+
+	float modulate[ 3 ];
 	for( int i = 0; i < 3; i++ )
 	{
-		modulate[i] = atof( args.Argv( i + 1 ) );
+		modulate[ i ] = atof( args.Argv( i + 1 ) );
 	}
-	
+
 	int count = 0;
 	for( int i = 0; i < tr.primaryWorld->lightDefs.Num(); ++i )
 	{
-		idRenderLightLocal* light = tr.primaryWorld->lightDefs[i];
+		idRenderLightLocal* light = tr.primaryWorld->lightDefs[ i ];
 		if( light != NULL )
 		{
 			count++;
 			for( int j = 0; j < 3; j++ )
 			{
-				auto parms = const_cast<renderLightParms_t*>( &light->GetParms() );
+				auto parms = const_cast< renderLightParms_t* >( &light->GetParms() );
 				parms->shaderParms[ j ] *= modulate[ j ];
 			}
 		}

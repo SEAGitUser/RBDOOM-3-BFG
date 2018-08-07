@@ -48,7 +48,7 @@ void R_ShowColoredScreenRect( const idScreenRect& rect, int colorIndex )
 {
 	if( !rect.IsEmpty() )
 	{
-		static idVec4 colors[] = { colorRed, colorGreen, colorBlue, colorYellow, colorMagenta, colorCyan, colorWhite, colorPurple };
+		static idVec4 colors[] = { idColor::red.ToVec4(), idColor::green.ToVec4(), idColor::blue.ToVec4(), idColor::yellow.ToVec4(), idColor::magenta.ToVec4(), idColor::cyan.ToVec4(), idColor::white.ToVec4(), idColor::purple.ToVec4() };
 		tr.viewDef->renderWorld->DebugScreenRect( colors[colorIndex & 7], rect, tr.viewDef );
 	}
 }

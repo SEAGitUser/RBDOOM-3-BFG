@@ -145,7 +145,7 @@ void idEditWindow::GainFocus()
 
 void idEditWindow::Draw( int time, float x, float y )
 {
-	idVec4 color = foreColor;
+	idColor color = foreColor;
 	
 	UpdateCvar( true );
 	
@@ -194,7 +194,7 @@ void idEditWindow::Draw( int time, float x, float y )
 	
 	if( hover && !noEvents && Contains( gui->CursorX(), gui->CursorY() ) )
 	{
-		color = hoverColor;
+		color = hoverColor.ToVec4();
 	}
 	else
 	{
@@ -202,7 +202,7 @@ void idEditWindow::Draw( int time, float x, float y )
 	}
 	if( flags & WIN_FOCUS )
 	{
-		color = hoverColor;
+		color = hoverColor.ToVec4();
 	}
 	
 	dc->DrawText( buffer, scale, 0, color, rect, wrap, ( flags & WIN_FOCUS ) ? cursorPos : -1 );
@@ -655,7 +655,7 @@ void idEditWindow::EnsureCursorVisible()
 		breaks.Clear();
 		idRectangle rect = textRect;
 		rect.w -= sizeBias;
-		dc->DrawText( text, textScale, textAlign, colorWhite, rect, true, ( flags & WIN_FOCUS ) ? cursorPos : -1, true, &breaks );
+		dc->DrawText( text, textScale, textAlign, idColor::white, rect, true, ( flags & WIN_FOCUS ) ? cursorPos : -1, true, &breaks );
 		
 		int fit = textRect.h / ( GetMaxCharHeight() + 5 );
 		if( fit < breaks.Num() + 1 )

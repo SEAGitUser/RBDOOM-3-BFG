@@ -46,6 +46,7 @@ const char* idSWF::GetDictTypeName( swfDictType_t type )
 		default:
 			return "????";
 	}
+#undef SWF_DICT_NAME
 }
 
 const char* idSWF::GetEditTextAlignName( swfEditTextAlign_t align )
@@ -60,6 +61,7 @@ const char* idSWF::GetEditTextAlignName( swfEditTextAlign_t align )
 		default:
 			return "????";
 	}
+#undef SWF_ET_ALIGN_NAME
 }
 // RB end
 
@@ -138,6 +140,7 @@ const char* idSWF::GetTagName( swfTag_t tag )
 		default:
 			return "????";
 	}
+#undef SWF_TAG_NAME
 }
 
 /*
@@ -252,5 +255,6 @@ const char* idSWF::GetActionName( swfAction_t action )
 		default:
 			return "???";
 	}
+#undef SWF_ACTION_NAME
 }
 

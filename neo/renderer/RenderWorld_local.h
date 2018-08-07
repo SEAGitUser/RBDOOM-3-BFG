@@ -50,7 +50,7 @@ typedef struct doublePortal_s
 {
 	struct portal_s*		portals[2];
 	int						blockingBits;	// PS_BLOCK_VIEW, PS_BLOCK_AIR, etc, set by doors that shut them off
-	
+
 	// A portal will be considered closed if it is past the
 	// fog-out point in a fog volume.  We only support a single
 	// fog volume over each portal.
@@ -101,44 +101,44 @@ class idRenderWorldLocal : public idRenderWorld {
 public:
 	idRenderWorldLocal();
 	virtual					~idRenderWorldLocal();
-	
+
 	virtual	bool			InitFromMap( const char* mapName );
 	virtual void			ResetLocalRenderModels();				// Fixes a crash when switching between expansion packs in Doom3:BFG
-	
+
 	virtual	qhandle_t		AddEntityDef( const renderEntityParms_t* );
 	virtual	void			UpdateEntityDef( qhandle_t entityHandle, const renderEntityParms_t* );
 	virtual	void			FreeEntityDef( qhandle_t entityHandle );
-	virtual const renderEntityParms_t* GetRenderEntity( qhandle_t entityHandle ) const;
-	
+	virtual const renderEntityParms_t * GetRenderEntityParms( qhandle_t entityHandle ) const;
+
 	virtual	qhandle_t		AddLightDef( const renderLightParms_t* );
 	virtual	void			UpdateLightDef( qhandle_t lightHandle, const renderLightParms_t* );
 	virtual	void			FreeLightDef( qhandle_t lightHandle );
-	virtual const renderLightParms_t* GetRenderLight( qhandle_t lightHandle ) const;
-	
+	virtual const renderLightParms_t * GetRenderLightParms( qhandle_t lightHandle ) const;
+
 	virtual bool			CheckAreaForPortalSky( int areaNum );
-	
+
 	virtual	void			GenerateAllInteractions();
 	virtual void			RegenerateWorld();
-	
+
 	virtual void			ProjectDecalOntoWorld( const idFixedWinding&, const idVec3& projectionOrigin, const bool parallel, const float fadeDepth, const idMaterial*, const int startTime );
 	virtual void			ProjectDecal( qhandle_t entityHandle, const idFixedWinding&, const idVec3& projectionOrigin, const bool parallel, const float fadeDepth, const idMaterial*, const int startTime );
 	virtual void			ProjectOverlay( qhandle_t entityHandle, const idPlane localTextureAxis[2], const idMaterial*, const int startTime );
 	virtual void			RemoveDecals( qhandle_t entityHandle );
-	
+
 	virtual void			SetRenderView( const renderViewParms_t* );
 	virtual	void			RenderScene( const renderViewParms_t* );
-	
+
 	virtual	int				NumAreas() const;
 	virtual int				PointInArea( const idVec3& point ) const;
-	virtual int				BoundsInAreas( const idBounds& bounds, int* areas, int maxAreas ) const;
+	virtual int				BoundsInAreas( const idBounds&, int* areas, int maxAreas ) const;
 	virtual	int				NumPortalsInArea( int areaNum );
 	virtual exitPortal_t	GetPortal( int areaNum, int portalNum );
-	
+
 	virtual	guiPoint_t		GuiTrace( qhandle_t entityHandle, const idVec3 start, const idVec3 end ) const;
 	virtual bool			ModelTrace( modelTrace_t&, qhandle_t entityHandle, const idVec3& start, const idVec3& end, const float radius ) const;
 	virtual bool			Trace( modelTrace_t&, const idVec3& start, const idVec3& end, const float radius, bool skipDynamic = true, bool skipPlayer = false ) const;
 	virtual bool			FastWorldTrace( modelTrace_t&, const idVec3& start, const idVec3& end ) const;
-	
+
 	virtual void			DebugClearLines( int time );
 	virtual void			DebugLine( const idVec4& color, const idVec3& start, const idVec3& end, const int lifetime = 0, const bool depthTest = false );
 	virtual void			DebugArrow( const idVec4& color, const idVec3& start, const idVec3& end, int size, const int lifetime = 0 );
@@ -150,37 +150,37 @@ public:
 	virtual void			DebugCone( const idVec4& color, const idVec3& apex, const idVec3& dir, float radius1, float radius2, const int lifetime = 0 );
 	virtual void			DebugScreenRect( const idVec4& color, const idScreenRect&, const idRenderView*, const int lifetime = 0 );
 	virtual void			DebugAxis( const idVec3& origin, const idMat3& axis );
-	
+
 	virtual void			DebugClearPolygons( int time );
 	virtual void			DebugPolygon( const idVec4& color, const idWinding&, const int lifeTime = 0, const bool depthTest = false );
-	
+
 	virtual void			DrawText( const char* text, const idVec3& origin, float scale, const idVec4& color, const idMat3& viewAxis, const int align = 1, const int lifetime = 0, bool depthTest = false );
-	
+
 	//-----------------------
-	
+
 	idStr					mapName;				// ie: maps/tim_dm2.proc, written to demoFile
 	ID_TIME_T				mapTimeStamp;			// for fast reloads of the same level
-	
+
 	areaNode_t* 			areaNodes;
 	int						numAreaNodes;
-	
+
 	portalArea_t* 			portalAreas;
 	int						numPortalAreas;
 	int						connectedAreaNum;		// incremented every time a door portal state changes
-	
+
 	idScreenRect* 			areaScreenRect;
-	
+
 	doublePortal_t* 		doublePortals;
 	int						numInterAreaPortals;
-	
+
 	idList<idRenderModel*, TAG_MODEL> localModels;
-	
+
 	idList<idRenderEntityLocal*, TAG_ENTITY> entityDefs;
 	idList<idRenderLightLocal*, TAG_LIGHT> lightDefs;
-	
+
 	idBlockAlloc<areaReference_t, 1024> areaReferenceAllocator;
 	idBlockAlloc<idInteraction, 256> interactionAllocator;
-	
+
 #ifdef ID_PC
 	static const int MAX_DECAL_SURFACES = 64;
 #else
@@ -188,7 +188,7 @@ public:
 #endif
 	idArray<reusableDecal_t, MAX_DECAL_SURFACES> decals;
 	idArray<reusableOverlay_t, MAX_DECAL_SURFACES> overlays;
-	
+
 	// All light / entity interactions are referenced here for fast lookup without
 	// having to crawl the doubly linked lists. EnntityDefs are sequential for better
 	// cache access, because the table is accessed by light in idRenderWorldLocal::CreateLightDefInteractions().
@@ -197,12 +197,12 @@ public:
 	idInteraction** 		interactionTable;
 	int						interactionTableWidth;		// entityDefs
 	int						interactionTableHeight;		// lightDefs
-	
+
 	bool					generateAllInteractionsCalled;
-	
+
 	//-----------------------
 	// RenderWorld_load.cpp
-	
+
 	idRenderModel* 			ParseModel( idLexer& src, const char* mapName, ID_TIME_T mapTimeStamp, idFile* fileOut );
 	idRenderModel* 			ParseShadowModel( idLexer& src, idFile* fileOut );
 	void					SetupAreaRefs();
@@ -219,10 +219,10 @@ public:
 	void					ReadBinaryNodes( idFile* );
 	idRenderModel* 			ReadBinaryModel( idFile* );
 	idRenderModel* 			ReadBinaryShadowModel( idFile* );
-	
+
 	//--------------------------
 	// RenderWorld_portals.cpp
-	
+
 	bool					CullEntityByPortals( const idRenderEntityLocal*, const portalStack_t* ) const;
 	void					AddAreaViewEntities( int areaNum, const portalStack_t* ) const;
 	bool					CullLightByPortals( const idRenderLightLocal*, const portalStack_t* ) const;
@@ -234,10 +234,10 @@ public:
 	void					BuildConnectedAreas_r( int areaNum ) const;
 	void					BuildConnectedAreas() const;
 	void					FindViewLightsAndEntities() const;
-	
+
 	void					FloodLightThroughArea_r( idRenderLightLocal*, int areaNum, const portalStack_t* );
 	void					FlowLightThroughPortals( idRenderLightLocal* );
-	
+
 	int						NumPortals() const;
 	qhandle_t				FindPortal( const idBounds& ) const;
 	void					SetPortalState( qhandle_t portal, int blockingBits );
@@ -246,14 +246,14 @@ public:
 	void					FloodConnectedAreas( portalArea_t*, int portalAttributeIndex );
 	idScreenRect& 			GetAreaScreenRect( int areaNum ) const { return areaScreenRect[areaNum]; }
 	void					ShowPortals();
-	
+
 	//--------------------------
 	// RenderWorld_demo.cpp
-	
+
 	void					StartWritingDemo( idDemoFile* );
 	void					StopWritingDemo();
 	bool					ProcessDemoCommand( idDemoFile* readDemo, renderViewParms_t* demoRenderView, int* demoTimeOffset );
-	
+
 	void					WriteLoadMap();
 	void					WriteRenderView( const renderViewParms_t* );
 	void					WriteVisibleDefs( const idRenderView* );
@@ -267,29 +267,29 @@ public:
 	void					WriteRenderEntity( idDemoFile*, idRenderEntityLocal* );
 	void					ReadRenderEntity();
 	void					ReadRenderLight();
-	
-	
+
+
 	//--------------------------
 	// RenderWorld.cpp
-	
+
 	void					ResizeInteractionTable();
-	
+
 	void					AddEntityRefToArea( idRenderEntityLocal*, portalArea_t* );
 	void					AddLightRefToArea( idRenderLightLocal*, portalArea_t* );
-	
+
 	void					RecurseProcBSP_r( modelTrace_t* results, int parentNodeNum, int nodeNum, float p1f, float p2f, const idVec3& p1, const idVec3& p2 ) const;
 	void					BoundsInAreas_r( int nodeNum, const idBounds& bounds, int* areas, int* numAreas, int maxAreas ) const;
-	
+
 	float					DrawTextLength( const char* text, float scale, int len = 0 );
-	
+
 	void					FreeInteractions();
-	
+
 	void					PushFrustumIntoTree_r( idRenderEntityLocal*, idRenderLightLocal*, const frustumCorners_t&, int nodeNum );
 	void					PushFrustumIntoTree( idRenderEntityLocal*, idRenderLightLocal*, const idRenderMatrix& frustumTransform, const idBounds& frustumBounds );
-	
+
 	idRenderModelDecal* 	AllocDecal( qhandle_t newEntityHandle, int startTime );
 	idRenderModelOverlay* 	AllocOverlay( qhandle_t newEntityHandle, int startTime );
-	
+
 	//-------------------------------
 	// tr_light.c
 	void					CreateLightDefInteractions( idRenderLightLocal* const ldef, const int renderViewID );

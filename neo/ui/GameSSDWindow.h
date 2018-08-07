@@ -81,11 +81,11 @@ public:
 	float				hitRadius;
 	float				rotation;
 	
-	idVec4				matColor;
+	idColor				matColor;
 	
 	idStr				text;
 	float				textScale;
-	idVec4				foreColor;
+	idColor				foreColor;
 	
 	idGameSSDWindow*	game;
 	int					currentTime;
@@ -281,7 +281,6 @@ protected:
 
 class SSDPoints : public SSDEntity
 {
-
 	int		length;
 	int		distance;
 	int		beginTime;
@@ -290,10 +289,9 @@ class SSDPoints : public SSDEntity
 	idVec3	beginPosition;
 	idVec3	endPosition;
 	
-	idVec4	beginColor;
-	idVec4	endColor;
-	
-	
+	idColor	beginColor;
+	idColor	endColor;
+		
 public:
 	SSDPoints();
 	~SSDPoints();
@@ -317,7 +315,6 @@ protected:
 
 class SSDProjectile : public SSDEntity
 {
-
 	idVec3	dir;
 	idVec3	speed;
 	int		beginTime;

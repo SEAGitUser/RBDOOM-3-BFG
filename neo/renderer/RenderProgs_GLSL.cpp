@@ -149,18 +149,18 @@ struct attribInfo_t {
 
 /**/{ "uint",		"vertexID",			"SV_VertexID",				"gl_VertexID",			0,	VInR,	0 },
 /**/{ "uint",		"instanceID",		"SV_InstanceID",			"gl_InstanceID",		0,	VInR,	0 },
-/**/{ "int",		"baseVertexID",		"",							"gl_BaseVertexARB",		0,	VInR,	0 }, // DX?	 // Requires GLSL 4.60 or ARB_shader_draw_parameters
-/**/{ "int",		"baseInstanceID",	"",							"gl_BaseInstanceARB",	0,	VInR,	0 }, // DX?	 // Requires GLSL 4.60 or ARB_shader_draw_parameters
-/**/{ "int",		"drawID",			"",							"gl_DrawIDARB",			0,	VInR,	0 }, // DX?	 // Requires GLSL 4.60 or ARB_shader_draw_parameters
+/**/{ "uint",		"baseVertexID",		"",							"gl_BaseVertexARB",		0,	VInR,	0 }, // DX?	 // Requires GLSL 4.60 or ARB_shader_draw_parameters
+/**/{ "uint",		"baseInstanceID",	"",							"gl_BaseInstanceARB",	0,	VInR,	0 }, // DX?	 // Requires GLSL 4.60 or ARB_shader_draw_parameters
+/**/{ "uint",		"drawID",			"",							"gl_DrawIDARB",			0,	VInR,	0 }, // DX?	 // Requires GLSL 4.60 or ARB_shader_draw_parameters
 
-/**/{ "uint",		"TCInstanceID",		"SV_OutputControlPointID",	"gl_InvocationID",		0,	TCInR,	0 },
+/**/{ "uint",		"invocationID",		"SV_OutputControlPointID",	"gl_InvocationID",		0,	TCInR,	0 },
 /**/{ "int",		"patchVertices",	"",							"gl_PatchVerticesIn",	0,	TCInR | TEInR, 0 }, // DX? to func GetNumPatchVertices()
 /**/{ "float3",		"tessCoord",		"SV_DomainLocation",		"gl_TessCoord",			0,	TEInR,	0 },
 /**/{ "float",		"tessLevelOuter",	"SV_TessFactor",			"gl_TessLevelOuter",	0,	TCOutR | TEInR | TEOutR,	0 },	// [4]
 /**/{ "float",		"tessLevelInner",	"SV_InsideTessFactor",		"gl_TessLevelInner",	0,	TCOutR | TEInR | TEOutR,	0 },	// [2]
 
 /**/{ "uint",		"primitiveID",		"SV_PrimitiveID",			"gl_PrimitiveIDIn",		0,	GInR,	0 },
-/**/{ "uint",		"GSinstanceID",		"SV_GSInstanceID",			"gl_InvocationID",		0,	GInR,	0 },// Requires GLSL 4.0 or ARB_gpu_shader5
+/**/{ "uint",		"invocationID",		"SV_GSInstanceID",			"gl_InvocationID",		0,	GInR,	0 },// Requires GLSL 4.0 or ARB_gpu_shader5
 
 /**/{ "float4",		"position",			"SV_Position",				"gl_Position",			0,	VOutR | GInR | GOutR | TCInR | TCOutR | TEInR | TEOutR | AT_PREFIX,	0 },
 /**/{ "float",		"clip",				"SV_ClipDistance",			"gl_ClipDistance",		0,	VOutR | GInR | GOutR | TCInR | TCOutR | TEInR | TEOutR | FInR | AT_PREFIX,	0 }, //[]
@@ -2031,7 +2031,7 @@ idRenderProgManager::CommitUnforms
 */
 /*void idRenderProgManager::CommitUniforms()
 {
-	const auto prog = GetCurrentRenderProgram();
+	const auto prog = GL_GetCurrentRenderProgram();
 
 }*/
 
@@ -2076,8 +2076,7 @@ void BindUniformBuffers( GLuint program )
 	{
 	  // get the uniform buffer binding for global parameters
 		GLint blockIndex = glGetUniformBlockIndex( program, "global_ubo" );
-		if( blockIndex != -1 )
-		{
+		if( blockIndex != -1 ) {
 			glUniformBlockBinding( program, blockIndex, BINDING_GLOBAL_UBO );
 		}
 	}
@@ -2085,13 +2084,11 @@ void BindUniformBuffers( GLuint program )
 	{
 		// get the uniform buffer binding for skinning joint matrices
 		GLint blockIndex = glGetUniformBlockIndex( program, "matrices_ubo" );
-		if( blockIndex != -1 )
-		{
+		if( blockIndex != -1 ) {
 			glUniformBlockBinding( program, blockIndex, BINDING_MATRICES_UBO );
 		}
 		blockIndex = glGetUniformBlockIndex( program, "previous_matrices_ubo" );
-		if( blockIndex != -1 )
-		{
+		if( blockIndex != -1 ) {
 			glUniformBlockBinding( program, blockIndex, BINDING_PREVIOUS_MATRICES_UBO );
 		}
 	}
@@ -2099,8 +2096,7 @@ void BindUniformBuffers( GLuint program )
 	{
 		// get the uniform buffer binding for shadow parameters
 		GLint blockIndex = glGetUniformBlockIndex( program, "shadow_ubo" );
-		if( blockIndex != -1 )
-		{
+		if( blockIndex != -1 ) {
 			glUniformBlockBinding( program, blockIndex, BINDING_SHADOW_UBO );
 		}
 	}

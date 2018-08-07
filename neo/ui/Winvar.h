@@ -710,8 +710,7 @@ protected:
 	idVec2 data;
 };
 
-class idWinVec4 : public idWinVar
-{
+class idWinVec4 : public idWinVar {
 public:
 	idWinVec4() : idWinVar() {};
 	~idWinVec4() {};
@@ -733,7 +732,7 @@ public:
 		data = other.data;
 		return *this;
 	}
-	idVec4& operator=(	const idVec4& other )
+	idVec4& operator = ( const idVec4& other )
 	{
 		data = other;
 		if( guiDict )
@@ -745,6 +744,10 @@ public:
 	operator const idVec4& () const
 	{
 		return data;
+	}
+	operator const idColor & () const
+	{
+		return *( const idColor* )( &data );
 	}
 	
 	float x() const
@@ -802,7 +805,10 @@ public:
 			guiDict->SetVec4( GetName(), data );
 		}
 	}
-	
+	const idVec4 & ToVec4() const
+	{
+		return data;
+	}
 	const idVec3& ToVec3() const
 	{
 		return data.ToVec3();

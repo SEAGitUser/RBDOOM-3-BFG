@@ -8,8 +8,8 @@
 
 idCVar r_skipFogLights( "r_skipFogLights", "0", CVAR_RENDERER | CVAR_BOOL, "skip fog lights" );
 idCVar r_skipBlendLights( "r_skipBlendLights", "0", CVAR_RENDERER | CVAR_BOOL, "skip blend lights" );
-idCVar r_useScreenSpaceBlendLights( "r_useScreenSpaceBlendLights", "0", CVAR_RENDERER | CVAR_BOOL, "use screen space blend lights" );
-
+idCVar r_useScreenSpaceBlendLights( "r_useScreenSpaceBlendLights", "0", CVAR_RENDERER | CVAR_ARCHIVE | CVAR_BOOL, "use screen space blend lights" );
+idCVar r_useScreenSpaceFogLights( "r_useScreenSpaceFogLights", "0", CVAR_RENDERER | CVAR_ARCHIVE | CVAR_BOOL, "use screen space fog lights" );
 /*
 =============================================================================================
 
@@ -43,12 +43,14 @@ static void RB_T_BlendLight( const drawSurf_t* drawSurfs, const viewLight_t* vLi
 			// temporarily jump over the scissor and draw so the gl error callback doesn't get hit
 		}
 
+		RENDERLOG_OPEN_BLOCK( drawSurf->material->GetName() );
+
 		RB_SetScissor( drawSurf->scissorRect );
 
 		if( drawSurf->space != backEnd.currentSpace )
 		{
 			// change the matrix
-			RB_SetMVP( drawSurf->space->mvp );
+			renderProgManager.SetMVPMatrixParms( drawSurf->space->mvp );
 
 			// change the light projection matrix
 			idRenderPlane lightProjectInCurrentSpace[ 4 ];
@@ -56,10 +58,10 @@ static void RB_T_BlendLight( const drawSurf_t* drawSurfs, const viewLight_t* vLi
 			{
 				_GlobalPlaneToLocal( drawSurf->space->modelMatrix, vLight->lightProject[ i ], lightProjectInCurrentSpace[ i ] );
 			}
-			//for( int i = 0; i < 4; i++ )
-			//{
-			//	drawSurf->space->modelMatrix.InverseTransformPlane( vLight->lightProject[ i ], lightProjectInCurrentSpace[ i ] );
-			//}
+			/*for( int i = 0; i < 4; i++ )
+			{
+				drawSurf->space->modelMatrix.InverseTransformPlane( vLight->lightProject[ i ], lightProjectInCurrentSpace[ i ] );
+			}*/
 
 			renderProgManager.SetRenderParm( RENDERPARM_TEXGEN_0_S, lightProjectInCurrentSpace[ 0 ].ToFloatPtr() );
 			renderProgManager.SetRenderParm( RENDERPARM_TEXGEN_0_T, lightProjectInCurrentSpace[ 1 ].ToFloatPtr() );
@@ -70,6 +72,8 @@ static void RB_T_BlendLight( const drawSurf_t* drawSurfs, const viewLight_t* vLi
 		}
 
 		GL_DrawIndexed( drawSurf );
+
+		RENDERLOG_CLOSE_BLOCK();
 	}
 }
 
@@ -88,19 +92,15 @@ static void RB_BlendLight( const drawSurf_t * const drawSurfs, const drawSurf_t 
 
 	RENDERLOG_OPEN_BLOCK( vLight->lightShader->GetName() );
 
-	const idMaterial * const material = vLight->lightShader;
-	const float* regs = vLight->shaderRegisters;
+	auto const material = vLight->lightShader;
+	auto const regs = vLight->shaderRegisters;
 
-	renderProgManager.BindShader_BlendLight();
+	GL_SetRenderProgram( renderProgManager.prog_blendlight );
 
 	// texture 1 will get the falloff texture
-	///GL_BindTexture( 1, vLight->falloffImage );
 	renderProgManager.SetRenderParm( RENDERPARM_LIGHTFALLOFFMAP, vLight->falloffImage );
 
-	// texture 0 will get the projected texture
-	GL_SelectTexture( 0 );
-
-	for( int i = 0; i < material->GetNumStages(); i++ )
+	for( int i = 0; i < material->GetNumStages(); ++i )
 	{
 		auto const stage = material->GetStage( i );
 
@@ -111,22 +111,23 @@ static void RB_BlendLight( const drawSurf_t * const drawSurfs, const drawSurf_t 
 
 		GL_State( GLS_DEPTHMASK | stage->drawStateBits | GLS_DEPTHFUNC_EQUAL );
 
-		///GL_BindTexture( 0, stage->texture.image );
+		// texture 0 will get the projected texture
 		renderProgManager.SetRenderParm( RENDERPARM_LIGHTPROJECTMAP, stage->texture.image );
 
-		RB_LoadShaderTextureMatrix( regs, &stage->texture );
+		renderProgManager.SetupTextureMatrixParms( regs, &stage->texture );
 
 		// get the modulate values from the light, including alpha, unlike normal lights
 		idRenderVector lightColor;
 		stage->GetColorParm( regs, lightColor );
-		GL_Color( lightColor );
+		renderProgManager.SetColorParm( lightColor );
 
 		RB_T_BlendLight( drawSurfs, vLight );
 		RB_T_BlendLight( drawSurfs2, vLight );
 	}
 
-	GL_ResetTexturesState();
+	GL_ResetTextureState();
 	GL_ResetProgramState();
+
 	RENDERLOG_CLOSE_BLOCK();
 }
 
@@ -144,23 +145,29 @@ static void RB_ScreenSpaceBlendLight( const viewLight_t * const vLight )
 {
 	RENDERLOG_OPEN_BLOCK( vLight->lightShader->GetName() );
 
-	const idMaterial * const material = vLight->lightShader;
+	const auto * const material = vLight->lightShader;
 	const float* regs = vLight->shaderRegisters;
+
 	backEnd.ClearCurrentSpace();
 
-	renderProgManager.BindShader_ScreenSpaceBlendLight();
+	GL_SetRenderProgram( renderProgManager.prog_blendlight2 );
 
 	// set the matrix for deforming the 'zeroOneCubeModel' into the frustum to exactly cover the light volume
-	idRenderMatrix invProjectMVPMatrix;
-	idRenderMatrix::Multiply( backEnd.viewDef->GetMVPMatrix(), vLight->inverseBaseLightProject, invProjectMVPMatrix );
-	RB_SetMVP( invProjectMVPMatrix );
+	///idRenderMatrix invProjectMVPMatrix;
+	///idRenderMatrix::Multiply( backEnd.viewDef->GetMVPMatrix(), vLight->inverseBaseLightProject, invProjectMVPMatrix );
+	///renderProgManager.SetMVPMatrixParms( invProjectMVPMatrix );
+	idRenderMatrix::Multiply( backEnd.viewDef->GetMVPMatrix(), vLight->inverseBaseLightProject,
+		renderProgManager.GetRenderParm( RENDERPARM_MVPMATRIX_X )->GetVec4(),
+		renderProgManager.GetRenderParm( RENDERPARM_MVPMATRIX_Y )->GetVec4(),
+		renderProgManager.GetRenderParm( RENDERPARM_MVPMATRIX_Z )->GetVec4(),
+		renderProgManager.GetRenderParm( RENDERPARM_MVPMATRIX_W )->GetVec4() );
 
 	// calculate the global light bounds by inverse projecting the zero to one cube with the 'inverseBaseLightProject'
 	idBounds globalLightBounds;
 	idRenderMatrix::ProjectedBounds( globalLightBounds, vLight->inverseBaseLightProject, bounds_zeroOneCube, false );
-	//const bool bCameraInsideLightGeometry = backEnd.viewDef->ViewInsideLightVolume( globalLightBounds );	
+	//const bool bCameraInsideLightGeometry = backEnd.viewDef->ViewInsideLightVolume( globalLightBounds );
 	globalLightBounds.ExpandSelf( r_blmul.GetFloat() );
-	const bool bCameraInsideLightGeometry = globalLightBounds.ContainsPoint( backEnd.viewDef->GetOrigin() );	
+	const bool bCameraInsideLightGeometry = globalLightBounds.ContainsPoint( backEnd.viewDef->GetOrigin() );
 	//const bool bCameraInsideLightGeometry = !idRenderMatrix::CullPointToMVP( vLight->baseLightProject, backEnd.viewDef->GetOrigin(), true );
 
 	///renderProgManager.SetRenderParm( RENDERPARM_TEXGEN_0_S, vLight->lightProject[ 0 ].ToFloatPtr() );
@@ -168,27 +175,24 @@ static void RB_ScreenSpaceBlendLight( const viewLight_t * const vLight )
 	///renderProgManager.SetRenderParm( RENDERPARM_TEXGEN_0_Q, vLight->lightProject[ 2 ].ToFloatPtr() );
 	///renderProgManager.SetRenderParm( RENDERPARM_TEXGEN_1_S, vLight->lightProject[ 3 ].ToFloatPtr() );	// falloff
 
+	renderProgManager.SetRenderParm( RENDERPARM_LIGHTPROJECTION_S, vLight->lightProject[ 0 ].ToFloatPtr() );
+	renderProgManager.SetRenderParm( RENDERPARM_LIGHTPROJECTION_T, vLight->lightProject[ 1 ].ToFloatPtr() );
+	renderProgManager.SetRenderParm( RENDERPARM_LIGHTPROJECTION_Q, vLight->lightProject[ 2 ].ToFloatPtr() );
+	renderProgManager.SetRenderParm( RENDERPARM_LIGHTFALLOFF_S, vLight->lightProject[ 3 ].ToFloatPtr() );
+
 	idRenderMatrix::CopyMatrix( vLight->baseLightProject,
-		renderProgManager.GetRenderParm( RENDERPARM_BASELIGHTPROJECT_S ),
-		renderProgManager.GetRenderParm( RENDERPARM_BASELIGHTPROJECT_T ),
-		renderProgManager.GetRenderParm( RENDERPARM_BASELIGHTPROJECT_R ),
-		renderProgManager.GetRenderParm( RENDERPARM_BASELIGHTPROJECT_Q ));
+		renderProgManager.GetRenderParm( RENDERPARM_BASELIGHTPROJECT_S )->GetVec4(),
+		renderProgManager.GetRenderParm( RENDERPARM_BASELIGHTPROJECT_T )->GetVec4(),
+		renderProgManager.GetRenderParm( RENDERPARM_BASELIGHTPROJECT_R )->GetVec4(),
+		renderProgManager.GetRenderParm( RENDERPARM_BASELIGHTPROJECT_Q )->GetVec4() );
 
 	RB_SetScissor( vLight->scissorRect );
 	GL_DepthBoundsTest( vLight->scissorRect.zmin, vLight->scissorRect.zmax );
 
-	// texture 2 will get the currentDepthImage
-	///GL_BindTexture( 2, renderImageManager->currentDepthImage );
-	renderProgManager.SetRenderParm( RENDERPARM_CURRENTDEPTHMAP, renderImageManager->currentDepthImage );
-
-	// texture 1 will get the falloff texture
-	///GL_BindTexture( 1, vLight->falloffImage );
+	renderProgManager.SetRenderParm( RENDERPARM_VIEWDEPTHSTENCILMAP, renderDestManager.viewDepthStencilImage );
 	renderProgManager.SetRenderParm( RENDERPARM_LIGHTFALLOFFMAP, vLight->falloffImage );
 
-	// texture 0 will get the projected texture	
-	GL_SelectTexture( 0 );
-
-	for( int i = 0; i < material->GetNumStages(); i++ )
+	for( int i = 0; i < material->GetNumStages(); ++i )
 	{
 		auto const stage = material->GetStage( i );
 
@@ -199,36 +203,34 @@ static void RB_ScreenSpaceBlendLight( const viewLight_t * const vLight )
 
 		//GL_State( GLS_DEPTHMASK | stage->drawStateBits | GLS_DEPTHFUNC_EQUAL );
 
-		///GL_BindTexture( 0, stage->texture.image );
+		// texture 0 will get the projected texture
 		renderProgManager.SetRenderParm( RENDERPARM_LIGHTPROJECTMAP, stage->texture.image );
 
-		RB_LoadShaderTextureMatrix( regs, &stage->texture );
+		renderProgManager.SetupTextureMatrixParms( regs, &stage->texture );
 
 		// get the modulate values from the light, including alpha, unlike normal lights
 		idRenderVector lightColor;
 		stage->GetColorParm( regs, lightColor );
-		GL_Color( lightColor );
+		renderProgManager.SetColorParm( lightColor );
 
 		if( bCameraInsideLightGeometry )
 		{
 			// Render backfaces with depth tests disabled since the camera is inside (or close to inside) the light geometry
-			GL_State( GLS_DEPTHMASK | stage->drawStateBits | GLS_DEPTHFUNC_ALWAYS );
-			GL_Cull( CT_BACK_SIDED );
-			///GL_Color( colorWhite );
+			GL_State( GLS_DEPTHMASK | stage->drawStateBits | GLS_DEPTHFUNC_ALWAYS | GLS_BACKSIDED );
+			//renderProgManager.SetColorParm( idColor::white.ToVec4() );
 		}
 		else {
 			// Render frontfaces with depth tests on to get the speedup from HiZ since the camera is outside the light geometry
-			GL_State( GLS_DEPTHMASK | stage->drawStateBits | GLS_DEPTHFUNC_LESS );
-			GL_Cull( CT_FRONT_SIDED );
-			///GL_Color( colorPurple );
+			GL_State( GLS_DEPTHMASK | stage->drawStateBits | GLS_DEPTHFUNC_LESS | GLS_FRONTSIDED );
+			//renderProgManager.SetColorParm( idColor::purple.ToVec4() );
 		}
 
 		GL_DrawZeroOneCube();
 	}
 
-	GL_Cull( CT_FRONT_SIDED );
+	GL_DepthBoundsTest( 0.0, 0.0 );
 
-	GL_ResetTexturesState();
+	GL_ResetTextureState();
 	GL_ResetProgramState();
 
 	RENDERLOG_CLOSE_BLOCK();
@@ -247,7 +249,7 @@ static void RB_ScreenSpaceBlendLight( const viewLight_t * const vLight )
  RB_T_BasicFog
 =====================
 */
-static void RB_T_BasicFog( const drawSurf_t* drawSurfs, const idPlane fogPlanes[ 4 ], const idRenderMatrix* inverseBaseLightProject )
+static void RB_T_BasicFog( const drawSurf_t* drawSurfs, const idPlane fogPlanes[ 4 ] )
 {
 	backEnd.ClearCurrentSpace();
 
@@ -259,44 +261,127 @@ static void RB_T_BasicFog( const drawSurf_t* drawSurfs, const idPlane fogPlanes[
 						// temporarily jump over the scissor and draw so the gl error callback doesn't get hit
 		}
 
+		RENDERLOG_OPEN_BLOCK( drawSurf->material->GetName() );
+
 		RB_SetScissor( drawSurf->scissorRect );
 
 		if( drawSurf->space != backEnd.currentSpace )
 		{
 			idRenderPlane localFogPlanes[ 4 ];
-			if( inverseBaseLightProject == nullptr )
-			{
-				RB_SetMVP( drawSurf->space->mvp );
 
-				for( int i = 0; i < 4; i++ )
-				{
-					_GlobalPlaneToLocal( drawSurf->space->modelMatrix, fogPlanes[ i ], localFogPlanes[ i ] );
-					//modelMatrix.InverseTransformPlane( fogPlanes[ i ], localFogPlanes[ i ] );
-				}
-			}
-			else
+			renderProgManager.SetMVPMatrixParms( drawSurf->space->mvp );
+
+			for( int i = 0; i < 4; i++ )
 			{
-				idRenderMatrix invProjectMVPMatrix;
-				idRenderMatrix::Multiply( backEnd.viewDef->GetMVPMatrix(), *inverseBaseLightProject, invProjectMVPMatrix );
-				RB_SetMVP( invProjectMVPMatrix );
-				for( int i = 0; i < 4; i++ )
-				{
-					inverseBaseLightProject->InverseTransformPlane( fogPlanes[ i ], localFogPlanes[ i ], false );
-				}
+				_GlobalPlaneToLocal( drawSurf->space->modelMatrix, fogPlanes[ i ], localFogPlanes[ i ] );
+				//modelMatrix.InverseTransformPlane( fogPlanes[ i ], localFogPlanes[ i ] );
 			}
 
 			renderProgManager.SetRenderParm( RENDERPARM_TEXGEN_0_S, localFogPlanes[ 0 ].ToFloatPtr() );
 			renderProgManager.SetRenderParm( RENDERPARM_TEXGEN_0_T, localFogPlanes[ 1 ].ToFloatPtr() );
+
 			renderProgManager.SetRenderParm( RENDERPARM_TEXGEN_1_T, localFogPlanes[ 2 ].ToFloatPtr() );
 			renderProgManager.SetRenderParm( RENDERPARM_TEXGEN_1_S, localFogPlanes[ 3 ].ToFloatPtr() );
 
-			backEnd.currentSpace = ( inverseBaseLightProject == nullptr )? drawSurf->space : nullptr;
+			backEnd.currentSpace = drawSurf->space;
 		}
 
-		renderProgManager.BindShader_Fog( drawSurf->jointCache );
+		GL_SetRenderProgram( drawSurf->jointCache ? renderProgManager.prog_fog_skinned : renderProgManager.prog_fog );
 
 		GL_DrawIndexed( drawSurf );
+
+		RENDERLOG_CLOSE_BLOCK();
 	}
+}
+
+static void RB_T_BasicFog_Finish( const drawSurf_t* drawSurf, const idPlane fogPlanes[ 4 ], const idRenderMatrix & inverseBaseLightProject )
+{
+	RENDERLOG_OPEN_BLOCK( "BasicFog_Finish( zeroOneCubeSurface )" );
+
+	backEnd.ClearCurrentSpace();
+
+	RB_SetScissor( drawSurf->scissorRect );
+
+	idRenderMatrix::Multiply( backEnd.viewDef->GetMVPMatrix(), inverseBaseLightProject,
+		renderProgManager.GetRenderParm( RENDERPARM_MVPMATRIX_X )->GetVec4(),
+		renderProgManager.GetRenderParm( RENDERPARM_MVPMATRIX_Y )->GetVec4(),
+		renderProgManager.GetRenderParm( RENDERPARM_MVPMATRIX_Z )->GetVec4(),
+		renderProgManager.GetRenderParm( RENDERPARM_MVPMATRIX_W )->GetVec4() );
+
+	idRenderPlane localFogPlanes[ 4 ];
+
+	inverseBaseLightProject.InverseTransformPlane( fogPlanes[ 0 ], localFogPlanes[ 0 ], false );
+	inverseBaseLightProject.InverseTransformPlane( fogPlanes[ 1 ], localFogPlanes[ 1 ], false );
+	inverseBaseLightProject.InverseTransformPlane( fogPlanes[ 2 ], localFogPlanes[ 2 ], false );
+	inverseBaseLightProject.InverseTransformPlane( fogPlanes[ 3 ], localFogPlanes[ 3 ], false );
+
+	renderProgManager.SetRenderParm( RENDERPARM_TEXGEN_0_S, localFogPlanes[ 0 ].ToFloatPtr() );
+	renderProgManager.SetRenderParm( RENDERPARM_TEXGEN_0_T, localFogPlanes[ 1 ].ToFloatPtr() );
+	renderProgManager.SetRenderParm( RENDERPARM_TEXGEN_1_T, localFogPlanes[ 2 ].ToFloatPtr() );
+	renderProgManager.SetRenderParm( RENDERPARM_TEXGEN_1_S, localFogPlanes[ 3 ].ToFloatPtr() );
+
+	GL_SetRenderProgram( drawSurf->jointCache ? renderProgManager.prog_fog_skinned : renderProgManager.prog_fog );
+
+	GL_DrawIndexed( drawSurf );
+
+	RENDERLOG_CLOSE_BLOCK();
+}
+
+static void RB_ScreenSpaceBasicFog( const viewLight_t* vLight, const idPlane fogPlanes[ 4 ] )
+{
+	RENDERLOG_OPEN_BLOCK( vLight->lightShader->GetName() );
+
+	const auto * const material = vLight->lightShader;
+	const float* regs = vLight->shaderRegisters;
+
+	backEnd.ClearCurrentSpace();
+
+	GL_SetRenderProgram( renderProgManager.prog_fog2 );
+
+	// set the matrix for deforming the 'zeroOneCubeModel' into the frustum to exactly cover the light volume
+	idRenderMatrix::Multiply( backEnd.viewDef->GetMVPMatrix(), vLight->inverseBaseLightProject,
+		renderProgManager.GetRenderParm( RENDERPARM_MVPMATRIX_X )->GetVec4(),
+		renderProgManager.GetRenderParm( RENDERPARM_MVPMATRIX_Y )->GetVec4(),
+		renderProgManager.GetRenderParm( RENDERPARM_MVPMATRIX_Z )->GetVec4(),
+		renderProgManager.GetRenderParm( RENDERPARM_MVPMATRIX_W )->GetVec4() );
+
+	// calculate the global light bounds by inverse projecting the zero to one cube with the 'inverseBaseLightProject'
+	idBounds globalLightBounds;
+	idRenderMatrix::ProjectedBounds( globalLightBounds, vLight->inverseBaseLightProject, bounds_zeroOneCube, false );
+	globalLightBounds.ExpandSelf( r_blmul.GetFloat() );
+	const bool bCameraInsideLightGeometry = globalLightBounds.ContainsPoint( backEnd.viewDef->GetOrigin() );
+
+	renderProgManager.SetRenderParm( RENDERPARM_TEXGEN_0_S, fogPlanes[ 0 ].ToFloatPtr() );
+	renderProgManager.SetRenderParm( RENDERPARM_TEXGEN_0_T, fogPlanes[ 1 ].ToFloatPtr() );
+
+	renderProgManager.SetRenderParm( RENDERPARM_TEXGEN_1_T, fogPlanes[ 2 ].ToFloatPtr() );
+	renderProgManager.SetRenderParm( RENDERPARM_TEXGEN_1_S, fogPlanes[ 3 ].ToFloatPtr() );
+
+	RB_SetScissor( vLight->scissorRect );
+	GL_DepthBoundsTest( vLight->scissorRect.zmin, vLight->scissorRect.zmax );
+
+	renderProgManager.SetRenderParm( RENDERPARM_VIEWDEPTHSTENCILMAP, renderDestManager.viewDepthStencilImage );
+
+	if( bCameraInsideLightGeometry )
+	{
+		// Render backfaces with depth tests disabled since the camera is inside (or close to inside) the light geometry
+		GL_State( GLS_DEPTHMASK | GLS_SRCBLEND_SRC_ALPHA | GLS_DSTBLEND_ONE_MINUS_SRC_ALPHA | GLS_DEPTHFUNC_GREATER | GLS_BACKSIDED );
+		//renderProgManager.SetColorParm( idColor::white.ToVec4() );
+	}
+	else {
+		// Render frontfaces with depth tests on to get the speedup from HiZ since the camera is outside the light geometry
+		GL_State( GLS_DEPTHMASK | GLS_SRCBLEND_SRC_ALPHA | GLS_DSTBLEND_ONE_MINUS_SRC_ALPHA | GLS_DEPTHFUNC_LESS | GLS_FRONTSIDED );
+		//renderProgManager.SetColorParm( idColor::purple.ToVec4() );
+	}
+
+	GL_DrawZeroOneCube();
+
+	GL_DepthBoundsTest( 0.0, 0.0 );
+
+	GL_ResetTextureState();
+	GL_ResetProgramState();
+
+	RENDERLOG_CLOSE_BLOCK();
 }
 
 /*
@@ -315,17 +400,15 @@ static void RB_FogPass( const drawSurf_t* drawSurfs, const drawSurf_t* drawSurfs
 
 	idRenderVector lightColor;
 	stage->GetColorParm( vLight->shaderRegisters, lightColor );
-	GL_Color( lightColor );
+	renderProgManager.SetColorParm( lightColor );
 
 	// Calculate the falloff planes.
 	// If they left the default value on, set a fog distance of 500 otherwise, distance = alpha color
 	const float a = ( lightColor[ 3 ] <= 1.0f )? ( -0.5f / DEFAULT_FOG_DISTANCE ) : ( -0.5f / lightColor[ 3 ] );
 
 	// texture 0 is the falloff image
-	///GL_BindTexture( 0, renderImageManager->fogImage );
 	renderProgManager.SetRenderParm( RENDERPARM_FOGMAP, renderImageManager->fogImage );
 	// texture 1 is the entering plane fade correction
-	///GL_BindTexture( 1, renderImageManager->fogEnterImage );
 	renderProgManager.SetRenderParm( RENDERPARM_FOGENTERMAP, renderImageManager->fogEnterImage );
 
 	idRenderPlane fogPlane;
@@ -355,19 +438,17 @@ static void RB_FogPass( const drawSurf_t* drawSurfs, const drawSurf_t* drawSurfs
 	fogPlanes[ 0 ][ 1 ] = a * backEnd.viewDef->GetViewMatrix()[ 2 ][ 1 ];
 	fogPlanes[ 0 ][ 2 ] = a * backEnd.viewDef->GetViewMatrix()[ 2 ][ 2 ];
 	fogPlanes[ 0 ][ 3 ] = a * backEnd.viewDef->GetViewMatrix()[ 2 ][ 3 ] + 0.5f;
-
 	// T-0
-	fogPlanes[ 1 ][ 0 ] = 0.0f;///a * backEnd.viewDef->worldSpace.modelViewMatrix[0*4+0];
-	fogPlanes[ 1 ][ 1 ] = 0.0f;///a * backEnd.viewDef->worldSpace.modelViewMatrix[1*4+0];
-	fogPlanes[ 1 ][ 2 ] = 0.0f;///a * backEnd.viewDef->worldSpace.modelViewMatrix[2*4+0];
-	fogPlanes[ 1 ][ 3 ] = 0.5f;///a * backEnd.viewDef->worldSpace.modelViewMatrix[3*4+0] + 0.5f;
+	fogPlanes[ 1 ][ 0 ] = a * backEnd.viewDef->GetViewMatrix()[ 0 ][ 0 ];		  // 0.0f
+	fogPlanes[ 1 ][ 1 ] = a * backEnd.viewDef->GetViewMatrix()[ 0 ][ 1 ];		  // 0.0f
+	fogPlanes[ 1 ][ 2 ] = a * backEnd.viewDef->GetViewMatrix()[ 0 ][ 2 ];		  // 0.0f
+	fogPlanes[ 1 ][ 3 ] = a * backEnd.viewDef->GetViewMatrix()[ 0 ][ 3 ] + 0.5f;  // 0.5f
 
 	// T-1 will get a texgen for the fade plane, which is always the "top" plane on unrotated lights
 	fogPlanes[ 2 ][ 0 ] = FOG_SCALE * fogPlane[ 0 ];
 	fogPlanes[ 2 ][ 1 ] = FOG_SCALE * fogPlane[ 1 ];
 	fogPlanes[ 2 ][ 2 ] = FOG_SCALE * fogPlane[ 2 ];
 	fogPlanes[ 2 ][ 3 ] = FOG_SCALE * fogPlane[ 3 ] + FOG_ENTER;
-
 	// S-1
 	fogPlanes[ 3 ][ 0 ] = 0.0f;
 	fogPlanes[ 3 ][ 1 ] = 0.0f;
@@ -375,26 +456,27 @@ static void RB_FogPass( const drawSurf_t* drawSurfs, const drawSurf_t* drawSurfs
 	fogPlanes[ 3 ][ 3 ] = FOG_SCALE * s + FOG_ENTER;
 
 	// draw it
-	GL_State( GLS_DEPTHMASK | GLS_SRCBLEND_SRC_ALPHA | GLS_DSTBLEND_ONE_MINUS_SRC_ALPHA | GLS_DEPTHFUNC_EQUAL );
-	RB_T_BasicFog( drawSurfs, fogPlanes, NULL );
-	RB_T_BasicFog( drawSurfs2, fogPlanes, NULL );
+	if( r_useScreenSpaceFogLights.GetBool() )
+	{
+		RB_ScreenSpaceBasicFog( vLight, fogPlanes );
+	}
+	else {
+		GL_State( GLS_DEPTHMASK | GLS_SRCBLEND_SRC_ALPHA | GLS_DSTBLEND_ONE_MINUS_SRC_ALPHA | GLS_DEPTHFUNC_EQUAL | GLS_FRONTSIDED );
+		RB_T_BasicFog( drawSurfs, fogPlanes );
+		RB_T_BasicFog( drawSurfs2, fogPlanes );
+	}
 
 	// the light frustum bounding planes aren't in the depth buffer, so use depthfunc_less instead
 	// of depthfunc_equal
-	GL_State( GLS_DEPTHMASK | GLS_SRCBLEND_SRC_ALPHA | GLS_DSTBLEND_ONE_MINUS_SRC_ALPHA | GLS_DEPTHFUNC_LESS );
-	GL_Cull( CT_BACK_SIDED );
+	GL_State( GLS_DEPTHMASK | GLS_SRCBLEND_SRC_ALPHA | GLS_DSTBLEND_ONE_MINUS_SRC_ALPHA | GLS_DEPTHFUNC_LESS | GLS_BACKSIDED );
 
-	auto zosurf = backEnd.zeroOneCubeSurface;
-	///backEnd.zeroOneCubeSurface.space = &backEnd.viewDef->GetWorldSpace();
-	///backEnd.zeroOneCubeSurface.scissorRect = backEnd.viewDef->GetScissor();
-	zosurf.space = &backEnd.viewDef->GetWorldSpace();
-	zosurf.scissorRect = backEnd.viewDef->GetScissor();
+	auto zoSurf = backEnd.zeroOneCubeSurface;
+	zoSurf.space = &backEnd.viewDef->GetWorldSpace();
+	zoSurf.scissorRect = backEnd.viewDef->GetScissor();
 
-	RB_T_BasicFog( &zosurf, fogPlanes, &vLight->inverseBaseLightProject );
+	RB_T_BasicFog_Finish( &zoSurf, fogPlanes, vLight->inverseBaseLightProject );
 
-	GL_Cull( CT_FRONT_SIDED );
-
-	GL_ResetTexturesState();
+	GL_ResetTextureState();
 	GL_ResetProgramState();
 
 	RENDERLOG_CLOSE_BLOCK();
@@ -418,6 +500,11 @@ void RB_FogAllLights()
 
 	RENDERLOG_OPEN_MAINBLOCK( MRB_FOG_ALL_LIGHTS );
 	RENDERLOG_OPEN_BLOCK( "RB_FogAllLights" );
+
+	RB_ResetBaseRenderDest( r_useHDR.GetBool() );
+	RB_ResetViewportAndScissorToDefaultCamera( backEnd.viewDef );
+
+	GL_ResetTextureState();
 
 	// force fog plane to recalculate
 	backEnd.ClearCurrentSpace();
@@ -443,7 +530,10 @@ void RB_FogAllLights()
 		}
 	}
 
-	RB_ResetViewportAndScissorToDefaultCamera( backEnd.viewDef );
+	backEnd.hasFogging = false;
+
+	GL_ResetTextureState();
+	GL_ResetProgramState();
 
 	RENDERLOG_CLOSE_BLOCK();
 	RENDERLOG_CLOSE_MAINBLOCK();

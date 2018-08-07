@@ -41,11 +41,9 @@ ProcessModel
 */
 bool ProcessModel( uEntity_t* e, bool floodFill )
 {
-	bspface_t*	faces;
-
 	// build a bsp tree using all of the sides
 	// of all of the structural brushes
-	faces = MakeStructuralBspFaceList( e->primitives );
+	auto faces = MakeStructuralBspFaceList( e->primitives );
 
 	// RB: dump BSP for debugging
 	if( dmapGlobals.glview )
@@ -84,8 +82,7 @@ bool ProcessModel( uEntity_t* e, bool floodFill )
 			// set the outside leafs to opaque
 			FillOutside( e );
 		}
-		else
-		{
+		else {
 			common->Printf( "**********************\n" );
 			common->Warning( "******* leaked *******" );
 			common->Printf( "**********************\n" );
@@ -147,15 +144,12 @@ ProcessModels
 */
 bool ProcessModels()
 {
-	bool	oldVerbose;
-	uEntity_t*	entity;
-
-	oldVerbose = dmapGlobals.verbose;
+	bool oldVerbose = dmapGlobals.verbose;
 
 	for( dmapGlobals.entityNum = 0; dmapGlobals.entityNum < dmapGlobals.num_entities; dmapGlobals.entityNum++ )
 	{
-		entity = &dmapGlobals.uEntities[ dmapGlobals.entityNum ];
-		if( !entity->primitives )
+		auto & entity = dmapGlobals.uEntities[ dmapGlobals.entityNum ];
+		if( !entity.primitives )
 		{
 			continue;
 		}
@@ -163,7 +157,7 @@ bool ProcessModels()
 		common->Printf( "############### entity %i ###############\n", dmapGlobals.entityNum );
 
 		// if we leaked, stop without any more processing
-		if( !ProcessModel( entity, ( bool )( dmapGlobals.entityNum == 0 ) ) )
+		if( !ProcessModel( &entity, ( bool )( dmapGlobals.entityNum == 0 ) ) )
 		{
 			return false;
 		}
@@ -189,13 +183,11 @@ DmapHelp
 void DmapHelp()
 {
 	common->Printf(
-
 		"Usage: dmap [options] mapfile\n"
 		"Options:\n"
 		"noCurves          = don't process curves\n"
 		"noCM              = don't create collision map\n"
 		"noAAS             = don't create AAS files\n"
-
 	);
 }
 
@@ -268,9 +260,7 @@ void Dmap( const idCmdArgs& args )
 
 	for( i = 1; i < args.Argc(); i++ )
 	{
-		const char* s;
-
-		s = args.Argv( i );
+		auto s = args.Argv( i );
 		if( s[ 0 ] == '-' )
 		{
 			s++;

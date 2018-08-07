@@ -87,13 +87,11 @@ idCVar r_useShadowSurfaceScissor( "r_useShadowSurfaceScissor", "1", CVAR_RENDERE
 idCVar r_useCachedDynamicModels( "r_useCachedDynamicModels", "1", CVAR_RENDERER | CVAR_BOOL, "cache snapshots of dynamic models" );
 idCVar r_useSeamlessCubeMap( "r_useSeamlessCubeMap", "1", CVAR_RENDERER | CVAR_BOOL, "use ARB_seamless_cube_map if available" );
 idCVar r_useSRGB( "r_useSRGB", "0", CVAR_RENDERER | CVAR_INTEGER | CVAR_ARCHIVE, "1 = both texture and framebuffer, 2 = framebuffer only, 3 = texture only" );
-idCVar r_maxAnisotropicFiltering( "r_maxAnisotropicFiltering", "8", CVAR_RENDERER | CVAR_ARCHIVE | CVAR_INTEGER, "limit aniso filtering" );
-idCVar r_useTrilinearFiltering( "r_useTrilinearFiltering", "1", CVAR_RENDERER | CVAR_ARCHIVE | CVAR_BOOL, "Extra quality filtering" );
+idCVar r_maxAnisotropicFiltering( "r_maxAnisotropicFiltering", "8", CVAR_RENDERER | CVAR_ARCHIVE | CVAR_INTEGER, "limit aniso filtering", 0.0, 16.0 );
+idCVar r_useTrilinearFiltering( "r_useTrilinearFiltering", "1", CVAR_RENDERER | CVAR_ARCHIVE | CVAR_BOOL, "Extra quality filtering if no AnisotropicFiltering available else Bilinear" );
 // RB: not used anymore
 idCVar r_lodBias( "r_lodBias", "0.5", CVAR_RENDERER | CVAR_ARCHIVE, "UNUSED: image lod bias" );
 // RB end
-
-idCVar r_useStateCaching( "r_useStateCaching", "1", CVAR_RENDERER | CVAR_BOOL, "avoid redundant state changes in GL_*() calls" );
 
 idCVar r_ignoreGLErrors( "r_ignoreGLErrors", "0", CVAR_RENDERER | CVAR_BOOL, "ignore GL errors" );
 idCVar r_swapInterval( "r_swapInterval", "1", CVAR_RENDERER | CVAR_ARCHIVE | CVAR_INTEGER, "0 = tear, 1 = swap-tear where available, 2 = always v-sync" );
@@ -136,12 +134,12 @@ idCVar r_useEntityPortalCulling( "r_useEntityPortalCulling", "1", CVAR_RENDERER 
 idCVar r_logFile( "r_logFile", "0", CVAR_RENDERER | CVAR_INTEGER, "number of frames to emit GL logs" );
 idCVar r_clear( "r_clear", "2", CVAR_RENDERER, "force screen clear every frame, 1 = purple, 2 = black, 'r g b' = custom" );
 
-idCVar r_offsetFactor( "r_offsetfactor", "0", CVAR_RENDERER | CVAR_FLOAT, "polygon offset parameter" );
+idCVar r_offsetFactor( "r_offsetFactor", "0", CVAR_RENDERER | CVAR_FLOAT, "polygon offset scale parameter" );
 // RB: offset factor was 0, and units were -600 which caused some very ugly polygon offsets on Android so I reverted the values to the same as in Q3A
 #if defined(__ANDROID__)
-idCVar r_offsetUnits( "r_offsetunits", "-2", CVAR_RENDERER | CVAR_FLOAT, "polygon offset parameter" );
+idCVar r_offsetUnits( "r_offsetUnits", "-2", CVAR_RENDERER | CVAR_FLOAT, "polygon offset bias parameter" );
 #else
-idCVar r_offsetUnits( "r_offsetunits", "-600", CVAR_RENDERER | CVAR_FLOAT, "polygon offset parameter" );
+idCVar r_offsetUnits( "r_offsetUnits", "-600", CVAR_RENDERER | CVAR_FLOAT, "polygon offset bias parameter" );
 #endif
 // RB end
 
@@ -154,7 +152,6 @@ idCVar r_lightScale( "r_lightScale", "3", CVAR_ARCHIVE | CVAR_RENDERER | CVAR_FL
 idCVar r_flareSize( "r_flareSize", "1", CVAR_RENDERER | CVAR_FLOAT, "scale the flare deforms from the material def" );
 
 idCVar r_skipPrelightShadows( "r_skipPrelightShadows", "0", CVAR_RENDERER | CVAR_BOOL, "skip the dmap generated static shadow volumes" );
-idCVar r_useScissor( "r_useScissor", "1", CVAR_RENDERER | CVAR_BOOL, "scissor clip as portals and lights are processed" );
 idCVar r_useLightDepthBounds( "r_useLightDepthBounds", "1", CVAR_RENDERER | CVAR_BOOL, "use depth bounds test on lights to reduce both shadow and interaction fill" );
 idCVar r_useShadowDepthBounds( "r_useShadowDepthBounds", "1", CVAR_RENDERER | CVAR_BOOL, "use depth bounds test on individual shadow volumes to reduce shadow fill" );
 // RB begin
@@ -227,7 +224,7 @@ idCVar stereoRender_deGhost( "stereoRender_deGhost", "0.05", CVAR_FLOAT | CVAR_A
 idCVar r_useVirtualScreenResolution( "r_useVirtualScreenResolution", "1", CVAR_RENDERER | CVAR_BOOL | CVAR_ARCHIVE, "do 2D rendering at 640x480 and stretch to the current resolution" );
 
 // RB: shadow mapping parameters
-idCVar r_useShadowMapping( "r_useShadowMapping", "0", CVAR_RENDERER | CVAR_ARCHIVE | CVAR_INTEGER, "use shadow mapping instead of stencil shadows" );
+idCVar r_useShadowMapping( "r_useShadowMapping", "1", CVAR_RENDERER | CVAR_ARCHIVE | CVAR_INTEGER, "use shadow mapping instead of stencil shadows" );
 idCVar r_shadowMapFrustumFOV( "r_shadowMapFrustumFOV", "92", CVAR_RENDERER | CVAR_FLOAT, "oversize FOV for point light side matching" );
 idCVar r_shadowMapSingleSide( "r_shadowMapSingleSide", "-1", CVAR_RENDERER | CVAR_INTEGER, "only draw a single side (0-5) of point lights" );
 idCVar r_shadowMapImageSize( "r_shadowMapImageSize", "1024", CVAR_RENDERER | CVAR_INTEGER, "", 128, 2048 );
@@ -252,13 +249,12 @@ glBindMultiTextureEXT
 As of 2011/09/16 the Intel drivers for "Sandy Bridge" and "Ivy Bridge" integrated graphics do not support this extension.
 ========================
 */
-/*
-void APIENTRY glBindMultiTextureEXT( GLenum texunit, GLenum target, GLuint texture )
+/*void APIENTRY glBindMultiTextureEXT( GLenum texunit, GLenum target, GLuint texture )
 {
 	glActiveTextureARB( texunit );
 	glBindTexture( target, texture );
-}
-*/
+}*/
+
 
 /*
 =================
@@ -274,7 +270,7 @@ static bool R_CheckExtension( const char* name )
 		common->Printf( "X..%s not found\n", name );
 		return false;
 	}
-	
+
 	common->Printf( "...using %s\n", name );
 	return true;
 }
@@ -292,11 +288,11 @@ static void CALLBACK DebugCallback( unsigned int source, unsigned int type,
 									unsigned int id, unsigned int severity, int length, const char* message, const void* userParam )
 {
 	// it probably isn't safe to do an idLib::Printf at this point
-	
+
 	// RB: printf should be thread safe on Linux
 #if defined(_WIN32)
-	OutputDebugString( message );
-	OutputDebugString( "\n" );
+	::OutputDebugString( message );
+	::OutputDebugString( "\n" );
 #else
 	printf( "%s\n", message );
 #endif
@@ -315,10 +311,12 @@ bool R_CheckExtension( char* name )
 		common->Printf( "X..%s not found\n", name );
 		return false;
 	}
-	
+
 	common->Printf( "...using %s\n", name );
 	return true;
 }
+
+#define CHECK_EXT( _EXT_ ) ( GLEW_##_EXT_ != 0 )
 
 /*
 ==================
@@ -334,7 +332,7 @@ static void R_CheckPortableExtensions()
 	{
 		idLib::FatalError( "%s", badVideoCard );
 	}
-	
+
 	if( idStr::Icmpn( glConfig.renderer_string, "ATI ", 4 ) == 0 || idStr::Icmpn( glConfig.renderer_string, "AMD ", 4 ) == 0 )
 	{
 		glConfig.vendor = VENDOR_AMD;
@@ -347,10 +345,12 @@ static void R_CheckPortableExtensions()
 	{
 		glConfig.vendor = VENDOR_INTEL;
 	}
-	
+
 	// RB: Mesa support
-	if( idStr::Icmpn( glConfig.renderer_string, "Mesa", 4 ) == 0 || idStr::Icmpn( glConfig.renderer_string, "X.org", 5 ) == 0 || idStr::Icmpn( glConfig.renderer_string, "Gallium", 7 ) == 0 ||
-	    strcmp( glConfig.vendor_string, "X.Org" ) == 0 ||
+	if( idStr::Icmpn( glConfig.renderer_string, "Mesa", 4 ) == 0 ||
+		idStr::Icmpn( glConfig.renderer_string, "X.org", 5 ) == 0 ||
+		idStr::Icmpn( glConfig.renderer_string, "Gallium", 7 ) == 0 ||
+		idStr::Cmp( glConfig.vendor_string, "X.Org" ) == 0 ||
 	    idStr::Icmpn( glConfig.renderer_string, "llvmpipe", 8 ) == 0 )
 	{
 		if( glConfig.driverType == GLDRV_OPENGL32_CORE_PROFILE )
@@ -362,25 +362,32 @@ static void R_CheckPortableExtensions()
 		}
 	}
 	// RB end
-	
+
 	// GL_ARB_multitexture
 	if( glConfig.driverType != GLDRV_OPENGL3X )
 	{
 		glConfig.multitextureAvailable = true;
 	}
 	else {
-		glConfig.multitextureAvailable = GLEW_ARB_multitexture != 0;
+		glConfig.multitextureAvailable = CHECK_EXT( ARB_multitexture );
 	}
-	
+
 	// GL_EXT_direct_state_access
-	glConfig.directStateAccess = GLEW_EXT_direct_state_access != 0;
+	glConfig.directStateAccess = CHECK_EXT( EXT_direct_state_access );
+	/*if( glConfig.directStateAccess )
+	{
+		glBindMultiTextureEXT = ( PFNGLBINDMULTITEXTUREEXTPROC ) GLimp_ExtensionPointer( "glBindMultiTextureEXT" );
+	}
+	else {
+		glBindMultiTextureEXT = glBindMultiTextureEXT;
+	}*/
 
 	// GL_ARB_texture_storage
-	glConfig.ARB_texture_storage = GLEW_ARB_texture_storage != 0;
-	
+	glConfig.ARB_texture_storage = CHECK_EXT( ARB_texture_storage );
+
 	// GL_ARB_buffer_storage
-	glConfig.ARB_buffer_storage = GLEW_ARB_buffer_storage != 0;
-	
+	glConfig.ARB_buffer_storage = CHECK_EXT( ARB_buffer_storage );
+
 	// GL_ARB_texture_compression + GL_S3_s3tc
 	// DRI drivers may have GL_ARB_texture_compression but no GL_EXT_texture_compression_s3tc
 	if( glConfig.driverType == GLDRV_OPENGL_MESA_CORE_PROFILE )
@@ -388,10 +395,10 @@ static void R_CheckPortableExtensions()
 		glConfig.textureCompressionAvailable = true;
 	}
 	else {
-		glConfig.textureCompressionAvailable = GLEW_ARB_texture_compression != 0 && GLEW_EXT_texture_compression_s3tc != 0;
+		glConfig.textureCompressionAvailable = CHECK_EXT( ARB_texture_compression ) && CHECK_EXT( EXT_texture_compression_s3tc );
 	}
 	// GL_EXT_texture_filter_anisotropic
-	glConfig.anisotropicFilterAvailable = GLEW_EXT_texture_filter_anisotropic != 0;
+	glConfig.anisotropicFilterAvailable = CHECK_EXT( EXT_texture_filter_anisotropic );
 	if( glConfig.anisotropicFilterAvailable )
 	{
 		glGetFloatv( GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &glConfig.maxTextureAnisotropy );
@@ -400,11 +407,11 @@ static void R_CheckPortableExtensions()
 	else {
 		glConfig.maxTextureAnisotropy = 1;
 	}
-	
+
 	// GL_EXT_texture_lod_bias
 	// The actual extension is broken as specificed, storing the state in the texture unit instead
 	// of the texture object.  The behavior in GL 1.4 is the behavior we use.
-	glConfig.textureLODBiasAvailable = ( glConfig.glVersion >= 1.4 || GLEW_EXT_texture_lod_bias != 0 );
+	glConfig.textureLODBiasAvailable = ( glConfig.glVersion >= 1.4 || CHECK_EXT( EXT_texture_lod_bias ) );
 	if( glConfig.textureLODBiasAvailable )
 	{
 		common->Printf( "...using %s\n", "GL_EXT_texture_lod_bias" );
@@ -412,24 +419,24 @@ static void R_CheckPortableExtensions()
 	else {
 		common->Printf( "X..%s not found\n", "GL_EXT_texture_lod_bias" );
 	}
-	
+
 	// GL_ARB_seamless_cube_map
-	glConfig.seamlessCubeMapAvailable = GLEW_ARB_seamless_cube_map != 0;
+	glConfig.seamlessCubeMapAvailable = CHECK_EXT( ARB_seamless_cube_map );
 	r_useSeamlessCubeMap.SetModified();		// the CheckCvars() next frame will enable / disable it
-	
+
 	// GL_ARB_framebuffer_sRGB
-	glConfig.sRGBFramebufferAvailable = GLEW_ARB_framebuffer_sRGB != 0;
+	glConfig.sRGBFramebufferAvailable = CHECK_EXT( ARB_framebuffer_sRGB );
 	r_useSRGB.SetModified();		// the CheckCvars() next frame will enable / disable it
-	
+
 	// GL_ARB_vertex_buffer_object
 	if( glConfig.driverType == GLDRV_OPENGL_MESA_CORE_PROFILE )
 	{
 		glConfig.vertexBufferObjectAvailable = true;
 	}
 	else {
-		glConfig.vertexBufferObjectAvailable = GLEW_ARB_vertex_buffer_object != 0;
+		glConfig.vertexBufferObjectAvailable = CHECK_EXT( ARB_vertex_buffer_object );
 	}
-	
+
 	// GL_ARB_map_buffer_range, map a section of a buffer object's data store
 	//if( glConfig.driverType == GLDRV_OPENGL_MESA_CORE_PROFILE )
 	//{
@@ -437,9 +444,9 @@ static void R_CheckPortableExtensions()
 	//}
 	//else
 	{
-		glConfig.mapBufferRangeAvailable = GLEW_ARB_map_buffer_range != 0;
+		glConfig.mapBufferRangeAvailable = CHECK_EXT( ARB_map_buffer_range );
 	}
-	
+
 	// GL_ARB_vertex_array_object
 	//if( glConfig.driverType == GLDRV_OPENGL_MESA_CORE_PROFILE )
 	//{
@@ -447,25 +454,25 @@ static void R_CheckPortableExtensions()
 	//}
 	//else
 	{
-		glConfig.vertexArrayObjectAvailable = GLEW_ARB_vertex_array_object != 0;
+		glConfig.vertexArrayObjectAvailable = CHECK_EXT( ARB_vertex_array_object );
 	}
-	
+
 	// GL_ARB_draw_elements_base_vertex
-	glConfig.drawElementsBaseVertexAvailable = GLEW_ARB_draw_elements_base_vertex != 0;
-	
+	glConfig.drawElementsBaseVertexAvailable = CHECK_EXT( ARB_draw_elements_base_vertex );
+
 	// GL_ARB_vertex_program / GL_ARB_fragment_program
-	glConfig.fragmentProgramAvailable = GLEW_ARB_fragment_program != 0;
+	glConfig.fragmentProgramAvailable = CHECK_EXT( ARB_fragment_program );
 	//if( glConfig.fragmentProgramAvailable )
 	{
 		glGetIntegerv( GL_MAX_TEXTURE_COORDS, ( GLint* )&glConfig.maxTextureCoords );
 		glGetIntegerv( GL_MAX_TEXTURE_IMAGE_UNITS, ( GLint* )&glConfig.maxTextureImageUnits );
 	}
-	
+
 	// GLSL, core in OpenGL > 2.0
 	glConfig.glslAvailable = ( glConfig.glVersion >= 2.0f );
-	
+
 	// GL_ARB_uniform_buffer_object
-	glConfig.uniformBufferAvailable = GLEW_ARB_uniform_buffer_object != 0;
+	glConfig.uniformBufferAvailable = CHECK_EXT( ARB_uniform_buffer_object );
 	if( glConfig.uniformBufferAvailable )
 	{
 		glGetIntegerv( GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, ( GLint* )&glConfig.uniformBufferOffsetAlignment );
@@ -475,64 +482,63 @@ static void R_CheckPortableExtensions()
 		glGetIntegerv( GL_MAX_UNIFORM_BLOCK_SIZE, ( GLint* )&glConfig.uniformBufferMaxSize );
 	}
 	// RB: make GPU skinning optional for weak OpenGL drivers
-	glConfig.gpuSkinningAvailable = glConfig.uniformBufferAvailable && ( glConfig.driverType == GLDRV_OPENGL3X || glConfig.driverType == GLDRV_OPENGL32_CORE_PROFILE || glConfig.driverType == GLDRV_OPENGL32_COMPATIBILITY_PROFILE );
-	
+	glConfig.gpuSkinningAvailable = glConfig.uniformBufferAvailable &&
+		( glConfig.driverType == GLDRV_OPENGL3X || glConfig.driverType == GLDRV_OPENGL32_CORE_PROFILE || glConfig.driverType == GLDRV_OPENGL32_COMPATIBILITY_PROFILE );
+
 	// ATI_separate_stencil / OpenGL 2.0 separate stencil
-	glConfig.twoSidedStencilAvailable = ( glConfig.glVersion >= 2.0f ) || GLEW_ATI_separate_stencil != 0;
-	
+	glConfig.twoSidedStencilAvailable = ( glConfig.glVersion >= 2.0f ) || CHECK_EXT( ATI_separate_stencil );
+
 	// GL_EXT_depth_bounds_test
-	glConfig.depthBoundsTestAvailable = GLEW_EXT_depth_bounds_test != 0;
-	
+	glConfig.depthBoundsTestAvailable = CHECK_EXT( EXT_depth_bounds_test );
+
 	// GL_ARB_sync
-	glConfig.syncAvailable = GLEW_ARB_sync &&
+	glConfig.syncAvailable = CHECK_EXT( ARB_sync ) &&
 							 // as of 5/24/2012 (driver version 15.26.12.64.2761) sync objects
 							 // do not appear to work for the Intel HD 4000 graphics
 							 ( glConfig.vendor != VENDOR_INTEL || r_skipIntelWorkarounds.GetBool() );
-							 
+
 	// GL_ARB_occlusion_query
-	glConfig.occlusionQueryAvailable = GLEW_ARB_occlusion_query != 0;
-	
+	glConfig.occlusionQueryAvailable = CHECK_EXT( ARB_occlusion_query );
+
 	// GL_ARB_timer_query
-	glConfig.timerQueryAvailable = ( GLEW_ARB_timer_query != 0 || GLEW_EXT_timer_query != 0 ) && ( glConfig.vendor != VENDOR_INTEL || r_skipIntelWorkarounds.GetBool() ) && glConfig.driverType != GLDRV_OPENGL_MESA;
-	
+	glConfig.timerQueryAvailable = ( CHECK_EXT( ARB_timer_query ) || CHECK_EXT( EXT_timer_query ) )
+		&& ( glConfig.vendor != VENDOR_INTEL || r_skipIntelWorkarounds.GetBool() ) && glConfig.driverType != GLDRV_OPENGL_MESA;
+
 	// GREMEDY_string_marker
-	glConfig.gremedyStringMarkerAvailable = GLEW_GREMEDY_string_marker != 0;
+	glConfig.gremedyStringMarkerAvailable = CHECK_EXT( GREMEDY_string_marker );
 	if( glConfig.gremedyStringMarkerAvailable )
 	{
 		common->Printf( "...using %s\n", "GL_GREMEDY_string_marker" );
 	}
-	else
-	{
+	else {
 		common->Printf( "X..%s not found\n", "GL_GREMEDY_string_marker" );
 	}
-	
+
 	// GL_ARB_framebuffer_object
-	glConfig.framebufferObjectAvailable = GLEW_ARB_framebuffer_object != 0;
+	glConfig.framebufferObjectAvailable = CHECK_EXT( ARB_framebuffer_object );
 	if( glConfig.framebufferObjectAvailable )
 	{
 		glGetIntegerv( GL_MAX_RENDERBUFFER_SIZE, &glConfig.maxRenderbufferSize );
 		glGetIntegerv( GL_MAX_COLOR_ATTACHMENTS, &glConfig.maxColorAttachments );
-		
+
 		common->Printf( "...using %s\n", "GL_ARB_framebuffer_object" );
 	}
-	else
-	{
+	else {
 		common->Printf( "X..%s not found\n", "GL_ARB_framebuffer_object" );
 	}
-	
+
 	// GL_EXT_framebuffer_blit
-	glConfig.framebufferBlitAvailable = GLEW_EXT_framebuffer_blit != 0;
+	glConfig.framebufferBlitAvailable = CHECK_EXT( EXT_framebuffer_blit );
 	if( glConfig.framebufferBlitAvailable )
 	{
 		common->Printf( "...using %s\n", "GL_EXT_framebuffer_blit" );
 	}
-	else
-	{
+	else {
 		common->Printf( "X..%s not found\n", "GL_EXT_framebuffer_blit" );
 	}
-	
+
 	// GL_ARB_debug_output
-	glConfig.debugOutputAvailable = GLEW_ARB_debug_output != 0;
+	glConfig.debugOutputAvailable = CHECK_EXT( ARB_debug_output );
 	if( glConfig.debugOutputAvailable )
 	{
 		if( r_debugContext.GetInteger() >= 1 )
@@ -564,17 +570,35 @@ static void R_CheckPortableExtensions()
 	glConfig.texture_buffer_offset_alignment = 0;
 	glGetIntegerv( GL_TEXTURE_BUFFER_OFFSET_ALIGNMENT, &glConfig.texture_buffer_offset_alignment );
 
+	//SEA: renderprog support:
+
+	glConfig.explicit_attrib_location		= CHECK_EXT( ARB_explicit_attrib_location );
+	glConfig.explicit_uniform_location		= CHECK_EXT( ARB_explicit_uniform_location );
+	glConfig.gpu_shader5					= CHECK_EXT( ARB_gpu_shader5 );
+	glConfig.shading_language_420pack		= CHECK_EXT( ARB_shading_language_420pack );
+	glConfig.cull_distance					= CHECK_EXT( ARB_cull_distance );
+	glConfig.shader_image_load_store		= CHECK_EXT( ARB_shader_image_load_store );
+	glConfig.vertex_shader_layer			= CHECK_EXT( AMD_vertex_shader_layer );
+	glConfig.vertex_shader_viewport_index	= CHECK_EXT( AMD_vertex_shader_viewport_index );
+	glConfig.fragment_layer_viewport		= CHECK_EXT( ARB_fragment_layer_viewport );
+	glConfig.shader_draw_parameters			= CHECK_EXT( ARB_shader_draw_parameters );
+	glConfig.derivative_control				= CHECK_EXT( ARB_derivative_control );
+	glConfig.shading_language_packing		= CHECK_EXT( ARB_shading_language_packing );
+	glConfig.conservative_depth				= CHECK_EXT( ARB_conservative_depth );
+	glConfig.texture_cube_map_array			= CHECK_EXT( ARB_texture_cube_map_array );
+	glConfig.sample_shading					= CHECK_EXT( ARB_sample_shading );
+
 	//////////////////////////////////////////////////////////////
 
 	// GL_ARB_vertex_attrib_binding
-	glConfig.ARB_vertex_attrib_binding = GLEW_ARB_vertex_attrib_binding != 0;
+	glConfig.ARB_vertex_attrib_binding = CHECK_EXT( ARB_vertex_attrib_binding );
 	if( glConfig.ARB_vertex_attrib_binding )
 	{
 		common->Printf( "...using GL_ARB_vertex_attrib_binding\n");
 	}
 
 	//////////////////////////////////////////////////////////////
-	
+
 	// GL_ARB_multitexture
 	if( !glConfig.multitextureAvailable )
 	{
@@ -633,11 +657,23 @@ static void R_CheckPortableExtensions()
 
 	glGenVertexArrays( 1, &glConfig.empty_vao );
 	glBindVertexArray( glConfig.empty_vao );
+	if( GLEW_KHR_debug )
+	{
+		idStrStatic<128> name;
+		name.Format( "VAO( %u, 'empty' )", glConfig.empty_vao );
+		glObjectLabel( GL_VERTEX_ARRAY, glConfig.empty_vao, name.Length(), name.c_str() );
+	}
 	glBindVertexArray( GL_NONE );
-	
+
 	// generate one global Vertex Array Object (VAO)
 	glGenVertexArrays( 1, &glConfig.global_vao );
 	glBindVertexArray( glConfig.global_vao );
+	if( GLEW_KHR_debug )
+	{
+		idStrStatic<128> name;
+		name.Format( "VAO( %u, 'global' )", glConfig.global_vao );
+		glObjectLabel( GL_VERTEX_ARRAY, glConfig.global_vao, name.Length(), name.c_str() );
+	}
 }
 // RB end
 
@@ -677,16 +713,16 @@ bool R_IsInitialized()
 void R_SetNewMode( const bool fullInit )
 {
 	// try up to three different configurations
-	
+
 	for( int i = 0 ; i < 3 ; i++ )
 	{
 		if( i == 0 && stereoRender_enable.GetInteger() != STEREO3D_QUAD_BUFFER )
 		{
 			continue;		// don't even try for a stereo mode
 		}
-		
+
 		glimpParms_t parms;
-		
+
 		if( r_fullscreen.GetInteger() <= 0 )
 		{
 			// use explicit position / size for window
@@ -698,26 +734,25 @@ void R_SetNewMode( const bool fullInit )
 			parms.fullScreen = r_fullscreen.GetInteger();
 			parms.displayHz = 0;		// ignored
 		}
-		else
-		{
+		else {
 			// get the mode list for this monitor
 			idList<vidMode_t> modeList;
-			if( !R_GetModeListForDisplay( r_fullscreen.GetInteger() - 1, modeList ) )
+			if( !tr.GetModeListForDisplay( r_fullscreen.GetInteger() - 1, modeList ) )
 			{
 				idLib::Printf( "r_fullscreen reset from %i to 1 because mode list failed.", r_fullscreen.GetInteger() );
 				r_fullscreen.SetInteger( 1 );
-				R_GetModeListForDisplay( r_fullscreen.GetInteger() - 1, modeList );
+				tr.GetModeListForDisplay( r_fullscreen.GetInteger() - 1, modeList );
 			}
 			if( modeList.Num() < 1 )
 			{
 				idLib::Printf( "Going to safe mode because mode list failed." );
 				goto safeMode;
 			}
-			
+
 			parms.x = 0;		// ignored
 			parms.y = 0;		// ignored
 			parms.fullScreen = r_fullscreen.GetInteger();
-			
+
 			// set the parameters we are trying
 			if( r_vidMode.GetInteger() < 0 )
 			{
@@ -726,46 +761,36 @@ void R_SetNewMode( const bool fullInit )
 				parms.height = r_customHeight.GetInteger();
 				parms.displayHz = r_displayRefresh.GetInteger();
 			}
-			else
-			{
+			else {
 				if( r_vidMode.GetInteger() >= modeList.Num() )
 				{
 					idLib::Printf( "r_vidMode reset from %i to 0.\n", r_vidMode.GetInteger() );
 					r_vidMode.SetInteger( 0 );
 				}
-				
+
 				parms.width = modeList[ r_vidMode.GetInteger() ].width;
 				parms.height = modeList[ r_vidMode.GetInteger() ].height;
 				parms.displayHz = modeList[ r_vidMode.GetInteger() ].displayHz;
 			}
 		}
-		
+
 		switch( r_antiAliasing.GetInteger() )
 		{
-			case ANTI_ALIASING_MSAA_2X:
-				parms.multiSamples = 2;
-				break;
-			case ANTI_ALIASING_MSAA_4X:
-				parms.multiSamples = 4;
-				break;
-			case ANTI_ALIASING_MSAA_8X:
-				parms.multiSamples = 8;
-				break;
-				
-			default:
-				parms.multiSamples = 0;
-				break;
+			case ANTI_ALIASING_MSAA_2X: parms.multiSamples = 2; break;
+			case ANTI_ALIASING_MSAA_4X: parms.multiSamples = 4; break;
+			case ANTI_ALIASING_MSAA_8X: parms.multiSamples = 8; break;
+
+			default: parms.multiSamples = 0; break;
 		}
-		
+
 		if( i == 0 )
 		{
 			parms.stereo = ( stereoRender_enable.GetInteger() == STEREO3D_QUAD_BUFFER );
 		}
-		else
-		{
+		else {
 			parms.stereo = false;
 		}
-		
+
 		if( fullInit )
 		{
 			// create the context as well as setting up the window
@@ -775,8 +800,7 @@ void R_SetNewMode( const bool fullInit )
 				break;
 			}
 		}
-		else
-		{
+		else {
 			// just rebuild the window
 			if( GLimp_SetScreenParms( parms ) )
 			{
@@ -784,18 +808,18 @@ void R_SetNewMode( const bool fullInit )
 				break;
 			}
 		}
-		
+
 		if( i == 2 )
 		{
 			common->FatalError( "Unable to initialize OpenGL" );
 		}
-		
+
 		if( i == 0 )
 		{
 			// same settings, no stereo
 			continue;
 		}
-		
+
 safeMode:
 		// if we failed, set everything back to "safe mode"
 		// and try again
@@ -827,35 +851,35 @@ R_InitOpenGL
 void R_InitOpenGL()
 {
 	common->Printf( "----- R_InitOpenGL -----\n" );
-	
+
 	if( R_IsInitialized() )
 	{
 		common->FatalError( "R_InitOpenGL called while active" );
 	}
-	
+
 	// DG: make sure SDL has setup video so getting supported modes in R_SetNewMode() works
 	GLimp_PreInit();
 	// DG end
-	
+
 	R_SetNewMode( true );
-	
+
 	console->Resize();
-	
+
 	// input and sound systems need to be tied to the new window
 	sys->InitInput();
-	
+
 	// get our config strings
 	glConfig.vendor_string = ( const char* )glGetString( GL_VENDOR );
 	glConfig.renderer_string = ( const char* )glGetString( GL_RENDERER );
 	glConfig.version_string = ( const char* )glGetString( GL_VERSION );
 	glConfig.shading_language_string = ( const char* )glGetString( GL_SHADING_LANGUAGE_VERSION );
 	glConfig.extensions_string = ( const char* )glGetString( GL_EXTENSIONS );
-	
+
 	if( glConfig.extensions_string == NULL )
 	{
 		// As of OpenGL 3.2, glGetStringi is required to obtain the available extensions
 		//glGetStringi = ( PFNGLGETSTRINGIPROC )GLimp_ExtensionPointer( "glGetStringi" );
-		
+
 		// Build the extensions string
 		GLint numExtensions;
 		glGetIntegerv( GL_NUM_EXTENSIONS, &numExtensions );
@@ -871,8 +895,8 @@ void R_InitOpenGL()
 		}
 		glConfig.extensions_string = extensions_string.c_str();
 	}
-	
-	
+
+
 	float glVersion = atof( glConfig.version_string );
 	float glslVersion = atof( glConfig.shading_language_string );
 	idLib::Printf( "OpenGL Version   : %3.1f\n", glVersion );
@@ -880,34 +904,34 @@ void R_InitOpenGL()
 	idLib::Printf( "OpenGL Renderer  : %s\n", glConfig.renderer_string );
 	idLib::Printf( "OpenGL GLSL      : %3.1f\n", glslVersion );
 	idLib::Printf( "OpenGL Extensions: %s\n", glConfig.extensions_string );
-	
+
 	// OpenGL driver constants
 	GLint temp;
 	glGetIntegerv( GL_MAX_TEXTURE_SIZE, &temp );
 	glConfig.maxTextureSize = temp;
-	
+
 	// stubbed or broken drivers may have reported 0...
 	if( glConfig.maxTextureSize <= 0 )
 	{
 		glConfig.maxTextureSize = 256;
 	}
-	
+
 	r_initialized = true;
-	
+
 	// recheck all the extensions (FIXME: this might be dangerous)
 	R_CheckPortableExtensions();
 
 	r_initialized = true;
-	
+
 	// allocate the vertex array range or vertex objects
 	vertexCache.Init();
-	
+
 	// allocate the frame data, which may be more if smp is enabled
 	allocManager.InitFrameData();
-	
+
 	// Reset our gamma
 	R_SetColorMappings();
-	
+
 	// RB begin
 #if defined(_WIN32)
 	static bool glCheck = false;
@@ -949,12 +973,12 @@ bool GL_CheckErrors_( const char* filename, int line )
 	int		err;
 	char	s[64];
 	int		i;
-	
+
 	if( r_ignoreGLErrors.GetBool() )
 	{
 		return false;
 	}
-	
+
 	// check for up to 10 errors pending
 	bool error = false;
 	for( i = 0 ; i < 10 ; i++ )
@@ -964,7 +988,7 @@ bool GL_CheckErrors_( const char* filename, int line )
 		{
 			break;
 		}
-		
+
 		error = true;
 		switch( err )
 		{
@@ -992,10 +1016,10 @@ bool GL_CheckErrors_( const char* filename, int line )
 				idStr::snPrintf( s, sizeof( s ), "%i", err );
 				break;
 		}
-		
+
 		common->Printf( "caught OpenGL error: %s in file %s line %i\n", s, filename, line );
 	}
-	
+
 	return error;
 }
 // RB end
@@ -1011,14 +1035,14 @@ void R_SetColorMappings()
 {
 	float b = r_brightness.GetFloat();
 	float invg = 1.0f / r_gamma.GetFloat();
-	
+
 	float j = 0.0f;
 	for( int i = 0; i < 256; i++, j += b )
 	{
 		int inf = idMath::Ftoi( 0xffff * pow( j / 255.0f, invg ) + 0.5f );
 		tr.gammaTable[i] = idMath::ClampInt( 0, 0xFFFF, inf );
 	}
-	
+
 	GLimp_SetGamma( tr.gammaTable, tr.gammaTable, tr.gammaTable );
 }
 
@@ -1029,14 +1053,14 @@ GfxInfo_f
 */
 void GfxInfo_f( const idCmdArgs& args )
 {
-	common->Printf( "CPU: %s\n", Sys_GetProcessorString() );
-	
+	common->Printf( "CPU: %s\n", sys->GetProcessorString() );
+
 	const char* fsstrings[] =
 	{
 		"windowed",
 		"fullscreen"
 	};
-	
+
 	common->Printf( "\nGL_VENDOR: %s\n", glConfig.vendor_string );
 	common->Printf( "GL_RENDERER: %s\n", glConfig.renderer_string );
 	common->Printf( "GL_VERSION: %s\n", glConfig.version_string );
@@ -1048,11 +1072,11 @@ void GfxInfo_f( const idCmdArgs& args )
 	common->Printf( "GL_MAX_TEXTURE_SIZE: %d\n", glConfig.maxTextureSize );
 	common->Printf( "GL_MAX_TEXTURE_COORDS_ARB: %d\n", glConfig.maxTextureCoords );
 	common->Printf( "GL_MAX_TEXTURE_IMAGE_UNITS_ARB: %d\n", glConfig.maxTextureImageUnits );
-	
+
 	// print all the display adapters, monitors, and video modes
 	//void DumpAllDisplayDevices();
 	//DumpAllDisplayDevices();
-	
+
 	common->Printf( "\nPIXELFORMAT: color(%d-bits) Z(%d-bit) stencil(%d-bits)\n", glConfig.colorBits, glConfig.depthBits, glConfig.stencilBits );
 	common->Printf( "MODE: %d, %d x %d %s hz:", r_vidMode.GetInteger(), renderSystem->GetWidth(), renderSystem->GetHeight(), fsstrings[r_fullscreen.GetBool()] );
 	if( glConfig.displayFrequency )
@@ -1063,15 +1087,15 @@ void GfxInfo_f( const idCmdArgs& args )
 	{
 		common->Printf( "N/A\n" );
 	}
-	
+
 	common->Printf( "-------\n" );
-	
+
 	// RB begin
 #if defined(_WIN32) && !defined(USE_GLES2)
 	// WGL_EXT_swap_interval
 	typedef BOOL ( WINAPI * PFNWGLSWAPINTERVALEXTPROC )( int interval );
 	extern	PFNWGLSWAPINTERVALEXTPROC wglSwapIntervalEXT;
-	
+
 	if( r_swapInterval.GetInteger() && wglSwapIntervalEXT != NULL )
 	{
 		common->Printf( "Forcing swapInterval %i\n", r_swapInterval.GetInteger() );
@@ -1082,7 +1106,7 @@ void GfxInfo_f( const idCmdArgs& args )
 	}
 #endif
 	// RB end
-	
+
 	if( glConfig.stereoPixelFormatAvailable && glConfig.isStereoPixelFormat )
 	{
 		idLib::Printf( "OpenGl quad buffer stereo pixel format active\n" );
@@ -1095,7 +1119,7 @@ void GfxInfo_f( const idCmdArgs& args )
 	{
 		idLib::Printf( "OpenGl quad buffer stereo pixel format not available\n" );
 	}
-	
+
 	idLib::Printf( "Stereo mode: " );
 	switch( renderSystem->GetStereo3DMode() )
 	{
@@ -1124,9 +1148,9 @@ void GfxInfo_f( const idCmdArgs& args )
 			idLib::Printf( "Unknown (%i)\n", renderSystem->GetStereo3DMode() );
 			break;
 	}
-	
+
 	idLib::Printf( "%i multisamples\n", glConfig.multisamples );
-	
+
 	common->Printf( "%5.1f cm screen width (%4.1f\" diagonal)\n",
 					glConfig.physicalScreenWidthInCentimeters, glConfig.physicalScreenWidthInCentimeters / 2.54f
 					* sqrt( ( float )( 16 * 16 + 9 * 9 ) ) / 16.0f );
@@ -1137,7 +1161,7 @@ void GfxInfo_f( const idCmdArgs& args )
 						renderSystem->GetPhysicalScreenWidthInCentimeters(), renderSystem->GetPhysicalScreenWidthInCentimeters() / 2.54f
 						* sqrt( ( float )( 16 * 16 + 9 * 9 ) ) / 16.0f );
 	}
-	
+
 	if( glConfig.gpuSkinningAvailable )
 	{
 		common->Printf( S_COLOR_GREEN "GPU skeletal animation available\n" );
@@ -1160,10 +1184,10 @@ void R_VidRestart_f( const idCmdArgs& args )
 	{
 		return;
 	}
-	
+
 	// set the mode without re-initializing the context
 	R_SetNewMode( false );
-	
+
 #if 0
 	bool full = true;
 	bool forceWindow = false;
@@ -1180,25 +1204,25 @@ void R_VidRestart_f( const idCmdArgs& args )
 			continue;
 		}
 	}
-	
+
 	// this could take a while, so give them the cursor back ASAP
 	Sys_GrabMouseCursor( false );
-	
+
 	// dump ambient caches
 	renderModelManager->FreeModelVertexCaches();
-	
+
 	// free any current world interaction surfaces and vertex caches
 	R_FreeDerivedData();
-	
+
 	// make sure the defered frees are actually freed
 	R_ToggleSmpFrame();
 	R_ToggleSmpFrame();
-	
+
 	// free the vertex caches so they will be regenerated again
 	vertexCache.PurgeAll();
-	
+
 	// sound and input are tied to the window we are about to destroy
-	
+
 	if( full )
 	{
 		// free all of our texture numbers
@@ -1207,7 +1231,7 @@ void R_VidRestart_f( const idCmdArgs& args )
 		// free the context and close the window
 		GLimp_Shutdown();
 		r_initialized = false;
-		
+
 		// create the new context and vertex cache
 		bool latch = cvarSystem->GetCVarBool( "r_fullscreen" );
 		if( forceWindow )
@@ -1216,7 +1240,7 @@ void R_VidRestart_f( const idCmdArgs& args )
 		}
 		R_InitOpenGL();
 		cvarSystem->SetCVarBool( "r_fullscreen", latch );
-		
+
 		// regenerate all images
 		renderImageManager->ReloadImages( true );
 	}
@@ -1231,13 +1255,13 @@ void R_VidRestart_f( const idCmdArgs& args )
 		parms.stereo = false;
 		GLimp_SetScreenParms( parms );
 	}
-	
-	
-	
+
+
+
 	// make sure the regeneration doesn't use anything no longer valid
 	tr.viewCount++;
 	tr.viewDef = NULL;
-	
+
 	// check for problems
 	int err = glGetError();
 	if( err != GL_NO_ERROR )
@@ -1245,7 +1269,7 @@ void R_VidRestart_f( const idCmdArgs& args )
 		common->Printf( "glGetError() = 0x%x\n", err );
 	}
 #endif
-	
+
 }
 
 /*
@@ -1306,22 +1330,22 @@ void idRenderSystemLocal::Clear()
 	guiModel = NULL;
 	memset( gammaTable, 0, sizeof( gammaTable ) );
 	takingScreenshot = false;
-	
+
 	if( unitSquareTriangles != NULL ) {
 		idMem::Free( unitSquareTriangles );
 		unitSquareTriangles = NULL;
 	}
-	
+
 	if( zeroOneCubeTriangles != NULL ) {
 		idMem::Free( zeroOneCubeTriangles );
 		zeroOneCubeTriangles = NULL;
 	}
-	
+
 	if( testImageTriangles != NULL ) {
 		idMem::Free( testImageTriangles );
 		testImageTriangles = NULL;
 	}
-	
+
 	frontEndJobList = NULL;
 }
 
@@ -1337,23 +1361,23 @@ idRenderSystemLocal::Init
 void idRenderSystemLocal::Init()
 {
 	common->Printf( "------- Initializing renderSystem --------\n" );
-	
+
 	// clear all our internal state
 	viewCount = 1;		// so cleared structures never match viewCount
 	// we used to memset tr, but now that it is a class, we can't, so
 	// there may be other state we need to reset
-	
+
 	ambientLightVector[0] = 0.5f;
 	ambientLightVector[1] = 0.5f - 0.385f;
 	ambientLightVector[2] = 0.8925f;
 	ambientLightVector[3] = 1.0f;
-	
+
 	backEnd.Clear();
-	
+
 	R_InitCvars();
-	
+
 	R_InitCommands();
-	
+
 	guiModel = new( TAG_RENDER ) idRenderModelGui;
 	guiModel->Clear();
 	tr_guiModel = guiModel;	// for DeviceContext fast path
@@ -1365,19 +1389,18 @@ void idRenderSystemLocal::Init()
 	renderImageManager->Init();
 	renderDestManager.Init();
 	renderProgManager.Init();
-	
-	idCinematic::InitCinematic();
-	
+	renderCinematicManager->Init();
+
 	// build brightness translation tables
 	R_SetColorMappings();
-	
+
 	R_InitMaterials();
-	
+
 	renderModelManager->Init();
-	
+
 	// set the identity space
 	identitySpace.modelMatrix.Identity();
-	
+
 	// make sure the tr.unitSquareTriangles data is current in the vertex / index cache
 	if( unitSquareTriangles == NULL )
 	{
@@ -1393,12 +1416,12 @@ void idRenderSystemLocal::Init()
 	{
 		testImageTriangles = idTriangles::MakeZeroOneQuad();
 	}
-	
+
 	frontEndJobList = parallelJobManager->AllocJobList( JOBLIST_RENDERER_FRONTEND, JOBLIST_PRIORITY_MEDIUM, 2048, 0, NULL );
-	
+
 	// make sure the command buffers are ready to accept the first screen update
 	SwapCommandBuffers( NULL, NULL, NULL, NULL );
-	
+
 	common->Printf( "renderSystem initialized.\n" );
 	common->Printf( "--------------------------------------\n" );
 }
@@ -1411,20 +1434,20 @@ idRenderSystemLocal::Shutdown
 void idRenderSystemLocal::Shutdown()
 {
 	common->Printf( "idRenderSystem::Shutdown()\n" );
-	
+
 	fonts.DeleteContents();
-	
+
 	if( R_IsInitialized() )
 	{
 		renderImageManager->PurgeAllImages();
 	}
-	
+
 	renderModelManager->Shutdown();
-	
-	idCinematic::ShutdownCinematic();
+
+	renderCinematicManager->Shutdown();
 
 	RB_ShutdownBuffers();
-	
+
 	renderImageManager->Shutdown();
 	renderDestManager.Shutdown();
 
@@ -1432,21 +1455,21 @@ void idRenderSystemLocal::Shutdown()
 
 	// free frame memory
 	allocManager.ShutdownFrameData();
-	
+
 	UnbindBufferObjects();
-	
+
 	// free the vertex cache, which should have nothing allocated now
 	vertexCache.Shutdown();
-	
+
 	RB_ShutdownDebugTools();
-	
+
 	delete guiModel;
-	
+
 	parallelJobManager->FreeJobList( frontEndJobList );
-	
+
 	Clear();
-	
-	ShutdownOpenGL();
+
+	ShutdownRenderDevice();
 }
 
 /*
@@ -1472,7 +1495,7 @@ void idRenderSystemLocal::BeginLevelLoad()
 {
 	renderImageManager->BeginLevelLoad();
 	renderModelManager->BeginLevelLoad();
-	
+
 	// Re-Initialize the Default Materials if needed.
 	R_InitMaterials();
 }
@@ -1545,7 +1568,6 @@ idRenderSystemLocal::RegisterFont
 */
 idFont* idRenderSystemLocal::RegisterFont( const char* fontName )
 {
-
 	idStrStatic< MAX_OSPATH > baseFontName = fontName;
 	baseFontName.Replace( "fonts/", "" );
 	for( int i = 0; i < fonts.Num(); i++ )
@@ -1572,19 +1594,19 @@ void idRenderSystemLocal::ResetFonts()
 }
 /*
 ========================
-idRenderSystemLocal::InitOpenGL
+idRenderSystemLocal::InitRenderDevice
 ========================
 */
-void idRenderSystemLocal::InitOpenGL()
+void idRenderSystemLocal::InitRenderDevice()
 {
 	// if OpenGL isn't started, start it now
 	if( !R_IsInitialized() )
 	{
 		R_InitOpenGL();
-		
+
 		// Reloading images here causes the rendertargets to get deleted. Figure out how to handle this properly on 360
 		renderImageManager->ReloadImages( true );
-		
+
 		int err = glGetError();
 		if( err != GL_NO_ERROR )
 		{
@@ -1595,10 +1617,10 @@ void idRenderSystemLocal::InitOpenGL()
 
 /*
 ========================
-idRenderSystemLocal::ShutdownOpenGL
+idRenderSystemLocal::ShutdownRenderDevice
 ========================
 */
-void idRenderSystemLocal::ShutdownOpenGL()
+void idRenderSystemLocal::ShutdownRenderDevice()
 {
 	// free the context and close the window
 	allocManager.ShutdownFrameData();
@@ -1608,10 +1630,10 @@ void idRenderSystemLocal::ShutdownOpenGL()
 
 /*
 ========================
-idRenderSystemLocal::IsOpenGLRunning
+idRenderSystemLocal::IsRenderDeviceRunning
 ========================
 */
-bool idRenderSystemLocal::IsOpenGLRunning() const
+bool idRenderSystemLocal::IsRenderDeviceRunning() const
 {
 	return R_IsInitialized();
 }
@@ -1733,8 +1755,7 @@ void idRenderSystemLocal::UpdateStereo3DMode()
 	{
 		glConfig.stereo3Dmode = STEREO3D_HDMI_720;
 	}
-	else
-	{
+	else {
 		glConfig.stereo3Dmode = GetStereoScopicRenderingMode();
 	}
 }
@@ -1770,9 +1791,11 @@ float idRenderSystemLocal::GetPixelAspect() const
 	{
 		case STEREO3D_SIDE_BY_SIDE_COMPRESSED:
 			return glConfig.pixelAspect * 2.0f;
+
 		case STEREO3D_TOP_AND_BOTTOM_COMPRESSED:
 		case STEREO3D_INTERLACED:
 			return glConfig.pixelAspect * 0.5f;
+
 		default:
 			return glConfig.pixelAspect;
 	}
@@ -1782,7 +1805,7 @@ float idRenderSystemLocal::GetPixelAspect() const
 ========================
 idRenderSystemLocal::GetPhysicalScreenWidthInCentimeters
 
-This is used to calculate stereoscopic screen offset for a given interocular distance.
+	This is used to calculate stereoscopic screen offset for a given interocular distance.
 ========================
 */
 idCVar	r_forceScreenWidthCentimeters( "r_forceScreenWidthCentimeters", "0", CVAR_RENDERER | CVAR_ARCHIVE, "Override screen width returned by hardware" );
@@ -1793,4 +1816,19 @@ float idRenderSystemLocal::GetPhysicalScreenWidthInCentimeters() const
 		return r_forceScreenWidthCentimeters.GetFloat();
 	}
 	return glConfig.physicalScreenWidthInCentimeters;
+}
+
+/*
+========================
+ idRenderSystemLocal::GetModeListForDisplay
+
+	the number of displays can be found by itterating this until it returns false
+	displayNum is the 0 based value passed to EnumDisplayDevices(), you must add
+	1 to this to get an r_fullScreen value.
+========================
+*/
+bool idRenderSystemLocal::GetModeListForDisplay( const int displayNum, vidModes_t & modeList ) const
+{
+	extern bool R_GetModeListForDisplay( const int, vidModes_t & );
+	return R_GetModeListForDisplay( displayNum, modeList );
 }

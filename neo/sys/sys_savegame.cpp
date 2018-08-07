@@ -551,7 +551,7 @@ saveGameHandle_t idSaveGameManager::ExecuteProcessorAndWait( idSaveGameProcessor
 	while( !IsSaveGameCompletedFromHandle( handle ) )
 	{
 		Pump();
-		Sys_Sleep( 10 );
+		sys->Sleep( 10 );
 	}
 	
 	// One more pump to get the completed callback

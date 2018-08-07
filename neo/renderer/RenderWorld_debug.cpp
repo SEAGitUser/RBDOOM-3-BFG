@@ -313,17 +313,17 @@ void idRenderWorldLocal::DebugAxis( const idVec3& origin, const idMat3& axis )
 {
 	idVec3 start = origin;
 	idVec3 end = start + axis[ 0 ] * 20.0f;
-	DebugArrow( colorWhite, start, end, 2 );
+	DebugArrow( idColor::white.ToVec4(), start, end, 2 );
 	end = start + axis[ 0 ] * -20.0f;
-	DebugArrow( colorWhite, start, end, 2 );
+	DebugArrow( idColor::white.ToVec4(), start, end, 2 );
 	end = start + axis[ 1 ] * +20.0f;
-	DebugArrow( colorGreen, start, end, 2 );
+	DebugArrow( idColor::green.ToVec4(), start, end, 2 );
 	end = start + axis[ 1 ] * -20.0f;
-	DebugArrow( colorGreen, start, end, 2 );
+	DebugArrow( idColor::green.ToVec4(), start, end, 2 );
 	end = start + axis[ 2 ] * +20.0f;
-	DebugArrow( colorBlue, start, end, 2 );
+	DebugArrow( idColor::blue.ToVec4(), start, end, 2 );
 	end = start + axis[ 2 ] * -20.0f;
-	DebugArrow( colorBlue, start, end, 2 );
+	DebugArrow( idColor::blue.ToVec4(), start, end, 2 );
 }
 
 /*

@@ -184,8 +184,8 @@ bool idPlayerIcon::CreateIcon( idPlayer* player, playerIconType_t type, const ch
 	renderEnt.customSkin = 0;
 	renderEnt.noShadow = true;
 	renderEnt.noSelfShadow = true;
-	renderEnt.customShader = declManager->FindMaterial( mtr );
-	renderEnt.referenceShader = 0;
+	renderEnt.customMaterial = declManager->FindMaterial( mtr );
+	renderEnt.referenceMaterial = nullptr;
 	renderEnt.bounds = renderEnt.hModel->Bounds( &renderEnt );
 	
 	iconHandle = gameRenderWorld->AddEntityDef( &renderEnt );

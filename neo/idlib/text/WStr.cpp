@@ -950,9 +950,8 @@ wchar_t *va( const wchar_t *fmt, ... )
 	va_list argptr;
 	static int index = 0;
 	static wchar_t string[ 4 ][ VA_BUF_LEN ];	// in case called by nested functions
-	wchar_t *buf;
-
-	buf = string[ index ];
+	
+	wchar_t* buf = string[ index ];
 	index = ( index + 1 ) & 3;
 
 	va_start( argptr, fmt );

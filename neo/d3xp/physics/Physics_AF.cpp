@@ -468,11 +468,11 @@ void idAFConstraint_Fixed::DebugDraw()
 	master = body2 ? body2 : physics->GetMasterBody();
 	if( master )
 	{
-		gameRenderWorld->DebugLine( colorRed, body1->GetWorldOrigin(), master->GetWorldOrigin() );
+		gameRenderWorld->DebugLine( idColor::red.ToVec4(), body1->GetWorldOrigin(), master->GetWorldOrigin() );
 	}
 	else
 	{
-		gameRenderWorld->DebugLine( colorRed, body1->GetWorldOrigin(), vec3_origin );
+		gameRenderWorld->DebugLine( idColor::red.ToVec4(), body1->GetWorldOrigin(), vec3_origin );
 	}
 }
 
@@ -863,9 +863,9 @@ idAFConstraint_BallAndSocketJoint::DebugDraw
 void idAFConstraint_BallAndSocketJoint::DebugDraw()
 {
 	idVec3 a1 = body1->GetWorldOrigin() + anchor1 * body1->GetWorldAxis();
-	gameRenderWorld->DebugLine( colorBlue, a1 - idVec3( 5, 0, 0 ), a1 + idVec3( 5, 0, 0 ) );
-	gameRenderWorld->DebugLine( colorBlue, a1 - idVec3( 0, 5, 0 ), a1 + idVec3( 0, 5, 0 ) );
-	gameRenderWorld->DebugLine( colorBlue, a1 - idVec3( 0, 0, 5 ), a1 + idVec3( 0, 0, 5 ) );
+	gameRenderWorld->DebugLine( idColor::blue.ToVec4(), a1 - idVec3( 5, 0, 0 ), a1 + idVec3( 5, 0, 0 ) );
+	gameRenderWorld->DebugLine( idColor::blue.ToVec4(), a1 - idVec3( 0, 5, 0 ), a1 + idVec3( 0, 5, 0 ) );
+	gameRenderWorld->DebugLine( idColor::blue.ToVec4(), a1 - idVec3( 0, 0, 5 ), a1 + idVec3( 0, 0, 5 ) );
 	
 	if( af_showLimits.GetBool() )
 	{
@@ -1516,10 +1516,10 @@ void idAFConstraint_UniversalJoint::DebugDraw()
 		d2 *= m2.Transpose() * m1;
 	}
 	
-	gameRenderWorld->DebugArrow( colorCyan, a1, a1 + s1 * 5.0f, 1.0f );
-	gameRenderWorld->DebugArrow( colorBlue, a2, a2 + s2 * 5.0f, 1.0f );
-	gameRenderWorld->DebugLine( colorGreen, a1, a1 + d1 * 5.0f );
-	gameRenderWorld->DebugLine( colorGreen, a2, a2 + d2 * 5.0f );
+	gameRenderWorld->DebugArrow( idColor::cyan.ToVec4(), a1, a1 + s1 * 5.0f, 1.0f );
+	gameRenderWorld->DebugArrow( idColor::blue.ToVec4(), a2, a2 + s2 * 5.0f, 1.0f );
+	gameRenderWorld->DebugLine( idColor::green.ToVec4(), a1, a1 + d1 * 5.0f );
+	gameRenderWorld->DebugLine( idColor::green.ToVec4(), a2, a2 + d2 * 5.0f );
 	
 	if( af_showLimits.GetBool() )
 	{
@@ -2203,9 +2203,9 @@ void idAFConstraint_Hinge::DebugDraw()
 	idVec3 x1 = axis1 * body1->GetWorldAxis();
 	x1.OrthogonalBasis( vecX, vecY );
 	
-	gameRenderWorld->DebugArrow( colorBlue, a1 - 4.0f * x1, a1 + 4.0f * x1, 1 );
-	gameRenderWorld->DebugLine( colorBlue, a1 - 2.0f * vecX, a1 + 2.0f * vecX );
-	gameRenderWorld->DebugLine( colorBlue, a1 - 2.0f * vecY, a1 + 2.0f * vecY );
+	gameRenderWorld->DebugArrow( idColor::blue.ToVec4(), a1 - 4.0f * x1, a1 + 4.0f * x1, 1 );
+	gameRenderWorld->DebugLine( idColor::blue.ToVec4(), a1 - 2.0f * vecX, a1 + 2.0f * vecX );
+	gameRenderWorld->DebugLine( idColor::blue.ToVec4(), a1 - 2.0f * vecY, a1 + 2.0f * vecY );
 	
 	if( af_showLimits.GetBool() )
 	{
@@ -2752,7 +2752,7 @@ void idAFConstraint_Slider::DebugDraw()
 	{
 		ofs = offset - body1->GetWorldOrigin();
 	}
-	gameRenderWorld->DebugLine( colorGreen, ofs, ofs + axis * body1->GetWorldAxis() );
+	gameRenderWorld->DebugLine( idColor::green.ToVec4(), ofs, ofs + axis * body1->GetWorldAxis() );
 }
 
 /*
@@ -3000,9 +3000,9 @@ void idAFConstraint_Plane::DebugDraw()
 	right *= 4.0f;
 	up *= 4.0f;
 	
-	gameRenderWorld->DebugLine( colorCyan, a1 - right, a1 + right );
-	gameRenderWorld->DebugLine( colorCyan, a1 - up, a1 + up );
-	gameRenderWorld->DebugArrow( colorCyan, a1, a1 + normal, 1 );
+	gameRenderWorld->DebugLine( idColor::cyan.ToVec4(), a1 - right, a1 + right );
+	gameRenderWorld->DebugLine( idColor::cyan.ToVec4(), a1 - up, a1 + up );
+	gameRenderWorld->DebugArrow( idColor::cyan.ToVec4(), a1, a1 + normal, 1 );
 }
 
 /*
@@ -3296,30 +3296,30 @@ void idAFConstraint_Spring::DebugDraw()
 	length = dir.Normalize();
 	
 	// draw spring
-	gameRenderWorld->DebugLine( colorGreen, a1, a2 );
+	gameRenderWorld->DebugLine( idColor::green.ToVec4(), a1, a2 );
 	
 	// draw rest length
 	p = restLength * 0.5f * dir;
-	gameRenderWorld->DebugCircle( colorWhite, mid + p, dir, 1.0f, 10 );
-	gameRenderWorld->DebugCircle( colorWhite, mid - p, dir, 1.0f, 10 );
+	gameRenderWorld->DebugCircle( idColor::white.ToVec4(), mid + p, dir, 1.0f, 10 );
+	gameRenderWorld->DebugCircle( idColor::white.ToVec4(), mid - p, dir, 1.0f, 10 );
 	if( restLength > length )
 	{
-		gameRenderWorld->DebugLine( colorWhite, a2, mid + p );
-		gameRenderWorld->DebugLine( colorWhite, a1, mid - p );
+		gameRenderWorld->DebugLine( idColor::white.ToVec4(), a2, mid + p );
+		gameRenderWorld->DebugLine( idColor::white.ToVec4(), a1, mid - p );
 	}
 	
 	if( minLength > 0.0f )
 	{
 		// draw min length
-		gameRenderWorld->DebugCircle( colorBlue, mid + minLength * 0.5f * dir, dir, 2.0f, 10 );
-		gameRenderWorld->DebugCircle( colorBlue, mid - minLength * 0.5f * dir, dir, 2.0f, 10 );
+		gameRenderWorld->DebugCircle( idColor::blue.ToVec4(), mid + minLength * 0.5f * dir, dir, 2.0f, 10 );
+		gameRenderWorld->DebugCircle( idColor::blue.ToVec4(), mid - minLength * 0.5f * dir, dir, 2.0f, 10 );
 	}
 	
 	if( maxLength > 0.0f )
 	{
 		// draw max length
-		gameRenderWorld->DebugCircle( colorRed, mid + maxLength * 0.5f * dir, dir, 2.0f, 10 );
-		gameRenderWorld->DebugCircle( colorRed, mid - maxLength * 0.5f * dir, dir, 2.0f, 10 );
+		gameRenderWorld->DebugCircle( idColor::red.ToVec4(), mid + maxLength * 0.5f * dir, dir, 2.0f, 10 );
+		gameRenderWorld->DebugCircle( idColor::red.ToVec4(), mid - maxLength * 0.5f * dir, dir, 2.0f, 10 );
 	}
 }
 
@@ -3560,9 +3560,9 @@ void idAFConstraint_Contact::DebugDraw()
 {
 	idVec3 x, y;
 	contact.normal.NormalVectors( x, y );
-	gameRenderWorld->DebugLine( colorWhite, contact.point, contact.point + 6.0f * contact.normal );
-	gameRenderWorld->DebugLine( colorWhite, contact.point - 2.0f * x, contact.point + 2.0f * x );
-	gameRenderWorld->DebugLine( colorWhite, contact.point - 2.0f * y, contact.point + 2.0f * y );
+	gameRenderWorld->DebugLine( idColor::white.ToVec4(), contact.point, contact.point + 6.0f * contact.normal );
+	gameRenderWorld->DebugLine( idColor::white.ToVec4(), contact.point - 2.0f * x, contact.point + 2.0f * x );
+	gameRenderWorld->DebugLine( idColor::white.ToVec4(), contact.point - 2.0f * y, contact.point + 2.0f * y );
 }
 
 
@@ -3990,7 +3990,7 @@ void idAFConstraint_ConeLimit::DebugDraw()
 	}
 	
 	// draw body1 axis
-	gameRenderWorld->DebugLine( colorGreen, anchor, anchor + size * ( body1Axis * body1->GetWorldAxis() ) );
+	gameRenderWorld->DebugLine( idColor::green.ToVec4(), anchor, anchor + size * ( body1Axis * body1->GetWorldAxis() ) );
 	
 	// draw cone
 	ax.NormalVectors( x, y );
@@ -4002,8 +4002,8 @@ void idAFConstraint_ConeLimit::DebugDraw()
 	for( a = 0.0f; a < 360.0f; a += 45.0f )
 	{
 		end = x * ( float ) cos( DEG2RAD( a + 45.0f ) ) + y * ( float ) sin( DEG2RAD( a + 45.0f ) ) + z;
-		gameRenderWorld->DebugLine( colorMagenta, anchor, start );
-		gameRenderWorld->DebugLine( colorMagenta, start, end );
+		gameRenderWorld->DebugLine( idColor::magenta.ToVec4(), anchor, start );
+		gameRenderWorld->DebugLine( idColor::magenta.ToVec4(), start, end );
 		start = end;
 	}
 }
@@ -4291,7 +4291,7 @@ void idAFConstraint_PyramidLimit::DebugDraw()
 	}
 	
 	// draw body1 axis
-	gameRenderWorld->DebugLine( colorGreen, anchor, anchor + size * ( body1Axis * body1->GetWorldAxis() ) );
+	gameRenderWorld->DebugLine( idColor::green.ToVec4(), anchor, anchor + size * ( body1Axis * body1->GetWorldAxis() ) );
 	
 	// draw the pyramid
 	for( i = 0; i < 2; i++ )
@@ -4311,8 +4311,8 @@ void idAFConstraint_PyramidLimit::DebugDraw()
 	
 	for( i = 0; i < 4; i++ )
 	{
-		gameRenderWorld->DebugLine( colorMagenta, anchor, p[i] );
-		gameRenderWorld->DebugLine( colorMagenta, p[i], p[( i + 1 ) & 3] );
+		gameRenderWorld->DebugLine( idColor::magenta.ToVec4(), anchor, p[i] );
+		gameRenderWorld->DebugLine( idColor::magenta.ToVec4(), p[i], p[( i + 1 ) & 3] );
 	}
 }
 
@@ -4619,9 +4619,9 @@ void idAFConstraint_Suspension::DebugDraw()
 	{
 		origin = trace.c.point;
 		
-		gameRenderWorld->DebugLine( colorWhite, origin, origin + 6.0f * axis[2] );
-		gameRenderWorld->DebugLine( colorWhite, origin - 4.0f * axis[0], origin + 4.0f * axis[0] );
-		gameRenderWorld->DebugLine( colorWhite, origin - 2.0f * axis[1], origin + 2.0f * axis[1] );
+		gameRenderWorld->DebugLine( idColor::white.ToVec4(), origin, origin + 6.0f * axis[2] );
+		gameRenderWorld->DebugLine( idColor::white.ToVec4(), origin - 4.0f * axis[0], origin + 4.0f * axis[0] );
+		gameRenderWorld->DebugLine( idColor::white.ToVec4(), origin - 2.0f * axis[1], origin + 2.0f * axis[1] );
 	}
 }
 
@@ -7290,7 +7290,7 @@ void DrawTraceModelSilhouette( const idVec3& projectionOrigin, const idClipModel
 	{
 		v1 = trm->verts[ trm->edges[ abs( silEdges[i] ) ].v[ INT32_SIGNBITSET( silEdges[i] ) ] ];
 		v2 = trm->verts[ trm->edges[ abs( silEdges[i] ) ].v[ INT32_SIGNBITNOTSET( silEdges[i] ) ] ];
-		gameRenderWorld->DebugArrow( colorRed, origin + v1 * axis, origin + v2 * axis, 1 );
+		gameRenderWorld->DebugArrow( idColor::red.ToVec4(), origin + v1 * axis, origin + v2 * axis, 1 );
 	}
 }
 
@@ -7314,25 +7314,25 @@ void idPhysics_AF::DebugDraw()
 		{
 			constraint->GetCenter( center );
 			axis = gameLocal.GetLocalPlayer()->viewAngles.ToMat3();
-			gameRenderWorld->DebugCone( colorYellow, center, ( axis[2] - axis[1] ) * 4.0f, 0.0f, 1.0f, 0 );
+			gameRenderWorld->DebugCone( idColor::yellow.ToVec4(), center, ( axis[2] - axis[1] ) * 4.0f, 0.0f, 1.0f, 0 );
 			
 			if( af_showConstrainedBodies.GetBool() )
 			{
-				cvarSystem->SetCVarString( "cm_drawColor", colorCyan.ToString( 0 ) );
+				cvarSystem->SetCVarString( "cm_drawColor", idColor::cyan.ToVec4().ToString( 0 ) );
 				constrainedBody1 = constraint->body1;
 				if( constrainedBody1 )
 				{
 					collisionModelManager->DrawModel( constrainedBody1->clipModel->Handle(), constrainedBody1->clipModel->GetOrigin(),
 													  constrainedBody1->clipModel->GetAxis(), vec3_origin, 0.0f );
 				}
-				cvarSystem->SetCVarString( "cm_drawColor", colorBlue.ToString( 0 ) );
+				cvarSystem->SetCVarString( "cm_drawColor", idColor::blue.ToVec4().ToString( 0 ) );
 				constrainedBody2 = constraint->body2;
 				if( constrainedBody2 )
 				{
 					collisionModelManager->DrawModel( constrainedBody2->clipModel->Handle(), constrainedBody2->clipModel->GetOrigin(),
 													  constrainedBody2->clipModel->GetAxis(), vec3_origin, 0.0f );
 				}
-				cvarSystem->SetCVarString( "cm_drawColor", colorRed.ToString( 0 ) );
+				cvarSystem->SetCVarString( "cm_drawColor", idColor::red.ToVec4().ToString( 0 ) );
 			}
 		}
 	}
@@ -7342,10 +7342,10 @@ void idPhysics_AF::DebugDraw()
 		highlightBody = GetBody( af_highlightBody.GetString() );
 		if( highlightBody )
 		{
-			cvarSystem->SetCVarString( "cm_drawColor", colorYellow.ToString( 0 ) );
+			cvarSystem->SetCVarString( "cm_drawColor", idColor::yellow.ToVec4().ToString( 0 ) );
 			collisionModelManager->DrawModel( highlightBody->clipModel->Handle(), highlightBody->clipModel->GetOrigin(),
 											  highlightBody->clipModel->GetAxis(), vec3_origin, 0.0f );
-			cvarSystem->SetCVarString( "cm_drawColor", colorRed.ToString( 0 ) );
+			cvarSystem->SetCVarString( "cm_drawColor", idColor::red.ToVec4().ToString( 0 ) );
 		}
 	}
 	
@@ -7373,7 +7373,7 @@ void idPhysics_AF::DebugDraw()
 		for( i = 0; i < bodies.Num(); i++ )
 		{
 			body = bodies[i];
-			gameRenderWorld->DrawText( body->GetName().c_str(), body->GetWorldOrigin(), 0.08f, colorCyan, gameLocal.GetLocalPlayer()->viewAngles.ToMat3(), 1 );
+			gameRenderWorld->DrawText( body->GetName().c_str(), body->GetWorldOrigin(), 0.08f, idColor::cyan.ToVec4(), gameLocal.GetLocalPlayer()->viewAngles.ToMat3(), 1 );
 		}
 	}
 	
@@ -7382,14 +7382,14 @@ void idPhysics_AF::DebugDraw()
 		for( i = 0; i < bodies.Num(); i++ )
 		{
 			body = bodies[i];
-			gameRenderWorld->DrawText( va( "\n%1.2f", 1.0f / body->GetInverseMass() ), body->GetWorldOrigin(), 0.08f, colorCyan, gameLocal.GetLocalPlayer()->viewAngles.ToMat3(), 1 );
+			gameRenderWorld->DrawText( va( "\n%1.2f", 1.0f / body->GetInverseMass() ), body->GetWorldOrigin(), 0.08f, idColor::cyan.ToVec4(), gameLocal.GetLocalPlayer()->viewAngles.ToMat3(), 1 );
 		}
 	}
 	
 	if( af_showTotalMass.GetBool() )
 	{
 		axis = gameLocal.GetLocalPlayer()->viewAngles.ToMat3();
-		gameRenderWorld->DrawText( va( "\n%1.2f", totalMass ), bodies[0]->GetWorldOrigin() + axis[2] * 8.0f, 0.15f, colorCyan, axis, 1 );
+		gameRenderWorld->DrawText( va( "\n%1.2f", totalMass ), bodies[0]->GetWorldOrigin() + axis[2] * 8.0f, 0.15f, idColor::cyan.ToVec4(), axis, 1 );
 	}
 	
 	if( af_showInertia.GetBool() )
@@ -7402,7 +7402,7 @@ void idPhysics_AF::DebugDraw()
 										   I[0].x, I[0].y, I[0].z,
 										   I[1].x, I[1].y, I[1].z,
 										   I[2].x, I[2].y, I[2].z ),
-									   body->GetWorldOrigin(), 0.05f, colorCyan, gameLocal.GetLocalPlayer()->viewAngles.ToMat3(), 1 );
+									   body->GetWorldOrigin(), 0.05f, idColor::cyan.ToVec4(), gameLocal.GetLocalPlayer()->viewAngles.ToMat3(), 1 );
 		}
 	}
 	
@@ -7437,7 +7437,7 @@ void idPhysics_AF::DebugDraw()
 		{
 			constraint = primaryConstraints[i];
 			constraint->GetCenter( center );
-			gameRenderWorld->DrawText( constraint->GetName().c_str(), center, 0.08f, colorCyan, gameLocal.GetLocalPlayer()->viewAngles.ToMat3(), 1 );
+			gameRenderWorld->DrawText( constraint->GetName().c_str(), center, 0.08f, idColor::cyan.ToVec4(), gameLocal.GetLocalPlayer()->viewAngles.ToMat3(), 1 );
 		}
 		if( !af_showPrimaryOnly.GetBool() )
 		{
@@ -7445,7 +7445,7 @@ void idPhysics_AF::DebugDraw()
 			{
 				constraint = auxiliaryConstraints[i];
 				constraint->GetCenter( center );
-				gameRenderWorld->DrawText( constraint->GetName().c_str(), center, 0.08f, colorCyan, gameLocal.GetLocalPlayer()->viewAngles.ToMat3(), 1 );
+				gameRenderWorld->DrawText( constraint->GetName().c_str(), center, 0.08f, idColor::cyan.ToVec4(), gameLocal.GetLocalPlayer()->viewAngles.ToMat3(), 1 );
 			}
 		}
 	}

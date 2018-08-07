@@ -661,7 +661,7 @@ void idEditField::Draw( int x, int y, int width, bool showCursor )
 	str[ drawLen ] = 0;
 	
 	// draw it
-	renderSystem->DrawSmallStringExt( x, y, str, colorWhite, false );
+	renderSystem->DrawSmallStringExt( x, y, str, idColor::white.ToVec4(), false );
 	
 	// draw the cursor
 	if( !showCursor )

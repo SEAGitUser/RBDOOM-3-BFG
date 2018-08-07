@@ -51,8 +51,7 @@ If you have questions concerning this license or the applicable additional terms
 ===============================================================================
 */
 
-typedef struct singleSmoke_s
-{
+typedef struct singleSmoke_s {
 	struct singleSmoke_s* 		next;
 	int							privateStartTime;	// start time for this particular particle
 	int							index;				// particle index in system, 0 <= index < stage->totalParticles
@@ -62,45 +61,42 @@ typedef struct singleSmoke_s
 	int							timeGroup;
 } singleSmoke_t;
 
-typedef struct
-{
+struct activeSmokeStage_t {
 	const idParticleStage* 		stage;
 	singleSmoke_t* 				smokes;
-} activeSmokeStage_t;
+};
 
-
-class idSmokeParticles
-{
+class idSmokeParticles {
 public:
 	idSmokeParticles();
-	
+
 	// creats an entity covering the entire world that will call back each rendering
 	void						Init();
 	void						Shutdown();
-	
+
 	// spits out a particle, returning false if the system will not emit any more particles in the future
 	bool						EmitSmoke( const idDeclParticle* smoke, const int startTime, const float diversity,
 										   const idVec3& origin, const idMat3& axis, int timeGroup /*_D3XP*/ );
-										   
+
 	// free old smokes
 	void						FreeSmokes();
-	
+
 private:
 	bool						initialized;
-	
-	renderEntityParms_t				renderEntity;			// used to present a model to the renderer
+
+	renderEntityParms_t			renderEntity;			// used to present a model to the renderer
 	int							renderEntityHandle;		// handle to static renderer model
-	
+
 	static const int			MAX_SMOKE_PARTICLES = 10000;
-	singleSmoke_t				smokes[MAX_SMOKE_PARTICLES];
-	
+	singleSmoke_t				smokes[ MAX_SMOKE_PARTICLES ];
+
 	idList<activeSmokeStage_t, TAG_PARTICLE>	activeStages;
 	singleSmoke_t* 				freeSmokes;
 	int							numActiveSmokes;
 	int							currentParticleTime;	// don't need to recalculate if == view time
-	
-	bool						UpdateRenderEntity( renderEntityParms_t* renderEntity, const renderViewParms_t* renderView );
-	static bool					ModelCallback( renderEntityParms_t* renderEntity, const renderViewParms_t* renderView );
+
+	bool						UpdateRenderEntity( renderEntityParms_t*, const renderViewParms_t* );
+	static bool					ModelCallback( renderEntityParms_t*, const renderViewParms_t* );
 };
 
 #endif /* !__SMOKEPARTICLES_H__ */

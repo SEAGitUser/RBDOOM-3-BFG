@@ -120,7 +120,7 @@ enum parmType_t
 	PT_MAX
 };
 
-struct expOp_t 
+struct expOp_t
 {
 	parmType_t	type;
 	int16		parmIndexDest;
@@ -142,7 +142,7 @@ struct expOp_t
 	void operator != ( const expOp_t& );
 };
 
-union parmValue_t 
+union parmValue_t
 {
 	idVec4				value;
 	idImage				*image;
@@ -156,7 +156,7 @@ union parmValue_t
 };
 
 // renderer\ParmBlock.cpp
-class idParmBlock 
+class idParmBlock
 {
 	void Clear();
 	void CopyFrom( other );
@@ -214,7 +214,7 @@ class idRenderParm {
 };
 
 // renderer\ParmBlockParser.cpp
-class idParmBlockParser 
+class idParmBlockParser
 {
 	idParmBlockParser( src block_ token name temp constantValue atom );
 	~idParmBlockParser();
@@ -290,7 +290,7 @@ private:
 };
 
 template< typename Type >
-class idHeapArray 
+class idHeapArray
 {
 	void Alloc();
 	void Clear();
@@ -308,7 +308,7 @@ private:
 	bool	bufferOwnedByObject;
 };
 
-struct renderSettings_t 
+struct renderSettings_t
 {
 	bool	isComboMap;
 	bool	isToolsWorld;
@@ -441,7 +441,7 @@ struct renderSortDepthParms_t
 
 };
 
-struct renderDepthParms_t 
+struct renderDepthParms_t
 {
 	int	settings;
 	int	renderView;
@@ -479,7 +479,7 @@ struct shadowCaster_t {
 	int numSurfaces;
 };
 
-struct lightShadow_t 
+struct lightShadow_t
 {
 	int shadowProjection;
 	int worldPosToShadowMap;
@@ -528,7 +528,7 @@ struct renderShadowBufferParms_t
 
 };
 
-struct captureParms_t 
+struct captureParms_t
 {
 	int							capture;
 	const renderSettings_t *	settings;
@@ -570,7 +570,7 @@ struct captureParms_t
 	int	imgBlack;
 };
 
-struct renderSelfShadowsParms_t 
+struct renderSelfShadowsParms_t
 {
 	const renderSettings_t *	settings;
 	const idRenderView *		renderView;
@@ -740,7 +740,7 @@ idCVar r_smShadowFadeExponent( "r_smShadowFadeExponent", "0.25", CVAR_RENDERER |
 */
 float CalculateShadowFadeAlpha( const float MaxUnclampedResolution, const uint32 ShadowFadeResolution, const uint32 MinShadowResolution )
 {
-	// NB: MaxUnclampedResolution < 0 will return FadeAlpha = 0.0f. 
+	// NB: MaxUnclampedResolution < 0 will return FadeAlpha = 0.0f.
 
 	float FadeAlpha = 0.0f;
 	// Shadow size is above fading resolution.
@@ -814,10 +814,10 @@ void DrawLightVolume( const viewLight_t * const vLight )
 		GL_State( 0 );
 	}
 	else // Render frontfaces with depth tests on to get the speedup from HiZ since the camera is outside the light geometry
-	{		
+	{
 		//GraphicsPSOInit.DepthStencilState = TStaticDepthStencilState<false, CF_DepthNearOrEqual>::GetRHI();
 		//GraphicsPSOInit.RasterizerState = View.bReverseCulling ? TStaticRasterizerState<FM_Solid, CM_CCW>::GetRHI() : TStaticRasterizerState<FM_Solid, CM_CW>::GetRHI();
-		
+
 		GL_State( 0 );
 	}
 }
@@ -1088,7 +1088,7 @@ void RB_EXP_RenderOccluders( const viewLight_t * const vLight )
 			idDrawVert *ac = ( idDrawVert * )vertexCache.Position( tri->ambientCache );
 			qglVertexPointer( 3, GL_FLOAT, sizeof( idDrawVert ), ac->xyz.ToFloatPtr() );
 			qglTexCoordPointer( 2, GL_FLOAT, sizeof( idDrawVert ), ac->st.ToFloatPtr() );
-			
+
 			if( surfInt.shader ) {
 				surfInt.shader->GetEditorImage()->Bind();
 			}
@@ -1109,7 +1109,7 @@ idPlane	pointLightFrustums[ 6 ][ 6 ] = {
 	{ idPlane( 0,0,-1,0 ), idPlane( 1,0,-1,0 ), idPlane( -1,0,-1,0 ), idPlane( 0,1,-1,0 ), idPlane( 0,-1,-1,0 ), idPlane( 0,0,1,0 ), },
 };
 
-struct shadowFrustum_t  
+struct shadowFrustum_t
 {
 	int		numPlanes;		// this is always 6 for now
 	idPlane	planes[ 6 ];
@@ -1161,8 +1161,8 @@ void R_MakeShadowFrustums( idRenderLightLocal *light, shadowFrustum_t shadowFrus
 
 		// if the light center of projection is outside the light bounds,
 		// we will need to build the planes a little differently
-		if( idMath::Fabs( light->GetParms().lightCenter[ 0 ] ) > light->GetParms().lightRadius[ 0 ] || 
-			idMath::Fabs( light->GetParms().lightCenter[ 1 ] ) > light->GetParms().lightRadius[ 1 ] || 
+		if( idMath::Fabs( light->GetParms().lightCenter[ 0 ] ) > light->GetParms().lightRadius[ 0 ] ||
+			idMath::Fabs( light->GetParms().lightCenter[ 1 ] ) > light->GetParms().lightRadius[ 1 ] ||
 			idMath::Fabs( light->GetParms().lightCenter[ 2 ] ) > light->GetParms().lightRadius[ 2 ] )
 		{
 			centerOutside = true;
@@ -1425,14 +1425,14 @@ void RB_Exp_SelectFrustum( shadowBufferParms_t & parms, const viewLight_t * cons
 
 	// draw front faces of the light frustum, incrementing the stencil buffer on depth fail
 	// so we can't draw on those pixels
-	GL_State( GLS_COLORMASK | GLS_ALPHAMASK | GLS_DEPTHMASK | GLS_DEPTHFUNC_LESS );
+	GL_State( GLS_COLORMASK | GLS_ALPHAMASK | GLS_DEPTHMASK | GLS_DEPTHFUNC_LEQUAL | GLS_FRONTSIDED );
+	//GL_Cull( CT_FRONT_SIDED );
 	glStencilFunc( GL_ALWAYS, 0, 255 );
 	glStencilOp( GL_KEEP, GL_INCR, GL_KEEP );
-	GL_Cull( CT_FRONT_SIDED );
 
 	GL_DrawIndexed( tri );
 
-	// draw back faces of the light frustum with 
+	// draw back faces of the light frustum with
 	// depth test greater
 	// stencil test of equal 1
 	// zero stencil stencil when depth test passes, so subsequent surface drawing
@@ -1442,19 +1442,19 @@ void RB_Exp_SelectFrustum( shadowBufferParms_t & parms, const viewLight_t * cons
 	glStencilFunc( GL_EQUAL, 1, 255 );
 	glStencilOp( GL_KEEP, GL_KEEP, GL_ZERO );
 
-	GL_Cull( CT_BACK_SIDED );
+	//GL_Cull( CT_BACK_SIDED );
 	glDepthFunc( GL_GREATER );
 
 	// write to destination alpha
 	if( r_sb_showFrustumPixels.GetBool() )
 	{
-		GL_State( GLS_SRCBLEND_ONE | GLS_DSTBLEND_ONE | GLS_DEPTHMASK | GLS_DEPTHFUNC_LESS );
+		GL_State( GLS_SRCBLEND_ONE | GLS_DSTBLEND_ONE | GLS_DEPTHMASK | GLS_DEPTHFUNC_LEQUAL | GLS_BACKSIDED );
 		///glDisable( GL_TEXTURE_2D );
 		idRenderVector color( 0.0f, 0.25f, 0.0f, 1.0f );
 		renderProgManager.SetRenderParm( RENDERPARM_COLOR, color.ToFloatPtr() );
 	}
 	else {
-		GL_State( GLS_COLORMASK | GLS_DEPTHMASK | GLS_DEPTHFUNC_LESS );
+		GL_State( GLS_COLORMASK | GLS_DEPTHMASK | GLS_DEPTHFUNC_LEQUAL | GLS_BACKSIDED );
 
 		glBindProgramARB( GL_VERTEX_PROGRAM_ARB, parms.screenSpaceShadowVertexProgram );
 		switch( r_sb_samples.GetInteger() )
@@ -1551,12 +1551,12 @@ void RB_Exp_SelectFrustum( shadowBufferParms_t & parms, const viewLight_t * cons
 	tRow[ 1 ] = 0.5 * ( matrix2[ 5 ] + matrix2[ 7 ] ) * parms.lightBufferSizeFraction;
 	tRow[ 2 ] = 0.5 * ( matrix2[ 9 ] + matrix2[ 11 ] ) * parms.lightBufferSizeFraction;
 	tRow[ 3 ] = 0.5 * ( matrix2[ 13 ] + matrix2[ 15 ] ) * parms.lightBufferSizeFraction;
-	
+
 	rRow[ 0 ] = 0.5 * ( matrix2[ 2 ] + matrix2[ 3 ] );
 	rRow[ 1 ] = 0.5 * ( matrix2[ 6 ] + matrix2[ 7 ] );
 	rRow[ 2 ] = 0.5 * ( matrix2[ 10 ] + matrix2[ 11 ] );
 	rRow[ 3 ] = 0.5 * ( matrix2[ 14 ] + matrix2[ 15 ] );
-	
+
 	qRow[ 0 ] = matrix2[ 3 ];
 	qRow[ 1 ] = matrix2[ 7 ];
 	qRow[ 2 ] = matrix2[ 11 ];
@@ -1680,16 +1680,16 @@ void RB_ShadowResampleAlpha( shadowBufferParms_t & parms, const viewLight_t * co
 
 	// draw front faces of the light frustum, incrementing the stencil buffer on depth fail
 	// so we can't draw on those pixels
-	GL_State( GLS_COLORMASK | GLS_ALPHAMASK | GLS_DEPTHMASK | GLS_DEPTHFUNC_LESS );
+	GL_State( GLS_COLORMASK | GLS_ALPHAMASK | GLS_DEPTHMASK | GLS_DEPTHFUNC_LEQUAL | GLS_FRONTSIDED );
+	//GL_Cull( CT_FRONT_SIDED );
 	glStencilFunc( GL_ALWAYS, 0, 255 );
 	glStencilOp( GL_KEEP, GL_INCR, GL_KEEP );
-	GL_Cull( CT_FRONT_SIDED );
 
 	// set fragment / vertex program?
 
 	GL_DrawIndexed( tri );
 
-	// draw back faces of the light frustum with 
+	// draw back faces of the light frustum with
 	// depth test greater
 	// stencil test of equal 1
 	// zero stencil stencil when depth test passes, so subsequent interaction drawing
@@ -1702,13 +1702,15 @@ void RB_ShadowResampleAlpha( shadowBufferParms_t & parms, const viewLight_t * co
 	// write to destination alpha
 	if( r_sb_showFrustumPixels.GetBool() )
 	{
-		GL_State( GLS_SRCBLEND_ONE | GLS_DSTBLEND_ONE | GLS_DEPTHMASK | GLS_DEPTHFUNC_LESS );
+		GL_State( GLS_SRCBLEND_ONE | GLS_DSTBLEND_ONE | GLS_DEPTHMASK | GLS_DEPTHFUNC_LEQUAL | GLS_BACKSIDED );
+
 		glDisable( GL_TEXTURE_2D );
 		idRenderVector color( 0, 0.25, 0, 1 );
 		renderProgManager.SetRenderParm( RENDERPARM_COLOR, color.ToFloatPtr() );
 	}
 	else {
-		GL_State( GLS_COLORMASK | GLS_DEPTHMASK | GLS_DEPTHFUNC_LESS );
+		GL_State( GLS_COLORMASK | GLS_DEPTHMASK | GLS_DEPTHFUNC_LEQUAL | GLS_BACKSIDED );
+
 		glEnable( GL_VERTEX_PROGRAM_ARB );
 		glEnable( GL_FRAGMENT_PROGRAM_ARB );
 		glBindProgramARB( GL_VERTEX_PROGRAM_ARB, parms.shadowResampleVertexProgram );
@@ -1724,7 +1726,7 @@ void RB_ShadowResampleAlpha( shadowBufferParms_t & parms, const viewLight_t * co
 		renderProgManager.SetRenderParm( RENDERPARM_SCREENCORRECTIONFACTOR, parm.ToFloatPtr() ); // frag
 	}
 
-	GL_Cull( CT_BACK_SIDED );
+	//GL_Cull( CT_BACK_SIDED );
 	glDepthFunc( GL_GREATER );
 
 	GL_DrawIndexed( tri );
@@ -1755,37 +1757,28 @@ RB_EXP_SetNativeBuffer
 ==================
 */
 void RB_EXP_SetNativeBuffer( float tr_viewportOffset[2] )
-{	
+{
 	///R_MakeCurrent( win32.hDC, win32.hGLRC, NULL );
 	RENDERLOG_PRINT("RB_EXP_SetNativeBuffer()\n");
-	
+
 	// set the normal screen drawable current
 	glBindFramebuffer( GL_FRAMEBUFFER, GL_NONE );
 	backEnd.glState.currentFramebufferObject = GL_NONE;
 	backEnd.glState.currentRenderDestination = nullptr;
 
-	glViewport( 
+	glViewport(
 		tr_viewportOffset[ 0 ] + backEnd.viewDef->GetViewport().x1,
 		tr_viewportOffset[ 1 ] + backEnd.viewDef->GetViewport().y1,
 		backEnd.viewDef->GetViewport().GetWidth(),
 		backEnd.viewDef->GetViewport().GetHeight() );
 
 	backEnd.currentScissor = backEnd.viewDef->GetViewport();
-	if( r_useScissor.GetBool() )
-	{
-		glScissor( 
-			backEnd.viewDef->GetViewport().x1 + backEnd.currentScissor.x1,
-			backEnd.viewDef->GetViewport().y1 + backEnd.currentScissor.y1,
-			backEnd.currentScissor.x2 + 1 - backEnd.currentScissor.x1,
-			backEnd.currentScissor.y2 + 1 - backEnd.currentScissor.y1 );
-	}
-}
 
-void GL_SetRenderDestination( GLuint fbo )
-{
-	glBindFramebuffer( GL_FRAMEBUFFER, fbo );
-	backEnd.glState.currentFramebufferObject = fbo;
-
+	glScissor(
+		backEnd.viewDef->GetViewport().x1 + backEnd.currentScissor.x1,
+		backEnd.viewDef->GetViewport().y1 + backEnd.currentScissor.y1,
+		backEnd.currentScissor.x2 + 1 - backEnd.currentScissor.x1,
+		backEnd.currentScissor.y2 + 1 - backEnd.currentScissor.y1 );
 }
 
 /*
@@ -1814,14 +1807,11 @@ void RB_EXP_SetRenderBuffer( const shadowBufferParms_t & parms, const viewLight_
 
 	backEnd.currentScissor = ( !vLight )? backEnd.viewDef->GetViewport() : vLight->scissorRect;
 
-	if( r_useScissor.GetBool() )
-	{
-		glScissor( 
-			backEnd.viewDef->GetViewport().x1 + backEnd.currentScissor.x1,
-			backEnd.viewDef->GetViewport().y1 + backEnd.currentScissor.y1,
-			backEnd.currentScissor.GetWidth(),
-			backEnd.currentScissor.GetHeight() );
-	}
+	glScissor(
+		backEnd.viewDef->GetViewport().x1 + backEnd.currentScissor.x1,
+		backEnd.viewDef->GetViewport().y1 + backEnd.currentScissor.y1,
+		backEnd.currentScissor.GetWidth(),
+		backEnd.currentScissor.GetHeight() );
 }
 
 /*
@@ -1843,7 +1833,7 @@ void RB_EXP_ReadFloatBuffer()
 		for( int j = 0; j < 4; j++ )
 		{
 			float v = buf[ i * 4 + j ];
-			
+
 			if( v < mins[ j ] )
 			{
 				mins[ j ] = v;
@@ -1888,7 +1878,7 @@ void RB_DrawInteractions( const idRenderView * const view , const viewLight_t * 
 	///	R_Exp_Allocate();
 	///}
 
-	if( !viewLights ) 
+	if( !viewLights )
 		return;
 
 	ValidateShadowMapSettings( parms );
@@ -1906,11 +1896,11 @@ void RB_DrawInteractions( const idRenderView * const view , const viewLight_t * 
 	if( r_hdr_useFloats.GetBool() )
 	{
 		RB_EXP_SetRenderBuffer( parms, NULL, parms.viewportOffset );
-		
+
 		// we need to set a lot of things, because this is a completely different context
 		GL_SetDefaultState();
-		GL_Clear( true, true, false, 0, 0.001f, 1.0f, 0.01f, 0.1f, false );
-		
+		GL_Clear( true, true, false, 0, 0.001f, 1.0f, 0.01f, 0.1f );
+
 		// clear the z buffer, set the projection matrix, etc
 		//RB_BeginDrawingView();
 
@@ -1995,7 +1985,7 @@ void RB_DrawInteractions( const idRenderView * const view , const viewLight_t * 
 
 				RB_EXP_CreateDrawInteractions( vLight->localInteractions );
 				RB_EXP_CreateDrawInteractions( vLight->globalInteractions );
-				backEnd.depthFunc = GLS_DEPTHFUNC_LESS;
+				backEnd.depthFunc = GLS_DEPTHFUNC_LEQUAL;
 				RB_EXP_CreateDrawInteractions( vLight->translucentInteractions );
 				backEnd.depthFunc = GLS_DEPTHFUNC_EQUAL;
 			}
@@ -2022,14 +2012,13 @@ void RB_DrawInteractions( const idRenderView * const view , const viewLight_t * 
 			}
 			RB_EXP_CreateDrawInteractions( vLight->localInteractions );
 			RB_EXP_CreateDrawInteractions( vLight->globalInteractions );
-			backEnd.depthFunc = GLS_DEPTHFUNC_LESS;
+			backEnd.depthFunc = GLS_DEPTHFUNC_LEQUAL;
 			RB_EXP_CreateDrawInteractions( vLight->translucentInteractions );
 			backEnd.depthFunc = GLS_DEPTHFUNC_EQUAL;
 		}
 	}
 
-	GL_SelectTexture( 0 );
-	GL_ResetTexturesState();
+	GL_ResetTextureState();
 	GL_State( 0 );
 
 	//RB_EXP_Bloom();

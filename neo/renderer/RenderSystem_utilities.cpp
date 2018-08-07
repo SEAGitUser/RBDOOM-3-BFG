@@ -39,6 +39,18 @@ extern void R_SetNewMode( const bool fullInit );
 
 /*
 ==============
+R_TestDX_f
+==============
+*/
+static void R_TestDX_f( const idCmdArgs& args )
+{
+	extern void DX_Test();
+	DX_Test();
+}
+
+
+/*
+==============
  R_ListModes_f
 ==============
 */
@@ -46,11 +58,10 @@ static void R_ListModes_f( const idCmdArgs& args )
 {
 	for( int displayNum = 0; ; displayNum++ )
 	{
-		idList<vidMode_t> modeList;
-		if( !R_GetModeListForDisplay( displayNum, modeList ) )
-		{
+		vidModes_t modeList;
+		if( !renderSystem->GetModeListForDisplay( displayNum, modeList ) )
 			break;
-		}
+
 		for( int i = 0; i < modeList.Num(); i++ )
 		{
 			common->Printf( "Monitor %i, mode %3i: %4i x %4i @ %ihz\n", displayNum + 1, i, modeList[ i ].width, modeList[ i ].height, modeList[ i ].displayHz );
@@ -71,8 +82,7 @@ static void R_SizeUp_f( const idCmdArgs& args )
 	{
 		r_screenFraction.SetInteger( 100 );
 	}
-	else
-	{
+	else {
 		r_screenFraction.SetInteger( r_screenFraction.GetInteger() + 10 );
 	}
 }
@@ -159,8 +169,10 @@ static void R_TestVideo_f( const idCmdArgs& args )
 	}
 
 	tr.testImage = renderImageManager->ImageFromFile( "_scratch", TF_DEFAULT, TR_REPEAT, TD_DEFAULT );
-	tr.testVideo = idCinematic::Alloc();
-	tr.testVideo->InitFromFile( args.Argv( 1 ), true );
+
+	tr.testVideo = renderCinematicManager->CreateFromFile( args.Argv( 1 ), true );
+	if( !tr.testVideo )
+		return;
 
 	cinData_t cin = tr.testVideo->ImageForTime( 0 );
 	if( cin.imageY == NULL )
@@ -371,9 +383,9 @@ static void R_ReportSurfaceAreas_f( const idCmdArgs& args )
 ==============================================================================
 */
 
-static const char* fileExten[ 3 ] = { "tga", "png", "jpg" };
-static const char* envDirection[ 6 ] = { "_px", "_nx", "_py", "_ny", "_pz", "_nz" };
-static const char* skyDirection[ 6 ] = { "_forward", "_back", "_left", "_right", "_up", "_down" };
+static const char * fileExten[ 3 ] = { "tga", "png", "jpg" };
+static const char * envDirection[ 6 ] = { "_px", "_nx", "_py", "_ny", "_pz", "_nz" };
+static const char * skyDirection[ 6 ] = { "_forward", "_back", "_left", "_right", "_up", "_down" };
 
 /*
 ====================
@@ -390,7 +402,7 @@ static const char* skyDirection[ 6 ] = { "_forward", "_back", "_left", "_right",
 static void R_ReadTiledPixels( int width, int height, byte* buffer, renderViewParms_t* ref = NULL )
 {
 	// include extra space for OpenGL padding to word boundaries
-	int sysWidth = renderSystem->GetWidth();
+	int sysWidth  = renderSystem->GetWidth();
 	int sysHeight = renderSystem->GetHeight();
 
 	idTempArray<byte> temp( ( sysWidth + 3 ) * sysHeight * 3 );
@@ -416,7 +428,7 @@ static void R_ReadTiledPixels( int width, int height, byte* buffer, renderViewPa
 #endif
 
 	// disable scissor, so we don't need to adjust all those rects
-	r_useScissor.SetBool( false );
+	//r_useScissor.SetBool( false );
 
 	for( int xo = 0; xo < width; xo += sysWidth )
 	{
@@ -448,6 +460,7 @@ static void R_ReadTiledPixels( int width, int height, byte* buffer, renderViewPa
 		#else
 			// foresthale 2014-03-01: note: ref is always NULL in every call path to this function
 			if( ref )
+
 			{
 				// discard anything currently on the list
 				tr.SwapCommandBuffers( NULL, NULL, NULL, NULL );
@@ -500,14 +513,12 @@ static void R_ReadTiledPixels( int width, int height, byte* buffer, renderViewPa
 	glConfig.nativeScreenHeight = originalNativeHeight;
 #endif
 
-	r_useScissor.SetBool( true );
+	//r_useScissor.SetBool( true );
 }
 
 /*
 ==================
  TakeScreenshot
-
-	Move to tr_imagefiles.c...
 
 	Downsample is the number of steps to mipmap the image before saving it
 	If ref == NULL, common->UpdateScreen will be used
@@ -610,7 +621,7 @@ void idRenderSystemLocal::TakeScreenshot( int width, int height, const char* fil
 		buffer[ 15 ] = height >> 8;
 		buffer[ 16 ] = 24;	// pixel size
 
-							// swap rgb to bgr
+		// swap rgb to bgr
 		c = 18 + width * height * 3;
 
 		for( i = 18; i < c; i += 3 )
@@ -650,7 +661,6 @@ static void R_ScreenshotFilename( int& lastNumber, const char* base, idStr& file
 	}
 	for( ; lastNumber < 99999; lastNumber++ )
 	{
-
 		// RB: added date to screenshot name
 	#if 0
 		int	frac = lastNumber;
@@ -782,14 +792,14 @@ static void R_StencilShot()
 
 	for( i = 0; i < pix; i++ )
 	{
-		buffer[ 18 + i * 3 ] =
-			buffer[ 18 + i * 3 + 1 ] =
-			//		buffer[18+i*3+2] = ( byteBuffer[i] & 15 ) * 16;
-			buffer[ 18 + i * 3 + 2 ] = byteBuffer[ i ];
+		buffer[ 18 + i * 3 + 0 ] =
+		buffer[ 18 + i * 3 + 1 ] =
+//		buffer[ 18 + i * 3 + 2 ] = ( byteBuffer[ i ] & 15 ) * 16;
+		buffer[ 18 + i * 3 + 2 ] = byteBuffer[ i ];
 	}
 
 	// fill in the header (this is vertically flipped, which glReadPixels emits)
-	buffer[ 2 ] = 2;		// uncompressed type
+	buffer[ 2  ] = 2;		// uncompressed type
 	buffer[ 12 ] = width & 255;
 	buffer[ 13 ] = width >> 8;
 	buffer[ 14 ] = height & 255;
@@ -819,10 +829,10 @@ static void R_EnvShot_f( const idCmdArgs& args )
 	int			blends;
 	const char*  extension;
 	int			size;
-	int         res_w, res_h, old_fov_x, old_fov_y;
+	int         old_fov_x, old_fov_y;
 
-	res_w = renderSystem->GetWidth();
-	res_h = renderSystem->GetHeight();
+	int res_w = renderSystem->GetWidth();
+	int res_h = renderSystem->GetHeight();
 
 	if( args.Argc() != 2 && args.Argc() != 3 && args.Argc() != 4 )
 	{
@@ -975,8 +985,8 @@ static void R_SampleCubeMap( const idVec3& dir, int size, byte* buffers[ 6 ], by
 		axis = 5;
 	}
 
-	float	fx = ( dir * cubeAxis[ axis ][ 1 ] ) / ( dir * cubeAxis[ axis ][ 0 ] );
-	float	fy = ( dir * cubeAxis[ axis ][ 2 ] ) / ( dir * cubeAxis[ axis ][ 0 ] );
+	float fx = ( dir * cubeAxis[ axis ][ 1 ] ) / ( dir * cubeAxis[ axis ][ 0 ] );
+	float fy = ( dir * cubeAxis[ axis ][ 2 ] ) / ( dir * cubeAxis[ axis ][ 0 ] );
 
 	fx = -fx;
 	fy = -fy;
@@ -1411,6 +1421,8 @@ void R_InitCommands()
 {
 	extern void GfxInfo_f( const idCmdArgs& );
 	extern void R_VidRestart_f( const idCmdArgs& );
+
+	cmdSystem->AddCommand( "testDX", R_TestDX_f, CMD_FL_RENDERER, "DirectX tests" );
 
 	cmdSystem->AddCommand( "gfxInfo", GfxInfo_f, CMD_FL_RENDERER, "show graphics info" );
 	cmdSystem->AddCommand( "vid_restart", R_VidRestart_f, CMD_FL_RENDERER, "restarts renderSystem" );

@@ -753,9 +753,8 @@ void idMenuScreen_Shell_Leaderboards::RefreshLeaderboard()
 idMenuScreen_Shell_Leaderboards::ShowMessage
 ========================
 */
-void idMenuScreen_Shell_Leaderboards::ShowMessage( bool show, idStr message, bool spinner )
+void idMenuScreen_Shell_Leaderboards::ShowMessage( bool show, const idStr & message, bool spinner )
 {
-
 	if( !menuData || !menuData->GetGUI() )
 	{
 		return;

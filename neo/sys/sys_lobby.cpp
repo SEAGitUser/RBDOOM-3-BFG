@@ -3154,10 +3154,10 @@ void idLobby::DrawDebugNetworkHUD() const
 	
 	renderSystem->DrawFilled( idVec4( 0.0f, 0.0f, 0.0f, 0.7f ), X_OFFSET - 10.0f, curY - 10.0f, 1550, ( peers.Num() + numLines ) * Y_SPACING + 20.0f );
 	
-	renderSystem->DrawSmallStringExt( idMath::Ftoi( X_OFFSET ), idMath::Ftoi( curY ), "# Peer                   | Sent kB/s | Recv kB/s | Sent MB | Recv MB | Ping   | L |  %  | R.NM | R.SZ | R.AK | T", colorGreen, false );
+	renderSystem->DrawSmallStringExt( idMath::Ftoi( X_OFFSET ), idMath::Ftoi( curY ), "# Peer                   | Sent kB/s | Recv kB/s | Sent MB | Recv MB | Ping   | L |  %  | R.NM | R.SZ | R.AK | T", idColor::green.ToVec4(), false );
 	curY += Y_SPACING;
 	
-	renderSystem->DrawSmallStringExt( idMath::Ftoi( X_OFFSET ), idMath::Ftoi( curY ), "------------------------------------------------------------------------------------------------------------------------------------", colorGreen, false );
+	renderSystem->DrawSmallStringExt( idMath::Ftoi( X_OFFSET ), idMath::Ftoi( curY ), "------------------------------------------------------------------------------------------------------------------------------------", idColor::green.ToVec4(), false );
 	curY += Y_SPACING;
 	
 	for( int p = 0; p < peers.Num(); p++ )
@@ -3181,7 +3181,7 @@ void idLobby::DrawDebugNetworkHUD() const
 		totalSentMB += sentMB;
 		totalRecvMB += recvMB;
 		
-		idVec4 color = sentKps > 20.0f ? colorRed : colorGreen;
+		idVec4 color = sentKps > 20.0f ? idColor::red.ToVec4() : idColor::green.ToVec4();
 		
 		int resourcePercent = 0;
 		idStr name = peer.address.ToString();
@@ -3193,13 +3193,13 @@ void idLobby::DrawDebugNetworkHUD() const
 		curY += Y_SPACING;
 	}
 	
-	renderSystem->DrawSmallStringExt( idMath::Ftoi( X_OFFSET ), idMath::Ftoi( curY ), "------------------------------------------------------------------------------------------------------------------------------------", colorGreen, false );
+	renderSystem->DrawSmallStringExt( idMath::Ftoi( X_OFFSET ), idMath::Ftoi( curY ), "------------------------------------------------------------------------------------------------------------------------------------", idColor::green.ToVec4(), false );
 	curY += Y_SPACING;
 	
 	float totalSentKps = ( float )totalSendRate / 1024.0f;
 	float totalRecvKps = ( float )totalRecvRate / 1024.0f;
 	
-	idVec4 color = totalSentKps > 100.0f ? colorRed : colorGreen;
+	idVec4 color = totalSentKps > 100.0f ? idColor::red.ToVec4() : idColor::green.ToVec4();
 	
 	renderSystem->DrawSmallStringExt( X_OFFSET, curY, va( "# %20s | %2.02f KB/s | %2.02f KB/s | %2.02f MB | %2.02f MB", "", totalSentKps, totalRecvKps, totalSentMB, totalRecvMB ), color, false );
 	curY += Y_SPACING;
@@ -3236,13 +3236,13 @@ void idLobby::DrawDebugNetworkHUD2() const
 	
 	renderSystem->DrawFilled( idVec4( 1.0f, 1.0f, 1.0f, 0.7f ), X_OFFSET - 10.0f, curY - 10.0f, 550, ( peers.Num() + 5 ) * Y_SPACING + 20.0f );
 	
-	renderSystem->DrawSmallStringExt( idMath::Ftoi( X_OFFSET ), idMath::Ftoi( curY ), va( "State: %s. Local time: %d", stateName, sys->Milliseconds() ), colorGreen, false );
+	renderSystem->DrawSmallStringExt( idMath::Ftoi( X_OFFSET ), idMath::Ftoi( curY ), va( "State: %s. Local time: %d", stateName, sys->Milliseconds() ), idColor::green.ToVec4(), false );
 	curY += Y_SPACING;
 	
-	renderSystem->DrawSmallStringExt( idMath::Ftoi( X_OFFSET ), idMath::Ftoi( curY ), "Peer           | Sent kB/s | Recv kB/s | L | R | Resources", colorGreen, false );
+	renderSystem->DrawSmallStringExt( idMath::Ftoi( X_OFFSET ), idMath::Ftoi( curY ), "Peer           | Sent kB/s | Recv kB/s | L | R | Resources", idColor::green.ToVec4(), false );
 	curY += Y_SPACING;
 	
-	renderSystem->DrawSmallStringExt( idMath::Ftoi( X_OFFSET ), idMath::Ftoi( curY ), "------------------------------------------------------------------", colorGreen, false );
+	renderSystem->DrawSmallStringExt( idMath::Ftoi( X_OFFSET ), idMath::Ftoi( curY ), "------------------------------------------------------------------", idColor::green.ToVec4(), false );
 	curY += Y_SPACING;
 	
 	for( int p = 0; p < peers.Num(); p++ )
@@ -3262,7 +3262,7 @@ void idLobby::DrawDebugNetworkHUD2() const
 		
 		// should probably complement that with a bandwidth reading
 		// right now I am mostly concerned about fragmentation and the latency spikes it will cause
-		idVec4 color = proc.TickFragmentAccumulator() ? colorRed : colorGreen;
+		idVec4 color = proc.TickFragmentAccumulator() ? idColor::red.ToVec4() : idColor::green.ToVec4();
 		
 		int rLoaded = peers[ p ].numResources;
 		int rTotal = 0;
@@ -3295,13 +3295,13 @@ void idLobby::DrawDebugNetworkHUD2() const
 		curY += Y_SPACING;
 	}
 	
-	renderSystem->DrawSmallStringExt( idMath::Ftoi( X_OFFSET ), idMath::Ftoi( curY ), "------------------------------------------------------------------", colorGreen, false );
+	renderSystem->DrawSmallStringExt( idMath::Ftoi( X_OFFSET ), idMath::Ftoi( curY ), "------------------------------------------------------------------", idColor::green.ToVec4(), false );
 	curY += Y_SPACING;
 	
 	float totalSentKps = ( float )totalSendRate / 1024.0f;
 	float totalRecvKps = ( float )totalRecvRate / 1024.0f;
 	
-	renderSystem->DrawSmallStringExt( X_OFFSET, curY, va( "Total | %2.02f KB/s | %2.02f KB/s", totalSentKps, totalRecvKps ), colorGreen, false );
+	renderSystem->DrawSmallStringExt( X_OFFSET, curY, va( "Total | %2.02f KB/s | %2.02f KB/s", totalSentKps, totalRecvKps ), idColor::green.ToVec4(), false );
 }
 
 
@@ -3316,7 +3316,7 @@ void idLobby::DrawDebugNetworkHUD_ServerSnapshotMetrics( bool draw )
 	const float Y_OFFSET	= 20.0f;
 	const float X_OFFSET	= 20.0f;
 	const float Y_SPACING	= 15.0f;
-	idVec4 color = colorWhite;
+	idVec4 color = idColor::white.ToVec4();
 	
 	float	curY = Y_OFFSET;
 	
@@ -3426,11 +3426,11 @@ void idLobby::DrawDebugNetworkHUD_ServerSnapshotMetrics( bool draw )
 		{
 			if( peer.lastSnapTime > lastTime )
 			{
-				peer.debugGraphs[GRAPH_SNAPSENT]->SetValue( -1, 1.0f, colorBlue );
+				peer.debugGraphs[GRAPH_SNAPSENT]->SetValue( -1, 1.0f, idColor::blue.ToVec4() );
 			}
 			else
 			{
-				peer.debugGraphs[GRAPH_SNAPSENT]->SetValue( -1, 0.0f, colorBlue );
+				peer.debugGraphs[GRAPH_SNAPSENT]->SetValue( -1, 0.0f, idColor::blue.ToVec4() );
 			}
 		}
 		
@@ -3439,7 +3439,7 @@ void idLobby::DrawDebugNetworkHUD_ServerSnapshotMetrics( bool draw )
 			idVec4 bgColor( vec4_zero );
 			peer.debugGraphs[GRAPH_OUTGOING]->SetBackgroundColor( bgColor );
 			
-			idVec4 lineColor = colorLtGrey;
+			idVec4 lineColor = idColor::ltGrey.ToVec4();
 			lineColor.w	 = 0.5f;
 			float outgoingRate = peer.sentBpsHistory[ peer.receivedBpsIndex % MAX_BPS_HISTORY ];
 			// peer.packetProc->GetOutgoingRateBytes()
@@ -3449,7 +3449,7 @@ void idLobby::DrawDebugNetworkHUD_ServerSnapshotMetrics( bool draw )
 		
 		if( peer.debugGraphs[GRAPH_INCOMINGREPORTED] != NULL )
 		{
-			idVec4 lineColor = colorYellow;
+			idVec4 lineColor = idColor::yellow.ToVec4();
 			extern idCVar net_peer_throttle_bps_peer_threshold_pct;
 			extern idCVar net_peer_throttle_bps_host_threshold;
 			
@@ -3458,11 +3458,11 @@ void idLobby::DrawDebugNetworkHUD_ServerSnapshotMetrics( bool draw )
 				float pct = peer.packetProc->GetOutgoingRateBytes() > 0.0f ? peer.receivedBps / peer.packetProc->GetOutgoingRateBytes() : 0.0f;
 				if( pct < net_peer_throttle_bps_peer_threshold_pct.GetFloat() )
 				{
-					lineColor = colorRed;
+					lineColor = idColor::red.ToVec4();
 				}
 				else
 				{
-					lineColor = colorGreen;
+					lineColor = idColor::green.ToVec4();
 				}
 			}
 			idVec4 bgColor( vec4_zero );

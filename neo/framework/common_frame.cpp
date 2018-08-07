@@ -93,19 +93,19 @@ be called directly in the foreground thread for comparison.
 int idGameThread::Run()
 {
 	commonLocal.frameTiming.startGameTime = sys->Microseconds();
-	
+
 	// debugging tool to test frame dropping behavior
 	if( com_sleepGame.GetInteger() )
 	{
-		Sys_Sleep( com_sleepGame.GetInteger() );
+		sys->Sleep( com_sleepGame.GetInteger() );
 	}
-	
+
 	if( numGameFrames == 0 )
 	{
 		// Ensure there's no stale gameReturn data from a paused game
 		ret = gameReturn_t();
 	}
-	
+
 	if( isClient )
 	{
 		// run the game logic
@@ -116,7 +116,7 @@ int idGameThread::Run()
 			{
 				game->ClientRunFrame( *userCmdMgr, ( i == numGameFrames - 1 ), ret );
 			}
-			if( ret.syncNextGameFrame || ret.sessionCommand[0] != 0 )
+			if( ret.syncNextGameFrame || ret.sessionCommand[ 0 ] != 0 )
 			{
 				break;
 			}
@@ -132,44 +132,44 @@ int idGameThread::Run()
 			{
 				game->RunFrame( *userCmdMgr, ret );
 			}
-			if( ret.syncNextGameFrame || ret.sessionCommand[0] != 0 )
+			if( ret.syncNextGameFrame || ret.sessionCommand[ 0 ] != 0 )
 			{
 				break;
 			}
 		}
 	}
-	
+
 	// we should have consumed all of our usercmds
 	if( userCmdMgr )
 	{
-	// RB begin
+		// RB begin
 	#if defined(USE_DOOMCLASSIC)
 		if( userCmdMgr->HasUserCmdForPlayer( game->GetLocalClientNum() ) && common->GetCurrentGame() == DOOM3_BFG )
-	#else
+		#else
 		if( userCmdMgr->HasUserCmdForPlayer( game->GetLocalClientNum() ) )
-	#endif
-	// RB end
+		#endif
+			// RB end
 		{
 			idLib::Printf( "idGameThread::Run: didn't consume all usercmds\n" );
 		}
 	}
-	
+
 	commonLocal.frameTiming.finishGameTime = sys->Microseconds();
-	
+
 	SetThreadGameTime( ( commonLocal.frameTiming.finishGameTime - commonLocal.frameTiming.startGameTime ) / 1000 );
-	
+
 	// build render commands and geometry
 	{
 		SCOPED_PROFILE_EVENT( "Draw" );
 		commonLocal.Draw();
 	}
-	
+
 	commonLocal.frameTiming.finishDrawTime = sys->Microseconds();
-	
+
 	SetThreadRenderTime( ( commonLocal.frameTiming.finishDrawTime - commonLocal.frameTiming.finishGameTime ) / 1000 );
-	
+
 	SetThreadTotalTime( ( commonLocal.frameTiming.finishDrawTime - commonLocal.frameTiming.startGameTime ) / 1000 );
-	
+
 	return 0;
 }
 
@@ -183,31 +183,31 @@ gameReturn_t idGameThread::RunGameAndDraw( int numGameFrames_, idUserCmdMgr& use
 {
 	// this should always immediately return
 	this->WaitForThread();
-	
+
 	// save the usercmds for the background thread to pick up
 	userCmdMgr = &userCmdMgr_;
-	
+
 	isClient = isClient_;
-	
+
 	// grab the return value created by the last thread execution
 	gameReturn_t latchedRet = ret;
-	
+
 	numGameFrames = numGameFrames_;
-	
+
 	// start the thread going
 	if( com_smp.GetBool() == false )
 	{
 		// run it in the main thread so PIX profiling catches everything
 		Run();
 	}
-	else {
+	else
+	{
 		this->SignalWork();
 	}
-	
+
 	// return the latched result while the thread runs in the background
 	return latchedRet;
 }
-
 
 /*
 ===============
@@ -218,20 +218,19 @@ Draw the fade material over everything that has been drawn
 */
 void idCommonLocal::DrawWipeModel()
 {
-
 	if( wipeStartTime >= wipeStopTime )
 	{
 		return;
 	}
-	
+
 	int currentTime = sys->Milliseconds();
-	
+
 	if( !wipeHold && currentTime > wipeStopTime )
 	{
 		return;
 	}
-	
-	float fade = ( float )( currentTime - wipeStartTime ) / ( wipeStopTime - wipeStartTime );
+
+	float fade = ( float ) ( currentTime - wipeStartTime ) / ( wipeStopTime - wipeStartTime );
 	renderSystem->SetColor4( 1, 1, 1, fade );
 	renderSystem->DrawStretchPic( 0, 0, renderSystem->GetVirtualWidth(), renderSystem->GetVirtualHeight(), 0, 0, 1, 1, wipeMaterial );
 }
@@ -246,9 +245,9 @@ void idCommonLocal::Draw()
 	// debugging tool to test frame dropping behavior
 	if( com_sleepDraw.GetInteger() )
 	{
-		Sys_Sleep( com_sleepDraw.GetInteger() );
+		sys->Sleep( com_sleepDraw.GetInteger() );
 	}
-	
+
 	if( loadGUI != NULL )
 	{
 		loadGUI->Render( renderSystem, sys->Milliseconds() );
@@ -262,17 +261,17 @@ void idCommonLocal::Draw()
 		const float sysAspect = sysWidth / sysHeight;
 		const float doomAspect = 4.0f / 3.0f;
 		const float adjustment = sysAspect / doomAspect;
-		const float barHeight = ( adjustment >= 1.0f ) ? 0.0f : ( 1.0f - adjustment ) * ( float )renderSystem->GetVirtualHeight() * 0.25f;
-		const float barWidth = ( adjustment <= 1.0f ) ? 0.0f : ( adjustment - 1.0f ) * ( float )renderSystem->GetVirtualWidth() * 0.25f;
+		const float barHeight = ( adjustment >= 1.0f ) ? 0.0f : ( 1.0f - adjustment ) * ( float ) renderSystem->GetVirtualHeight() * 0.25f;
+		const float barWidth = ( adjustment <= 1.0f ) ? 0.0f : ( adjustment - 1.0f ) * ( float ) renderSystem->GetVirtualWidth() * 0.25f;
 		if( barHeight > 0.0f )
 		{
-			renderSystem->SetColor( colorBlack );
+			renderSystem->SetColor( idColor::black.ToVec4() );
 			renderSystem->DrawStretchPic( 0, 0, renderSystem->GetVirtualWidth(), barHeight, 0, 0, 1, 1, whiteMaterial );
 			renderSystem->DrawStretchPic( 0, renderSystem->GetVirtualHeight() - barHeight, renderSystem->GetVirtualWidth(), barHeight, 0, 0, 1, 1, whiteMaterial );
 		}
 		if( barWidth > 0.0f )
 		{
-			renderSystem->SetColor( colorBlack );
+			renderSystem->SetColor( idColor::black.ToVec4() );
 			renderSystem->DrawStretchPic( 0, 0, barWidth, renderSystem->GetVirtualHeight(), 0, 0, 1, 1, whiteMaterial );
 			renderSystem->DrawStretchPic( renderSystem->GetVirtualWidth() - barWidth, 0, barWidth, renderSystem->GetVirtualHeight(), 0, 0, 1, 1, whiteMaterial );
 		}
@@ -286,7 +285,7 @@ void idCommonLocal::Draw()
 		bool gameDraw = game->Draw( game->GetLocalClientNum() );
 		if( !gameDraw )
 		{
-			renderSystem->SetColor( colorBlack );
+			renderSystem->SetColor( idColor::black.ToVec4() );
 			renderSystem->DrawStretchPic( 0, 0, renderSystem->GetVirtualWidth(), renderSystem->GetVirtualHeight(), 0, 0, 1, 1, whiteMaterial );
 		}
 		game->Shell_Render();
@@ -314,10 +313,10 @@ void idCommonLocal::Draw()
 		}
 		if( !gameDraw )
 		{
-			renderSystem->SetColor( colorBlack );
+			renderSystem->SetColor( idColor::black.ToVec4() );
 			renderSystem->DrawStretchPic( 0, 0, renderSystem->GetVirtualWidth(), renderSystem->GetVirtualHeight(), 0, 0, 1, 1, whiteMaterial );
 		}
-		
+
 		// save off the 2D drawing from the game
 		if( writeDemo )
 		{
@@ -330,15 +329,15 @@ void idCommonLocal::Draw()
 		renderSystem->SetColor4( 0, 0, 0, 1 );
 		renderSystem->DrawStretchPic( 0, 0, renderSystem->GetVirtualWidth(), renderSystem->GetVirtualHeight(), 0, 0, 1, 1, whiteMaterial );
 	}
-	
+
 	{
 		SCOPED_PROFILE_EVENT( "Post-Draw" );
-		
+
 		// draw the wipe material on top of this if it hasn't completed yet
 		DrawWipeModel();
-		
+
 		Dialog().Render( loadGUI != NULL );
-		
+
 		// draw the half console / notify console on top of everything
 		console->Draw( false );
 	}
@@ -359,29 +358,29 @@ void idCommonLocal::UpdateScreen( bool captureToImage, bool releaseMouse )
 		return;
 	}
 	insideUpdateScreen = true;
-	
+
 	// make sure the game / draw thread has completed
 	gameThread.WaitForThread();
-	
+
 	// release the mouse capture back to the desktop
 	if( releaseMouse )
 		Sys_GrabMouseCursor( false );
 	// DG end
-	
+
 	// build all the draw commands without running a new game tic
 	Draw();
-	
+
 	if( captureToImage )
 	{
 		renderSystem->CaptureRenderToImage( "_currentRender", false );
 	}
-	
+
 	// this should exit right after vsync, with the GPU idle and ready to draw
-	const emptyCommand_t* cmd = renderSystem->SwapCommandBuffers( &time_frontend, &time_backend, &time_shadows, &time_gpu );
-	
+	auto cmd = renderSystem->SwapCommandBuffers( &time_frontend, &time_backend, &time_shadows, &time_gpu );
+
 	// get the GPU busy with new commands
 	renderSystem->RenderCommandBuffers( cmd );
-	
+
 	insideUpdateScreen = false;
 }
 /*
@@ -403,15 +402,15 @@ void idCommonLocal::ProcessGameReturn( const gameReturn_t& ret )
 			Sys_SetRumble( i, 0, 0 );
 		}
 	}
-	
+
 	syncNextGameFrame = ret.syncNextGameFrame;
-	
-	if( ret.sessionCommand[0] )
+
+	if( ret.sessionCommand[ 0 ] )
 	{
 		idCmdArgs args;
-		
+
 		args.TokenizeString( ret.sessionCommand, false );
-		
+
 		if( !idStr::Icmp( args.Argv( 0 ), "map" ) )
 		{
 			MoveToNewMap( args.Argv( 1 ), false );
@@ -451,52 +450,52 @@ void idCommonLocal::Frame()
 {
 	try {
 		SCOPED_PROFILE_EVENT( "Common::Frame" );
-		
+
 		// This is the only place this is incremented
 		idLib::frameNumber++;
-		
+
 		// allow changing SIMD usage on the fly
 		if( com_forceGenericSIMD.IsModified() )
 		{
 			idSIMD::InitProcessor( "doom", com_forceGenericSIMD.GetBool() );
 			com_forceGenericSIMD.ClearModified();
 		}
-		
+
 		// RB begin
-#if defined(USE_DOOMCLASSIC)
-		// Do the actual switch between Doom 3 and the classics here so
-		// that things don't get confused in the middle of the frame.
+	#if defined(USE_DOOMCLASSIC)
+			// Do the actual switch between Doom 3 and the classics here so
+			// that things don't get confused in the middle of the frame.
 		PerformGameSwitch();
-#endif
+	#endif
 		// RB end
-		
+
 		// pump all the events
 		sys->ProcessOSEvents();
-		
+
 		// write config file if anything changed
 		WriteConfiguration();
-		
+
 		eventLoop->RunEventLoop();
-		
+
 		// Activate the shell if it's been requested
 		if( showShellRequested && game )
 		{
 			game->Shell_Show( true );
 			showShellRequested = false;
 		}
-		
+
 		// if the console or another gui is down, we don't need to hold the mouse cursor
 		bool chatting = false;
-		
+
 		// DG: Add pause from com_pause cvar
 		// RB begin
-#if defined(USE_DOOMCLASSIC)
+	#if defined(USE_DOOMCLASSIC)
 		if( com_pause.GetInteger() || console->Active() || Dialog().IsDialogActive() || session->IsSystemUIShowing()
-				|| ( game && game->InhibitControls() && !IsPlayingDoomClassic() ) )
-#else
+			|| ( game && game->InhibitControls() && !IsPlayingDoomClassic() ) )
+		#else
 		if( com_pause.GetInteger() || console->Active() || Dialog().IsDialogActive() || session->IsSystemUIShowing()
-				|| ( game && game->InhibitControls() ) )
-#endif
+			|| ( game && game->InhibitControls() ) )
+		#endif
 			// RB end, DG end
 		{
 			// RB: don't release the mouse when opening a PDA or menu
@@ -512,34 +511,34 @@ void idCommonLocal::Frame()
 			Sys_GrabMouseCursor( true );
 			usercmdGen->InhibitUsercmd( INHIBIT_SESSION, false );
 		}
-		
+
 		// RB begin
-#if defined(USE_DOOMCLASSIC)
+	#if defined(USE_DOOMCLASSIC)
 		const bool pauseGame = ( !mapSpawned
 								 || ( !IsMultiplayer() && ( Dialog().IsDialogPausing() || session->IsSystemUIShowing()
-									|| ( game && game->Shell_IsActive() ) || com_pause.GetInteger() ) ) )
-							   && !IsPlayingDoomClassic();
-#else
+															|| ( game && game->Shell_IsActive() ) || com_pause.GetInteger() ) ) )
+			&& !IsPlayingDoomClassic();
+	#else
 		const bool pauseGame = ( !mapSpawned
 								 || ( !IsMultiplayer() && ( Dialog().IsDialogPausing() || session->IsSystemUIShowing()
-									|| ( game && game->Shell_IsActive() ) || com_pause.GetInteger() ) ) );
-#endif
+															|| ( game && game->Shell_IsActive() ) || com_pause.GetInteger() ) ) );
+	#endif
 		// RB end
-		
+
 		// save the screenshot and audio from the last draw if needed
 		if( aviCaptureMode )
 		{
 			idStr name;
 			name.Format<256>( "demos/%s/%s_%05i", aviDemoShortName.c_str(), aviDemoShortName.c_str(), aviDemoFrameCount++ );
 			renderSystem->TakeScreenshot( com_aviDemoWidth.GetInteger(), com_aviDemoHeight.GetInteger(), name, com_aviDemoSamples.GetInteger(), NULL, TGA );
-			
+
 			// remove any printed lines at the top before taking the screenshot
 			console->ClearNotifyLines();
-			
+
 			// this will call Draw, possibly multiple times if com_aviDemoSamples is > 1
 			renderSystem->TakeScreenshot( com_aviDemoWidth.GetInteger(), com_aviDemoHeight.GetInteger(), name, com_aviDemoSamples.GetInteger(), NULL, TGA );
 		}
-		
+
 		//--------------------------------------------
 		// wait for the GPU to finish drawing
 		//
@@ -555,13 +554,14 @@ void idCommonLocal::Frame()
 		{
 			renderCommands = renderSystem->SwapCommandBuffers( &time_frontend, &time_backend, &time_shadows, &time_gpu );
 		}
-		else {
+		else
+		{
 			// the GPU will stay idle through command generation for minimal
 			// input latency
 			renderSystem->SwapCommandBuffers_FinishRendering( &time_frontend, &time_backend, &time_shadows, &time_gpu );
 		}
 		frameTiming.finishSyncTime = sys->Microseconds();
-		
+
 		//--------------------------------------------
 		// Determine how many game tics we are going to run,
 		// now that the previous frame is completely finished.
@@ -570,7 +570,7 @@ void idCommonLocal::Frame()
 		// before this, or there will be a bad stuttering when
 		// dropping frames for performance management.
 		//--------------------------------------------
-		
+
 		// input:
 		// thisFrameTime
 		// com_noSleep
@@ -587,23 +587,23 @@ void idCommonLocal::Frame()
 		//
 		// Output:
 		// numGameFrames
-		
+
 		// How many game frames to run
 		int numGameFrames = 0;
-		
+
 		for( ;; )
 		{
 			const int thisFrameTime = sys->Milliseconds();
 			static int lastFrameTime = thisFrameTime;	// initialized only the first time
 			const int deltaMilliseconds = thisFrameTime - lastFrameTime;
 			lastFrameTime = thisFrameTime;
-			
+
 			// if there was a large gap in time since the last frame, or the frame
 			// rate is very very low, limit the number of frames we will run
 			const int clampedDeltaMilliseconds = idMath::Min( deltaMilliseconds, com_deltaTimeClamp.GetInteger() );
-			
+
 			gameTimeResidual += clampedDeltaMilliseconds * timescale.GetFloat();
-			
+
 			// don't run any frames when paused
 			// jpcy: the game is paused when playing a demo, but playDemo should wait like the game does
 			if( pauseGame && !( readDemo && !timeDemo ) )
@@ -612,7 +612,7 @@ void idCommonLocal::Frame()
 				gameTimeResidual = 0;
 				break;
 			}
-			
+
 			// debug cvar to force multiple game tics
 			if( com_fixedTic.GetInteger() > 0 )
 			{
@@ -621,7 +621,7 @@ void idCommonLocal::Frame()
 				gameTimeResidual = 0;
 				break;
 			}
-			
+
 			if( syncNextGameFrame )
 			{
 				// don't sleep at all
@@ -631,7 +631,7 @@ void idCommonLocal::Frame()
 				gameTimeResidual = 0;
 				break;
 			}
-			
+
 			for( ;; )
 			{
 				// How much time to wait before running the next frame,
@@ -646,13 +646,13 @@ void idCommonLocal::Frame()
 				numGameFrames++;
 				// if there is enough residual left, we may run additional frames
 			}
-			
+
 			if( numGameFrames > 0 )
 			{
 				// ready to actually run them
 				break;
 			}
-			
+
 			// if we are vsyncing, we always want to run at least one game
 			// frame and never sleep, which might happen due to scheduling issues
 			// if we were just looking at real time.
@@ -663,28 +663,28 @@ void idCommonLocal::Frame()
 				gameTimeResidual = 0;
 				break;
 			}
-			
+
 			// not enough time has passed to run a frame, as might happen if
 			// we don't have vsync on, or the monitor is running at 120hz while
 			// com_engineHz is 60, so sleep a bit and check again
-			Sys_Sleep( 0 );
+			sys->Sleep( 0 );
 		}
-		
+
 		// jpcy: playDemo uses the game frame wait logic, but shouldn't run any game frames
 		if( readDemo && !timeDemo )
 			numGameFrames = 0;
-			
+
 		//--------------------------------------------
 		// It would be better to push as much of this as possible
 		// either before or after the renderSystem->SwapCommandBuffers(),
 		// because the GPU is completely idle.
 		//--------------------------------------------
-		
+
 		// Update session and syncronize to the new session state after sleeping
 		session->UpdateSignInManager();
 		session->Pump();
 		session->ProcessSnapAckQueue();
-		
+
 		if( session->GetState() == idSession::LOADING )
 		{
 			// If the session reports we should be loading a map, load it!
@@ -700,7 +700,7 @@ void idCommonLocal::Frame()
 			LeaveGame();
 			return;
 		}
-		
+
 		if( mapSpawned && !pauseGame )
 		{
 			if( IsClient() )
@@ -708,20 +708,20 @@ void idCommonLocal::Frame()
 				RunNetworkSnapshotFrame();
 			}
 		}
-		
+
 		ExecuteReliableMessages();
-		
+
 		// send frame and mouse events to active guis
 		GuiFrameEvents();
-		
+
 		//--------------------------------------------
 		// Prepare usercmds and kick off the game processing
 		// in a background thread
 		//--------------------------------------------
-		
+
 		// get the previous usercmd for bypassed head tracking transform
 		const usercmd_t	previousCmd = usercmdGen->GetCurrentUsercmd();
-		
+
 		// build a new usercmd
 		int deviceNum = session->GetSignInManager().GetMasterInputDevice();
 		usercmdGen->BuildCurrentUsercmd( deviceNum );
@@ -737,49 +737,50 @@ void idCommonLocal::Frame()
 		{
 			usercmdGen->Clear();
 		}
-		
+
 		usercmd_t newCmd = usercmdGen->GetCurrentUsercmd();
-		
+
 		// Store server game time - don't let time go past last SS time in case we are extrapolating
 		if( IsClient() )
 		{
 			newCmd.serverGameMilliseconds = idMath::Min( Game()->GetSSEndTime(), Game()->GetServerGameTimeMs() );
 		}
-		else {
+		else
+		{
 			newCmd.serverGameMilliseconds = Game()->GetServerGameTimeMs();
 		}
-		
+
 		userCmdMgr.MakeReadPtrCurrentForPlayer( Game()->GetLocalClientNum() );
-		
+
 		// Stuff a copy of this userCmd for each game frame we are going to run.
 		// Ideally, the usercmds would be built in another thread so you could
 		// still get 60hz control accuracy when the game is running slower.
-		for( int i = 0 ; i < numGameFrames ; i++ )
+		for( int i = 0; i < numGameFrames; i++ )
 		{
 			newCmd.clientGameMilliseconds = FRAME_TO_MSEC( gameFrame - numGameFrames + i + 1 );
 			userCmdMgr.PutUserCmdForPlayer( game->GetLocalClientNum(), newCmd );
 		}
-		
+
 		// RB begin
-#if defined(USE_DOOMCLASSIC)
-		// If we're in Doom or Doom 2, run tics and upload the new texture.
+	#if defined(USE_DOOMCLASSIC)
+			// If we're in Doom or Doom 2, run tics and upload the new texture.
 		if( ( GetCurrentGame() == DOOM_CLASSIC || GetCurrentGame() == DOOM2_CLASSIC ) && !( Dialog().IsDialogPausing() || session->IsSystemUIShowing() ) )
 		{
 			RunDoomClassicFrame();
 		}
-#endif
+	#endif
 		// RB end
-		
+
 		// start the game / draw command generation thread going in the background
 		gameReturn_t ret = gameThread.RunGameAndDraw( numGameFrames, userCmdMgr, IsClient(), gameFrame - numGameFrames );
-		
+
 		if( !com_smp.GetBool() )
 		{
 			// in non-smp mode, run the commands we just generated, instead of
 			// frame-delayed ones from a background thread
 			renderCommands = renderSystem->SwapCommandBuffers_FinishCommandBuffers();
 		}
-		
+
 		//----------------------------------------
 		// Run the render back end, getting the GPU busy with new commands
 		// ASAP to minimize the pipeline bubble.
@@ -789,22 +790,22 @@ void idCommonLocal::Frame()
 		if( com_sleepRender.GetInteger() > 0 )
 		{
 			// debug tool to test frame adaption
-			Sys_Sleep( com_sleepRender.GetInteger() );
+			sys->Sleep( com_sleepRender.GetInteger() );
 		}
 		frameTiming.finishRenderTime = sys->Microseconds();
-		
+
 		// make sure the game / draw thread has completed
 		// This may block if the game is taking longer than the render back end
 		gameThread.WaitForThread();
-		
+
 		// Send local usermds to the server.
 		// This happens after the game frame has run so that prediction data is up to date.
 		SendUsercmds( Game()->GetLocalClientNum() );
-		
+
 		// Now that we have an updated game frame, we can send out new snapshots to our clients
 		session->Pump(); // Pump to get updated usercmds to relay
 		SendSnapshots();
-		
+
 		// Render the sound system using the latest commands from the game thread
 		if( pauseGame )
 		{
@@ -817,10 +818,10 @@ void idCommonLocal::Frame()
 			soundSystem->SetPlayingSoundWorld( soundWorld );
 		}
 		soundSystem->Render();
-		
+
 		// process the game return for map changes, etc
 		ProcessGameReturn( ret );
-		
+
 		idLobbyBase& lobby = session->GetActivePlatformLobbyBase();
 		if( lobby.HasActivePeers() )
 		{
@@ -834,7 +835,7 @@ void idCommonLocal::Frame()
 			}
 			lobby.DrawDebugNetworkHUD_ServerSnapshotMetrics( net_drawDebugHud.GetInteger() == 3 );
 		}
-		
+
 		// report timing information
 		if( com_speeds.GetBool() )
 		{
@@ -846,16 +847,16 @@ void idCommonLocal::Frame()
 			time_gameFrame = 0;
 			time_gameDraw = 0;
 		}
-		
+
 		// the FPU stack better be empty at this point or some bad code or compiler bug left values on the stack
 		if( !sys->FPU_StackIsEmpty() )
 		{
 			Printf( "%s", sys->FPU_GetState() );
 			FatalError( "idCommon::Frame: the FPU stack is not empty at the end of the frame\n" );
 		}
-		
+
 		mainFrameTiming = frameTiming;
-		
+
 		session->GetSaveGameManager().Pump();
 	}
 	catch( idException& )
@@ -867,14 +868,14 @@ void idCommonLocal::Frame()
 			return;
 		}
 	#endif
-		
+
 		// kill loading gui
 		delete loadGUI;
 		loadGUI = NULL;
-		
+
 		// drop back to main menu
 		LeaveGame();
-		
+
 		// force the console open to show error messages
 		console->Open();
 		return;
@@ -892,47 +893,46 @@ idCommonLocal::RunDoomClassicFrame
 void idCommonLocal::RunDoomClassicFrame()
 {
 	static int doomTics = 0;
-	
+
 	if( DoomLib::expansionDirty )
-	{	
+	{
 		// re-Initialize the Doom Engine.
 		DoomLib::Interface.Shutdown();
 		DoomLib::Interface.Startup( 1, false );
 		DoomLib::expansionDirty = false;
 	}
-		
+
 	if( DoomLib::Interface.Frame( doomTics, &userCmdMgr ) )
 	{
-		Globals* data = ( Globals* )DoomLib::GetGlobalData( 0 );
-		
+		Globals* data = ( Globals* ) DoomLib::GetGlobalData( 0 );
+
 		idArray< unsigned int, 256 > palette;
 		std::copy( data->XColorMap, data->XColorMap + palette.Num(), palette.Ptr() );
-		
+
 		// Do the palette lookup.
 		for( int row = 0; row < DOOMCLASSIC_RENDERHEIGHT; ++row )
 		{
 			for( int column = 0; column < DOOMCLASSIC_RENDERWIDTH; ++column )
 			{
 				const int doomScreenPixelIndex = row * DOOMCLASSIC_RENDERWIDTH + column;
-				const byte paletteIndex = data->screens[0][doomScreenPixelIndex];
-				const unsigned int paletteColor = palette[paletteIndex];
+				const byte paletteIndex = data->screens[ 0 ][ doomScreenPixelIndex ];
+				const unsigned int paletteColor = palette[ paletteIndex ];
 				const byte red = ( paletteColor & 0xFF000000 ) >> 24;
 				const byte green = ( paletteColor & 0x00FF0000 ) >> 16;
 				const byte blue = ( paletteColor & 0x0000FF00 ) >> 8;
-				
+
 				const int imageDataPixelIndex = row * DOOMCLASSIC_RENDERWIDTH * DOOMCLASSIC_BYTES_PER_PIXEL + column * DOOMCLASSIC_BYTES_PER_PIXEL;
-				doomClassicImageData[imageDataPixelIndex]		= red;
-				doomClassicImageData[imageDataPixelIndex + 1]	= green;
-				doomClassicImageData[imageDataPixelIndex + 2]	= blue;
-				doomClassicImageData[imageDataPixelIndex + 3]	= 255;
+				doomClassicImageData[ imageDataPixelIndex ] = red;
+				doomClassicImageData[ imageDataPixelIndex + 1 ] = green;
+				doomClassicImageData[ imageDataPixelIndex + 2 ] = blue;
+				doomClassicImageData[ imageDataPixelIndex + 3 ] = 255;
 			}
 		}
 	}
-	
+
 	renderSystem->UploadImage( "_doomClassic", doomClassicImageData.Ptr(), DOOMCLASSIC_RENDERWIDTH, DOOMCLASSIC_RENDERHEIGHT );
 	doomTics++;
 }
 
 #endif
 // RB end
-

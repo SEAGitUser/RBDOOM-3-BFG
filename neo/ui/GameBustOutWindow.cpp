@@ -35,9 +35,9 @@ If you have questions concerning this license or the applicable additional terms
 #include "UserInterfaceLocal.h"
 #include "GameBustOutWindow.h"
 
-#define BALL_RADIUS		12.f
-#define BALL_SPEED		250.f
-#define BALL_MAXSPEED	450.f
+#define BALL_RADIUS		12.0f
+#define BALL_SPEED		250.0f
+#define BALL_MAXSPEED	450.0f
 
 #define S_UNIQUE_CHANNEL	6
 
@@ -54,7 +54,7 @@ BOEntity::BOEntity( idGameBustOutWindow* _game )
 	materialName = "";
 	material = NULL;
 	width = height = 8;
-	color = colorWhite;
+	color = idColor::white;
 	powerup = POWERUP_NONE;
 	
 	position.Zero();
@@ -75,7 +75,6 @@ BOEntity::WriteToSaveGame
 */
 void BOEntity::WriteToSaveGame( idFile* savefile )
 {
-
 	savefile->Write( &visible, sizeof( visible ) );
 	
 	game->WriteSaveGameString( materialName, savefile );
@@ -148,10 +147,10 @@ BOEntity::SetVisible
 */
 void BOEntity::SetColor( float r, float g, float b, float a )
 {
-	color.x = r;
-	color.y = g;
-	color.z = b;
-	color.w = a;
+	color.r = r;
+	color.g = g;
+	color.b = b;
+	color.a = a;
 }
 
 /*
@@ -183,11 +182,11 @@ void BOEntity::Update( float timeslice, int guiTime )
 	// Fade out the ent
 	if( fadeOut )
 	{
-		color.w -= timeslice * 2.5;
+		color.a -= timeslice * 2.5;
 		
-		if( color.w <= 0.f )
+		if( color.a <= 0.f )
 		{
-			color.w = 0.f;
+			color.a = 0.f;
 			removed = true;
 		}
 	}

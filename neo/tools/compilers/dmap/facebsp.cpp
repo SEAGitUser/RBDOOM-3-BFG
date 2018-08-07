@@ -165,9 +165,7 @@ AllocBspFace
 */
 bspface_t*	AllocBspFace()
 {
-	bspface_t*	f;
-	
-	f = ( bspface_t* )Mem_Alloc( sizeof( *f ), TAG_TOOLS );
+	auto f = ( bspface_t* )Mem_Alloc( sizeof( bspface_t ), TAG_TOOLS );
 	memset( f, 0, sizeof( *f ) );
 	
 	return f;
@@ -207,13 +205,12 @@ int SelectSplitPlaneNum( node_t* node, bspface_t* list )
 	int			planenum;
 	bool	havePortals;
 	float		dist;
-	idVec3		halfSize;
 	
 	// if it is crossing a 1k block boundary, force a split
 	// this prevents epsilon problems from extending an
 	// arbitrary distance across the map
 	
-	halfSize = ( node->bounds[1] - node->bounds[0] ) * 0.5f;
+	idVec3 halfSize = ( node->bounds[1] - node->bounds[0] ) * 0.5f;
 	for( int axis = 0; axis < 3; axis++ )
 	{
 		if( halfSize[axis] > BLOCK_SIZE )

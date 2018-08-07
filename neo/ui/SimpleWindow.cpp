@@ -209,7 +209,6 @@ void idSimpleWindow::DrawBorderAndCaption( const idRectangle& drawRect )
 
 void idSimpleWindow::CalcClientRect( float xofs, float yofs )
 {
-
 	drawRect = rect;
 	
 	if( flags & WIN_INVERTRECT )
@@ -223,8 +222,7 @@ void idSimpleWindow::CalcClientRect( float xofs, float yofs )
 	
 	clientRect = drawRect;
 	if( rect.h() > 0.0 && rect.w() > 0.0 )
-	{
-	
+	{	
 		if( flags & WIN_BORDER && borderSize != 0.0 )
 		{
 			clientRect.x += borderSize;
@@ -243,7 +241,6 @@ void idSimpleWindow::CalcClientRect( float xofs, float yofs )
 		
 	}
 	origin.Set( rect.x() + ( rect.w() / 2 ), rect.y() + ( rect.h() / 2 ) );
-	
 }
 
 
@@ -276,7 +273,7 @@ void idSimpleWindow::Redraw( float x, float y )
 		shadowRect.x += textShadow;
 		shadowRect.y += textShadow;
 		
-		dc->DrawText( shadowText, textScale, textAlign, colorBlack, shadowRect, !( flags & WIN_NOWRAP ), -1 );
+		dc->DrawText( shadowText, textScale, textAlign, idColor::black, shadowRect, !( flags & WIN_NOWRAP ), -1 );
 	}
 	dc->DrawText( text, textScale, textAlign, foreColor, textRect, !( flags & WIN_NOWRAP ), -1 );
 	dc->SetTransformInfo( vec3_origin, mat3_identity );

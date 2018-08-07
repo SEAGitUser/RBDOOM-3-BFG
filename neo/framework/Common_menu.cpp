@@ -38,7 +38,6 @@ idCommonLocal::InitializeMPMapsModes
 */
 void idCommonLocal::InitializeMPMapsModes()
 {
-
 	const char** gameModes = NULL;
 	const char** gameModesDisplay = NULL;
 	int numModes = game->GetMPGameModes( &gameModes, &gameModesDisplay );
@@ -56,7 +55,7 @@ void idCommonLocal::InitializeMPMapsModes()
 	mpGameMaps.Clear();
 	for( int i = 0; i < numMaps; i++ )
 	{
-		const idDeclEntityDef* mapDef = static_cast<const idDeclEntityDef*>( declManager->DeclByIndex( DECL_MAPDEF, i ) );
+		auto mapDef = declManager->DeclByIndex( DECL_MAPDEF, i )->Cast<idDeclEntityDef>();
 		uint32 supportedModes = 0;
 		for( int j = 0; j < numModes; j++ )
 		{
@@ -188,7 +187,6 @@ Executes any commands returned by the gui
 */
 bool idCommonLocal::MenuEvent( const idSysEvent* event )
 {
-
 	if( session->GetSignInManager().ProcessInputEvent( event ) )
 	{
 		return true;

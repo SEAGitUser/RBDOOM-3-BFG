@@ -806,7 +806,6 @@ idCommonDialog::Init
 */
 void idCommonDialog::Init()
 {
-
 	idLib::PrintfIf( popupDialog_debug.GetBool(), "[%s]\n", __FUNCTION__ );
 	
 	Shutdown();

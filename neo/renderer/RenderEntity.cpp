@@ -82,6 +82,8 @@ bool idRenderEntityLocal::IsDirectlyVisible() const
 */
 void idRenderEntityLocal::DeriveData()
 {
+	//prevModelRenderMatrix.Copy( modelRenderMatrix );
+
 	idRenderMatrix::CreateFromOriginAxis( parms.origin, parms.axis, modelRenderMatrix );
 
 	// calculate the matrix that transforms the unit cube to exactly cover the model in world space
@@ -238,7 +240,7 @@ void idRenderEntityLocal::CreateReferences()
 		( entity->localReferenceBounds[ 1 ][ 0 ] - entity->localReferenceBounds[ 0 ][ 0 ] > 1024.0f ||
 		  entity->localReferenceBounds[ 1 ][ 1 ] - entity->localReferenceBounds[ 0 ][ 1 ] > 1024.0f ) )
 	{
-		common->Printf( "big entityRef: %f,%f\n", 
+		common->Printf( "big entityRef: %f,%f\n",
 			entity->localReferenceBounds[ 1 ][ 0 ] - entity->localReferenceBounds[ 0 ][ 0 ],
 			entity->localReferenceBounds[ 1 ][ 1 ] - entity->localReferenceBounds[ 0 ][ 1 ] );
 	}
@@ -292,10 +294,10 @@ bool idRenderEntityLocal::IssueCallback()
 	this->archived = false;		// will need to be written to the demo file
 
 	bool update;
-	if( tr.viewDef != NULL ) 
+	if( tr.viewDef != NULL )
 	{
 		update = this->parms.callback( &this->parms, &tr.viewDef->GetParms() );
-	} 
+	}
 	else {
 		update = this->parms.callback( &this->parms, NULL );
 	}
@@ -326,7 +328,7 @@ bool idRenderEntityLocal::IssueCallback()
 ===================
  R_EntityDefDynamicModel
 
-	This is also called by the game code for idRenderWorldLocal::ModelTrace(), 
+	This is also called by the game code for idRenderWorldLocal::ModelTrace(),
 	and idRenderWorldLocal::Trace() which is bad for performance...
 
 	Issues a deferred entity callback if necessary.
@@ -429,11 +431,11 @@ void idRenderEntityLocal::ReadFromDemoFile( class idDemoFile* f )
 	decals = NULL;
 	overlays = NULL;
 	dynamicModel = NULL;
-	ent.referenceShader = NULL;
+	ent.referenceMaterial = NULL;
 	ent.referenceSound = NULL;
 	ent.hModel = NULL;
 	ent.customSkin = NULL;
-	ent.customShader = NULL;
+	ent.customMaterial = NULL;
 	ent.joints = NULL;
 	ent.callback = NULL;
 	ent.callbackData = NULL;
@@ -473,10 +475,10 @@ void idRenderEntityLocal::ReadFromDemoFile( class idDemoFile* f )
 	const char* declName = NULL;
 
 	declName = f->ReadHashString();
-	ent.customShader = ( declName[ 0 ] != 0 ) ? declManager->FindMaterial( declName ) : NULL;
+	ent.customMaterial = ( declName[ 0 ] != 0 ) ? declManager->FindMaterial( declName ) : NULL;
 
 	declName = f->ReadHashString();
-	ent.referenceShader = ( declName[ 0 ] != 0 ) ? declManager->FindMaterial( declName ) : NULL;
+	ent.referenceMaterial = ( declName[ 0 ] != 0 ) ? declManager->FindMaterial( declName ) : NULL;
 
 	declName = f->ReadHashString();
 	ent.customSkin = ( declName[ 0 ] != 0 ) ? declManager->FindSkin( declName ) : NULL;
@@ -572,8 +574,8 @@ void idRenderEntityLocal::WriteToDemoFile( class idDemoFile* f ) const
 	f->WriteBool( parms.weaponDepthHack );
 	f->WriteInt( parms.forceUpdate );
 
-	f->WriteHashString( parms.customShader ? parms.customShader->GetName() : "" );
-	f->WriteHashString( parms.referenceShader ? parms.referenceShader->GetName() : "" );
+	f->WriteHashString( parms.customMaterial ? parms.customMaterial->GetName() : "" );
+	f->WriteHashString( parms.referenceMaterial ? parms.referenceMaterial->GetName() : "" );
 	f->WriteHashString( parms.customSkin ? parms.customSkin->GetName() : "" );
 	f->WriteInt( parms.referenceSound ? parms.referenceSound->Index() : -1 );
 
@@ -626,7 +628,7 @@ idRenderLightLocal::idRenderLightLocal()
 {
 	parms.Clear();
 	memset( lightProject, 0, sizeof( lightProject ) );
-	
+
 	lightHasMoved			= false;
 	world					= NULL;
 	index					= 0;
@@ -642,7 +644,7 @@ idRenderLightLocal::idRenderLightLocal()
 	foggedPortals			= NULL;
 	firstInteraction		= NULL;
 	lastInteraction			= NULL;
-	
+
 	baseLightProject.Zero();
 	inverseBaseLightProject.Zero();
 }
@@ -937,20 +939,21 @@ void idRenderLightLocal::DeriveData()
 	{
 		light->globalLightOrigin = light->parms.origin + light->parms.axis * light->parms.lightCenter;
 	}
-
-	// Rotate and translate the light projection by the light matrix.
-	// 99% of lights remain axis aligned in world space.
-	idRenderMatrix lightMatrix;
-	idRenderMatrix::CreateFromOriginAxis( light->parms.origin, light->parms.axis, lightMatrix );
-
-	idRenderMatrix inverseLightMatrix;
-	if( !idRenderMatrix::Inverse( lightMatrix, inverseLightMatrix ) )
 	{
-		idLib::Warning( "lightMatrix invert failed" );
-	}
+		// Rotate and translate the light projection by the light matrix.
+		// 99% of lights remain axis aligned in world space.
+		idRenderMatrix lightMatrix;
+		idRenderMatrix::CreateFromOriginAxis( light->parms.origin, light->parms.axis, lightMatrix );
 
-	// 'baseLightProject' goes from global space -> light local space -> light projective space
-	idRenderMatrix::Multiply( localProject, inverseLightMatrix, light->baseLightProject );
+		idRenderMatrix inverseLightMatrix;
+		if( !idRenderMatrix::Inverse( lightMatrix, inverseLightMatrix ) )
+		{
+			idLib::Warning( "lightMatrix invert failed" );
+		}
+
+		// 'baseLightProject' goes from global space -> light local space -> light projective space
+		idRenderMatrix::Multiply( localProject, inverseLightMatrix, light->baseLightProject );
+	}
 
 	// Invert the light projection so we can deform zero-to-one cubes into
 	// the light model and calculate global bounds.

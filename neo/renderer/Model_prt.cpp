@@ -108,12 +108,9 @@ idRenderModel* idRenderModelPrt::InstantiateDynamicModel( const struct renderEnt
 		assert( dynamic_cast<idRenderModelStatic*>( cachedModel ) != NULL );
 		assert( idStr::Icmp( cachedModel->Name(), parametricParticle_SnapshotName ) == 0 );
 		
-		staticModel = static_cast<idRenderModelStatic*>( cachedModel );
-		
+		staticModel = static_cast<idRenderModelStatic*>( cachedModel );	
 	}
-	else
-	{
-	
+	else {	
 		staticModel = new( TAG_MODEL ) idRenderModelStatic;
 		staticModel->InitEmpty( parametricParticle_SnapshotName );
 	}
@@ -127,8 +124,8 @@ idRenderModel* idRenderModelPrt::InstantiateDynamicModel( const struct renderEnt
 	
 	for( int stageNum = 0; stageNum < particleSystem->stages.Num(); stageNum++ )
 	{
-		auto stage = particleSystem->stages[stageNum];
-		
+		auto stage = particleSystem->stages[ stageNum ];
+
 		if( !stage->material )
 		{
 			continue;
@@ -292,9 +289,7 @@ idRenderModelPrt::Memory
 */
 int idRenderModelPrt::Memory() const
 {
-	int total = 0;
-	
-	total += idRenderModelStatic::Memory();
+	int total = idRenderModelStatic::Memory();
 	
 	if( particleSystem )
 	{

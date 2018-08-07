@@ -109,14 +109,15 @@ void idColorSpace::ConvertRGBToCoCg_Y( byte* dst, const byte* src, int width, in
 {
 	for( int i = 0; i < width * height; i++ )
 	{
-		int r = src[i * 4 + 0];
-		int g = src[i * 4 + 1];
-		int b = src[i * 4 + 2];
-		//int a = src[i*4+3];
-		dst[i * 4 + 0] = CLAMP_BYTE( RGB_TO_YCOCG_CO( r, g, b ) + 128 );
-		dst[i * 4 + 1] = CLAMP_BYTE( RGB_TO_YCOCG_CG( r, g, b ) + 128 );
-		dst[i * 4 + 2] = 0;
-		dst[i * 4 + 3] = CLAMP_BYTE( RGB_TO_YCOCG_Y( r, g, b ) );
+		int r = src[ i * 4 + 0 ];
+		int g = src[ i * 4 + 1 ];
+		int b = src[ i * 4 + 2 ];
+		//int a = src[ i * 4 + 3 ];
+
+		dst[ i * 4 + 0 ] = CLAMP_BYTE( RGB_TO_YCOCG_CO( r, g, b ) + 128 );
+		dst[ i * 4 + 1 ] = CLAMP_BYTE( RGB_TO_YCOCG_CG( r, g, b ) + 128 );
+		dst[ i * 4 + 2 ] = 0;
+		dst[ i * 4 + 3 ] = CLAMP_BYTE( RGB_TO_YCOCG_Y( r, g, b ) );
 	}
 }
 
@@ -156,7 +157,7 @@ void idColorSpace::ConvertCoCgSYToRGB( byte* dst, const byte* src, int width, in
 		int cg = src[i * 4 + 1] - 128;
 		int a  = src[i * 4 + 2];
 		int y  = src[i * 4 + 3];
-		float	scale = 1.0f / ( 1.0f + a * ( 31.875f / 255.0f ) ) ;
+		float scale = 1.0f / ( 1.0f + a * ( 31.875f / 255.0f ) ) ;
 		co = idMath::Ftoi( co * scale );
 		cg = idMath::Ftoi( cg * scale );
 		dst[i * 4 + 0] = CLAMP_BYTE( y + COCG_TO_R( co, cg ) );
@@ -369,7 +370,7 @@ idColorSpace::ConvertCbCr_YToRGB
 */
 void idColorSpace::ConvertCbCr_YToRGB( byte* dst, const byte* src, int width, int height )
 {
-	for( int i = 0; i < width * height; i++ )
+	for( int i = 0; i < width * height; ++i )
 	{
 		int cb = src[i * 4 + 0] - 128;
 		int cr = src[i * 4 + 1] - 128;
@@ -498,64 +499,63 @@ Ny(h,j) = H(h,j)
 */
 void idColorSpace::ConvertNormalMapToStereographicHeightMap( byte* heightMap, const byte* normalMap, int width, int height, float& scale )
 {
-
 	idTempArray<float> buffer( ( width + 1 ) * ( height + 1 ) * sizeof( float ) );
 	float* temp = ( float* )buffer.Ptr();
 	memset( temp, 0, ( width + 1 ) * ( height + 1 ) * sizeof( float ) );
-	
+
 	const int NUM_ITERATIONS = 32;
-	
+
 	float scale0 = 0.1f;
 	float scale1 = 0.9f;
-	
+
 	for( int n = 0; n < NUM_ITERATIONS; n++ )
 	{
-		for( int i = 0; i < height; i++ )
+		for( int i = 0; i < height; ++i )
 		{
-			for( int j = 1; j < width; j++ )
+			for( int j = 1; j < width; ++j )
 			{
 				float x = NORMALMAP_BYTE_TO_FLOAT( normalMap[( ( i + 0 ) * width + ( j + 0 ) ) * 4 + 0] );
 				float z = NORMALMAP_BYTE_TO_FLOAT( normalMap[( ( i + 0 ) * width + ( j + 0 ) ) * 4 + 2] );
 				temp[i * width + j] = scale0 * temp[i * width + j] + scale1 * ( temp[( i + 0 ) * width + ( j - 1 )] - ( x / ( 1 + z ) ) );
 			}
 		}
-		for( int i = 1; i < height; i++ )
+		for( int i = 1; i < height; ++i )
 		{
-			for( int j = 0; j < width; j++ )
+			for( int j = 0; j < width; ++j )
 			{
 				float y = NORMALMAP_BYTE_TO_FLOAT( normalMap[( ( i + 0 ) * width + ( j + 0 ) ) * 4 + 1] );
 				float z = NORMALMAP_BYTE_TO_FLOAT( normalMap[( ( i + 0 ) * width + ( j + 0 ) ) * 4 + 2] );
 				temp[i * width + j] = scale0 * temp[i * width + j] + scale1 * ( temp[( i - 1 ) * width + ( j + 0 )] - ( y / ( 1 + z ) ) );
 			}
 		}
-		for( int i = 0; i < height; i++ )
+		for( int i = 0; i < height; ++i )
 		{
-			for( int j = width - 1; j > 0; j-- )
+			for( int j = width - 1; j > 0; --j )
 			{
 				float x = NORMALMAP_BYTE_TO_FLOAT( normalMap[( ( i + 0 ) * width + ( j - 1 ) ) * 4 + 0] );
 				float z = NORMALMAP_BYTE_TO_FLOAT( normalMap[( ( i + 0 ) * width + ( j - 1 ) ) * 4 + 2] );
 				temp[i * width + ( j - 1 )] = scale0 * temp[i * width + ( j - 1 )] + scale1 * ( temp[( i + 0 ) * width + ( j + 0 )] + ( x / ( 1 + z ) ) );
 			}
 		}
-		for( int i = height - 1; i > 0; i-- )
+		for( int i = height - 1; i > 0; --i )
 		{
-			for( int j = 0; j < width; j++ )
+			for( int j = 0; j < width; ++j )
 			{
 				float y = NORMALMAP_BYTE_TO_FLOAT( normalMap[( ( i - 1 ) * width + ( j + 0 ) ) * 4 + 1] );
 				float z = NORMALMAP_BYTE_TO_FLOAT( normalMap[( ( i - 1 ) * width + ( j + 0 ) ) * 4 + 2] );
 				temp[( i - 1 ) * width + j] = scale0 * temp[( i - 1 ) * width + j] + scale1 * ( temp[( i + 0 ) * width + ( j + 0 )] + ( y / ( 1 + z ) ) );
 			}
 		}
-		
+
 		scale1 *= 0.99f;
 		scale0 = 1.0f - scale1;
 	}
-	
+
 	float minHeight = idMath::INFINITY;
 	float maxHeight = -idMath::INFINITY;
-	for( int j = 0; j < height; j++ )
+	for( int j = 0; j < height; ++j )
 	{
-		for( int i = 0; i < width; i++ )
+		for( int i = 0; i < width; ++i )
 		{
 			if( temp[j * width + i] < minHeight )
 			{
@@ -567,13 +567,13 @@ void idColorSpace::ConvertNormalMapToStereographicHeightMap( byte* heightMap, co
 			}
 		}
 	}
-	
+
 	scale = ( maxHeight - minHeight );
-	
+
 	float s = 255.0f / scale;
-	for( int j = 0; j < height; j++ )
+	for( int j = 0; j < height; ++j )
 	{
-		for( int i = 0; i < width; i++ )
+		for( int i = 0; i < width; ++i )
 		{
 			heightMap[j * width + i] = idMath::Ftob( ( temp[j * width + i] - minHeight ) * s );
 		}
@@ -589,16 +589,16 @@ This converts a heightmap of a stereographically projected normal map back into 
 */
 void idColorSpace::ConvertStereographicHeightMapToNormalMap( byte* normalMap, const byte* heightMap, int width, int height, float scale )
 {
-	for( int i = 0; i < height; i++ )
+	for( int i = 0; i < height; ++i )
 	{
 		int previ = idMath::Max( i, 0 );
 		int nexti = idMath::Min( i + 1, height - 1 );
-		
-		for( int j = 0; j < width; j++ )
+
+		for( int j = 0; j < width; ++j )
 		{
 			int prevj = idMath::Max( j, 0 );
 			int nextj = idMath::Min( j + 1, width - 1 );
-			
+
 			idVec3 normal;
 			float pX = scale * ( heightMap[i * width + prevj] - heightMap[i * width + nextj] ) / 255.0f;
 			float pY = scale * ( heightMap[previ * width + j] - heightMap[nexti * width + j] ) / 255.0f;
@@ -606,7 +606,7 @@ void idColorSpace::ConvertStereographicHeightMapToNormalMap( byte* normalMap, co
 			normal.x = pX * denom;
 			normal.y = pY * denom;
 			normal.z = denom - 1.0f;
-			
+
 			normalMap[( i * width + j ) * 4 + 0 ] = NORMALMAP_FLOAT_TO_BYTE( normal[0] );
 			normalMap[( i * width + j ) * 4 + 1 ] = NORMALMAP_FLOAT_TO_BYTE( normal[1] );
 			normalMap[( i * width + j ) * 4 + 2 ] = NORMALMAP_FLOAT_TO_BYTE( normal[2] );
@@ -622,9 +622,9 @@ idColorSpace::ConvertRGBToMonochrome
 */
 void idColorSpace::ConvertRGBToMonochrome( byte* mono, const byte* rgb, int width, int height )
 {
-	for( int i = 0; i < height; i++ )
+	for( int i = 0; i < height; ++i )
 	{
-		for( int j = 0; j < width; j++ )
+		for( int j = 0; j < width; ++j )
 		{
 			mono[i * width + j] = ( rgb[( i * width + j ) * 4 + 0] +
 									rgb[( i * width + j ) * 4 + 1] +
@@ -640,9 +640,9 @@ idColorSpace::ConvertMonochromeToRGB
 */
 void idColorSpace::ConvertMonochromeToRGB( byte* rgb, const byte* mono, int width, int height )
 {
-	for( int i = 0; i < height; i++ )
+	for( int i = 0; i < height; ++i )
 	{
-		for( int j = 0; j < width; j++ )
+		for( int j = 0; j < width; ++j )
 		{
 			rgb[( i * width + j ) * 4 + 0] = mono[i * width + j];
 			rgb[( i * width + j ) * 4 + 1] = mono[i * width + j];

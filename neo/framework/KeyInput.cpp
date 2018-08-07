@@ -287,8 +287,7 @@ keyname_t keynames[] =
 	{K_NONE, NULL, NULL}
 };
 
-class idKey
-{
+class idKey {
 public:
 	idKey()
 	{
@@ -938,7 +937,6 @@ idKeyInput::Init
 */
 void idKeyInput::Init()
 {
-
 	keys = new( TAG_SYSTEM ) idKey[K_LAST_KEY];
 	
 	// register our functions

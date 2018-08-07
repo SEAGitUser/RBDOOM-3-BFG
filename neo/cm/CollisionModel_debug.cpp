@@ -187,14 +187,14 @@ void idCollisionModelManagerLocal::DrawEdge( cm_model_t* model, int edgeNum, con
 	{
 		if( cm_drawInternal.GetBool() )
 		{
-			common->RW()->DebugArrow( colorGreen, start, end, 1 );
+			common->RW()->DebugArrow( idColor::green.ToVec4(), start, end, 1 );
 		}
 	}
 	else
 	{
 		if( edge->numUsers > 2 )
 		{
-			common->RW()->DebugArrow( colorBlue, start, end, 1 );
+			common->RW()->DebugArrow( idColor::blue.ToVec4(), start, end, 1 );
 		}
 		else
 		{
@@ -213,7 +213,7 @@ void idCollisionModelManagerLocal::DrawEdge( cm_model_t* model, int edgeNum, con
 		{
 			end = mid + 5 * edge->normal;
 		}
-		common->RW()->DebugArrow( colorCyan, mid, end, 1 );
+		common->RW()->DebugArrow( idColor::cyan.ToVec4(), mid, end, 1 );
 	}
 }
 
@@ -259,7 +259,7 @@ void idCollisionModelManagerLocal::DrawPolygon( cm_model_t* model, cm_polygon_t*
 			center += origin;
 			end = center + 5 * p->plane.Normal();
 		}
-		common->RW()->DebugArrow( colorMagenta, center, end, 1 );
+		common->RW()->DebugArrow( idColor::magenta.ToVec4(), center, end, 1 );
 	}
 	
 	if( cm_drawFilled.GetBool() )

@@ -93,14 +93,12 @@ idLocalUser::StorageSizeAvailable
 /*
 bool idLocalUser::StorageSizeAvailable( uint64 minSizeInBytes, int64& neededBytes )
 {
-	int64 size = Sys_GetDriveFreeSpaceInBytes( fs_savepath.GetString() );
-
+	int64 size = sys->GetDriveFreeSpaceInBytes( fs_savepath.GetString() );
 	neededBytes = minSizeInBytes - size;
 	if( neededBytes < 0 )
 	{
 		neededBytes = 0;
 	}
-
 	return neededBytes == 0;
 }
 */

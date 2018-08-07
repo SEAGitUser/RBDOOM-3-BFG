@@ -645,7 +645,6 @@ idCVarSystemLocal::Init
 */
 void idCVarSystemLocal::Init()
 {
-
 	modifiedFlags = 0;
 	
 	cmdSystem->AddCommand( "toggle", Toggle_f, CMD_FL_SYSTEM, "toggles a cvar" );

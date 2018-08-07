@@ -255,11 +255,11 @@ void idRenderModelLiquid::Update()
 	switch( liquid_type )
 	{
 		case 0 :
-			for( y = 1; y < verts_y - 1; y++ )
+			for( y = 1; y < verts_y - 1; ++y )
 			{
 				p2 += verts_x;
 				p1 += verts_x;
-				for( x = 1; x < verts_x - 1; x++ )
+				for( x = 1; x < verts_x - 1; ++x )
 				{
 					value =
 						( p2[ x + verts_x ] +
@@ -279,11 +279,11 @@ void idRenderModelLiquid::Update()
 			break;
 			
 		case 1 :
-			for( y = 1; y < verts_y - 1; y++ )
+			for( y = 1; y < verts_y - 1; ++y )
 			{
 				p2 += verts_x;
 				p1 += verts_x;
-				for( x = 1; x < verts_x - 1; x++ )
+				for( x = 1; x < verts_x - 1; ++x )
 				{
 					value =
 						( p2[ x + verts_x ] +

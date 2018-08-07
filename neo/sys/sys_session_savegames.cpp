@@ -723,7 +723,7 @@ bool idSessionLocal::LoadGameCheckDiscNumber( idSaveLoadParms& parms )
 	discSwapStateMgr->Pump();
 	while( discSwapStateMgr->IsWorking() )
 	{
-		Sys_Sleep( 15 );
+		sys->Sleep( 15 );
 		// process input and render
 		
 		discSwapStateMgr->Pump();

@@ -63,6 +63,62 @@ void R_ShadowBounds( const idBounds& modelBounds, const idBounds& lightBounds, c
 	}
 }
 
+//SEA: TODO decrease shadow lod on muzzle flashes!
+int R_CalculateShadowLod( const idRenderView * view, const viewLight_t * const vLight, const idBounds & projected )
+{
+	// subviews will get the lowest resolution.
+	if( view->isSubview )
+		return( MAX_SHADOWMAP_RESOLUTIONS - 1 );
+
+	const int numLods = MAX_SHADOWMAP_RESOLUTIONS;
+
+	// compute projected bounding sphere
+	// and use that as a criteria for selecting LOD
+
+	float projectedRadius = projected.GetRadius( projected.GetCenter() );
+	if( projectedRadius > 1.0f ) {
+		projectedRadius = 1.0f;
+	}
+
+	// 0 - object intersects near view plane, e.g. view weapon
+	float flod = 0.0f;
+
+	if( projectedRadius != 0 )
+	{
+		float lodscale = r_shadowMapLodScale.GetFloat();
+		if( lodscale > 20 ) {
+			lodscale = 20;
+		}
+		flod = 1.0f - projectedRadius * lodscale;
+	}
+
+	int lod = idMath::Ftoi( idMath::Max( 0.0f, ( flod * numLods ) ) );
+
+	//if( lod >= numLods ) {
+	//	lod = numLods - 1;
+	//}
+
+	lod += r_shadowMapLodBias.GetInteger();
+	if( lod < 0 ) {
+		lod = 0;
+	}
+
+	if( lod >= numLods )
+	{
+		// don't draw any shadow
+		//lod = -1;
+		lod = numLods - 1;
+	}
+
+	// 2048^2 ultra quality is only for cascaded shadow mapping with sun lights
+	if( lod == 0 && !vLight->lightDef->GetParms().parallel )
+	{
+		lod = 1;
+	}
+
+	return lod;
+}
+
 /*
 ===================
  R_AddSingleLight
@@ -85,9 +141,9 @@ static void R_AddSingleLight( viewLight_t* vLight )
 	vLight->removeFromList = true;
 	vLight->shadowOnlyViewEntities = NULL;
 	vLight->preLightShadowVolumes = NULL;
-	
+
 	// globals we really should pass in...
-	const idRenderView * const viewDef = tr.viewDef;	
+	const idRenderView * const viewDef = tr.viewDef;
 	const idRenderLightLocal * const light = vLight->lightDef;
 	const idMaterial * const lightShader = light->lightShader;
 	if( lightShader == NULL )
@@ -95,9 +151,9 @@ static void R_AddSingleLight( viewLight_t* vLight )
 		common->Error( "R_AddSingleLight: NULL lightShader" );
 		return;
 	}
-	
+
 	SCOPED_PROFILE_EVENT( lightShader->GetName() );
-	
+
 	// see if we are suppressing the light in this view
 	if( !r_skipSuppress.GetBool() )
 	{
@@ -110,11 +166,11 @@ static void R_AddSingleLight( viewLight_t* vLight )
 			return;
 		}
 	}
-	
+
 	// evaluate the light shader registers
 	auto lightRegs = allocManager.FrameAlloc<float, FRAME_ALLOC_SHADER_REGISTER>( lightShader->GetNumRegisters() );
 	lightShader->EvaluateRegisters( lightRegs, light->GetParms().shaderParms, viewDef->GetGlobalMaterialParms(), viewDef->GetGameTimeSec(), light->GetParms().referenceSound );
-									
+
 	// if this is a purely additive light and no stage in the light shader evaluates
 	// to a positive light value, we can completely skip the light
 	if( !lightShader->IsFogLight() && !lightShader->IsBlendLight() )
@@ -123,27 +179,27 @@ static void R_AddSingleLight( viewLight_t* vLight )
 		for( lightStageNum = 0; lightStageNum < lightShader->GetNumStages(); lightStageNum++ )
 		{
 			auto lightStage = lightShader->GetStage( lightStageNum );
-			
+
 			// ignore stages that fail the condition
 			if( lightStage->SkipStage( lightRegs ) )
 			{
 				continue;
 			}
-			
+
 			const int* registers = lightStage->color.registers;
-			
+
 			// snap tiny values to zero
-			if( lightRegs[ registers[0] ] < 0.001f ) lightRegs[ registers[0] ] = 0.0f;
-			if( lightRegs[ registers[1] ] < 0.001f ) lightRegs[ registers[1] ] = 0.0f;
-			if( lightRegs[ registers[2] ] < 0.001f ) lightRegs[ registers[2] ] = 0.0f;
-			
-			if( lightRegs[ registers[0] ] > 0.0f ||
-				lightRegs[ registers[1] ] > 0.0f ||
-				lightRegs[ registers[2] ] > 0.0f )
+			if( lightRegs[ registers[ SHADERPARM_RED ] ]   < 0.001f ) lightRegs[ registers[ SHADERPARM_RED ] ] = 0.0f;
+			if( lightRegs[ registers[ SHADERPARM_GREEN ] ] < 0.001f ) lightRegs[ registers[ SHADERPARM_GREEN ] ] = 0.0f;
+			if( lightRegs[ registers[ SHADERPARM_BLUE ] ]  < 0.001f ) lightRegs[ registers[ SHADERPARM_BLUE ] ] = 0.0f;
+
+			if( lightRegs[ registers[ SHADERPARM_RED ] ]   > 0.0f ||
+				lightRegs[ registers[ SHADERPARM_GREEN ] ] > 0.0f ||
+				lightRegs[ registers[ SHADERPARM_BLUE ] ]  > 0.0f )
 			{
 				break;
 			}
-		}	
+		}
 		if( lightStageNum == lightShader->GetNumStages() )
 		{
 			// we went through all the stages and didn't find one that adds anything
@@ -153,38 +209,37 @@ static void R_AddSingleLight( viewLight_t* vLight )
 			return;
 		}
 	}
-	
-	
+
+
 	//--------------------------------------------
 	// copy data used by backend
 	//--------------------------------------------
 	vLight->globalLightOrigin = light->globalLightOrigin;
 
 	memcpy( vLight->lightProject, light->lightProject, sizeof( light->lightProject ) );
-	
+
 	// copy the matrix for deforming the 'zeroOneCubeModel' to exactly cover the light volume in world space
 	vLight->inverseBaseLightProject.Copy( light->inverseBaseLightProject );
-	
+
 	// RB begin
 	vLight->baseLightProject.Copy( light->baseLightProject );
-	vLight->pointLight = light->GetParms().pointLight;
-	vLight->parallel = light->GetParms().parallel;
+	vLight->lightType = light->GetParms().parallel ? LIGHT_TYPE_PARALLEL : ( light->GetParms().pointLight ? LIGHT_TYPE_POINT : LIGHT_TYPE_SPOT );
 	vLight->lightCenter = light->GetParms().lightCenter;
 	// RB end
-	
+
 	vLight->falloffImage = light->falloffImage;
 	vLight->lightShader = light->lightShader;
 	vLight->shaderRegisters = lightRegs;
-	
+
 	const bool lightCastsShadows = light->LightCastsShadows();
-	
+
 	if( r_useLightScissors.GetInteger() != 0 )
 	{
 		// Calculate the matrix that projects the zero-to-one cube to exactly cover the
 		// light frustum in clip space.
 		idRenderMatrix invProjectMVPMatrix;
 		idRenderMatrix::Multiply( viewDef->GetMVPMatrix(), light->inverseBaseLightProject, invProjectMVPMatrix );
-		
+
 		// Calculate the projected bounds, either not clipped at all, near clipped, or fully clipped.
 		idBounds projected;
 		if( r_useLightScissors.GetInteger() == 1 )
@@ -198,16 +253,15 @@ static void R_AddSingleLight( viewLight_t* vLight )
 		else {
 			idRenderMatrix::ProjectedFullyClippedBounds( projected, invProjectMVPMatrix, bounds_zeroOneCube );
 		}
-		
-		if( projected[ 0 ].z >= projected[ 1 ].z )
-		{
+
+		if( projected[ 0 ].z >= projected[ 1 ].z ) {
 			// the light was culled to the view frustum
 			return;
 		}
-		
-		float screenWidth = ( float )viewDef->GetViewport().x2 - ( float )viewDef->GetViewport().x1;
+
+		float screenWidth  = ( float )viewDef->GetViewport().x2 - ( float )viewDef->GetViewport().x1;
 		float screenHeight = ( float )viewDef->GetViewport().y2 - ( float )viewDef->GetViewport().y1;
-		
+
 		idScreenRect lightScissorRect;
 		lightScissorRect.x1 = idMath::Ftoi16( projected[ 0 ][ 0 ] * screenWidth );
 		lightScissorRect.x2 = idMath::Ftoi16( projected[ 1 ][ 0 ] * screenWidth );
@@ -218,83 +272,18 @@ static void R_AddSingleLight( viewLight_t* vLight )
 		vLight->scissorRect.Intersect( lightScissorRect );
 		vLight->scissorRect.zmin = projected[ 0 ][ 2 ];
 		vLight->scissorRect.zmax = projected[ 1 ][ 2 ];
-		
+
 		// RB: calculate shadow LOD similar to Q3A .md3 LOD code
-		vLight->shadowLOD = 0;
-		
-		if( r_useShadowMapping.GetBool() && lightCastsShadows )
-		{
-			float flod, lodscale;
-			float projectedRadius;
-			int lod, numLods = MAX_SHADOWMAP_RESOLUTIONS;
-			
-			// compute projected bounding sphere
-			// and use that as a criteria for selecting LOD
-			idVec3 center = projected.GetCenter();
-			projectedRadius = projected.GetRadius( center );
-			if( projectedRadius > 1.0f )
-			{
-				projectedRadius = 1.0f;
-			}
-			
-			if( projectedRadius != 0 )
-			{
-				lodscale = r_shadowMapLodScale.GetFloat();
-				
-				if( lodscale > 20 )
-					lodscale = 20;
-					
-				flod = 1.0f - projectedRadius * lodscale;
-			}
-			else
-			{
-				// object intersects near view plane, e.g. view weapon
-				flod = 0;
-			}
-			
-			flod *= numLods;
-			
-			if( flod < 0 )
-			{
-				flod = 0;
-			}
-			
-			lod = idMath::Ftoi( flod );
-			
-			if( lod >= numLods )
-			{
-				//lod = numLods - 1;
-			}
-			
-			lod += r_shadowMapLodBias.GetInteger();
-			
-			if( lod < 0 )
-			{
-				lod = 0;
-			}
-			
-			if( lod >= numLods )
-			{
-				// don't draw any shadow
-				//lod = -1;
-				
-				lod = numLods - 1;
-			}
-			
-			// 2048^2 ultra quality is only for cascaded shadow mapping with sun lights
-			if( lod == 0 && !light->GetParms().parallel )
-			{
-				lod = 1;
-			}
-			
-			vLight->shadowLOD = lod;
+		vLight->shadowLOD = MAX_SHADOWMAP_RESOLUTIONS - 1;
+		if( r_useShadowMapping.GetBool() && lightCastsShadows ) {
+			vLight->shadowLOD = R_CalculateShadowLod( viewDef, vLight, projected );
 		}
 		// RB end
 	}
-	
+
 	// this one stays on the list
 	vLight->removeFromList = false;
-	
+
 	//--------------------------------------------
 	// create interactions with all entities the light may touch, and add viewEntities
 	// that may cast shadows, even if they aren't directly visible.  Any real work
@@ -302,16 +291,16 @@ static void R_AddSingleLight( viewLight_t* vLight )
 	//--------------------------------------------
 
 	auto world = light->GetOwner();
-	
+
 	// this bool array will be set true whenever the entity will visibly interact with the light
 	vLight->entityInteractionState = allocManager.FrameAlloc<byte, FRAME_ALLOC_INTERACTION_STATE, true>( world->entityDefs.Num() );
-	
+
 	idInteraction** const interactionTableRow = world->interactionTable + light->GetIndex() * world->interactionTableWidth;
-	
+
 	for( auto lref = light->references; lref != NULL; lref = lref->ownerNext )
 	{
 		auto area = lref->area;
-		
+
 		// some lights have their center of projection outside the world, but otherwise
 		// we want to ignore areas that are not connected to the light center due to a closed door
 		if( light->areaNum != -1 && r_useAreasConnectedForShadowCulling.GetInteger() == 2 )
@@ -322,25 +311,25 @@ static void R_AddSingleLight( viewLight_t* vLight )
 				continue;
 			}
 		}
-		
+
 		// check all the models in this area
 		for( auto eref = area->entityRefs.areaNext; eref != &area->entityRefs; eref = eref->areaNext )
 		{
 			idRenderEntityLocal* edef = eref->entity;
-			
+
 			if( vLight->entityInteractionState[ edef->GetIndex() ] != viewLight_t::INTERACTION_UNCHECKED )
 			{
 				continue;
 			}
 			// until proven otherwise
 			vLight->entityInteractionState[ edef->GetIndex() ] = viewLight_t::INTERACTION_NO;
-			
+
 			// The table is updated at interaction::AllocAndLink() and interaction::UnlinkAndFree()
 			const idInteraction* inter = interactionTableRow[ edef->GetIndex() ];
-			
+
 			auto & eParms = edef->GetParms();
 			auto eModel = edef->GetModel();
-			
+
 			// a large fraction of static entity / light pairs will still have no interactions even though
 			// they are both present in the same area(s)
 			if( eModel != NULL && !eModel->IsDynamicModel() && inter == INTERACTION_EMPTY )
@@ -350,7 +339,7 @@ static void R_AddSingleLight( viewLight_t* vLight )
 				// already there
 				continue;
 			}
-			
+
 			// We don't want the lights on weapons to illuminate anything else.
 			// There are two assumptions here -- that allowLightInViewID is only
 			// used for weapon lights, and that all weapons will have weaponDepthHack.
@@ -361,20 +350,20 @@ static void R_AddSingleLight( viewLight_t* vLight )
 			//	{
 			//		continue;
 			//	}
-			
+
 			// non-shadow casting entities don't need to be added if they aren't
 			// directly visible
 			if( ( eParms.noShadow || ( eModel && !eModel->ModelHasShadowCastingSurfaces() ) ) && !edef->IsDirectlyVisible() )
 			{
 				continue;
 			}
-			
+
 			// if the model doesn't accept lighting or cast shadows, it doesn't need to be added
 			if( eModel && !eModel->ModelHasInteractingSurfaces() && !eModel->ModelHasShadowCastingSurfaces() )
 			{
 				continue;
 			}
-			
+
 			// no interaction present, so either the light or entity has moved
 			// assert( lightHasMoved || edef->entityHasMoved );
 			if( inter == NULL )
@@ -385,7 +374,7 @@ static void R_AddSingleLight( viewLight_t* vLight )
 				{
 					continue;
 				}
-				
+
 				// do a check of the entity reference bounds against the light frustum to see if they can't
 				// possibly interact, despite sharing one or more world areas
 				if( light->CullModelBoundsToLight( edef->localReferenceBounds, edef->modelRenderMatrix ) )
@@ -393,16 +382,16 @@ static void R_AddSingleLight( viewLight_t* vLight )
 					continue;
 				}
 			}
-			
+
 			// we now know that the entity and light do overlap
-			
+
 			if( edef->IsDirectlyVisible() )
 			{
 				// entity is directly visible, so the interaction is definitely needed
 				vLight->entityInteractionState[ edef->GetIndex() ] = viewLight_t::INTERACTION_YES;
 				continue;
 			}
-			
+
 			// the entity is not directly visible, but if we can tell that it may cast
 			// shadows onto visible surfaces, we must make a viewModel for it
 			if( !lightCastsShadows )
@@ -422,28 +411,28 @@ static void R_AddSingleLight( viewLight_t* vLight )
 					continue;
 				}
 			}
-			
+
 			// should we use the shadow bounds from pre-calculated interactions?
 			idBounds shadowBounds;
 			R_ShadowBounds( edef->globalReferenceBounds, light->globalLightBounds, light->globalLightOrigin, shadowBounds );
-			
+
 			// this test is pointless if we knew the light was completely contained
 			// in the view frustum, but the entity would also be directly visible in most
 			// of those cases.
-			
+
 			// this doesn't say that the shadow can't effect anything, only that it can't
 			// effect anything in the view, so we shouldn't set up a view entity
 			if( idRenderMatrix::CullBoundsToMVP( viewDef->GetMVPMatrix(), shadowBounds ) )
 			{
 				continue;
 			}
-			
+
 			// debug tool to allow viewing of only one entity at a time
 			if( r_singleEntity.GetInteger() >= 0 && r_singleEntity.GetInteger() != edef->GetIndex() )
 			{
 				continue;
 			}
-			
+
 			// we do need it for shadows
 			vLight->entityInteractionState[ edef->GetIndex() ] = viewLight_t::INTERACTION_YES;
 
@@ -455,27 +444,27 @@ static void R_AddSingleLight( viewLight_t* vLight )
 			shadEnt->edef = edef;
 		}
 	}
-	
+
 	//--------------------------------------------
 	// add the prelight shadows for the static world geometry
 	//--------------------------------------------
 	if( light->HasPreLightModel() && !r_useShadowMapping.GetBool() )
 	{
-		auto tri = light->GetParms().prelightModel->Surface( 0 )->geometry;
-		
+		auto tri = light->GetParms().prelightModel->Surface( 0 )->GetTriangles();
+
 		// these shadows will have valid bounds, and can be culled normally,
 		// but they will typically cover most of the light's bounds
 		if( idRenderMatrix::CullBoundsToMVP( viewDef->GetMVPMatrix(), tri->GetBounds() ) )
 		{
 			return;
 		}
-		
+
 		// prelight models should always have static data that never gets purged
 		assert( vertexCache.CacheIsCurrent( tri->shadowCache ) );
 		assert( vertexCache.CacheIsCurrent( tri->indexCache ) );
-		
+
 		auto shadowDrawSurf = allocManager.FrameAlloc<drawSurf_t, FRAME_ALLOC_DRAW_SURFACE>();
-		
+
 		shadowDrawSurf->frontEndGeo = tri;
 		shadowDrawSurf->vertexCache = 0;
 		shadowDrawSurf->indexCache = tri->indexCache;
@@ -488,11 +477,11 @@ static void R_AddSingleLight( viewLight_t* vLight )
 		shadowDrawSurf->shaderRegisters = NULL;
 		shadowDrawSurf->scissorRect = vLight->scissorRect;		// default to the light scissor and light depth bounds
 		shadowDrawSurf->shadowVolumeState = SHADOWVOLUME_DONE;	// assume the shadow volume is done in case r_skipPrelightShadows is set
-		
+
 		if( !r_skipPrelightShadows.GetBool() )
 		{
 			auto shadowParms = allocManager.FrameAlloc<preLightShadowVolumeParms_t, FRAME_ALLOC_SHADOW_VOLUME_PARMS>();
-			
+
 			shadowParms->verts = tri->preLightShadowVertexes;
 			shadowParms->numVerts = tri->numVerts * 2;
 			shadowParms->indexes = tri->indexes;
@@ -512,20 +501,20 @@ static void R_AddSingleLight( viewLight_t* vLight )
 			shadowParms->shadowZMin = & shadowDrawSurf->scissorRect.zmin;
 			shadowParms->shadowZMax = & shadowDrawSurf->scissorRect.zmax;
 			shadowParms->shadowVolumeState = & shadowDrawSurf->shadowVolumeState;
-			
+
 			// the pre-light shadow volume "_prelight_light_3297" in "d3xpdm2" is malformed in that it contains the light origin so the precise inside test always fails
-			if( tr.primaryWorld->mapName.IcmpPath( "maps/game/mp/d3xpdm2.map" ) == 0 && 
+			if( tr.primaryWorld->mapName.IcmpPath( "maps/game/mp/d3xpdm2.map" ) == 0 &&
 				idStr::Icmp( light->GetParms().prelightModel->Name(), "_prelight_light_3297" ) == 0 )
 			{
 				shadowParms->useShadowPreciseInsideTest = false;
 			}
-			
+
 			shadowDrawSurf->shadowVolumeState = SHADOWVOLUME_UNFINISHED;
-			
+
 			shadowParms->next = vLight->preLightShadowVolumes;
 			vLight->preLightShadowVolumes = shadowParms;
 		}
-		
+
 		// actually link it in
 		shadowDrawSurf->nextOnLight = vLight->globalShadows;
 		vLight->globalShadows = shadowDrawSurf;
@@ -542,11 +531,11 @@ R_AddLights
 void R_AddLights( idRenderView * const view )
 {
 	SCOPED_PROFILE_EVENT( "R_AddLights" );
-	
+
 	//-------------------------------------------------
 	// check each light individually, possibly in parallel
 	//-------------------------------------------------
-	
+
 	if( r_useParallelAddLights.GetBool() )
 	{
 		for( viewLight_t* vLight = view->viewLights; vLight != NULL; vLight = vLight->next )
@@ -562,45 +551,45 @@ void R_AddLights( idRenderView * const view )
 			R_AddSingleLight( vLight );
 		}
 	}
-	
+
 	//-------------------------------------------------
 	// cull lights from the list if they turned out to not be needed
 	//-------------------------------------------------
-	
+
 	tr.pc.c_viewLights = 0;
 	viewLight_t** ptr = &view->viewLights;
 	while( *ptr != NULL )
 	{
 		viewLight_t* vLight = *ptr;
-		
+
 		if( vLight->removeFromList )
 		{
 			vLight->lightDef->viewCount = -1;	// this probably doesn't matter with current code
 			*ptr = vLight->next;
 			continue;
 		}
-		
+
 		ptr = &vLight->next;
-		
+
 		// serial work
 		tr.pc.c_viewLights++;
-		
+
 		for( shadowOnlyEntity_t* shadEnt = vLight->shadowOnlyViewEntities; shadEnt != NULL; shadEnt = shadEnt->next )
 		{
 			// this will add it to the viewEntities list, but with an empty scissor rect
 			shadEnt->edef->EmitToView( view );
 		}
-		
+
 		if( r_showLightScissors.GetBool() )
 		{
 			R_ShowColoredScreenRect( vLight->scissorRect, vLight->lightDef->GetIndex() );
 		}
 	}
-	
+
 	//-------------------------------------------------
 	// Add jobs to setup pre-light shadow volumes.
 	//-------------------------------------------------
-	
+
 	if( r_useParallelAddShadows.GetInteger() == 1 )
 	{
 		for( viewLight_t* vLight = view->viewLights; vLight != NULL; vLight = vLight->next )
@@ -614,7 +603,7 @@ void R_AddLights( idRenderView * const view )
 	}
 	else {
 		int start = sys->Microseconds();
-		
+
 		for( viewLight_t* vLight = view->viewLights; vLight != NULL; vLight = vLight->next )
 		{
 			for( preLightShadowVolumeParms_t* shadowParms = vLight->preLightShadowVolumes; shadowParms != NULL; shadowParms = shadowParms->next )
@@ -623,7 +612,7 @@ void R_AddLights( idRenderView * const view )
 			}
 			vLight->preLightShadowVolumes = NULL;
 		}
-		
+
 		int end = sys->Microseconds();
 		backEnd.pc.shadowMicroSec += end - start;
 	}
@@ -649,7 +638,7 @@ void R_OptimizeViewLightsList( idRenderView * const renderView )
 			vLight->globalShadows = NULL;
 		}
 	}
-	
+
 	if( r_useShadowSurfaceScissor.GetBool() )
 	{
 		// shrink the light scissor rect to only intersect the surfaces that will actually be drawn.
@@ -664,7 +653,7 @@ void R_OptimizeViewLightsList( idRenderView * const renderView )
 
 			idScreenRect surfRect;
 			surfRect.Clear();
-			
+
 			for( auto surf = vLight->globalInteractions; surf != NULL; surf = surf->nextOnLight )
 			{
 				surfRect.Union( surf->scissorRect );
@@ -673,7 +662,7 @@ void R_OptimizeViewLightsList( idRenderView * const renderView )
 			{
 				surf->scissorRect.Intersect( surfRect );
 			}
-			
+
 			for( auto surf = vLight->localInteractions; surf != NULL; surf = surf->nextOnLight )
 			{
 				surfRect.Union( surf->scissorRect );
@@ -682,16 +671,16 @@ void R_OptimizeViewLightsList( idRenderView * const renderView )
 			{
 				surf->scissorRect.Intersect( surfRect );
 			}
-			
+
 			for( auto surf = vLight->translucentInteractions; surf != NULL; surf = surf->nextOnLight )
 			{
 				surfRect.Union( surf->scissorRect );
 			}
-			
+
 			vLight->scissorRect.Intersect( surfRect );
 		}
 	}
-	
+
 	// sort the viewLights list so the largest lights come first, which will reduce
 	// the chance of GPU pipeline bubbles
 	struct sortLight_t
@@ -709,11 +698,11 @@ void R_OptimizeViewLightsList( idRenderView * const renderView )
 	{
 		sortLights[ numSortLightsFilled ].vLight = vLight;
 		sortLights[ numSortLightsFilled ].screenArea = vLight->scissorRect.GetArea();
-		numSortLightsFilled++;
+		++numSortLightsFilled;
 	}
-	
+
 	qsort( sortLights, numSortLightsFilled, sizeof( sortLights[0] ), sortLight_t::sort );
-	
+
 	// rebuild the linked list in order
 	renderView->viewLights = NULL;
 	for( int i = 0; i < numSortLightsFilled; ++i )

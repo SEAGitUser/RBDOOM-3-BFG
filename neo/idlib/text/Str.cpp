@@ -96,22 +96,22 @@ dword g_dword_color_table[ DW_COLOR_BITS + 1 ] = {
 	0x7F7F00FF,	// S_COLOR_MD_YELLOW
 	0x00007FFF,	// S_COLOR_MD_BLUE
 	0x7F0000FF,	// S_COLOR_MD_RED
-	0x7F3F00FF,	// S_COLOR_MD_ORANGE	
-	0xFF9919FF,	// S_COLOR_LT_ORANGE	
-	0x007F7FFF,	// S_COLOR_MD_CYAN		
-	0x7F007FFF,	// S_COLOR_MD_PURPLE 	
+	0x7F3F00FF,	// S_COLOR_MD_ORANGE
+	0xFF9919FF,	// S_COLOR_LT_ORANGE
+	0x007F7FFF,	// S_COLOR_MD_CYAN
+	0x7F007FFF,	// S_COLOR_MD_PURPLE
 	0xFF00FFFF,	// S_COLOR_MAGENT
 	0x7F00FFFF,	//
 	0x3399CCFF,	//
 	0xCCFFCCFF,	//
-	0x006633FF,	// 
-	0xFF0033FF,	// 
-	0xB21919FF,	// 
-	0x993300FF,	// 
-	0xCC9933FF,	// 
-	0x999933FF,	// 
-	0xFFFFBFFF,	// 
-	0xFFFF7FFF	// 
+	0x006633FF,	//
+	0xFF0033FF,	//
+	0xB21919FF,	//
+	0x993300FF,	//
+	0xCC9933FF,	//
+	0x999933FF,	//
+	0xFFFFBFFF,	//
+	0xFFFF7FFF	//
 #elif defined( _WIN32 ) || defined( __linux__ ) || ( defined( MACOS_X ) && !defined( __ppc__ ) )
 	0xFF000000, // S_COLOR_DEFAULT
 	0xFF0000FF, // S_COLOR_RED
@@ -134,17 +134,17 @@ dword g_dword_color_table[ DW_COLOR_BITS + 1 ] = {
 	0xFF7F7F00,	// S_COLOR_MD_CYAN
 	0xFF7F007F,	// S_COLOR_MD_PURPLE
 	0xFFFF00FF,	// S_COLOR_MAGENT
-	0xFFFF007F,	// 
-	0xFFCC9933,	// 
-	0xFFCCFFCC,	// 
-	0xFF336600,	// 
-	0xFF3300FF,	// 
-	0xFF1919B2,	// 
-	0xFF003399,	// 
-	0xFF3399CC,	// 
-	0xFF339999,	// 
-	0xFFBFFFFF,	// 
-	0xFF7FFFFF	// 
+	0xFFFF007F,	//
+	0xFFCC9933,	//
+	0xFFCCFFCC,	//
+	0xFF336600,	//
+	0xFF3300FF,	//
+	0xFF1919B2,	//
+	0xFF003399,	//
+	0xFF3399CC,	//
+	0xFF339999,	//
+	0xFFBFFFFF,	//
+	0xFF7FFFFF	//
 #else
 	#error OS define is required!
 #endif
@@ -197,10 +197,10 @@ void idStr::ReAllocate( int amount, bool keepold )
 	char*	newbuffer;
 	int		newsize;
 	int		mod;
-	
+
 	//assert( data );
 	assert( amount > 0 );
-	
+
 	mod = amount % STR_ALLOC_GRAN;
 	if( !mod )
 	{
@@ -211,7 +211,7 @@ void idStr::ReAllocate( int amount, bool keepold )
 		newsize = amount + STR_ALLOC_GRAN - mod;
 	}
 	SetAlloced( newsize );
-	
+
 #ifdef USE_STRING_DATA_ALLOCATOR
 	newbuffer = stringDataAllocator.Alloc( GetAlloced() );
 #else
@@ -222,7 +222,7 @@ void idStr::ReAllocate( int amount, bool keepold )
 		data[ len ] = '\0';
 		strcpy( newbuffer, data );
 	}
-	
+
 	if( data && data != baseBuffer )
 	{
 #ifdef USE_STRING_DATA_ALLOCATOR
@@ -231,7 +231,7 @@ void idStr::ReAllocate( int amount, bool keepold )
 		delete[] data;
 #endif
 	}
-	
+
 	data = newbuffer;
 }
 
@@ -246,7 +246,7 @@ void idStr::FreeData()
 	{
 		return;
 	}
-	
+
 	if( data && data != baseBuffer )
 	{
 #ifdef USE_STRING_DATA_ALLOCATOR
@@ -264,7 +264,7 @@ idStr::operator=
 ============
 */
 void idStr::operator=( const char* text )
-{	
+{
 	if( !text )
 	{
 		// safe behavior if NULL
@@ -273,29 +273,29 @@ void idStr::operator=( const char* text )
 		len = 0;
 		return;
 	}
-	
+
 	if( text == data )
 	{
 		return; // copying same thing
 	}
-	
+
 	// check if we're aliasing
 	if( text >= data && text <= data + len )
 	{
 		int diff = text - data;
-		
+
 		assert( idStr::Length( text ) < (int)len );
-		
+
 		int i;
 		for( i = 0; text[ i ]; i++ ) {
 			data[ i ] = text[ i ];
 		} data[ i ] = '\0';
-		
+
 		len -= diff;
-		
+
 		return;
 	}
-	
+
 	int l = Length( text );
 	EnsureAlloced( l + 1, false );
 	strcpy( data, text );
@@ -315,7 +315,7 @@ int idStr::FindChar( const char* str, const char c, int start, int end )
 	{
 		end = Length( str ) - 1;
 	}
-	for( int i = start; i <= end; i++ )
+	for( int i = start; i <= end; ++i )
 	{
 		if( str[i] == c )
 		{
@@ -335,18 +335,18 @@ returns INVALID_POSITION if not found otherwise the index of the text
 int idStr::FindText( const char* str, const char* text, bool casesensitive, int start, int end )
 {
 	int l, i, j;
-	
+
 	if( end == INVALID_POSITION )
 	{
 		end = Length( str );
 	}
 	l = end - Length( text );
-	
-	for( i = start; i <= l; i++ )
+
+	for( i = start; i <= l; ++i )
 	{
 		if( casesensitive )
 		{
-			for( j = 0; text[j]; j++ )
+			for( j = 0; text[j]; ++j )
 			{
 				if( str[i + j] != text[j] )
 				{
@@ -356,7 +356,7 @@ int idStr::FindText( const char* str, const char* text, bool casesensitive, int 
 		}
 		else
 		{
-			for( j = 0; text[j]; j++ )
+			for( j = 0; text[j]; ++j )
 			{
 				if( ::toupper( str[i + j] ) != ::toupper( text[j] ) )
 				{
@@ -380,9 +380,9 @@ idStr::CountChar
 int idStr::CountChar( const char *str, const char c )
 {
 	int count = 0;
-	for ( int i = 0; str[i] != '\0'; i++ ) {
+	for ( int i = 0; str[i] != '\0'; ++i ) {
 		if ( str[i] == c ) {
-			count++;
+			++count;
 		}
 	}
 	return count;
@@ -406,7 +406,7 @@ bool idStr::Filter( const char* filter, const char* name, bool casesensitive )
 {
 	idStr buf;
 	int i, found, index;
-	
+
 	while( *filter )
 	{
 		if( *filter == '*' )
@@ -548,9 +548,9 @@ idStr::StripMediaName
 void idStr::StripMediaName( const char* name, idStr& mediaName )
 {
 	char c;
-	
+
 	mediaName.Empty();
-	
+
 	for( c = *name; c; c = *( ++name ) )
 	{
 		// truncate at an extension
@@ -580,12 +580,12 @@ bool idStr::CheckExtension( const char* name, const char* ext )
 	const char* s1 = name + Length( name ) - 1;
 	const char* s2 = ext + Length( ext ) - 1;
 	int c1, c2, d;
-	
+
 	do
 	{
 		c1 = *s1--;
 		c2 = *s2--;
-		
+
 		d = c1 - c2;
 		while( d )
 		{
@@ -609,7 +609,7 @@ bool idStr::CheckExtension( const char* name, const char* ext )
 		}
 	}
 	while( s1 > name && s2 > ext );
-	
+
 	return ( s1 >= name );
 }
 
@@ -624,11 +624,11 @@ const char* idStr::FloatArrayToString( const float* array, const int length, con
 	static char str[4][16384];	// in case called by nested functions
 	int i, n;
 	char format[16], *s;
-	
+
 	// use an array of string so that multiple calls won't collide
 	s = str[ index ];
 	index = ( index + 1 ) & 3;
-	
+
 	snPrintf( format, sizeof( format ), "%%.%df", precision );
 	n = snPrintf( s, sizeof( str[0] ), format, array[0] );
 	if( precision > 0 )
@@ -660,10 +660,10 @@ const char* idStr::CStyleQuote( const char* str )
 	static char buffers[4][16384];	// in case called by nested functions
 	unsigned int i;
 	char* buf;
-	
+
 	buf = buffers[index];
 	index = ( index + 1 ) & 3;
-	
+
 	buf[0] = '\"';
 	for( i = 1; i < sizeof( buffers[0] ) - 2; i++ )
 	{
@@ -700,15 +700,15 @@ const char* idStr::CStyleUnQuote( const char* str )
 	{
 		return str;
 	}
-	
+
 	static int index = 0;
 	static char buffers[4][16384];	// in case called by nested functions
 	unsigned int i;
 	char* buf;
-	
+
 	buf = buffers[index];
 	index = ( index + 1 ) & 3;
-	
+
 	str++;
 	for( i = 0; i < sizeof( buffers[0] ) - 1; i++ )
 	{
@@ -716,7 +716,7 @@ const char* idStr::CStyleUnQuote( const char* str )
 		if ( c == '\0' ) {
 			break;
 		}
-		else if ( c == '\\' ) 
+		else if ( c == '\\' )
 		{
 			c = *str++;
 			switch( c ) {
@@ -732,7 +732,7 @@ const char* idStr::CStyleUnQuote( const char* str )
 				case '\"': buf[i] = '\"'; break;
 				case '\?': buf[i] = '\?'; break;
 			}
-		} 
+		}
 		else {
 			buf[i] = c;
 		}
@@ -749,7 +749,7 @@ idStr::Last
 returns INVALID_POSITION if not found otherwise the index of the char
 ============
 */
-int idStr::Last( const char c, int index ) const 
+int idStr::Last( const char c, int index ) const
 {
 	if( index == INVALID_POSITION ) {
 		index = Length();
@@ -774,7 +774,7 @@ int idStr::Last( const char* str, bool casesensitive, int index ) const
 	if( index == INVALID_POSITION ) {
 		index = Length();
 	}
-	int searchLength = Length( str ); 
+	int searchLength = Length( str );
 	if( len - index > searchLength ) {
 		index -= searchLength;
 	}
@@ -823,7 +823,7 @@ Formats integers with commas for readability.
 idStr idStr::FormatInt( const int num, bool isCash )
 {
 	///idStr val = va( "%d", num );
-	idStr val; 
+	idStr val;
 	val.Format<256>( "%d", num ); //SEA thred safe!
 
 	int len = val.Length();
@@ -835,12 +835,12 @@ idStr idStr::FormatInt( const int num, bool isCash )
 			val.Insert( ',', pos );
 		}
 	}
-	
+
 	if( isCash )
 	{
 		val.Insert( '$', val[0] == '-' ? 1 : 0 );
 	}
-	
+
 	return val;
 }
 
@@ -973,7 +973,7 @@ bool idStr::Replace( const char* old, const char* nw )
 	}
 	int oldLen = Length( old );
 	int newLen = Length( nw );
-	
+
 	// Work out how big the new string will be
 	int count = 0;
 	for( int i = 0; i < Length(); i++ )
@@ -984,13 +984,13 @@ bool idStr::Replace( const char* old, const char* nw )
 			i += oldLen - 1;
 		}
 	}
-	
+
 	if( count )
 	{
 		idStr oldString( data );
-		
+
 		EnsureAlloced( len + ( ( newLen - oldLen ) * count ) + 2, false );
-		
+
 		// Replace the old data with the new data
 		int j = 0;
 		for( int i = 0; i < oldString.Length(); i++ )
@@ -1033,9 +1033,9 @@ void idStr::ReplaceFirst( const char *old, const char *nw )
 
 	// Work out how big the new string will be
 	present = false;
-	for( i = 0; i < len; i++ ) 
+	for( i = 0; i < len; i++ )
 	{
-		if( !Cmpn( &data[i], old, oldLen ) ) 
+		if( !Cmpn( &data[i], old, oldLen ) )
 		{
 			present = true;
 			i += oldLen - 1;
@@ -1053,13 +1053,13 @@ void idStr::ReplaceFirst( const char *old, const char *nw )
 		// Replace the old data with the new data
 		for( i = 0, j = 0; i < oldString.Length(); i++ )
 		{
-			if( !Cmpn( &oldString[i], old, oldLen ) ) 
+			if( !Cmpn( &oldString[i], old, oldLen ) )
 			{
 				memcpy( data + j, nw, newLen );
 				i += oldLen;
 				j += newLen;
 				break;
-			} 
+			}
 			else {
 				data[j] = oldString[i];
 				j++;
@@ -1079,20 +1079,20 @@ idStr::Mid
 const char* idStr::Mid( int start, int len, idStr& result ) const
 {
 	assert( &result != this );
-	
+
 	result.Empty();
-	
+
 	int i = Length();
 	if( i == 0 || len <= 0 || start >= i )
 	{
 		return NULL;
 	}
-	
+
 	if( start + len >= i )
 	{
 		len = i - start;
 	}
-	
+
 	result.Append( &data[ start ], len );
 	return result;
 }
@@ -1105,18 +1105,18 @@ idStr::Mid
 idStr idStr::Mid( int start, int len ) const
 {
 	idStr result;
-	
+
 	int i = Length();
 	if( i == 0 || len <= 0 || start >= i )
 	{
 		return result;
 	}
-	
+
 	if( start + len >= i )
 	{
 		len = i - start;
 	}
-	
+
 	result.Append( &data[ start ], len );
 	return result;
 }
@@ -1126,10 +1126,10 @@ idStr idStr::Mid( int start, int len ) const
 idStr::StripLeadingWhiteSpace
 ============
 */
-void idStr::StripLeadingWhiteSpace() 
+void idStr::StripLeadingWhiteSpace()
 {
 	int i;
-	
+
 	// cast to unsigned char to prevent stripping off high-ASCII characters
 	for ( i = 0; i < Length() && (unsigned char)(data[ i ]) <= ' '; i++ );
 
@@ -1167,19 +1167,19 @@ idStr& idStr::StripQuotes()
 	{
 		return *this;
 	}
-	
+
 	// Remove the trailing quote first
 	if( data[len - 1] == '\"' )
 	{
 		data[len - 1] = '\0';
 		len--;
 	}
-	
+
 	// Strip the leading quote now
 	len--;
 	memmove( &data[ 0 ], &data[ 1 ], len );
 	data[len] = '\0';
-	
+
 	return *this;
 }
 
@@ -1196,7 +1196,7 @@ idStr& idStr::StripQuotes()
 idStr::FileNameHash
 ============
 */
-int idStr::FileNameHash( const char *string, const int hashSize ) 
+int idStr::FileNameHash( const char *string, const int hashSize )
 {
 	int hash = 0;
 	int i = 0;
@@ -1267,20 +1267,20 @@ idStr::CollapsePath
 	W:/ETQW/code/game/Game_local.h
 ============
 */
-idStr &idStr::CollapsePath() 
+idStr &idStr::CollapsePath()
 {
 	int i, length = 0;
-	for ( i = 0; i < len; ++i ) 
+	for ( i = 0; i < len; ++i )
 	{
 		if ( data[i] == '.' )
 		{
 			if ( data[i+1] == '.' && ( data[i+2] == '/' || data[i+2] == '\\' ) ) {		//   ../
-				if ( length >= 2 && ( data[length-1] == '/' || data[length-1] == '\\' ) ) 
+				if ( length >= 2 && ( data[length-1] == '/' || data[length-1] == '\\' ) )
 				{
 					if ( length == 2 || data[length-2] != '.' || data[length-3] != '.' )
 					{
 						length--;
-						while( length > 0 && data[length-1] != '/' && data[length-1] != '\\' ) 
+						while( length > 0 && data[length-1] != '/' && data[length-1] != '\\' )
 						{
 							length--;
 						}
@@ -1291,7 +1291,7 @@ idStr &idStr::CollapsePath()
 				data[length++] = data[i++];
 				data[length++] = data[i++];
 				data[length++] = data[i];
-			} 
+			}
 			else if ( data[i+1] == '/' || data[i+1] == '\\' ) {							//	./
 				i++;
 			}
@@ -1361,7 +1361,7 @@ idStr& idStr::StripAbsoluteFileExtension()
 			len = i;
 			break;
 		}
-	}	
+	}
 	return *this;
 }
 
@@ -1400,7 +1400,7 @@ idStr& idStr::DefaultPath( const char* basepath )
 		// absolute path location
 		return *this;
 	}
-	
+
 	*this = basepath + *this;
 	return *this;
 }
@@ -1412,12 +1412,12 @@ idStr::AppendPath
 */
 void idStr::AppendPath( const char* text )
 {
-	int i = 0;	
+	int i = 0;
 	if( text && text[i] )
 	{
 		int pos = len;
 		EnsureAlloced( len + Length( text ) + 2 );
-		
+
 		if( pos )
 		{
 			if( data[ pos - 1 ] != '/' )
@@ -1429,7 +1429,7 @@ void idStr::AppendPath( const char* text )
 		{
 			i++;
 		}
-		
+
 		for( ; text[ i ]; i++ )
 		{
 			if( text[ i ] == '\\' )
@@ -1458,12 +1458,12 @@ idStr& idStr::StripFilename()
 	{
 		pos--;
 	}
-	
+
 	if( pos < 0 )
 	{
 		pos = 0;
 	}
-	
+
 	CapLength( pos );
 	return *this;
 }
@@ -1480,7 +1480,7 @@ idStr& idStr::StripPath()
 	{
 		pos--;
 	}
-	
+
 	*this = Right( Length() - pos );
 	return *this;
 }
@@ -1500,7 +1500,7 @@ void idStr::ExtractFilePath( idStr& dest ) const
 	{
 		pos--;
 	}
-	
+
 	Left( pos, dest );
 }
 
@@ -1519,7 +1519,7 @@ void idStr::ExtractFileName( idStr& dest ) const
 	{
 		pos--;
 	}
-	
+
 	Right( Length() - pos, dest );
 }
 
@@ -1538,13 +1538,13 @@ void idStr::ExtractFileBase( idStr& dest ) const
 	{
 		pos--;
 	}
-	
+
 	int start = pos;
 	while( ( pos < Length() ) && ( ( *this )[ pos ] != '.' ) )
 	{
 		pos++;
 	}
-	
+
 	Mid( start, pos - start, dest );
 }
 
@@ -1563,7 +1563,7 @@ void idStr::ExtractFileExtension( idStr& dest ) const
 	{
 		pos--;
 	}
-	
+
 	if( !pos )
 	{
 		// no extension
@@ -1580,7 +1580,7 @@ void idStr::ExtractFileExtension( idStr& dest ) const
 idStr::MakeNameCanonical
 ============
 */
-void idStr::MakeNameCanonical() 
+void idStr::MakeNameCanonical()
 {
 	ToLower();
 	BackSlashesToSlashes();
@@ -1606,12 +1606,12 @@ bool idStr::IsNumeric( const char* s )
 {
 	int		i;
 	bool	dot;
-	
+
 	if( *s == '-' )
 	{
 		s++;
 	}
-	
+
 	dot = false;
 	for( i = 0; s[i]; i++ )
 	{
@@ -1625,7 +1625,7 @@ bool idStr::IsNumeric( const char* s )
 			return false;
 		}
 	}
-	
+
 	return true;
 }
 
@@ -1642,7 +1642,7 @@ bool idStr::HasLower( const char* s )
 	{
 		return false;
 	}
-	
+
 	while( *s )
 	{
 		if( CharIsLower( *s ) )
@@ -1651,7 +1651,7 @@ bool idStr::HasLower( const char* s )
 		}
 		s++;
 	}
-	
+
 	return false;
 }
 
@@ -1668,7 +1668,7 @@ bool idStr::HasUpper( const char* s )
 	{
 		return false;
 	}
-	
+
 	while( *s )
 	{
 		if( CharIsUpper( *s ) )
@@ -1677,7 +1677,7 @@ bool idStr::HasUpper( const char* s )
 		}
 		s++;
 	}
-	
+
 	return false;
 }
 
@@ -1689,11 +1689,11 @@ idStr::Cmp
 int idStr::Cmp( const char* s1, const char* s2 )
 {
 	int c1, c2, d;
-	
+
 	do {
 		c1 = *s1++;
 		c2 = *s2++;
-		
+
 		d = c1 - c2;
 		if( d )
 		{
@@ -1701,7 +1701,7 @@ int idStr::Cmp( const char* s1, const char* s2 )
 		}
 	}
 	while( c1 );
-	
+
 	return 0;		// strings are equal
 }
 
@@ -1713,18 +1713,18 @@ idStr::Cmpn
 int idStr::Cmpn( const char* s1, const char* s2, int n )
 {
 	int c1, c2, d;
-	
+
 	assert( n >= 0 );
-	
+
 	do {
 		c1 = *s1++;
 		c2 = *s2++;
-		
+
 		if( !n-- )
 		{
 			return 0;		// strings are equal until end point
 		}
-		
+
 		d = c1 - c2;
 		if( d )
 		{
@@ -1732,7 +1732,7 @@ int idStr::Cmpn( const char* s1, const char* s2, int n )
 		}
 	}
 	while( c1 );
-	
+
 	return 0;		// strings are equal
 }
 
@@ -1744,11 +1744,11 @@ idStr::Icmp
 int idStr::Icmp( const char* s1, const char* s2 )
 {
 	int c1, c2, d;
-	
+
 	do {
 		c1 = *s1++;
 		c2 = *s2++;
-		
+
 		d = c1 - c2;
 		while( d )
 		{
@@ -1772,7 +1772,7 @@ int idStr::Icmp( const char* s1, const char* s2 )
 		}
 	}
 	while( c1 );
-	
+
 	return 0;		// strings are equal
 }
 
@@ -1784,18 +1784,18 @@ idStr::Icmpn
 int idStr::Icmpn( const char* s1, const char* s2, int n )
 {
 	int c1, c2, d;
-	
+
 	assert( n >= 0 );
-	
+
 	do {
 		c1 = *s1++;
 		c2 = *s2++;
-		
+
 		if( !n-- )
 		{
 			return 0;		// strings are equal until end point
 		}
-		
+
 		d = c1 - c2;
 		while( d )
 		{
@@ -1819,7 +1819,7 @@ int idStr::Icmpn( const char* s1, const char* s2, int n )
 		}
 	}
 	while( c1 );
-	
+
 	return 0;		// strings are equal
 }
 
@@ -1831,7 +1831,7 @@ idStr::Icmp
 int idStr::IcmpNoColor( const char* s1, const char* s2 )
 {
 	int c1, c2, d;
-	
+
 	do {
 		while( IsColor( s1 ) )
 		{
@@ -1843,7 +1843,7 @@ int idStr::IcmpNoColor( const char* s1, const char* s2 )
 		}
 		c1 = *s1++;
 		c2 = *s2++;
-		
+
 		d = c1 - c2;
 		while( d )
 		{
@@ -1867,7 +1867,7 @@ int idStr::IcmpNoColor( const char* s1, const char* s2 )
 		}
 	}
 	while( c1 );
-	
+
 	return 0;		// strings are equal
 }
 
@@ -1879,16 +1879,16 @@ idStr::IcmpPath
 int idStr::IcmpPath( const char* s1, const char* s2 )
 {
 	int c1, c2, d;
-	
+
 #if 0
 //#if !defined( ID_PC_WIN )
 	idLib::common->Printf( "WARNING: IcmpPath used on a case-sensitive filesystem?\n" );
 #endif
-	
+
 	do {
 		c1 = *s1++;
 		c2 = *s2++;
-		
+
 		d = c1 - c2;
 		while( d )
 		{
@@ -1954,7 +1954,7 @@ int idStr::IcmpPath( const char* s1, const char* s2 )
 		}
 	}
 	while( c1 );
-	
+
 	return 0;
 }
 
@@ -1966,23 +1966,23 @@ idStr::IcmpnPath
 int idStr::IcmpnPath( const char* s1, const char* s2, int n )
 {
 	int c1, c2, d;
-	
+
 #if 0
 //#if !defined( ID_PC_WIN )
 	idLib::common->Printf( "WARNING: IcmpPath used on a case-sensitive filesystem?\n" );
 #endif
-	
+
 	assert( n >= 0 );
-	
+
 	do {
 		c1 = *s1++;
 		c2 = *s2++;
-		
+
 		if( !n-- )
 		{
 			return 0;		// strings are equal until end point
 		}
-		
+
 		d = c1 - c2;
 		while( d )
 		{
@@ -2048,7 +2048,7 @@ int idStr::IcmpnPath( const char* s1, const char* s2, int n )
 		}
 	}
 	while( c1 );
-	
+
 	return 0;
 }
 
@@ -2072,17 +2072,17 @@ void idStr::Copynz( char* dest, const char* src, size_t destsize )
 		idLib::common->Warning( "idStr::Copynz: destsize < 1" );
 		return;
 	}
-	
+
 	strncpy( dest, src, destsize - 1 );
 	dest[ destsize - 1 ] = '\0';
 }
 /*
 =============
-	Copies the C string pointed by source into the array pointed by destination, 
+	Copies the C string pointed by source into the array pointed by destination,
 	including the terminating null character (and stopping at that point).
 
-	To avoid overflows, the size of the array pointed by destination shall be long enough to contain 
-	the same C string as source (including the terminating null character), 
+	To avoid overflows, the size of the array pointed by destination shall be long enough to contain
+	the same C string as source (including the terminating null character),
 	and should not overlap in memory with source.
 =============
 */
@@ -2175,7 +2175,7 @@ bool idStr::IsValidUTF8( const uint8* s, const int maxLen, utf8Encoding_t& encod
 			return true;
 		}
 	};
-	
+
 	// check for byte-order-marker
 	encoding = UTF8_PURE_ASCII;
 	utf8Encoding_t utf8Type = UTF8_ENCODED_NO_BOM;
@@ -2183,7 +2183,7 @@ bool idStr::IsValidUTF8( const uint8* s, const int maxLen, utf8Encoding_t& encod
 	{
 		utf8Type = UTF8_ENCODED_BOM;
 	}
-	
+
 	for( int i = 0; s[ i ] != '\0' && i < maxLen; i++ )
 	{
 		int numBytes = local_t::GetNumEncodedUTF8Bytes( s[ i ] );
@@ -2365,12 +2365,12 @@ int idStr::LengthWithoutColors( const char* s )
 {
 	int len;
 	const char* p;
-	
+
 	if( !s )
 	{
 		return 0;
 	}
-	
+
 	len = 0;
 	p = s;
 	while( *p )
@@ -2383,7 +2383,7 @@ int idStr::LengthWithoutColors( const char* s )
 		p++;
 		len++;
 	}
-	
+
 	return len;
 }
 
@@ -2397,7 +2397,7 @@ char* idStr::RemoveColors( char* string )
 	char* d;
 	char* s;
 	int c;
-	
+
 	s = string;
 	d = string;
 	while( ( c = *s ) != 0 )
@@ -2413,7 +2413,7 @@ char* idStr::RemoveColors( char* string )
 		s++;
 	}
 	*d = '\0';
-	
+
 	return string;
 }
 
@@ -2439,7 +2439,7 @@ bool idStr::IsBadFilenameChar( char c ) {
 idStr::CleanFilename
 ================
 */
-char* idStr::CleanFilename( char* string ) 
+char* idStr::CleanFilename( char* string )
 {
 	char* s = string;
 	char* d = string;
@@ -2465,7 +2465,7 @@ char* idStr::CleanFilename( char* string )
 idStr::StripFilename
 ================
 */
-char* idStr::StripFilename( char* string ) 
+char* idStr::StripFilename( char* string )
 {
 	int pos = idStr::Length( string ) - 1;
 	while( ( pos > 0 ) && ( string[ pos ] != '/' ) && ( string[ pos ] != '\\' ) ) {
@@ -2507,7 +2507,7 @@ int idStr::snPrintf( char* dest, int size, const char* fmt, ... )
 	int len;
 	va_list argptr;
 	char buffer[32000];	// big, but small enough to fit in PPC stack
-	
+
 	va_start( argptr, fmt );
 	len = vsprintf( buffer, fmt, argptr );
 	va_end( argptr );
@@ -2544,16 +2544,14 @@ or returns -1 on failure or if the buffer would be overflowed.
 */
 int idStr::vsnPrintf( char* dest, int size, const char* fmt, va_list argptr )
 {
-	int ret;
-	
 // RB begin
 #ifdef _WIN32
 #undef _vsnprintf
-	ret = _vsnprintf( dest, size - 1, fmt, argptr );
+	int ret = _vsnprintf( dest, size - 1, fmt, argptr );
 #define _vsnprintf	use_idStr_vsnPrintf
 #else
 #undef vsnprintf
-	ret = vsnprintf( dest, size, fmt, argptr );
+	int ret = vsnprintf( dest, size, fmt, argptr );
 #define vsnprintf	use_idStr_vsnPrintf
 #endif
 // RB end
@@ -2563,6 +2561,7 @@ int idStr::vsnPrintf( char* dest, int size, const char* fmt, va_list argptr )
 	{
 		return -1;
 	}
+
 	return ret;
 }
 
@@ -2604,12 +2603,12 @@ int sprintf( idStr& string, const char* fmt, ... )
 	int l;
 	va_list argptr;
 	char buffer[32000];
-	
+
 	va_start( argptr, fmt );
 	l = idStr::vsnPrintf( buffer, sizeof( buffer ) - 1, fmt, argptr );
 	va_end( argptr );
 	buffer[sizeof( buffer ) - 1] = '\0';
-	
+
 	string = buffer;
 	return l;
 }
@@ -2625,10 +2624,10 @@ int vsprintf( idStr& string, const char* fmt, va_list argptr )
 {
 	int l;
 	char buffer[32000];
-	
+
 	l = idStr::vsnPrintf( buffer, sizeof( buffer ) - 1, fmt, argptr );
 	buffer[sizeof( buffer ) - 1] = '\0';
-	
+
 	string = buffer;
 	return l;
 }
@@ -2647,14 +2646,14 @@ char* va( const char* fmt, ... )
 	static int index = 0;
 	static char string[4][16384];	// in case called by nested functions
 	char* buf;
-	
+
 	buf = string[index];
 	index = ( index + 1 ) & 3;
-	
+
 	va_start( argptr, fmt );
 	vsprintf( buf, fmt, argptr );
 	va_end( argptr );
-	
+
 	return buf;
 }
 
@@ -2770,23 +2769,23 @@ idStr idStr::FormatNumber( int number )
 	idStrStatic<128> temp;
 	idStr string;
 	bool hit;
-	
+
 	// reset
 	for( int i = 0; i < numFormatList; i++ )
 	{
 		formatList_t* li = formatList + i;
 		li->count = 0;
 	}
-	
+
 	// main loop
 	do
 	{
 		hit = false;
-		
+
 		for( int i = 0; i < numFormatList; i++ )
 		{
 			formatList_t* li = formatList + i;
-			
+
 			if( number >= li->gran )
 			{
 				li->count++;
@@ -2797,14 +2796,14 @@ idStr idStr::FormatNumber( int number )
 		}
 	}
 	while( hit );
-	
+
 	// print out
 	bool found = false;
-	
+
 	for( int i = 0; i < numFormatList; i++ )
 	{
 		formatList_t* li = formatList + i;
-		
+
 		if( li->count )
 		{
 			if( !found )
@@ -2840,15 +2839,15 @@ idStr idStr::FormatNumber( int number )
 		temp.Format( "%i", number );
 		string += temp;
 	}
-	
+
 	// pad to proper size
 	int count = 11 - string.Length();
-	
+
 	for( int i = 0; i < count; i++ )
 	{
 		string.Insert( " ", 0 );
 	}
-	
+
 	return string;
 }
 
@@ -2868,8 +2867,8 @@ CONSOLE_COMMAND( testStrId, "prints a localized string", 0 )
 ===============
 idStr::IndentAndPad
 
-adds a formated, indented line to a string.  The line is indented "indent" 
-characters and the formatted string is written. If the string size is less than 
+adds a formated, indented line to a string.  The line is indented "indent"
+characters and the formatted string is written. If the string size is less than
 the pad size, the remaining characters in the string are filled with spaces up
 to the "pad" position.
 ===============
@@ -2890,11 +2889,11 @@ void idStr::IndentAndPad( int indent, int pad, idStr &str, const char *fmt, ... 
 	va_end( argptr );
 
 	int len = Length( buff );
-	if ( pad && len <= pad ) 
+	if ( pad && len <= pad )
 	{
 		memset( buff + len, 0x20, pad - len );
 		buff[ pad ] = '\0';
-	} 
+	}
 	else {
 		// ensure there's at least 1 space of padding if the formatted string
 		// exceeded the pad size
@@ -2928,7 +2927,7 @@ void idStr::EraseRange( int start, int len )
 	if( len == INVALID_POSITION ) {
 		len = totalLength - start;
 	}
-	
+
 	if( len == totalLength ) {
 		// erase the whole thing
 		Empty();
@@ -2939,7 +2938,7 @@ void idStr::EraseRange( int start, int len )
 	if( totalLength - start - len ) {
 		memmove( &data[ start ], &data[ start + len ], totalLength - start - len );
 	}
-	
+
 	data[ totalLength - len ] = '\0';
 	this->len -= len;
 }
@@ -2956,7 +2955,7 @@ void idStr::EraseChar( const char c, int start )
 	}
 
 	int totalLength = Length();
-	while( start < totalLength - 1 ) 
+	while( start < totalLength - 1 )
 	{
 		int offset = start + 1;
 		while( data[ start ] == c && offset < totalLength )
@@ -2999,17 +2998,17 @@ void idStr::Append( int count, const char c )
 idStr::StripComments
 ============
 */
-idStr & idStr::StripComments() 
+idStr & idStr::StripComments()
 {
 	// handle C++-style comments
 	int startIndex = Find( "//" );
 	int endIndex = Find( "\n", true, startIndex + 2 );
 
-	while( startIndex != -1 && endIndex != -1 ) 
+	while( startIndex != -1 && endIndex != -1 )
 	{
 		int oldLength = len;
 		EraseRange( startIndex, endIndex - startIndex );
-		if( len == oldLength ) 
+		if( len == oldLength )
 		{
 			idLib::common->Warning( "StripCommentsFromString: Couldn't strip comments" );
 			break;	//avoid infinite loops
@@ -3026,13 +3025,13 @@ idStr & idStr::StripComments()
 	{
 		idLib::common->Warning( "StripCommentsFromString: mismatched /* */ comment" );
 		return *this;
-	}	
+	}
 
-	while( startIndex != -1 && endIndex != -1 ) 
+	while( startIndex != -1 && endIndex != -1 )
 	{
 		int oldLength = len;
 		EraseRange( startIndex, endIndex - startIndex + 2 );
-		if( len == oldLength ) 
+		if( len == oldLength )
 		{
 			idLib::common->Warning( "StripCommentsFromString: Couldn't strip comments" );
 			break;	//avoid infinite loops
@@ -3050,7 +3049,7 @@ idStr::Indent
 braces within C or C++ style comments are ignored
 ============
 */
-idStr& idStr::Indent() 
+idStr& idStr::Indent()
 {
 	Replace( "\r\n", "\n" );	// kill windows line endings
 	EraseChar( '\r' );			// kill broken windows line endings
@@ -3069,21 +3068,21 @@ idStr& idStr::Indent()
 	idStr output;
 	output.EnsureAlloced( len, false );
 	int indent = 0;
-	for( int i = 0; i < len; i++ ) 
+	for( int i = 0; i < len; i++ )
 	{
 		// skip braces within comments
-		if( i + 1 < len ) 
+		if( i + 1 < len )
 		{
-			if( data[ i ] == '/' && data[ i + 1 ] == '/' ) 
+			if( data[ i ] == '/' && data[ i + 1 ] == '/' )
 			{
 				while( i < len && data[ i ] != '\n' ) {
 					output += data[ i ];
 					i++;
 				}
-			}  
-			else if( data[ i ] == '/' && data[ i + 1 ] == '*' ) 
+			}
+			else if( data[ i ] == '/' && data[ i + 1 ] == '*' )
 			{
-				while( i < len && !( data[ i ] == '*' && data[ i + 1 ] == '/' )) 
+				while( i < len && !( data[ i ] == '*' && data[ i + 1 ] == '/' ))
 				{
 					output += data[ i ];
 					i++;
@@ -3094,8 +3093,8 @@ idStr& idStr::Indent()
 		if( data[ i ] == '{' )
 		{
 			indent++;
-		} 
-		else if( data[ i ] == '}' ) 
+		}
+		else if( data[ i ] == '}' )
 		{
 			indent--;
 			// unindent closing braces
@@ -3106,7 +3105,7 @@ idStr& idStr::Indent()
 
 		if( data[ i ] == '\n' && indent > 0 ) {
 			output.Append( indent, '\t' );
-		}		
+		}
 	}
 
 	*this = output;
@@ -3119,22 +3118,22 @@ idStr::Unindent
 unindent all lines; tabs are preserved if they are in the middle of a line
 ============
 */
-idStr& idStr::Unindent() 
+idStr& idStr::Unindent()
 {
 	idStr output;
 	output.EnsureAlloced( len, false );
 	for( int i = 0; i < len; ++i )
-	{	
-		if( data[ i ] == '\t' && i > 0 && data[ i - 1 ] == '\n' ) 
+	{
+		if( data[ i ] == '\t' && i > 0 && data[ i - 1 ] == '\n' )
 		{
 			// strip leading tabs
 			while( i < len && data[ i ] == '\t' ) {
 				++i;
 			}
-		} 
-		else if( data[ i ] == '\t' && i > 0 && data[ i - 1 ] != '\n' ) 
+		}
+		else if( data[ i ] == '\t' && i > 0 && data[ i - 1 ] != '\n' )
 		{
-			// strip trailing tabs 
+			// strip trailing tabs
 			int temp = i;
 			while( temp < len ) {
 				if( data[ temp ] == '\r' || data[ temp ] == '\n' ) {
@@ -3146,7 +3145,7 @@ idStr& idStr::Unindent()
 				++temp;
 			}
 		}
-		output += data[ i ];				
+		output += data[ i ];
 	}
 
 	*this = output;
@@ -3160,7 +3159,7 @@ static const char* const hexDigits = "0123456789ABCDEF";
 idStr::StringToBinaryString
 ============
 */
-void idStr::StringToBinaryString( idStr& out, void *pv, int size ) 
+void idStr::StringToBinaryString( idStr& out, void *pv, int size )
 {
 	//idAutoPtr< unsigned char, idArrayCleanupPolicy< unsigned char > > in( new unsigned char[ size ] );
 	auto in = std::make_unique<unsigned char[]>( size );
@@ -3192,7 +3191,7 @@ bool idStr::BinaryStringToString( const char* str,  void* pv, int size )
 		auto out = std::make_unique<unsigned char[]>( size );
 
 		int j = 0;
-		for( int i = 0; i < length; i += 2 ) 
+		for( int i = 0; i < length; i += 2 )
 		{
 			char c;
 			if( str[ i ] > '9' ) {
@@ -3224,7 +3223,7 @@ bool idStr::BinaryStringToString( const char* str,  void* pv, int size )
 idStr::IsValidEmailAddress
 ============
 */
-bool idStr::IsValidEmailAddress( const char* address ) 
+bool idStr::IsValidEmailAddress( const char* address )
 {
 	int count = 0;
 	const char* c;
@@ -3236,7 +3235,7 @@ bool idStr::IsValidEmailAddress( const char* address )
 	{
 		if( *c == '\"' && ( c == address || *(c - 1) == '.' || *(c - 1) == '\"' ) )
 		{
-			while( *++c ) 
+			while( *++c )
 			{
 				if ( *c == '\"' ) {
 					break;
@@ -3302,7 +3301,7 @@ bool idStr::IsValidEmailAddress( const char* address )
 idStr::MS2HMS
 ============
 */
-const char*	idStr::MS2HMS( double ms, const hmsFormat_t& formatSpec ) 
+const char*	idStr::MS2HMS( double ms, const hmsFormat_t& formatSpec )
 {
 	if ( ms < 0.0 ) {
 		ms = 0.0;
@@ -3316,7 +3315,7 @@ const char*	idStr::MS2HMS( double ms, const hmsFormat_t& formatSpec )
 
 	int min = sec / 60;
 	int hour = min / 60;
-		
+
 	sec -= min * 60;
 	min -= hour * 60;
 
@@ -3337,7 +3336,7 @@ const char*	idStr::MS2HMS( double ms, const hmsFormat_t& formatSpec )
 idStr::CollapseColors
 ============
 */
-idStr& idStr::CollapseColors( void ) 
+idStr& idStr::CollapseColors( void )
 {
 	int colorBegin = -1;
 	int lastColor = -1;

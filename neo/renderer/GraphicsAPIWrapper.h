@@ -54,7 +54,7 @@ class idDeclRenderProg;
 
 static const int MAX_OCCLUSION_QUERIES = 4096;
 // returned by GL_GetDeferredQueryResult() when the query is from too long ago and the result is no longer available
-static const int OCCLUSION_QUERY_TOO_OLD				= -1;
+static const int OCCLUSION_QUERY_TOO_OLD = -1;
 
 /*
 ================================================================================================
@@ -156,50 +156,34 @@ void			GL_SetTimeDelta( uint64 delta );	// delta from GPU to CPU microseconds
 void			GL_StartFrame( int frame );			// inserts a timing mark for the start of the GPU frame
 void			GL_EndFrame();						// inserts a timing mark for the end of the GPU frame
 void			GL_WaitForEndFrame( uint64 gpuFrameNanoseconds );	// wait for the GPU to reach the last end frame marker
-void			GL_GetLastFrameTime( uint64& startGPUTimeMicroSec, uint64& endGPUTimeMicroSec );	// GPU time between GL_StartFrame() and GL_EndFrame()
+void			GL_GetLastFrameTime( uint64& endGPUTimeMicroSec );	// GPU time between GL_StartFrame() and GL_EndFrame()
+
 void			GL_StartDepthPass( const idScreenRect& rect );
 void			GL_FinishDepthPass();
 void			GL_GetDepthPassRect( idScreenRect& rect );
+
+void			GL_BeginRenderView( const idRenderView * );
+void			GL_EndRenderView();
 
 void			GL_SetDefaultState();
 void			GL_State( uint64 stateVector, bool forceGlState = false );
 uint64			GL_GetCurrentState();
 uint64			GL_GetCurrentStateMinusStencil();
-void			GL_Cull( int cullType );
+
 void			GL_Scissor( int x /* left*/, int y /* bottom */, int w, int h, int scissorIndex = 0 );
 void			GL_Viewport( int x /* left */, int y /* bottom */, int w, int h, int viewportIndex = 0 );
-ID_INLINE void	GL_Scissor( const idScreenRect& rect )
-{
-	GL_Scissor( rect.x1, rect.y1, rect.x2 - rect.x1 + 1, rect.y2 - rect.y1 + 1 );
-}
-ID_INLINE void	GL_Viewport( const idScreenRect& rect )
-{
-	GL_Viewport( rect.x1, rect.y1, rect.x2 - rect.x1 + 1, rect.y2 - rect.y1 + 1 );
-}
-ID_INLINE void	GL_ViewportAndScissor( int x, int y, int w, int h )
-{
-	GL_Viewport( x, y, w, h );
-	GL_Scissor( x, y, w, h );
-}
-ID_INLINE void	GL_ViewportAndScissor( const idScreenRect& rect )
-{
-	GL_Viewport( rect );
-	GL_Scissor( rect );
-}
+ID_INLINE void	GL_Scissor( const idScreenRect& rect ) { GL_Scissor( rect.x1, rect.y1, rect.x2 - rect.x1 + 1, rect.y2 - rect.y1 + 1 ); }
+ID_INLINE void	GL_Viewport( const idScreenRect& rect ) { GL_Viewport( rect.x1, rect.y1, rect.x2 - rect.x1 + 1, rect.y2 - rect.y1 + 1 ); }
+ID_INLINE void	GL_ViewportAndScissor( int x, int y, int w, int h ) { GL_Viewport( x, y, w, h ); GL_Scissor( x, y, w, h ); }
+ID_INLINE void	GL_ViewportAndScissor( const idScreenRect& rect ) { GL_Viewport( rect ); GL_Scissor( rect ); }
 
-// RB: HDR parm
-void			GL_Clear( bool color, bool depth, bool stencil, byte stencilValue, float r, float g, float b, float a, bool clearHDR = true );
-// RB end
+void			GL_Clear( bool color, bool depth, bool stencil, byte stencilValue, float r, float g, float b, float a );
 void			GL_ClearDepth( const float value = 1.0f );
+void			GL_ClearDepthStencil( const float depthValue, const int stencilValue );
 void			GL_ClearColor( const float r = 0.0f, const float g = 0.0f, const float b = 0.0f, const float a = 1.0f, const int iColorBuffer = 0 );
 
 void			GL_PolygonOffset( float scale, float bias ); // scale bias fill //clamp
 void			GL_DepthBoundsTest( const float zmin, const float zmax );
-//void			GL_Color( float* color );
-void			GL_Color( const idVec3& color );
-void			GL_Color( const idVec4& color );
-void			GL_Color( float r, float g, float b );
-void			GL_Color( float r, float g, float b, float a );
 
 void			GL_SelectTexture( int unit );
 int				GL_GetCurrentTextureUnit();
@@ -207,25 +191,30 @@ int				GL_GetCurrentTextureUnit();
 // automatically enables or disables cube mapping
 // May perform file loading if the image was not preloaded.
 void			GL_BindTexture( int unit, idImage * );
-void			GL_ResetTexturesState();
+void			GL_ResetTextureState();
 
+void			GL_SetRenderProgram( const idDeclRenderProg * );
+const idDeclRenderProg * GL_GetCurrentRenderProgram();
 void			GL_ResetProgramState();
 
 void			GL_DisableRasterizer();
 
-void			GL_SetNativeRenderDestination();
+void			GL_ResetRenderDestination();
 void			GL_SetRenderDestination( const idRenderDestination * );
-const idRenderDestination * GetCurrentRenderDestination();
-void			GL_BlitRenderBuffer(
-					const idRenderDestination * src, const idScreenRect & srcRect,
-					const idRenderDestination * dst, const idScreenRect & dstRect,
-					bool color, bool linearFiltering );
-bool			GL_IsNativeFramebufferActive();
+const idRenderDestination * GL_GetCurrentRenderDestination();
 bool			GL_IsBound( const idRenderDestination * );
+
+void			GL_SetNativeRenderDestination();
+bool			GL_IsNativeFramebufferActive();
+
+void			GL_BlitRenderBuffer(
+					const idRenderDestination * src, int src_x, int src_y, int src_w, int src_h,
+					const idRenderDestination * dst, int dst_x, int dst_y, int dst_w, int dst_h,
+					bool color, bool linearFiltering );
 
 //SEA: depricated!
 void			GL_CopyCurrentColorToTexture( idImage *, int x, int y, int newImageWidth, int newImageHeight );
-void			GL_CopyCurrentDepthToTexture( idImage *, int x, int y, int newImageWidth, int newImageHeight );
+///void			GL_CopyCurrentDepthToTexture( idImage *, int x, int y, int newImageWidth, int newImageHeight );
 
 void			GL_Flush();		// flush the GPU command buffer
 void			GL_Finish();	// wait for the GPU to have executed all commands
@@ -234,10 +223,20 @@ void			GL_SetVertexLayout( vertexLayoutType_t );
 void			GL_DrawIndexed( const drawSurf_t*, vertexLayoutType_t = LAYOUT_DRAW_VERT_FULL, int globalInstanceCount = 1 );
 void			GL_DrawZeroOneCube( vertexLayoutType_t = LAYOUT_DRAW_VERT_POSITION_ONLY, int instanceCount = 1 );
 void			GL_DrawUnitSquare( vertexLayoutType_t = LAYOUT_DRAW_VERT_POSITION_TEXCOORD, int instanceCount = 1 );
+void			GL_DrawZeroOneCubeAuto();
+// draw zero-one triangle, bound prog must contain AUTOGEN_SCREEN_TRIANGLE func.
+void			GL_DrawScreenTriangleAuto();
 
-void			GL_StartMDBatch();
-void			GL_SetupMDParm( const drawSurf_t * const surface );
-void			GL_FinishMDBatch();
+
+//void			GL_BindProgram( prog, extraState, triVertexMask, blockParms );
+//void			GL_SetupSurfaceParms( prog, surf );
+//void			GL_DrawIndexedInternal( tri, vao, progVertexMask, skipDetailTriangles );
+//void			GL_DrawIndexed( prog, surf, extraState, skipDetailTriangles );
+//void			GL_DrawIndexed( prog, tri, extraState, skipDetailTriangles );
+
+void			GL_StartDrawBatch();
+void			GL_SetupDrawBatchParms( const drawSurf_t * const surface );
+void			GL_FinishDrawBatch();
 
 // RB begin
 bool			GL_CheckErrors_( const char* filename, int line );
@@ -253,7 +252,7 @@ void			GL_ClearStats();
 
 
 #if 1
-//SEA it does't suppous to be fast its for compatibility
+//SEA  it's not supposed to be fast its for compatibility
 
 enum primitiveType_e
 {

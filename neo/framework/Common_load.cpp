@@ -84,7 +84,7 @@ void idCommonLocal::CompleteWipe()
 	while( sys->Milliseconds() < wipeStopTime )
 	{
 		BusyWait();
-		Sys_Sleep( 10 );
+		sys->Sleep( 10 );
 	}
 	
 	// ensure it is completely faded out
@@ -581,7 +581,7 @@ void idCommonLocal::ExecuteMapChange()
 			sys->ProcessOSEvents();
 			session->UpdateSignInManager();
 			session->Pump();
-			Sys_Sleep( 10 );
+			sys->Sleep( 10 );
 		}
 	}
 	
@@ -670,7 +670,7 @@ void idCommonLocal::ExecuteMapChange()
 	// remove any prints from the notify lines
 	console->ClearNotifyLines();
 	
-	Sys_SetPhysicalWorkMemory( -1, -1 );
+	sys->SetPhysicalWorkMemory( -1, -1 );
 	
 	// at this point we should be done with the loading gui so we kill it
 	delete loadGUI;

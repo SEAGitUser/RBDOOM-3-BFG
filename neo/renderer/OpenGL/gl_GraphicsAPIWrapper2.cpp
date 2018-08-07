@@ -2,16 +2,11 @@
 #pragma hdrstop
 #include "precompiled.h"
 
+#include "gl_header.h"
+
 #include "../tr_local.h"
 
 // Experimental staff //////////////////////////////////////////////////////////////
-
-static ID_INLINE GLuint GetGLObject( void * apiObject )
-{
-#pragma warning( suppress: 4311 4302 )
-	return reinterpret_cast<GLuint>( apiObject );
-}
-
 
 /*
 
@@ -41,7 +36,7 @@ GLEW_ATI_meminfo
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 
-static const uint32 MAX_MULTIDRAW_COUNT = 4096;
+#define MAX_MULTIDRAW_COUNT 4096
 struct multiDrawParms_t {
 	int		count[ MAX_MULTIDRAW_COUNT ];
 	void *	indices[ MAX_MULTIDRAW_COUNT ];
@@ -54,22 +49,24 @@ struct multiDrawParms_t {
 
 /*
 ============================================================
-GL_StartMDBatch
+ GL_StartDrawBatch
 ============================================================
 */
-void GL_StartMDBatch()
+void GL_StartDrawBatch()
 {
 	drawCalls.vbo = 0;
 	drawCalls.ibo = 0;
 	drawCalls.primcount = 0;
+
+	RENDERLOG_OPEN_BLOCK( "GL_StartDrawBatch()" );
 }
 
 /*
 ============================================================
-GL_SetupDrawCall
+ GL_SetupDrawBatchParms
 ============================================================
 */
-void GL_SetupMDParm( const drawSurf_t * const surf )
+void GL_SetupDrawBatchParms( const drawSurf_t * const surf )
 {
 	idVertexBuffer vertexBuffer;
 	vertexCache.GetVertexBuffer( surf->vertexCache, vertexBuffer );
@@ -96,23 +93,26 @@ void GL_SetupMDParm( const drawSurf_t * const surf )
 	backEnd.pc.c_drawElements++;
 	backEnd.pc.c_drawIndexes += surf->numIndexes;
 
-	RENDERLOG_PRINT( "SetDrawCall( VBO %u:%i, IBO %u:%i, numIndexes:%i )\n", vbo, vertOffset, ibo, indexOffset, surf->numIndexes );
+	RENDERLOG_PRINT( "GL_SetupDrawBatchParms( VBO %u:%i, IBO %u:%i, numIndexes:%i )\n", vbo, vertOffset, ibo, indexOffset, surf->numIndexes );
 }
 
 /*
 ============================================================
-GL_MultiDrawElementsWithCounters
+ GL_FinishDrawBatch
 ============================================================
 */
-void GL_FinishMDBatch()
+void GL_FinishDrawBatch()
 {
 	if( !drawCalls.primcount )
+	{
+		RENDERLOG_CLOSE_BLOCK();
 		return;
+	}
 
 	glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, drawCalls.ibo );
 	backEnd.glState.currentIndexBuffer = drawCalls.ibo;
 
-	if( glConfig.ARB_vertex_attrib_binding && r_useVertexAttribFormat.GetBool() )
+	if( 0 )//glConfig.ARB_vertex_attrib_binding && r_useVertexAttribFormat.GetBool() )
 	{
 		const GLintptr baseOffset = 0;
 		const GLuint bindingIndex = 0;
@@ -133,8 +133,8 @@ void GL_FinishMDBatch()
 		drawCalls.primcount,
 		drawCalls.basevertexes );
 
-	RENDERLOG_PRINT( "GL_FinishMDBatch( Count:%i ) -----------------------------\n", drawCalls.primcount );
-	RENDERLOG_PRINT( "----------------------------------------------------------\n" );
+	RENDERLOG_PRINT( "GL_FinishDrawBatch( Count:%i )\n", drawCalls.primcount );
+	RENDERLOG_CLOSE_BLOCK();
 }
 
 
@@ -362,7 +362,7 @@ void GL_Qube( int instanceCount )
 	*/
 
 
-	renderProgManager.GetCurrentRenderProgram()->CommitUniforms();
+	GL_CommitProgUniforms( GL_GetCurrentRenderProgram() );
 
 	// No buffers, no vertex attributes
 
@@ -502,7 +502,7 @@ uint32 GetCapacity( primitiveType_e primitiveType )
 {
 	switch( primitiveType )
 	{
-		case PRIM_TYPE_POINTS: 
+		case PRIM_TYPE_POINTS:
 			return 1;
 
 		case PRIM_TYPE_LINE_STRIP:
@@ -528,7 +528,7 @@ ID_INLINE static byte ColorFloatToByte( float c )
 	return idMath::Ftob( c * 255.0f );
 }
 
-struct vertex_t 
+struct vertex_t
 {
 	idVec3	xyz;			// 12 bytes
 	idVec2  st;				// 8 bytes
@@ -612,7 +612,7 @@ void idImmediateRenderOGL::Begin( primitiveType_e primType )
 
 void idImmediateRenderOGL::End()
 {
-	if( vertexBuffer.IsMapped() ) 
+	if( vertexBuffer.IsMapped() )
 	{
 		vertexBuffer.UnmapBuffer();
 		mappedVertexBuffer = nullptr;
@@ -642,7 +642,7 @@ void idImmediateRenderOGL::End()
 	{
 		struct MultiDrawElements {
 			GLenum			primType = GL_TRIANGLES;
-			const GLint *	first = nullptr; 
+			const GLint *	first = nullptr;
 			const GLsizei * vertCount = 0;
 			GLsizei			drawCount = 0;
 		} draw;
@@ -677,7 +677,7 @@ void idImmediateRenderOGL::End()
 }
 
 
-// The current color, normal, and texture coordinates are associated with the vertex 
+// The current color, normal, and texture coordinates are associated with the vertex
 // when glVertex is called.
 void idImmediateRenderOGL::Vertex3f( float x, float y, float z )
 {
@@ -693,3 +693,29 @@ void idImmediateRenderOGL::Vertex3f( float x, float y, float z )
 	currentVertex.Clear();
 	++currentVertexNum;
 }
+
+
+
+
+void GL_DrawScreenTexture( idImage * img )
+{
+	if( !GLEW_NV_draw_texture )
+		return;
+
+	GLuint src_tex = GetGLObject( img->GetAPIObject() );
+	GLuint src_smp = GL_NONE;
+
+	int screenWidth = renderSystem->GetWidth();
+	int screenHeight = renderSystem->GetHeight();
+
+	// to draw a 640x480 rectangle texture on top of a 640x480 window, you would call :
+	const GLfloat Z = 1.0;
+	glDrawTextureNV( src_tex, src_smp,
+		0, 0, screenWidth, screenHeight, Z,	// destination
+		0.0, 0.0, 1.0, 1.0 );	// src texture
+}
+
+
+
+
+

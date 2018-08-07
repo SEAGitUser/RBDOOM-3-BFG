@@ -73,7 +73,7 @@ static HANDLE hProcessMutex;
 Sys_GetExeLaunchMemoryStatus
 ================
 */
-void Sys_GetExeLaunchMemoryStatus( sysMemoryStats_t &stats )
+void idSysLocal::GetExeLaunchMemoryStatus( sysMemoryStats_t &stats ) const
 {
 	stats = exeLaunchMemoryStats;
 }
@@ -407,9 +407,9 @@ void idSysLocal::DebugVPrintf( const char *fmt, va_list arg )
 Sys_Sleep
 ==============
 */
-void Sys_Sleep( int msec )
+void idSysLocal::Sleep( int msec ) const
 {
-	Sleep( msec );
+	::Sleep( msec );
 }
 
 /*
@@ -450,8 +450,7 @@ Sys_FileTimeStamp
 ID_TIME_T Sys_FileTimeStamp( idFileHandle fp )
 {
 	FILETIME writeTime;
-	GetFileTime( fp, NULL, NULL, &writeTime );
-
+	::GetFileTime( fp, NULL, NULL, &writeTime );
 	/*
 		FILETIME = number of 100-nanosecond ticks since midnight
 		1 Jan 1601 UTC. time_t = number of 1-second ticks since
@@ -460,7 +459,6 @@ ID_TIME_T Sys_FileTimeStamp( idFileHandle fp )
 		time in question and divide by the number of 100-ns ticks
 		in one second.
 	*/
-
 	SYSTEMTIME base_st = {
 		1970,   // wYear
 		1,      // wMonth
@@ -473,7 +471,7 @@ ID_TIME_T Sys_FileTimeStamp( idFileHandle fp )
 	};
 
 	FILETIME base_ft;
-	SystemTimeToFileTime( &base_st, &base_ft );
+	::SystemTimeToFileTime( &base_st, &base_ft );
 
 	LARGE_INTEGER itime;
 	itime.QuadPart = reinterpret_cast< LARGE_INTEGER& >( writeTime ).QuadPart;
@@ -576,9 +574,9 @@ const char *Sys_DefaultSavePath()
 			// RB FIXME?
 		#if defined(__MINGW32__)
 			if( SUCCEEDED( SHGetKnownFolderPath( FOLDERID_SavedGames_IdTech5, CSIDL_FLAG_CREATE, 0, &path ) ) )
-			#else
+		#else
 			if( SUCCEEDED( SHGetKnownFolderPath( FOLDERID_SavedGames_IdTech5, CSIDL_FLAG_CREATE | CSIDL_FLAG_PER_USER_INIT, 0, &path ) ) )
-			#endif
+		#endif
 				// RB end
 			{
 				if( wcstombs( savePath, path, MAX_PATH ) > MAX_PATH )
@@ -1148,7 +1146,7 @@ Sys_AlreadyRunning
 returns true if there is a copy of D3 running already
 ================
 */
-bool Sys_AlreadyRunning()
+bool idSysLocal::AlreadyRunning() const
 {
 #ifndef DEBUG
 	if( !win32.win_allowMultipleInstances.GetBool() )
@@ -1287,7 +1285,7 @@ void Sys_Init()
 	{
 		idStr string;
 
-		common->Printf( "%1.0f MHz ", Sys_ClockTicksPerSecond() / 1000000.0f );
+		common->Printf( "%1.0f MHz ", sys->ClockTicksPerSecond() / 1000000.0f );
 
 		win32.cpuid = Sys_GetCPUId();
 
@@ -1417,7 +1415,7 @@ void Sys_Shutdown()
 Sys_GetProcessorId
 ================
 */
-cpuid_t Sys_GetProcessorId()
+cpuid_t idSysLocal::GetProcessorId() const
 {
 	return win32.cpuid;
 }
@@ -1427,7 +1425,7 @@ cpuid_t Sys_GetProcessorId()
 Sys_GetProcessorString
 ================
 */
-const char *Sys_GetProcessorString()
+const char * idSysLocal::GetProcessorString() const
 {
 	return win32.sys_cpustring.GetString();
 }
@@ -1622,7 +1620,7 @@ EXCEPTION_DISPOSITION __cdecl _except_handler( struct _EXCEPTION_RECORD *Excepti
 
 int Sys_MessageBox()
 {
-	int msgboxID = MessageBox(
+	int msgboxID = ::MessageBox(
 		NULL,
 		TEXT( "Attach Debuger now, if needed!" ),
 		TEXT( "Preliminary Setup" ),
@@ -1654,9 +1652,8 @@ int WINAPI WinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLin
 {
 	const HCURSOR hcurSave = ::SetCursor( LoadCursor( 0, IDC_WAIT ) );
 
-	Sys_SetPhysicalWorkMemory( 192 << 20, 1024 << 20 );
-
-	Sys_GetCurrentMemoryStatus( exeLaunchMemoryStats );
+	sys->SetPhysicalWorkMemory( 192 << 20, 1024 << 20 );
+	sys->GetCurrentMemoryStatus( exeLaunchMemoryStats );
 
 #if 0
 	DWORD handler = ( DWORD )_except_handler;
@@ -1697,6 +1694,8 @@ int WINAPI WinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLin
 	//sys->FPU_EnableExceptions( TEST_FPU_EXCEPTIONS );
 	sys->FPU_SetPrecision( FPU_PRECISION_DOUBLE_EXTENDED );
 
+	Sys_MessageBox();
+
 	common->Init( 0, NULL, lpCmdLine );
 
 #if TEST_FPU_EXCEPTIONS != 0
@@ -1721,8 +1720,6 @@ int WINAPI WinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLin
 	// give the main thread an affinity for the first cpu
 	SetThreadAffinityMask( GetCurrentThread(), 1 );
 #endif
-
-	Sys_MessageBox();
 
 	::SetCursor( hcurSave );
 	::SetFocus( win32.hWnd );

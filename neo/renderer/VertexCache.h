@@ -148,7 +148,7 @@ public:
 		return ActuallyAlloc( staticData, data, bytes, CACHE_INDEX );
 	}
 	
-	byte* 			MappedVertexBuffer( vertCacheHandle_t handle )
+	byte * 			MappedVertexBuffer( vertCacheHandle_t handle )
 	{
 		release_assert( !CacheIsStatic( handle ) );
 		const uint64 offset = ( int )( handle >> VERTCACHE_OFFSET_SHIFT ) & VERTCACHE_OFFSET_MASK;
@@ -157,7 +157,7 @@ public:
 		return frameData[ listNum ].mappedVertexBase + offset;
 	}
 	
-	byte* 			MappedIndexBuffer( vertCacheHandle_t handle )
+	byte * 			MappedIndexBuffer( vertCacheHandle_t handle )
 	{
 		release_assert( !CacheIsStatic( handle ) );
 		const uint64 offset = ( int )( handle >> VERTCACHE_OFFSET_SHIFT ) & VERTCACHE_OFFSET_MASK;

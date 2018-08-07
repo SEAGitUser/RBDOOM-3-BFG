@@ -49,14 +49,13 @@ If you have questions concerning this license or the applicable additional terms
 Sys_GetClockTicks
 ================
 */
-double Sys_GetClockTicks()
+double idSysLocal::GetClockTicks() const
 {
 // RB begin
 #if defined(_WIN64)
 
 	LARGE_INTEGER li;
-
-	QueryPerformanceCounter( &li );
+	::QueryPerformanceCounter( &li );
 	return (double ) li.LowPart + (double) 0xFFFFFFFF * li.HighPart;
 
 #else
@@ -101,7 +100,8 @@ double Sys_GetClockTicks()
 Sys_ClockTicksPerSecond
 ================
 */
-double Sys_ClockTicksPerSecond() {
+double idSysLocal::ClockTicksPerSecond() const
+{
 	static double ticks = 0;
 #if 0
 
@@ -896,7 +896,8 @@ static bitFlag_t statusWordFlags[] = {
 Sys_FPU_PrintStateFlags
 ===============
 */
-static int Sys_FPU_PrintStateFlags( char *ptr, int ctrl, int stat, int tags, int inof, int inse, int opof, int opse ) {
+static int Sys_FPU_PrintStateFlags( char *ptr, int ctrl, int stat, int tags, int inof, int inse, int opof, int opse ) 
+{
 	int i, length = 0;
 
 	length += sprintf( ptr+length,	"CTRL = %08x\n"

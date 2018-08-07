@@ -365,12 +365,9 @@ VertexBetween
 */
 static bool VertexBetween( const optVertex_t* p1, const optVertex_t* v1, const optVertex_t* v2 )
 {
-	idVec3	d1, d2;
-	float	d;
-	
-	d1 = p1->pv - v1->pv;
-	d2 = p1->pv - v2->pv;
-	d = d1 * d2;
+	idVec3 d1 = p1->pv - v1->pv;
+	idVec3 d2 = p1->pv - v2->pv;
+	float d = d1 * d2;
 	if( d < 0 )
 	{
 		return true;
@@ -438,10 +435,8 @@ Colinear is considdered crossing.
 */
 static	bool PointsStraddleLine( optVertex_t* p1, optVertex_t* p2, optVertex_t* l1, optVertex_t* l2 )
 {
-	bool	t1, t2;
-	
-	t1 = IsTriangleDegenerate( l1, l2, p1 );
-	t2 = IsTriangleDegenerate( l1, l2, p2 );
+	bool t1 = IsTriangleDegenerate( l1, l2, p1 );
+	bool t2 = IsTriangleDegenerate( l1, l2, p2 );
 	if( t1 && t2 )
 	{
 		// colinear case

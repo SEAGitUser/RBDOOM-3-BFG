@@ -41,6 +41,36 @@ typedef idList<idStr> idStrList;
 typedef idList<idStr*> idStrPtrList;
 typedef idStr* idStrPtr;
 
+/*
+============
+idSplitStringIntoList
+============
+*/
+ID_INLINE void idSplitStringIntoList( idStrList& list, const char* string, const char* separator = "|" )
+{
+	int separatorLength = idStr::Length( separator );
+
+	assert( separatorLength > 0 );
+
+	idStr str( string );
+
+	// append a terminator there's no terminating one
+	if( idStr::Icmp( str.Mid( str.Length() - separatorLength, separatorLength ), separator ) != 0 )
+	{
+		str += separator;
+	}
+
+	int startIndex = 0;
+	int endIndex = str.Find( separator );
+
+	while( endIndex != -1 && endIndex < str.Length() )
+	{
+		list.Append( str.Mid( startIndex, endIndex - startIndex ) );
+		startIndex = endIndex + separatorLength;
+		endIndex = str.Find( separator, false, startIndex );
+	}
+}
+
 ///*
 //================
 //idListSortCompare<idStrPtr>
@@ -138,15 +168,11 @@ idStrList::Size
 template<>
 ID_INLINE size_t idStrList::Size() const
 {
-	size_t s;
-	int i;
-	
-	s = sizeof( *this );
-	for( i = 0; i < Num(); i++ )
+	size_t s = sizeof( *this );
+	for( int i = 0; i < Num(); ++i )
 	{
 		s += ( *this )[ i ].Size();
 	}
-	
 	return s;
 }
 
@@ -202,5 +228,66 @@ ID_INLINE size_t idStrList::Size() const
 //
 //	list.Swap( other );
 //}
+
+
+/*
+===============================================================================
+
+i	dWStrList
+
+===============================================================================
+*/
+
+typedef idList<idWStr> idWStrList;
+typedef idList<idWStr*> idWStrPtrList;
+typedef idWStr *idWStrPtr;
+
+
+/*
+============
+idSplitStringIntoList
+============
+*/
+ID_INLINE void idSplitStringIntoList( idWStrList& list, const wchar_t* string, const wchar_t* separator = L"|" )
+{
+	int separatorLength = idWStr::Length( separator );
+
+	assert( separatorLength > 0 );
+
+	idWStr str( string );
+
+	// append a terminator there's no terminating one
+	if( idWStr::Icmp( str.Mid( str.Length() - separatorLength, separatorLength ).c_str(), separator ) != 0 )
+	{
+		str += separator;
+	}
+
+	int startIndex = 0;
+	int endIndex = str.Find( separator );
+
+	while( endIndex != -1 && endIndex < str.Length() )
+	{
+		list.Append( str.Mid( startIndex, endIndex - startIndex ) );
+		startIndex = endIndex + separatorLength;
+		endIndex = str.Find( separator, false, startIndex );
+	}
+}
+
+/*
+================
+idWStrList::Size
+================
+*/
+template<>
+ID_INLINE size_t idWStrList::Size( void ) const
+{
+	size_t s = sizeof( *this );
+	for( int i = 0; i < Num(); ++i )
+	{
+		s += ( *this )[ i ].Size();
+	}
+	return s;
+}
+
 
 #endif /* !__STRLIST_H__ */

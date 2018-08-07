@@ -60,7 +60,7 @@ extern idCVar sys_lang;
 
 void idUserInterfaceManagerLocal::Init()
 {
-	screenRect = idRectangle( 0, 0, 640, 480 );
+	screenRect = idRectangle( 0, 0, VIRTUAL_WIDTH, VIRTUAL_HEIGHT );
 	dcOld.Init();
 	dcOptimized.Init();
 	
@@ -85,8 +85,7 @@ void idUserInterfaceManagerLocal::SetDrawingDC()
 	// new paths, toggle between them every frame if g_useNewGuiCode is set to 2
 	toggle++;
 	
-	if( g_useNewGuiCode.GetInteger() == 1 ||
-			( g_useNewGuiCode.GetInteger() == 2 && ( toggle & 1 ) ) )
+	if( g_useNewGuiCode.GetInteger() == 1 || ( g_useNewGuiCode.GetInteger() == 2 && ( toggle & 1 ) ) )
 	{
 		dc = &dcOptimized;
 	}
@@ -149,7 +148,7 @@ void idUserInterfaceManagerLocal::EndLevelLoad( const char* mapName )
 			bool remove = true;
 			for( int j = 0; j < declManager->GetNumDecls( DECL_MATERIAL ); j++ )
 			{
-				const idMaterial* material = static_cast<const idMaterial*>( declManager->DeclByIndex( DECL_MATERIAL, j, false ) );
+				auto material = declManager->MaterialByIndex( j, false );
 				if( material->GlobalGui() == guis[i] )
 				{
 					remove = false;
@@ -422,7 +421,7 @@ bool idUserInterfaceLocal::InitFromFile( const char* qpath, bool rebuild, bool c
 		if( src.IsLoaded() )
 		{
 			bsrc.LoadFromParser( src, source );
-			ID_TIME_T ts = fileSystem->GetTimestamp( source );
+			auto ts = fileSystem->GetTimestamp( source );
 			bsrc.UpdateTimeStamp( ts );
 		}
 	}

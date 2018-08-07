@@ -28,8 +28,7 @@ If you have questions concerning this license or the applicable additional terms
 
 class idWindow;
 
-class idUserInterfaceLocal : public idUserInterface
-{
+class idUserInterfaceLocal : public idUserInterface {
 	friend class idUserInterfaceManagerLocal;
 public:
 	idUserInterfaceLocal();
@@ -169,10 +168,8 @@ private:
 
 
 
-class idUserInterfaceManagerLocal : public idUserInterfaceManager
-{
-	friend class idUserInterfaceLocal;
-	
+class idUserInterfaceManagerLocal : public idUserInterfaceManager {
+	friend class idUserInterfaceLocal;	
 public:
 	virtual void				Init();
 	virtual void				Shutdown();
@@ -192,10 +189,7 @@ public:
 	virtual idUserInterface* 	FindDemoGui( const char* qpath );
 	virtual	idListGUI* 			AllocListGUI() const;
 	virtual void				FreeListGUI( idListGUI* listgui );
-	idTokenParser& 				GetBinaryParser()
-	{
-		return mapParser;
-	}
+	idTokenParser & 			GetBinaryParser() { return mapParser; }
 private:
 	idRectangle					screenRect;
 	idDeviceContext				dcOld;

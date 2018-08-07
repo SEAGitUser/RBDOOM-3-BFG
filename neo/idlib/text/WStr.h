@@ -228,11 +228,12 @@ public:
 
 /*
 ============
-va utility funcs
+does a varargs printf into a temp buffer
+NOTE : not thread safe
 ============
 */
-
 wchar_t* va( const wchar_t *fmt, ... );
+
 
 ID_INLINE void idWStr::EnsureAlloced( int amount, bool keepold )
 {

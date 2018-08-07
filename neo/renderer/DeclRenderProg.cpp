@@ -29,6 +29,8 @@ If you have questions concerning this license or the applicable additional terms
 #pragma hdrstop
 #include "precompiled.h"
 
+#include "OpenGL\gl_header.h"
+
 #include "tr_local.h"
 
 #include "DeclRenderProg.h"
@@ -36,15 +38,46 @@ If you have questions concerning this license or the applicable additional terms
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 // DeclRenderProgGenerator.cpp
 
-idCVar r_skipStripDeadProgCode( "r_skipStripDeadProgCode", "0", CVAR_BOOL, "Skip stripping dead code" );
-idCVar r_useProgUBO( "r_useProgUBO", "1", CVAR_BOOL, "use uniform buffer for sending parms to programs" );
+/*
+	// GL_ARB_shading_language_include
+	// #include </foo/bar.glsl>
+	struct glslInclude_t {
+	const char * name;		// defines the name associated with the string.
+	GLint nameLength;		// <namelen> is the number of <char>s in <name>.
+	GLint stringLength;		// the number of <char>s in <string>.
+	const char * string;
+	};
+	// If <namelen> or <stringlen> are negative, then <name> or <string> respectively are considered to be null - terminated strings
+	glNamedStringARB( GL_SHADER_INCLUDE_ARB, int namelen, const char *name, int stringlen, const char *string );
+	glDeleteNamedStringARB( int namelen, const char *name );
+	glCompileShaderIncludeARB( uint shader, sizei count, const char *const *path, const int *length );
+	//boolean IsNamedStringARB( int namelen, const char *name );
+	//void GetNamedStringARB( int namelen, const char *name, sizei bufSize, int *stringlen, char *string );
+	//void GetNamedStringivARB( int namelen, const char *name, enum pname, int *params );
+*/
 
-typedef idHandle<GLuint, GL_ZERO> glslShaderObject_t;
+idCVar r_skipStripDeadProgCode( "r_skipStripDeadProgCode", "0", CVAR_BOOL, "Skip stripping dead code" );
+idCVar r_useProgUBO( "r_useProgUBO", "0", CVAR_ARCHIVE | CVAR_BOOL, "use uniform buffer for sending parms to programs" );
+
+class idProgException {
+public:
+	static const int MAX_ERROR_LEN = 128;
+
+	idProgException( const char* text = "" ) {
+		strncpy( error, text, MAX_ERROR_LEN );
+	}
+	const char * 	GetError() const { return error; }
+private:
+	static char error[ MAX_ERROR_LEN ];
+};
+char idProgException::error[ idProgException::MAX_ERROR_LEN ];
+
 GLuint GL_CreateGLSLShaderObject( shaderType_e, const char * sourceGLSL, const char * fileName );
 void GL_CreateGLSLProgram( struct progParseData_t &, const char * progName, bool bRetrieveBinary );
 
 typedef idStringBuilder< idStr, idCharAllocator_Heap< 2048, char > > idShaderStringBuilder;
 
+#define _Txt idStrStatic<128>().Format
 #define CHECK_NEW_LINE_AND_SPACES() ( token.linesCrossed > 0 )? newline : (( token.WhiteSpaceBeforeToken() > 0 )? " " : "" )
 
 #define VERTEX_UNIFORM_ARRAY_NAME			"_va"
@@ -54,6 +87,8 @@ typedef idStringBuilder< idStr, idCharAllocator_Heap< 2048, char > > idShaderStr
 #define FRAGMENT_UNIFORM_ARRAY_NAME			"_fa"
 #define COMPUTE_UNIFORM_ARRAY_NAME			"_ca"
 #define COMMON_PARMBLOCK_NAME				"_rp"
+
+#define PROG_INCLUDE_PATH "renderprogs\\include"
 
 struct attribInfo_t {
 	const char * 	type;
@@ -70,6 +105,8 @@ struct glslInOut_t {
 	const char *	nameCG;
 	const char *	prefGLSL;
 	const char *	nameGLSL;
+	const char *	typeHLSL;
+	const char *	symHLSL;
 };
 
 struct glslShaderInfo_t {
@@ -88,59 +125,12 @@ _glslShaderInfo[ SHT_MAX + 1 ] =
 	{ GL_COMPUTE_SHADER, "computeShader", ".compute", COMPUTE_UNIFORM_ARRAY_NAME },
 };
 
-struct glslProgram_t 
-{
-	//idArray<uint32, SHT_MAX> shaderChecksum;
-	idArray<GLuint, SHT_MAX> shaderObjects;
-	//idArray<int16, SHT_MAX>	 uniformArrays;
-	//id2DArray<int16, SHT_MAX, 64>::type	uniforms;
-	GLuint	programObject;
-	int32   parmBlockIndex;
-
-	GLint	binaryLength;
-	GLenum	binaryFormat;
-	void *	binaryData;
-
-	glslProgram_t() : 
-		programObject( GL_ZERO ), parmBlockIndex( -1 ),
-		binaryLength( 0 ), binaryFormat( 0 ), binaryData( nullptr )
-	{
-		for( uint32 i = 0; i < SHT_MAX; i++ )
-		{
-			//shaderChecksum[ i ] = 0;
-			shaderObjects[ i ] = 0;
-			//uniformArrays[ i ] = -1;
-			//for( int j = 0; j < uniforms[ i ].Num(); j++ ) {
-			//	uniforms[ i ][ j ] = -1;
-			//}			
-		}
-	}
-
-	void FreeProgObject()
-	{
-		if( renderSystem->IsOpenGLRunning() )
-		{
-			if( programObject ) {
-				glDeleteProgram( programObject );
-				programObject = GL_NONE;
-			}
-		}
-	}
-};
-
 struct varInOut_t {
 	//idStrStatic<32>	type;
 	idStrStatic<48>	name;
 	//idStrStatic<48>	nameGLSL;
-	uint16  typeIndex = 5U;	//-> _typeConversion[ typeIndex ]
+	uint16  typeIndex = 5U;/*vec4*/	//-> _typeConversion[ typeIndex ]
 
-	//uint16	index = 0U;
-	//bool	refAsInput = false;
-	//bool	refAsOutput = false;
-
-	//bool	toInput = false;
-	//bool	asOutput = false;
-	//bool	declareInOut;
 	bool operator == ( const varInOut_t & other ) const {
 		return( /* type == other.type &&*/ name == other.name );
 	}
@@ -150,13 +140,18 @@ struct varInOut_t {
 #define MAX_STAGE_VEC 128
 #define MAX_STAGE_TEX 16
 
-struct progParseData_t 
+struct progParseData_t
 {
-	idArray< idStr, SHT_MAX > shaderTexts;
 	idArray< idStr, SHT_MAX > parseTexts;
-	
+
 	glslProgram_t glslProgram;
-	renderProgData_t data;
+
+	//renderProgData_t data;
+	idStaticList< idStrStatic<86>, 8 > dependencies;
+	ID_TIME_T dependenciesTimestamp;
+	idBitFlags<uint64>	glState;
+	idBitFlags<uint32>	flags;
+	vertexMask_t	vertexMask;
 
 	// custom variables
 	idStaticList< varInOut_t, 64*SHT_MAX > variables;
@@ -166,8 +161,8 @@ struct progParseData_t
 	idStaticList< attribInfo_t, 16 > vsInputs;
 	idStaticList< attribInfo_t, 8 > fsOutputs;
 
-	idStaticList< const idDeclRenderParm *, MAX_STAGE_VEC*SHT_MAX> vecParms;
-	idStaticList< const idDeclRenderParm *, MAX_STAGE_TEX*SHT_MAX> texParms;
+	idStaticList< uint16, MAX_STAGE_VEC*SHT_MAX> vecParms;
+	idStaticList< uint16, MAX_STAGE_TEX*SHT_MAX> texParms;
 	idArray< idStaticList< int16, MAX_STAGE_VEC>, SHT_MAX> vecParmsUsed;
 	idArray< idStaticList< int16, MAX_STAGE_TEX>, SHT_MAX> texParmsUsed;
 
@@ -177,6 +172,15 @@ struct progParseData_t
 		uint8 count = 0;
 		uint8 invoc = 0;
 	} primLayout;
+
+	struct tessLayout_t {
+		uint8 prim_type = 0;
+		uint8 prim_spacing = 0;
+		uint8 prim_topology = 0;
+		uint8 count = 0;
+	} tessLayout;
+
+	// ----------------------------------------------------------------
 
 	void BeginShader( shaderType_e sht, shaderType_e prev_sht )
 	{
@@ -203,40 +207,46 @@ struct progParseData_t
 	{
 		if( parm->IsVector() )
 		{
-			int index = vecParms.AddUnique( parm );
+			int index = vecParms.AddUnique( parm->Index() );
 			vecParmsUsed[ shaderType ].AddUnique( index );
 			return index;
 		}
 		else if( parm->IsTexture() )
 		{
-			int index = texParms.AddUnique( parm );
+			int index = texParms.AddUnique( parm->Index() );
 			texParmsUsed[ shaderType ].AddUnique( index );
 			return index;
 		}
-		release_assert("AddRenderParm() Unknown Parm Type");
+
+		assert("AddRenderParm() Unknown Parm Type");
 		return 0;
 	}
 
-	const idDeclRenderParm * GetVecParm( int parmIndex ) const {
-		return vecParms[ parmIndex ];
-	}
-	const idDeclRenderParm * GetTexParm( int parmIndex ) const {
-		return texParms[ parmIndex ];
-	}
-	int GetVecParmCount() const {
-		return vecParms.Num();
-	}
-	int GetTexParmCount() const {
-		return texParms.Num();
-	}
-
-	progParseData_t()
+	const idDeclRenderParm * GetVecParm( int parmIndex ) const
 	{
-		data.Clear();
+		return declManager->RenderParmByIndex( vecParms[ parmIndex ], false );
+	}
+	const idDeclRenderParm * GetTexParm( int parmIndex ) const
+	{
+		return declManager->RenderParmByIndex( texParms[ parmIndex ], false );
+	}
+	int GetVecParmCount() const { return vecParms.Num(); }
+	int GetTexParmCount() const { return texParms.Num(); }
 
-		for( int i = 0; i < SHT_MAX; i++ ) 
+	void Clear()
+	{
+		//data.Clear();
+		/*for( int i = 0; i < dependencies.Num(); i++ ) {
+			dependencies[ i ].Clear();
+		} */
+		dependencies.Clear();
+		dependenciesTimestamp = 0;
+		glState.Clear();
+		flags.Clear();
+		vertexMask.Clear();
+
+		for( int i = 0; i < SHT_MAX; i++ )
 		{
-			shaderTexts[ i ].Clear();
 			parseTexts[ i ].Clear();
 
 			vecParmsUsed[ i ].Clear();
@@ -253,16 +263,19 @@ struct progParseData_t
 		//varOut.Clear();
 
 		vsInputs.Clear();
-		fsOutputs.Clear();	
+		fsOutputs.Clear();
 	}
 
-	bool explicit_attrib_location = false;
-	bool explicit_uniform_location = false;
-	bool gpu_shader5 = false;
-	bool shading_language_420pack = false;
-	bool cull_distance = false;
-	bool shader_image_load_store = false;
+	progParseData_t()
+	{
+		Clear();
+	}
+	~progParseData_t()
+	{
+		Clear();
+	}
 };
+static const size_t progParseDataSizeKB = SIZE_KB( sizeof( progParseData_t ) );
 
 /*
 ================================================
@@ -272,38 +285,38 @@ struct progParseData_t
 
 const attribInfo_t _vertexAttribsPC[] = // Vertex input attributes
 {
-	{ "float4",		"position",		"in_Position",			PC_ATTRIB_INDEX_POSITION },
-	{ "float2",		"texcoord",		"in_TexCoord",			PC_ATTRIB_INDEX_ST },
-	{ "float4",		"normal",		"in_Normal",			PC_ATTRIB_INDEX_NORMAL },
-	{ "float4",		"tangent",		"in_Tangent",			PC_ATTRIB_INDEX_TANGENT },
-	{ "float4",		"color",		"in_Color",				PC_ATTRIB_INDEX_COLOR },
-	{ "float4",		"color2",		"in_Color2",			PC_ATTRIB_INDEX_COLOR2 },
+	{ "float4",		"position",		"in_Position",	PC_ATTRIB_INDEX_POSITION },
+	{ "float2",		"texcoord",		"in_TexCoord",	PC_ATTRIB_INDEX_ST },
+	{ "float4",		"normal",		"in_Normal",	PC_ATTRIB_INDEX_NORMAL },
+	{ "float4",		"tangent",		"in_Tangent",	PC_ATTRIB_INDEX_TANGENT },
+	{ "float4",		"color",		"in_Color",		PC_ATTRIB_INDEX_COLOR },
+	{ "float4",		"color2",		"in_Color2",	PC_ATTRIB_INDEX_COLOR2 },
 };
 const attribInfo_t _fragmentAttribsPC[] = // Fragment output attributes
 {
 	//{ "uint",		"stencilRef",	"gl_FragStencilRef",	0 },
 	//{ "float",		"depth",		"gl_FragDepth",			0 },
-															  
-	{ "float4",		"color",		"out_FragColor",		0 },
-	{ "half4",		"hcolor",		"out_FragColor",		0 },
-															  
-	{ "float4",		"target0",		"out_FragData0",		0 },
-	{ "float4",		"target1",		"out_FragData1",		1 },
-	{ "float4",		"target2",		"out_FragData2",		2 },
-	{ "float4",		"target3",		"out_FragData3",		3 },
-	{ "float4",		"target4",		"out_FragData4",		4 },
-	{ "float4",		"target5",		"out_FragData5",		5 },
-	{ "float4",		"target6",		"out_FragData6",		6 },
-	{ "float4",		"target7",		"out_FragData7",		7 },
 
-	{ "half4",		"htarget0",		"out_FragData0",		0 },
-	{ "half4",		"htarget1",		"out_FragData1",		1 },
-	{ "half4",		"htarget2",		"out_FragData2",		2 },
-	{ "half4",		"htarget3",		"out_FragData3",		3 },
-	{ "half4",		"htarget4",		"out_FragData4",		4 },
-	{ "half4",		"htarget5",		"out_FragData5",		5 },
-	{ "half4",		"htarget6",		"out_FragData6",		6 },
-	{ "half4",		"htarget7",		"out_FragData7",		7 },
+	{ "float4",		"color",		"out_FragColor",		0 },	// SV_Target
+	{ "half4",		"hcolor",		"out_FragColor",		0 },	// SV_Target
+
+	{ "float4",		"target0",		"out_FragData0",		0 },	// SV_Target0
+	{ "float4",		"target1",		"out_FragData1",		1 },	// SV_Target1
+	{ "float4",		"target2",		"out_FragData2",		2 },	// SV_Target2
+	{ "float4",		"target3",		"out_FragData3",		3 },	// SV_Target3
+	{ "float4",		"target4",		"out_FragData4",		4 },	// SV_Target4
+	{ "float4",		"target5",		"out_FragData5",		5 },	// SV_Target5
+	{ "float4",		"target6",		"out_FragData6",		6 },	// SV_Target6
+	{ "float4",		"target7",		"out_FragData7",		7 },	// SV_Target7
+
+	{ "half4",		"htarget0",		"out_FragData0",		0 },	// SV_Target0
+	{ "half4",		"htarget1",		"out_FragData1",		1 },	// SV_Target1
+	{ "half4",		"htarget2",		"out_FragData2",		2 },	// SV_Target2
+	{ "half4",		"htarget3",		"out_FragData3",		3 },	// SV_Target3
+	{ "half4",		"htarget4",		"out_FragData4",		4 },	// SV_Target4
+	{ "half4",		"htarget5",		"out_FragData5",		5 },	// SV_Target5
+	{ "half4",		"htarget6",		"out_FragData6",		6 },	// SV_Target6
+	{ "half4",		"htarget7",		"out_FragData7",		7 },	// SV_Target7
 
 	//{ NULL, NULL, NULL, 0 }
 };
@@ -404,24 +417,23 @@ _typeConversion[] =
 
 	{ "matrix",			"mat4x4" },
 
-	//{ "sampler1D",				"sampler1D" },
-	//{ "sampler2D",				"sampler2D" },
-	//{ "sampler3D",				"sampler3D" },
-	{ "samplerCUBE",			"samplerCube" },
+	{ "floatFlat",		"flat float" },
+	{ "float2Flat",		"flat vec2" },
+	{ "float3Flat",		"flat vec3" },
+	{ "float4Flat",		"flat vec4" },
 
-	//SEA: is this needed? No!
-	//{ "sampler1DShadow",		"sampler1DShadow" },
-	//{ "sampler2DShadow",		"sampler2DShadow" },
-	//{ "sampler2DARRAYShadow",	"sampler2DArrayShadow" },
-	//{ "sampler3DShadow",		"sampler3DShadow" },
-	//{ "samplerCUBEShadow",		"samplerCubeShadow" },
-	//{ "samplerCUBEARRAYShadow",	"samplerCubeArrayShadow" },
+	{ "intFlat",		"flat int" },
+	{ "int2Flat",		"flat ivec2" },
+	{ "int3Flat",		"flat ivec3" },
+	{ "int4Flat",		"flat ivec4" },
 
-	{ "sampler2DARRAY",			"sampler2DArray" },
-	{ "samplerCUBEARRAY",		"samplerCubeArray" },
+	{ "samplerCUBE",		"samplerCube" },
 
-	{ "sampler2DMS",			"sampler2DMS" },
-	{ "sampler2DMSARRAY",		"sampler2DMSArray" },
+	{ "sampler2DARRAY",		"sampler2DArray" },
+	{ "samplerCUBEARRAY",	"samplerCubeArray" },
+
+	{ "sampler2DMS",		"sampler2DMS" },
+	{ "sampler2DMSARRAY",	"sampler2DMSArray" },
 
 	{ NULL, NULL }
 };
@@ -439,11 +451,47 @@ static bool ConvertTypes( idStr & out, idToken & token, char newline[] )
 	return false;
 }
 
+const char* GetHLSLTextureType( const idDeclRenderParm * decl )
+{
+	assert( decl != nullptr );
+	auto img = decl->GetDefaultImage();
+	assert( img != nullptr );
+
+	if( img->GetOpts().textureType == TT_2D )
+	{
+		if( img->GetOpts().IsMultisampled() )
+		{
+			return img->GetOpts().IsArray() ? "Texture2DMSArray" : "Texture2DMS";
+		}
+		else {
+			return img->GetOpts().IsArray() ? "Texture2DArray" : "Texture2D";
+		}
+	}
+	else if( img->GetOpts().textureType == TT_CUBIC )
+	{
+		return img->GetOpts().IsArray() ? "TextureCubeArray" : "TextureCube";
+	}
+	else if( img->GetOpts().textureType == TT_3D )
+	{
+		return "Texture3D";
+	}
+
+	return "TextureType unknown";
+	// return "Buffer"; // texture buffer
+
+	// Object1 [<Type>] Name;
+	// Texture2DMS/Texture2DMSArray [<Type, Samples>] Name;
+	// Type - Optional. Any scalar HLSL type or vector HLSL type, surrounded by angle brackets.The default type is float4.
+	// Samples - The number of samples( ranges between 1 and 128 ).
+	// TextureCubeArray is available in shader model 4.1 or higher.
+	// Shader model 4.1 is available in Direct3D 10.1 or higher.
+}
+
 static const char * GetGLSLSamplerType( const idDeclRenderParm * decl )
 {
-	release_assert( decl != nullptr );
+	assert( decl != nullptr );
 	auto img = decl->GetDefaultImage();
-	release_assert( img != nullptr );
+	assert( img != nullptr );
 	const bool bIsShadowSampler = img->UsageShadowMap() && ( decl->GetDefaultTextureUsage() == TD_SHADOWMAP );
 	//SEA: fix sampler permutations issue
 
@@ -487,20 +535,34 @@ static const char * GetGLSLSamplerType( const idDeclRenderParm * decl )
 	return "sampler unknown";
 }
 
-struct primInOut {
+struct primLayout_t {
 	const char * name;
 	const char * glslName;
 	const char * hlslName;
-	uint32	count;
+	uint32		 count;
 };
-const primInOut primIn[] = {
+const primLayout_t tessSpacing[] = {
+	{ "EQUAL",		"equal_spacing",			"integer",			0 },
+	{ "FRAC_EVEN",	"fractional_even_spacing",	"fractional_even",	0 },
+	{ "FRAC_ODD",	"fractional_odd_spacing",	"fractional_odd",	0 },
+};
+const primLayout_t tessTopology[] = {
+	{ "CCW",		"ccw",					"triangle_ccw",	0 },
+	{ "CW",			"cw",					"triangle_cw",	0 },
+};
+const primLayout_t tessPrimType[] = {
+	{ "TRIANGLES",	"triangles",			"tri",			3 },
+	{ "QUADS",		"quads",				"quad",			4 },
+	{ "ISOLINE",	"isolines",				"isoline",		2 },
+};
+const primLayout_t gs_primIn[] = {
 	{ "TRIANGLES",	"triangles",			"triangle",		3 },
 	{ "POINTS",		"points",				"point",		1 },
 	{ "LINES",		"lines",				"line",			2 },
 	{ "TRI_ADJ",	"triangles_adjacency",	"triangleadj",	6 },
 	{ "LINE_ADJ",	"lines_adjacency",		"lineadj",		4 },
 };
-const primInOut primOut[] = {
+const primLayout_t gs_primOut[] = {
 	{ "TRIANGLES",	"triangle_strip",	"TriangleStream",	3 },
 	{ "POINTS",		"points",			"PointStream",		1 },
 	{ "LINES",		"line_strip",		"LineStream",		2 },
@@ -513,83 +575,253 @@ static bool ParsePrimLayout( idLexer & src, idToken & token, progParseData_t & p
 
 	if( shaderType == shaderType_e::SHT_GEOMETRY && !inMain )
 	{
-		if( token.is( "PRIM_IN" ) )
+		if( token.is( "PRIM_INOUT" ) )
 		{
 			if( src.ExpectTokenString( "(" ) )
 			{
 				if( src.ExpectTokenType( TT_NAME, 0, token ) )
 				{
 					bool found = false;
-					for( uint32 i = 0; i < _countof( primIn ); i++ )
+					for( uint32 i = 0; i < _countof( gs_primIn ); i++ )
 					{
-						if( token.is( primIn[ i ].name ) )
+						if( token.is( gs_primIn[ i ].name ) )
 						{
 							parseData.primLayout.prim_in_type = ( uint8 )i;
 							found = true;
 							break;
 						}
 					}
-					if( !found ) {
-						src.Error( "Bad prim_in type ( %s )", token.c_str() );
+					if( !found )
+					{
+						src.Error( "Bad gs prim_in type ( %s )", token.c_str() );
 						return false;
 					}
 
 					if( src.CheckTokenString( "," ) )
 					{
-						if( src.ExpectTokenType( TT_NUMBER, TT_INTEGER, token ) )
+						if( src.ExpectTokenType( TT_NAME, 0, token ) )
 						{
-							parseData.primLayout.invoc = ( uint8 )idMath::Min( 32U, token.GetUnsignedIntValue() );
-							if( 32U < token.GetUnsignedIntValue() )
+							bool found = false;
+							for( uint32 i = 0; i < _countof( gs_primOut ); i++ )
 							{
-								src.Warning("Bad geometryShader instance count %u ( maximum is 32 )\n", token.GetUnsignedIntValue() );
+								if( token.is( gs_primOut[ i ].name ) )
+								{
+									parseData.primLayout.prim_out_type = ( uint8 )i;
+									found = true;
+									break;
+								}
 							}
-						}
-					}
-					if( src.ExpectTokenString( ")" ) )
-					{
-						if( src.ExpectTokenString( ";" ) )
-						{
-							return true;
+							if( !found )
+							{
+								src.Error( "Bad gs prim_out type ( %s )", token.c_str() );
+								return false;
+							}
+
+							if( src.ExpectTokenString( "," ) )
+							{
+								if( src.ExpectTokenType( TT_NUMBER, TT_INTEGER, token ) )
+								{
+									if( GLEW_ARB_gpu_shader5 )
+									{
+										parseData.primLayout.invoc = ( uint8 )idMath::Min( 32U, token.GetUnsignedIntValue() );
+										if( 32U < token.GetUnsignedIntValue() ) {
+											src.Warning( "Bad geometryShader instance count %u ( maximum is 32 )\n", token.GetUnsignedIntValue() );
+										}
+										parseData.primLayout.count = gs_primOut[ parseData.primLayout.prim_out_type ].count;
+									}
+									else {
+										parseData.primLayout.count = ( uint8 )( token.GetUnsignedIntValue() * gs_primOut[ parseData.primLayout.prim_out_type ].count );
+										parseData.primLayout.invoc = 0;
+									}
+
+									if( src.ExpectTokenString( ")" ) )
+									{
+										if( src.ExpectTokenString( ";" ) )
+										{
+											return true;
+										}
+									}
+								}
+							}
 						}
 					}
 				}
 			}
 		}
+		else {
+			if( token.is( "PRIM_IN" ) )
+			{
+				if( src.ExpectTokenString( "(" ) )
+				{
+					if( src.ExpectTokenType( TT_NAME, 0, token ) )
+					{
+						bool found = false;
+						for( uint32 i = 0; i < _countof( gs_primIn ); i++ )
+						{
+							if( token.is( gs_primIn[ i ].name ) )
+							{
+								parseData.primLayout.prim_in_type = ( uint8 )i;
+								found = true;
+								break;
+							}
+						}
+						if( !found )
+						{
+							src.Error( "Bad prim_in type ( %s )", token.c_str() );
+							return false;
+						}
 
-		if( token.is( "PRIM_OUT" ) )
+						if( src.CheckTokenString( "," ) )
+						{
+							if( src.ExpectTokenType( TT_NUMBER, TT_INTEGER, token ) )
+							{
+								parseData.primLayout.invoc = ( uint8 )idMath::Min( 32U, token.GetUnsignedIntValue() );
+								if( 32U < token.GetUnsignedIntValue() )
+								{
+									src.Warning( "Bad geometryShader instance count %u ( maximum is 32 )\n", token.GetUnsignedIntValue() );
+								}
+							}
+						}
+						if( src.ExpectTokenString( ")" ) )
+						{
+							if( src.ExpectTokenString( ";" ) )
+							{
+								return true;
+							}
+						}
+					}
+				}
+			}
+			if( token.is( "PRIM_OUT" ) )
+			{
+				if( src.ExpectTokenString( "(" ) )
+				{
+					if( src.ExpectTokenType( TT_NAME, 0, token ) )
+					{
+						bool found = false;
+						for( uint32 i = 0; i < _countof( gs_primOut ); i++ )
+						{
+							if( token.is( gs_primOut[ i ].name ) )
+							{
+								parseData.primLayout.prim_out_type = ( uint8 )i;
+								found = true;
+								break;
+							}
+						}
+						if( !found )
+						{
+							src.Error( "Bad prim_out type ( %s )", token.c_str() );
+							return false;
+						}
+
+						if( src.ExpectTokenString( "," ) )
+						{
+							if( src.ExpectTokenType( TT_NUMBER, TT_INTEGER, token ) )
+							{
+								parseData.primLayout.count = ( uint8 )token.GetUnsignedIntValue();
+
+								if( src.ExpectTokenString( ")" ) )
+								{
+									if( src.ExpectTokenString( ";" ) )
+									{
+										return true;
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+
+	if( shaderType == shaderType_e::SHT_TESS_CTRL && !inMain )
+	{
+		// PATCH( N, TRIANGLES/QUADS/ISOLINE, EQUAL/FRAC_EVEN/FRAC_ODD, CW/CCW ) N - vert count
+
+		if( token.is( "PATCH_LAYOUT" ) )
 		{
 			if( src.ExpectTokenString( "(" ) )
 			{
-				if( src.ExpectTokenType( TT_NAME, 0, token ) )
+				if( src.ExpectTokenType( TT_NUMBER, TT_INTEGER, token ) )
 				{
-					bool found = false;
-					for( uint32 i = 0; i < _countof( primOut ); i++ )
+					parseData.tessLayout.count = ( uint8 )idMath::Min( 128U, token.GetUnsignedIntValue() );
+					if( 128U < token.GetUnsignedIntValue() )
 					{
-						if( token.is( primOut[ i ].name ) )
-						{
-							parseData.primLayout.prim_out_type = ( uint8 )i;
-							found = true;
-							break;
-						}
-					}
-					if( !found ) {
-						src.Error("Bad prim_out type ( %s )", token.c_str() );
-						return false;
+						src.Warning( "Bad tessShader vertex count %u ( maximum is 128 )\n", token.GetUnsignedIntValue() );
 					}
 
-					if( src.ExpectTokenString( "," ) )
+					if( src.CheckTokenString( "," ) )
 					{
-						if( src.ExpectTokenType( TT_NUMBER, TT_INTEGER, token ) )
+						if( src.ExpectTokenType( TT_NAME, 0, token ) )
 						{
-							parseData.primLayout.count = ( uint8 )token.GetUnsignedIntValue();
-
-							if( src.ExpectTokenString( ")" ) )
+							bool found = false;
+							for( uint32 i = 0; i < _countof( tessPrimType ); i++ )
 							{
-								if( src.ExpectTokenString( ";" ) )
+								if( token.is( tessPrimType[ i ].name ) )
 								{
-									return true;
+									parseData.tessLayout.prim_type = ( uint8 )i;
+									found = true;
+									break;
 								}
 							}
+							if( !found )
+							{
+								src.Error( "Bad tess prim_type ( %s )", token.c_str() );
+								return false;
+							}
+
+							if( src.CheckTokenString( "," ) )
+							{
+								if( src.ExpectTokenType( TT_NAME, 0, token ) )
+								{
+									found = false;
+									for( uint32 i = 0; i < _countof( tessSpacing ); i++ )
+									{
+										if( token.is( tessSpacing[ i ].name ) )
+										{
+											parseData.tessLayout.prim_spacing = ( uint8 )i;
+											found = true;
+											break;
+										}
+									}
+									if( !found )
+									{
+										src.Error( "Bad tess prim_spacing ( %s )", token.c_str() );
+										return false;
+									}
+
+									if( src.CheckTokenString( "," ) )
+									{
+										if( src.ExpectTokenType( TT_NAME, 0, token ) )
+										{
+											found = false;
+											for( uint32 i = 0; i < _countof( tessTopology ); i++ )
+											{
+												if( token.is( tessTopology[ i ].name ) )
+												{
+													parseData.tessLayout.prim_topology = ( uint8 )i;
+													found = true;
+													break;
+												}
+											}
+											if( !found )
+											{
+												src.Error( "Bad tess prim_topology ( %s )", token.c_str() );
+												return false;
+											}
+										}
+									}
+								}
+							}
+						}
+					}
+
+					if( src.ExpectTokenString( ")" ) )
+					{
+						if( src.ExpectTokenString( ";" ) )
+						{
+							return true;
 						}
 					}
 				}
@@ -602,29 +834,65 @@ static bool ParsePrimLayout( idLexer & src, idToken & token, progParseData_t & p
 
 static void SetupLayouts( idShaderStringBuilder & shaderText, progParseData_t & parseData, shaderType_e shaderType )
 {
+	if( shaderType == shaderType_e::SHT_TESS_CTRL )
+	{
+		idStrStatic<128> layout;
+		shaderText += "\n";
+
+	#ifdef USE_OPENGL
+
+		shaderText += layout.Format( "layout( vertices = %u ) out;\n", ( uint32 )parseData.tessLayout.count ); layout.Clear();
+
+	#else // HLSL
+		///shaderText += layout.Format( "[patchsize(%u)]\n", ( uint32 )parseData.tessLayout.count ); layout.Clear();		shaderText += layout.Format( "[domain(\"%s\")]\n", tessPrimType[ parseData.tessLayout.prim_type ].hlslName ); layout.Clear();		shaderText += layout.Format( "[partitioning(\"%s\")]\n", tessSpacing[ parseData.tessLayout.prim_spacing ].hlslName ); layout.Clear();		shaderText += layout.Format( "[outputtopology(\"%s\")]\n", tessTopology[ parseData.tessLayout.prim_topology ].hlslName ); layout.Clear();		shaderText += layout.Format( "[outputcontrolpoints(%u)]\n", ( uint32 )parseData.tessLayout.count ); layout.Clear();
+		shaderText += "[patchconstantfunc(\"PATCH_BLOCK\")]\n";
+		shaderText += "[maxtessfactor( 63.0 )]\n";
+	#endif
+	}
+	if( shaderType == shaderType_e::SHT_TESS_EVAL )
+	{
+		idStrStatic<128> layout;
+		shaderText += "\n";
+
+	#ifdef USE_OPENGL
+
+		shaderText += layout.Format( "layout( %s, %s, %s ) in;\n", tessPrimType[ parseData.tessLayout.prim_type ].glslName,
+			tessSpacing[ parseData.tessLayout.prim_spacing ].glslName,
+			tessTopology[ parseData.tessLayout.prim_topology ].glslName );
+	#else // HLSL
+
+		shaderText += layout.Format( "[domain(\"%s\")]\n", tessPrimType[ parseData.tessLayout.prim_type ].hlslName );
+
+		// SV_DomainLocation
+		// float2	quad patch
+		// float3	tri patch
+		// float2	isoline
+	#endif
+	}
+
 	if( shaderType == shaderType_e::SHT_GEOMETRY )
 	{
 		idStrStatic<128> layout;
 		shaderText += "\n";
+
+	#ifdef USE_OPENGL
+
 		if( parseData.primLayout.invoc )
 		{
-			shaderText += layout.Format( "layout( %s, invocations = %u ) in;\n", primIn[ parseData.primLayout.prim_in_type ].glslName, ( uint32 )parseData.primLayout.invoc );
+			shaderText += layout.Format( "layout( %s, invocations = %u ) in;\n", gs_primIn[ parseData.primLayout.prim_in_type ].glslName, ( uint32 )parseData.primLayout.invoc ); layout.Clear();
 		}
 		else {
-			shaderText += layout.Format( "layout( %s ) in;\n", primIn[ parseData.primLayout.prim_in_type ].glslName );
+			shaderText += layout.Format( "layout( %s ) in;\n", gs_primIn[ parseData.primLayout.prim_in_type ].glslName ); layout.Clear();
 		}
 
-		shaderText += layout.Format( "layout( %s, max_vertices = %u ) out;\n", primOut[ parseData.primLayout.prim_out_type ].glslName, ( uint32 )parseData.primLayout.count );
-		
-	#if 0// HLSL
-		if( parseData.primLayout.invoc )
-			shaderText += idStrStatic<64>().Format( "[instance(%u)]\n", ( uint32 )parseData.primLayout.invoc );
+		shaderText += layout.Format( "layout( %s, max_vertices = %u ) out;\n", gs_primOut[ parseData.primLayout.prim_out_type ].glslName, ( uint32 )parseData.primLayout.count ); layout.Clear();
 
-		shaderText += idStrStatic<64>().Format( "[maxvertexcount(%u)]\n", ( uint32 )parseData.primLayout.count );
+	#else // HLSL
 
-		shaderText += idStrStatic<128>().Format( "void main( %s GS_IN _in[%u], inout %s<GS_OUT> _stm )", 
-			primIn[ parseData.primLayout.prim_in_type ].hlslName, primIn[ parseData.primLayout.prim_in_type ].count,
-			primOut[ parseData.primLayout.prim_out_type ].hlslName );
+		if( parseData.primLayout.invoc ) {
+			shaderText += layout.Format( "[instance(%u)]\n", ( uint32 )parseData.primLayout.invoc ); layout.Clear();
+		}
+		shaderText += layout.Format( "[maxvertexcount(%u)]\n", ( uint32 )parseData.primLayout.count ); layout.Clear();
 	#endif
 	}
 
@@ -638,112 +906,129 @@ static void SetupLayouts( idShaderStringBuilder & shaderText, progParseData_t & 
 				shaderText += "layout( early_fragment_tests ) in;\n";
 			}
 		}*/
-		if( parseData.data.hasForcedEarlyFragTests )
+		if( parseData.flags.HasFlag( HAS_FORCED_EARLY_FRAG_TESTS ) )
 		{
 			shaderText += "\n";
+		#ifdef USE_OPENGL
 			shaderText += "layout( early_fragment_tests ) in;\n";
+		#else
+			shaderText += "[earlydepthstencil]\n";
+		#endif
 		}
+
 
 		// GL_ARB_conservative_depth
 		// layout (depth_any/depth_greater/depth_less/depth_unchanged) out float gl_FragDepth;
 	}
-} 
+
+	if( shaderType == shaderType_e::SHT_COMPUTE )
+	{
+		idStrStatic<128> layout;
+		shaderText += "\n";
+	#ifdef USE_OPENGL
+		shaderText += layout.Format( "layout( local_size_x = %u, local_size_y = %u, local_size_z = %u ) in;\n" );
+	#else // HLSL
+		shaderText += layout.Format( "[numthreads( %u, %u, %u )]\n" );
+	#endif
+	}
+}
 
 static bool CheckBuiltins( idStr & shaderText, const idToken & token, const idToken & member, const char newline[], const idStr & index, const bool bInputs, progParseData_t & parseData, shaderType_e shaderType )
 {
+	//// VERTEX SHADER
 	const glslInOut_t vsInputs[] = {
-		{ "vertexID",				"",		"gl_VertexID" },
-		{ "instanceID",				"",		"gl_InstanceID" },
-		{ "drawID",					"",		"gl_DrawID" },			//DX?
-		{ "baseVertexID",			"",		"gl_BaseVertex" },		//DX?
-		{ "baseInstanceID",			"",		"gl_BaseInstance" },	//DX?
+		{ "vertexID",				"",		"gl_VertexID",				"uint",		"SV_VertexID" },
+		{ "instanceID",				"",		"gl_InstanceID",			"uint",		"SV_InstanceID" },
+		{ "drawID",					"",		"gl_DrawID",				"",			"" },	//DX?
+		{ "baseVertexID",			"",		"gl_BaseVertex",			"",			"" },	//DX?
+		{ "baseInstanceID",			"",		"gl_BaseInstance",			"",			"" },	//DX?
 	};
 	const glslInOut_t vsOutputs[] = {
-		{ "position",				"",		"gl_Position" },
-		{ "clip",					"",		"gl_ClipDistance" },
-		{ "cull",					"",		"gl_CullDistance" },
-		{ "layerIndex",				"",		"gl_Layer" },
-		{ "viewportIndex",			"",		"gl_ViewportIndex" },
+		{ "position",				"",		"gl_Position",				"float4",	"SV_Position" },
+		{ "clip",					"",		"gl_ClipDistance",			"float",	"SV_ClipDistance" },
+		{ "cull",					"",		"gl_CullDistance",			"float",	"SV_CullDistance" },
+		{ "layerIndex",				"",		"gl_Layer",					"uint",		"SV_RenderTargetArrayIndex" },
+		{ "viewportIndex",			"",		"gl_ViewportIndex",			"uint",		"SV_ViewportArrayIndex" },
 	};
-	////////////////////////////////////////////////////////
-	const glslInOut_t tcsInputs[] = { 
-		{ "position",			"gl_in[",	".gl_Position" },		// gl_in[ gl_MaxPatchVertices ]
-		{ "clip",				"gl_in[",	".gl_ClipDistance" },	// gl_in[ gl_MaxPatchVertices ]
-		{ "cull",				"gl_in[",	".gl_CullDistance" },	// gl_in[ gl_MaxPatchVertices ]
-		{ "count",				"gl_in.",	"length()" },			// gl_in.
-		{ "patchVertices",		"",			"gl_PatchVerticesIn" }, //? to func GetNumPatchVertices()
-		{ "primitiveID",		"",			"gl_PrimitiveID" },
-		{ "TCInstanceID",		"",			"gl_InvocationID" },
+	//////////////////////////////////////////////////////// TESS CONTROL SHADER	- per patch
+	const glslInOut_t tcsInputs[] = {
+		{ "position",			"gl_in[",	".gl_Position",				"float4",	"SV_Position" },		// gl_in[ gl_MaxPatchVertices ]
+		{ "clip",				"gl_in[",	".gl_ClipDistance",			"float",	"SV_ClipDistance" },	// gl_in[ gl_MaxPatchVertices ]
+		{ "cull",				"gl_in[",	".gl_CullDistance",			"float",	"SV_CullDistance" },	// gl_in[ gl_MaxPatchVertices ]
+		{ "count",				"gl_in.",	"length()",					"",			"" }, //uint .Length()
+		{ "patchVertices",		"",			"gl_PatchVerticesIn",		"",			"" },					//? to func GetNumPatchVertices()
+		{ "primitiveID",		"",			"gl_PrimitiveID",			"uint",		"SV_PrimitiveID" },
+		{ "invocationID",		"",			"gl_InvocationID",			"uint",		"SV_OutputControlPointID" },
 	};
-	const glslInOut_t tcsOutputs[] = { 
-		{ "position",			"gl_out[",	".gl_Position" },		// gl_out[]
-		{ "clip",				"gl_out[",	".gl_ClipDistance" },	// gl_out[]
-		{ "cull",				"gl_out[",	".gl_CullDistance" },	// gl_out[]
-		{ "tessFactor",			"",			"gl_TessLevelOuter" },	// [4]
-		{ "insideTessFactor",	"",			"gl_TessLevelInner" },	// [2]
+	const glslInOut_t tcsOutputs[] = {
+		{ "position",			"gl_out[",	".gl_Position",				"float4",	"SV_Position" },		// gl_out[]
+		{ "clip",				"gl_out[",	".gl_ClipDistance",			"float",	"SV_ClipDistance" },	// gl_out[]
+		{ "cull",				"gl_out[",	".gl_CullDistance",			"float",	"SV_CullDistance" },	// gl_out[]
+		{ "tessLevelOuter",		"",			"gl_TessLevelOuter",		"float",	"SV_TessFactor" },		// [4]
+		{ "tessLevelInner",		"",			"gl_TessLevelInner",		"float",	"SV_InsideTessFactor" },// [2]
 	};
-	// -----------------------------
+	///////////////////////////// TESS EVALUATION SHADER	- per vertex
 	const glslInOut_t tesInputs[] = {
-		{ "position",			"gl_in[",	".gl_Position" },		// gl_in[ gl_MaxPatchVertices ]
-		{ "clip",				"gl_in[",	".gl_ClipDistance" },	// gl_in[ gl_MaxPatchVertices ]
-		{ "cull",				"gl_in[",	".gl_CullDistance" },	// gl_in[ gl_MaxPatchVertices ]
-		{ "count",				"gl_in.",	"length()" },			// gl_in.
-		{ "patchVertices",		"",			"gl_PatchVerticesIn" }, //? to func GetNumPatchVertices()
-		{ "primitiveID",		"",			"gl_PrimitiveID" },
-		{ "domainLocation",		"",			"gl_TessCoord" },
-		{ "tessFactor",			"",			"gl_TessLevelOuter" },	// [4]
-		{ "insideTessFactor",	"",			"gl_TessLevelInner" },	// [2]
+		{ "position",			"gl_in[",	".gl_Position",				"float4",	"SV_Position" },		// gl_in[ gl_MaxPatchVertices ]
+		{ "clip",				"gl_in[",	".gl_ClipDistance",			"float",	"SV_ClipDistance" },	// gl_in[ gl_MaxPatchVertices ]
+		{ "cull",				"gl_in[",	".gl_CullDistance",			"float",	"SV_CullDistance" },	// gl_in[ gl_MaxPatchVertices ]
+		{ "count",				"gl_in.",	"length()",					"",			"" },  //uint .Length()
+		{ "patchVertices",		"",			"gl_PatchVerticesIn",		"",			"" },					//? to func GetNumPatchVertices()
+		{ "primitiveID",		"",			"gl_PrimitiveID",			"uint",		"SV_PrimitiveID" },
+		{ "tessCoord",			"",			"gl_TessCoord",				"float3",	"SV_DomainLocation" },	// float2 quad / float3	tri / float2 isoline
+		{ "tessLevelOuter",		"",			"gl_TessLevelOuter",		"float",	"SV_TessFactor" },		// float[4]	quad / float[3]	tri / float[2] isoline
+		{ "tessLevelInner",		"",			"gl_TessLevelInner",		"float",	"SV_InsideTessFactor" },// float[2]	quad / float[1]	tri / unused isoline
 	};
 	const glslInOut_t tesOutputs[] = {
-		{ "position",			"gl_out[",	".gl_Position" },		// gl_out[]
-		{ "clip",				"gl_out[",	".gl_ClipDistance" },	// gl_out[]
-		{ "cull",				"gl_out[",	".gl_CullDistance" },	// gl_out[]
-		{ "tessFactor",			"",			"gl_TessLevelOuter" },	// [4]
-		{ "insideTessFactor",	"",			"gl_TessLevelInner" },	// [2]
+		{ "position",			"gl_out[",	".gl_Position",				"float4",	"SV_Position" },		// gl_out[]
+		{ "clip",				"gl_out[",	".gl_ClipDistance",			"float",	"SV_ClipDistance" },	// gl_out[]
+		{ "cull",				"gl_out[",	".gl_CullDistance",			"float",	"SV_CullDistance" },	// gl_out[]
+		///{ "tessLevelOuter",		"",			"gl_TessLevelOuter",		"float",	"SV_TessFactor" },		// [4]
+		///{ "tessLevelInner",		"",			"gl_TessLevelInner",		"float",	"SV_InsideTessFactor" },// [2]
 	};
-	////////////////////////////////////////////////////////
+	//////////////////////////////////////////////////////// GEOMETRY SHADER
 	const glslInOut_t gsInputs[] = {
-		{ "position",			"gl_in[",	".gl_Position" },		// gl_in[]
-		{ "clip",				"gl_in[",	".gl_ClipDistance" },	// gl_in[]
-		{ "cull",				"gl_in[",	".gl_CullDistance" },	// gl_in[]
-		{ "count",				"gl_in.",	"length()" },			// gl_in.
-		{ "primitiveID",		"",			"gl_PrimitiveIDIn" },
-		{ "GSInstanceID",		"",			"gl_InvocationID" },	// uint InstanceID : SV_GSInstanceID
+		{ "position",			"gl_in[",	".gl_Position",				"float4",	"SV_Position" },		// gl_in[]
+		{ "clip",				"gl_in[",	".gl_ClipDistance",			"float",	"SV_ClipDistance" },	// gl_in[]
+		{ "cull",				"gl_in[",	".gl_CullDistance",			"float",	"SV_CullDistance" },	// gl_in[]
+		{ "count",				"gl_in.",	"length()",					"",			"" },  //uint .Length()
+		{ "primitiveID",		"",			"gl_PrimitiveIDIn",			"uint",		"SV_PrimitiveID" },
+		{ "invocationID",		"",			"gl_InvocationID",			"uint",		"SV_GSInstanceID" },	// uint InstanceID : SV_GSInstanceID
 	};
 	const glslInOut_t gsOutputs[] = {
-		{ "position",			"",			"gl_Position" },	
-		{ "clip",				"",			"gl_ClipDistance" },
-		{ "cull",				"",			"gl_CullDistance" },
-		{ "primitiveID",		"",			"gl_PrimitiveID" },	
-		{ "layerIndex",			"",			"gl_Layer" },
-		{ "viewportIndex",		"",			"gl_ViewportIndex" },
+		{ "position",			"",			"gl_Position",				"float4",	"SV_Position" },
+		{ "clip",				"",			"gl_ClipDistance",			"float",	"SV_ClipDistance" },
+		{ "cull",				"",			"gl_CullDistance",			"float",	"SV_CullDistance" },
+		{ "primitiveID",		"",			"gl_PrimitiveID",			"uint",		"SV_PrimitiveID" },
+		{ "layerIndex",			"",			"gl_Layer",					"uint",		"SV_RenderTargetArrayIndex" },
+		{ "viewportIndex",		"",			"gl_ViewportIndex",			"uint",		"SV_ViewportArrayIndex" },
 	};
-	////////////////////////////////////////////////////////
+	//////////////////////////////////////////////////////// FRAGMENT SHADER
 	const glslInOut_t fsInputs[] = {
-		{ "position",			"",			"gl_FragCoord" },
-		{ "isFrontFacing",		"",			"gl_FrontFacing" },
-		{ "primitiveID",		"",			"gl_PrimitiveID" },
-		{ "clip",				"",			"gl_ClipDistance" },
-		{ "cull",				"",			"gl_CullDistance" },
-		{ "layerIndex",			"",			"gl_Layer" },
-		{ "viewportIndex",		"",			"gl_ViewportIndex" },
-		{ "sampleID",			"",			"gl_SampleID" },
-		{ "samplePosition",		"",			"gl_SamplePosition" }, //? to func EvaluateAttributeAtSample float2 GetRenderTargetSamplePosition()
-		{ "sampleMask",			"",			"gl_SampleMaskIn" },
-		{ "sampleCount",		"",			"gl_NumSamples" }, //? to func GetNumSamples() uint GetRenderTargetSampleCount()
+		{ "position",			"",			"gl_FragCoord",				"float4",	"SV_Position" },
+		{ "isFrontFacing",		"",			"gl_FrontFacing",			"bool",		"SV_IsFrontFace" },
+		{ "primitiveID",		"",			"gl_PrimitiveID",			"uint",		"SV_PrimitiveID" },
+		{ "clip",				"",			"gl_ClipDistance",			"float",	"SV_ClipDistance" },
+		{ "cull",				"",			"gl_CullDistance",			"float",	"SV_CullDistance" },
+		{ "layerIndex",			"",			"gl_Layer",					"uint",		"SV_RenderTargetArrayIndex" },
+		{ "viewportIndex",		"",			"gl_ViewportIndex",			"uint",		"SV_ViewportArrayIndex" },
+		{ "sampleID",			"",			"gl_SampleID",				"uint",		"SV_SampleIndex" },
+		{ "sampleMask",			"",			"gl_SampleMaskIn",			"uint",		"SV_Coverage" },
+		{ "samplePosition",		"",			"gl_SamplePosition",		"",			"" }, //? to func /HLSL: float2 GetRenderTargetSamplePosition( input.sampleID )
+		{ "sampleCount",		"",			"gl_NumSamples",			"",			"" }, //? to func GetNumSamples() /HLSL: uint GetRenderTargetSampleCount()
 	};
 	const glslInOut_t fsOutputs[] = {
-		{ "depth",				"",			"gl_FragDepth" },
-		{ "sampleMask",			"",			"gl_SampleMask" },
-		{ "stencilRef",			"",			"gl_FragStencilRef" },
+		{ "depth",				"",			"gl_FragDepth",				"float",	"SV_Depth" }, // SV_DepthGreaterEqual, SV_DepthLessEqual,
+		{ "sampleMask",			"",			"gl_SampleMask",			"uint",		"SV_Coverage" },
+		{ "stencilRef",			"",			"gl_FragStencilRef",		"uint",		"SV_StencilRef" },
 	};
 	////////////////////////////////////////////////////////
 	const glslInOut_t csInputs[] = {
-		{ "numWorkGroups",		"",			"gl_NumWorkGroups" }, //? to func 
-		{ "groupID",			"",			"gl_WorkGroupID" },
-		{ "groupThreadID",		"",			"gl_LocalInvocationID" },
-		{ "dispatchThreadID",	"",			"gl_GlobalInvocationID" },
-		{ "groupIndex",			"",			"gl_LocalInvocationIndex" },
+		{ "numWorkGroups",		"",			"gl_NumWorkGroups",			"uint",		"" }, //? to func GetNumWorkGroups()
+		{ "groupID",			"",			"gl_WorkGroupID",			"uint3",	"SV_GroupID" },
+		{ "groupThreadID",		"",			"gl_LocalInvocationID",		"uint3",	"SV_GroupThreadID" },
+		{ "dispatchThreadID",	"",			"gl_GlobalInvocationID",	"uint3",	"SV_DispatchThreadID" },
+		{ "groupIndex",			"",			"gl_LocalInvocationIndex",	"uint",		"SV_GroupIndex" },
 	};
 	//const glslInOut_t csOutputs[] = {
 		// The local size is available to the shader as a compile-time constant variable, so you don't need to define it yourself:
@@ -759,7 +1044,7 @@ static bool CheckBuiltins( idStr & shaderText, const idToken & token, const idTo
 				if( member.is( _vertexAttribsPC[ i ].name ) )
 				{
 					parseData.vsInputs.AddUnique( _vertexAttribsPC[ i ] );
-					parseData.data.vertexMask.SetFlag( BIT( _vertexAttribsPC[ i ].bind ) );
+					parseData.vertexMask.SetFlag( BIT( _vertexAttribsPC[ i ].bind ) );
 
 					shaderText += CHECK_NEW_LINE_AND_SPACES();
 					shaderText += _vertexAttribsPC[ i ].glsl;
@@ -790,11 +1075,82 @@ static bool CheckBuiltins( idStr & shaderText, const idToken & token, const idTo
 	}
 	else if( shaderType == shaderType_e::SHT_TESS_CTRL) /////////////////////////////
 	{
-		release_assert( "SHT_TESS_CTRL" );
+		if( bInputs )
+		{
+			for( uint32 i = 0; i < _countof( tcsInputs ); i++ )
+			{
+				if( member.is( tcsInputs[ i ].nameCG ) )
+				{
+					shaderText += CHECK_NEW_LINE_AND_SPACES();
+					if( !( idStr::Cmp( tcsInputs[ i ].prefGLSL, "" ) == 0 ) )
+					{
+						shaderText += tcsInputs[ i ].prefGLSL;
+					}
+					if( !index.IsEmpty() )
+					{
+						//shaderText += " ";
+						shaderText += index;
+					}
+					shaderText += tcsInputs[ i ].nameGLSL;
+					return true;
+				}
+			}
+		}
+		else {
+			for( uint32 i = 0; i < _countof( tcsOutputs ); i++ )
+			{
+				if( member.is( tcsOutputs[ i ].nameCG ) )
+				{
+					shaderText += CHECK_NEW_LINE_AND_SPACES();
+					if( !( idStr::Cmp( tcsOutputs[ i ].prefGLSL, "" ) == 0 ) )
+					{
+						shaderText += tcsOutputs[ i ].prefGLSL;
+					}
+					if( !index.IsEmpty() )
+					{
+						//shaderText += " ";
+						shaderText += index;
+					}
+					shaderText += tcsOutputs[ i ].nameGLSL;
+					return true;
+				}
+			}
+		}
 	}
 	else if( shaderType == shaderType_e::SHT_TESS_EVAL ) ////////////////////////////
 	{
-		release_assert( "SHT_TESS_EVAL" );
+		if( bInputs )
+		{
+			for( uint32 i = 0; i < _countof( tesInputs ); i++ )
+			{
+				if( member.is( tesInputs[ i ].nameCG ) )
+				{
+					shaderText += CHECK_NEW_LINE_AND_SPACES();
+					if( !( idStr::Cmp( tesInputs[ i ].prefGLSL, "" ) == 0 ) )
+					{
+						shaderText += tesInputs[ i ].prefGLSL;
+					}
+					if( !index.IsEmpty() )
+					{
+						//shaderText += " ";
+						shaderText += index;
+					}
+					shaderText += tesInputs[ i ].nameGLSL;
+					return true;
+				}
+			}
+		}
+		else {
+			for( uint32 i = 0; i < _countof( tesOutputs ); i++ )
+			{
+				if( member.is( tesOutputs[ i ].nameCG ) )
+				{
+					shaderText += CHECK_NEW_LINE_AND_SPACES();
+					shaderText += tesOutputs[ i ].nameGLSL;
+					return true;
+				}
+			}
+		}
 	}
 	else if( shaderType == shaderType_e::SHT_GEOMETRY ) /////////////////////////////
 	{
@@ -865,13 +1221,13 @@ static bool CheckBuiltins( idStr & shaderText, const idToken & token, const idTo
 					shaderText += fsOutputs[ i ].nameGLSL;
 
 					if( i == 0 ) {
-						parseData.data.hasDepthOutput = true;
-					} 
+						parseData.flags.SetFlag( HAS_DEPTH_OUTPUT );
+					}
 					else if( i = 1 ) {
-						parseData.data.hasCoverageOutput = true;
-					} 
+						parseData.flags.SetFlag( HAS_COVERAGE_OUTPUT );
+					}
 					else if( i = 2 ) {
-						parseData.data.hasStencilOutput = true;
+						parseData.flags.SetFlag( HAS_STENCIL_OUTPUT );
 					}
 					return true;
 				}
@@ -880,7 +1236,7 @@ static bool CheckBuiltins( idStr & shaderText, const idToken & token, const idTo
 	}
 	else if( shaderType == shaderType_e::SHT_COMPUTE ) //////////////////////////////
 	{
-		release_assert( "SHT_COMPUTE" );
+		assert( "SHT_COMPUTE" );
 	}
 
 	return false;
@@ -888,12 +1244,12 @@ static bool CheckBuiltins( idStr & shaderText, const idToken & token, const idTo
 
 static bool ParseInOutVars( idLexer & lex, idStr & shaderText, idToken & token, const char newline[], progParseData_t & parseData, shaderType_e shaderType )
 {
-	if( token.IsEmpty() ) 
+	if( token.IsEmpty() )
 		return false;
 
 	if( token == "input" )
 	{
-		idStrStatic<128> bracedStr; //form:  str]			
+		idStrStatic<128> bracedStr; //form:  str]
 		if( lex.CheckTokenString( "[" ) )
 		{
 			idToken token2;
@@ -907,7 +1263,7 @@ static bool ParseInOutVars( idLexer & lex, idStr & shaderText, idToken & token, 
 
 				lex.UnreadToken( &token2 );
 			}
-			
+
 			idStrStatic<128> bracedStrTemp;
 			lex.ParseBracedSection( bracedStrTemp, -1, false, '[', ']' );
 			bracedStr += bracedStrTemp;
@@ -915,9 +1271,9 @@ static bool ParseInOutVars( idLexer & lex, idStr & shaderText, idToken & token, 
 
 		if( lex.ExpectTokenString( "." ) )
 		{
-			idToken member; 
+			idToken member;
 			// read input member
-			lex.ExpectAnyToken( &member ); 
+			lex.ExpectAnyToken( &member );
 
 			if( CheckBuiltins( shaderText, token, member, newline, bracedStr, true, parseData, shaderType ) )
 			{
@@ -933,7 +1289,7 @@ static bool ParseInOutVars( idLexer & lex, idStr & shaderText, idToken & token, 
 					auto & var = parseData.variables[ i ];
 					if( var.name == member )
 					{
-						// if found add it, else emit Error()
+						// add it if found, else emit Error()
 						shaderText += CHECK_NEW_LINE_AND_SPACES();
 						shaderText += "_in";
 						if( !bracedStr.IsEmpty() && shaderType != SHT_FRAGMENT )
@@ -986,14 +1342,38 @@ static bool ParseInOutVars( idLexer & lex, idStr & shaderText, idToken & token, 
 
 			if( shaderType == shaderType_e::SHT_GEOMETRY )
 			{
-				if( member == "FinishVertex" )
+				if( member == "BeginVertex" )
+				{
+					if( lex.ExpectTokenString( "(" ) )
+					{
+						if( lex.ExpectTokenString( ")" ) )
+						{
+							if( lex.ExpectTokenString( ";" ) )
+							{
+								shaderText += CHECK_NEW_LINE_AND_SPACES();
+							#ifdef USE_OPENGL
+								///shaderText += "EmitVertex();";
+							#else
+								shaderText += "_out = (GS_OUT)0;";
+							#endif
+								return true;
+							}
+						}
+					}
+					return false;
+				}
+				else if( member == "FinishVertex" )
 				{
 					if( lex.ExpectTokenString("(") ) {
 						if( lex.ExpectTokenString( ")" ) ) {
 							if( lex.ExpectTokenString( ";" ) )
 							{
 								shaderText += CHECK_NEW_LINE_AND_SPACES();
-								shaderText += "EmitVertex();"; // _stm.Append( _out );
+							#ifdef USE_OPENGL
+								shaderText += "EmitVertex();";
+							#else
+								shaderText += "_stm.Append( _out );";
+							#endif
 								return true;
 							}
 						}
@@ -1007,7 +1387,11 @@ static bool ParseInOutVars( idLexer & lex, idStr & shaderText, idToken & token, 
 							if( lex.ExpectTokenString( ";" ) )
 							{
 								shaderText += CHECK_NEW_LINE_AND_SPACES();
-								shaderText += "EndPrimitive();"; // _stm.RestartStrip();
+							#ifdef USE_OPENGL
+								shaderText += "EndPrimitive();";
+							#else
+								shaderText += "_stm.RestartStrip();";
+							#endif
 								return true;
 							}
 						}
@@ -1038,9 +1422,17 @@ static bool ParseInOutVars( idLexer & lex, idStr & shaderText, idToken & token, 
 				if( !found )
 				{
 					varInOut_t var;
-					//var.type = "vec4";
-					var.typeIndex = 5U;
-					var.name = member;
+
+					if( member == "tbn" )
+					{
+						var.typeIndex = 26U;
+						var.name = "tbn";
+					}
+					else {
+						//var.type = "vec4";
+						var.typeIndex = 5U;
+						var.name = member;
+					}
 
 					int16 i = parseData.variables.Append( var );
 					parseData.varOut[ shaderType ].Append( i );
@@ -1077,9 +1469,11 @@ static void SetupInOutVars( idShaderStringBuilder & shaderText, progParseData_t 
 {
 	//SEA: no redeclaring of fs/vs builtin vars for now.
 
+	// Setup vertex shader inputs.
 	if( shaderType == shaderType_e::SHT_VERTEX && parseData.vsInputs.Num() )
 	{
 		shaderText += "\n";
+
 		for( int i = 0; i < parseData.vsInputs.Num(); i++ )
 		{
 			auto & var = parseData.vsInputs[ i ];
@@ -1090,19 +1484,54 @@ static void SetupInOutVars( idShaderStringBuilder & shaderText, progParseData_t 
 					break;
 				}
 			}
-			if( parseData.explicit_attrib_location ) {
-				shaderText += idStrStatic<128>().Format( "layout( location = %u ) in %s %s;\n", var.bind, var.type, var.glsl );
+			if( glConfig.explicit_attrib_location ) {
+				shaderText += _Txt( "layout( location = %u ) in %s %s;\n", var.bind, var.type, var.glsl );
 			} else {
-				shaderText += idStrStatic<128>().Format( "in %s %s;\n", var.bind, var.type, var.glsl );
+				shaderText += _Txt( "in %s %s;\n", var.bind, var.type, var.glsl );
 			}
 		}
-		parseData.vsInputs.Clear();
+
+		if( glConfig.explicit_attrib_location )
+			parseData.vsInputs.Clear();
+
 		//shaderText += "\n";
+	#if 0
+		switch( shaderType )
+		{
+			case SHT_VERTEX:
+				shaderText += "struct VS_IN {\n";
+				break;
+			case SHT_TESS_CTRL:
+				shaderText += "struct HS_IN {\n";
+				break;
+			case SHT_TESS_EVAL:
+				shaderText += "struct DS_IN {\n";
+				break;
+			case SHT_GEOMETRY:
+				shaderText += "struct GS_IN {\n";
+				break;
+			case SHT_FRAGMENT:
+				shaderText += "struct PS_IN {\n";
+				break;
+		}
+		for( int i = 0; i < parseData.vsInputs.Num(); i++ )
+		{
+			auto & var = parseData.vsInputs[ i ];
+
+			idStrStatic<64> symantic( var.name );
+			symantic.ToUpper();
+
+			shaderText += _Txt( "\t%s %s : _%s;\n", var.type, var.name, symantic );
+		}
+		shaderText += "};\n";
+
+		parseData.vsInputs.Clear();
+	#endif
 	}
 	else if( parseData.varIn[ shaderType ].Num() )
 	// Custom input structure. Interface matching.
-	{ 
-		// outputs from previous shader tage are the input
+	{
+		// outputs from previous shader stage are the input
 		shaderText += "\n";
 		shaderText += "in vars {\n";
 		for( int i = 0; i < parseData.varIn[ shaderType ].Num(); i++ )
@@ -1113,18 +1542,66 @@ static void SetupInOutVars( idShaderStringBuilder & shaderText, progParseData_t 
 			///shaderText += var.type + " ";
 			shaderText += _typeConversion[ var.typeIndex ].typeGLSL; shaderText += " "; shaderText += var.name + ";\n";
 		}
-		if( shaderType == shaderType_e::SHT_GEOMETRY )//|| shaderType == shaderType_e::SHT_TESS_CTRL || shaderType == shaderType_e::SHT_TESS_EVAL )
+		if( shaderType == shaderType_e::SHT_TESS_CTRL || shaderType == shaderType_e::SHT_TESS_EVAL )
+		{
+			shaderText += _Txt( "} _in[%u];\n", parseData.tessLayout.count );
+		}
+		else if( shaderType == shaderType_e::SHT_GEOMETRY )
 		{
 			///shaderText += "} _in[];\n";
-			shaderText += idStrStatic<128>().Format( "} _in[%u];\n", primIn[ parseData.primLayout.prim_in_type ].count );
+			shaderText += _Txt( "} _in[%u];\n", gs_primIn[ parseData.primLayout.prim_in_type ].count );
 		}
 		else {
 			shaderText += "} _in;\n";
 		}
 	}
 
+
+
+	if( shaderType == shaderType_e::SHT_TESS_CTRL )
+	{
+		"struct TCS_IN {\n";
+		"\t%s %s : %s;\n";
+		"\tfloat4 position : SV_Position;\n";
+		"};\n";
+		"struct TCS_OUT {\n";
+		"\t%s %s : %s;\n";
+		"\tfloat4 position : SV_Position;\n";
+		"};\n";
+		"struct TCS_OUT_CONST {\n";
+		"\tfloat tessLevelOuter[ 3 ] : SV_TessFactor;\n";
+		"\tfloat tessLevelInner[ 1 ] : SV_InsideTessFactor;\n";
+		"\t%s %s : %s;\n";
+		"};\n";
+	}
+	if( shaderType == shaderType_e::SHT_TESS_EVAL )
+	{
+		"struct TES_IN {\n";
+		"\t%s %s : %s;\n";
+		"\tfloat4 position : SV_Position;\n";
+		"};\n";
+		"struct TES_OUT {\n";
+		"\t%s %s : %s;\n";
+		"\tfloat4 position : SV_Position;\n";
+		"};\n";
+		"struct TES_IN_CONST {\n";
+		"\tfloat tessLevelOuter[ 3 ] : SV_TessFactor;\n";
+		"\tfloat tessLevelInner[ 1 ] : SV_InsideTessFactor;\n";
+		"\t%s %s : %s;\n";
+		"};\n";
+	}
+
+
+
+
+	// Setup fragment shader outputs.
 	if( shaderType == shaderType_e::SHT_FRAGMENT && parseData.fsOutputs.Num() )
 	{
+		parseData.flags.SetFlag( HAS_FRAG_OUTPUT );
+		if( parseData.fsOutputs.Num() > 1 ) {
+			parseData.flags.SetFlag( HAS_MRT_OUTPUT );
+		}
+
 		shaderText += "\n";
 		for( int i = 0; i < parseData.fsOutputs.Num(); i++ )
 		{
@@ -1136,18 +1613,53 @@ static void SetupInOutVars( idShaderStringBuilder & shaderText, progParseData_t 
 					break;
 				}
 			}
-			if( parseData.explicit_attrib_location ) {
-				shaderText += idStrStatic<128>().Format( "layout( location = %u ) out %s %s;\n", var.bind, var.type, var.glsl );
+			if( glConfig.explicit_attrib_location ) {
+				shaderText += _Txt( "layout( location = %u ) out %s %s;\n", var.bind, var.type, var.glsl );
 			} else {
-				shaderText += idStrStatic<128>().Format( "out %s %s;\n", var.bind, var.type, var.glsl );
+				shaderText += _Txt( "out %s %s;\n", var.bind, var.type, var.glsl );
 			}
 		}
-		parseData.fsOutputs.Clear();
+
+		if( glConfig.explicit_attrib_location )
+			parseData.fsOutputs.Clear();
+
 		//shaderText += "\n";
+	#if 0
+		switch( shaderType )
+		{
+			case SHT_VERTEX:
+				shaderText += "struct VS_OUT {\n";
+				break;
+			case SHT_TESS_CTRL:
+				shaderText += "struct HS_OUT {\n";
+				break;
+			case SHT_TESS_EVAL:
+				shaderText += "struct DS_OUT {\n";
+				break;
+			case SHT_GEOMETRY:
+				shaderText += "struct GS_OUT {\n";
+				break;
+			case SHT_FRAGMENT:
+				shaderText += "struct PS_OUT {\n";
+				break;
+		}
+		for( int i = 0; i < parseData.fsOutputs.Num(); i++ )
+		{
+			auto & var = parseData.fsOutputs[ i ];
+
+			idStrStatic<64> symantic( var.name );
+			symantic.ToUpper();
+
+			shaderText += _Txt( "\t%s %s : %s;\n", var.type, var.name, symantic );
+		}
+		shaderText += "};\n";
+
+		parseData.fsOutputs.Clear();
+	#endif
 	}
 	else if( parseData.varOut[ shaderType ].Num() )
 	// Custom output structure. Interface matching.
-	{ 
+	{
 		shaderText += "\n";
 		shaderText += "out vars {\n";
 		for( int i = 0; i < parseData.varOut[ shaderType ].Num(); i++ )
@@ -1160,9 +1672,10 @@ static void SetupInOutVars( idShaderStringBuilder & shaderText, progParseData_t 
 
 			// ( smooth flat noperspective ) centroid out
 		}
-		if( shaderType == shaderType_e::SHT_TESS_CTRL || shaderType == shaderType_e::SHT_TESS_EVAL )
+		if( shaderType == shaderType_e::SHT_TESS_CTRL )
 		{
-			shaderText += "} _out[];\n"; //SEA: TODO!!!
+			///shaderText += "} _out[];\n"; //SEA: TODO!!!
+			shaderText += _Txt( "} _out[%u];\n", parseData.tessLayout.count );
 		}
 		else {
 			shaderText += "} _out;\n";
@@ -1184,18 +1697,8 @@ static bool ConvertFuncs( idStr & shaderText, const idToken & token, const char 
 		{ "rsqrt",		"inversesqrt" },
 		{ "ddx",		"dFdx" },
 		{ "ddy",		"dFdy" },
-		//SEA ->
-		{ "ddy_coarse",						"dFdyCoarse" },
-		{ "ddy_fine",						"dFdyFine" },
-		{ "EvaluateAttributeAtCentroid",	"interpolateAtCentroid" },
-		{ "EvaluateAttributeAtSample",		"interpolateAtSample" },
-		{ "EvaluateAttributeSnapped",		"interpolateAtOffset" },
-		{ "mad",							"fma" },
-		//SEA <-
-
 		{ NULL, NULL }
 	};
-
 	for( int i = 0; builtinConversion[ i ].nameCG != NULL; i++ )
 	{
 		if( token.Cmp( builtinConversion[ i ].nameCG ) == 0 )
@@ -1205,6 +1708,60 @@ static bool ConvertFuncs( idStr & shaderText, const idToken & token, const char 
 			return true;
 		}
 	}
+
+	if( token.Cmp( "ddx_coarse" ) == 0 )
+	{
+		shaderText += CHECK_NEW_LINE_AND_SPACES();
+		shaderText += glConfig.derivative_control ? "dFdxCoarse" : "dFdx";
+		return true;
+	}
+	if( token.Cmp( "ddx_fine" ) == 0 )
+	{
+		shaderText += CHECK_NEW_LINE_AND_SPACES();
+		shaderText += glConfig.derivative_control ? "dFdxFine" : "dFdx";
+		return true;
+	}
+	if( token.Cmp( "ddy_coarse" ) == 0 )
+	{
+		shaderText += CHECK_NEW_LINE_AND_SPACES();
+		shaderText += glConfig.derivative_control ? "dFdyCoarse" : "dFdy";
+		return true;
+	}
+	if( token.Cmp( "ddy_fine" ) == 0 )
+	{
+		shaderText += CHECK_NEW_LINE_AND_SPACES();
+		shaderText += glConfig.derivative_control ? "dFdyFine" : "dFdy";
+		return true;
+	}
+
+	if( glConfig.gpu_shader5 )
+	{
+		if( token.Cmp( "EvaluateAttributeAtCentroid" ) == 0 )
+		{
+			shaderText += CHECK_NEW_LINE_AND_SPACES();
+			shaderText += "interpolateAtCentroid";
+			return true;
+		}
+		if( token.Cmp( "EvaluateAttributeAtSample" ) == 0 )
+		{
+			shaderText += CHECK_NEW_LINE_AND_SPACES();
+			shaderText += "interpolateAtSample";
+			return true;
+		}
+		if( token.Cmp( "EvaluateAttributeSnapped" ) == 0 )
+		{
+			shaderText += CHECK_NEW_LINE_AND_SPACES();
+			shaderText += "interpolateAtOffset";
+			return true;
+		}
+		if( token.Cmp( "mad" ) == 0 )
+		{
+			shaderText += CHECK_NEW_LINE_AND_SPACES();
+			shaderText += "fma";
+			return true;
+		}
+	}
+
 	return false;
 }
 
@@ -1215,25 +1772,28 @@ static bool ParseParms( idLexer & lex, idStr & shaderText, const idToken & token
 		idToken parmName;
 		if( lex.ExpectTokenType( TT_NAME, 0, parmName ) )
 		{
-			auto parm = declManager->FindType( DECL_RENDERPARM, parmName, true )->Cast<idDeclRenderParm>();
+			auto parm = declManager->FindType( DECL_RENDERPARM, parmName, false )->Cast<idDeclRenderParm>();
 			if( parm ) 	// search idDeclRenderParm by name and add it to the source
 			{
+				if( parm->IsImplicit() )
+					lex.Warning( "Parm '%s' was defaulted", parm->GetName() );
+
 				int index = parseData.AddRenderParm( parm, shaderType );
 
-				if( shaderType == SHT_VERTEX && parmName.is( "SkinningParms" ) )
+				if( ( shaderType == SHT_VERTEX || shaderType == SHT_GEOMETRY ) && parmName.is( "SkinningParms" ) )
 				{
-					parseData.data.hasOptionalSkinning = true;
-					parseData.data.hasHardwareSkinning = true;
+					parseData.flags.SetFlag( HAS_HARDWARE_SKINNING );
+					parseData.flags.SetFlag( HAS_OPTIONAL_SKINNING );
 				}
 
 				shaderText += CHECK_NEW_LINE_AND_SPACES();
 				if( parm->IsVector() )
 				{
-					//shaderText += idStrStatic<128>().Format( "%s[ %i /* %s */]",  _glslShaderInfo[ shaderType ].uniformArrayName, index, parm->GetName() );
+					//shaderText += _Txt( "%s[ %i /* %s */]",  _glslShaderInfo[ shaderType ].uniformArrayName, index, parm->GetName() );
 					if( r_useProgUBO.GetBool() ) {
-						shaderText += idStrStatic<128>().Format( COMMON_PARMBLOCK_NAME".%s", parm->GetName() );
+						shaderText += _Txt( COMMON_PARMBLOCK_NAME".%s", parm->GetName() );
 					} else {
-						shaderText += idStrStatic<128>().Format( COMMON_PARMBLOCK_NAME"[%i/*%s*/]", index, parm->GetName() );
+						shaderText += _Txt( COMMON_PARMBLOCK_NAME"[%i/*%s*/]", index, parm->GetName() );
 					}
 					return true;
 				}
@@ -1246,7 +1806,8 @@ static bool ParseParms( idLexer & lex, idStr & shaderText, const idToken & token
 		}
 
 		shaderText += CHECK_NEW_LINE_AND_SPACES();
-		shaderText += " _badParmHere_";
+		shaderText += " _badParm_";
+		shaderText += parmName;
 		return true; //SEA: compiler will do the error job.
 	}
 
@@ -1258,7 +1819,7 @@ static void SetupHeaderExtensions( idShaderStringBuilder & out, shaderType_e sha
 	//out += "\n";
 
 	// GL_ARB_explicit_attrib_location
-	if( GLEW_ARB_explicit_attrib_location && ( shaderType == SHT_VERTEX || shaderType == SHT_FRAGMENT ) )	//EGL 3.0, MESA
+	if( glConfig.explicit_attrib_location && ( shaderType == SHT_VERTEX || shaderType == SHT_FRAGMENT ) )	//EGL 3.0, MESA
 	{
 		out += "#extension GL_ARB_explicit_attrib_location : require\n";
 	}
@@ -1272,7 +1833,7 @@ static void SetupHeaderExtensions( idShaderStringBuilder & out, shaderType_e sha
 	genType uintBitsToFloat(genUType value);
 	*/
 	// GL_ARB_shading_language_420pack
-	if( GLEW_ARB_shading_language_420pack ) //EGL 3.1, MESA
+	if( glConfig.shading_language_420pack ) //EGL 3.1, MESA
 	{
 		/*
 		* Add line-continuation using '\', as in C++.
@@ -1296,7 +1857,7 @@ static void SetupHeaderExtensions( idShaderStringBuilder & out, shaderType_e sha
 		out += "#extension GL_ARB_shading_language_420pack : require\n";
 	}
 	// GL_ARB_gpu_shader5
-	if( GLEW_ARB_gpu_shader5 )
+	if( glConfig.gpu_shader5 )
 	{
 		out += "#extension GL_ARB_gpu_shader5 : require\n";
 		/*
@@ -1398,7 +1959,7 @@ static void SetupHeaderExtensions( idShaderStringBuilder & out, shaderType_e sha
 		out += "#extension GL_ARB_viewport_array : require\n";
 	}
 	// GL_ARB_sample_shading	MESA
-	if( GLEW_ARB_sample_shading && shaderType == SHT_FRAGMENT )
+	if( glConfig.sample_shading && shaderType == SHT_FRAGMENT )
 	{
 		out += "#extension GL_ARB_sample_shading : require\n";
 	}
@@ -1408,7 +1969,7 @@ static void SetupHeaderExtensions( idShaderStringBuilder & out, shaderType_e sha
 		out += "#extension GL_ARB_texture_gather : require\n";
 	}
 	// GL_ARB_texture_cube_map_array
-	if( GLEW_ARB_texture_cube_map_array )
+	if( glConfig.texture_cube_map_array )
 	{
 		out += "#extension GL_ARB_texture_cube_map_array : require\n";
 	}
@@ -1434,18 +1995,18 @@ static void SetupHeaderExtensions( idShaderStringBuilder & out, shaderType_e sha
 	}
 
 	// GL_ARB_conservative_depth	MESA
-	if( GLEW_ARB_conservative_depth && shaderType == SHT_FRAGMENT )
+	if( glConfig.conservative_depth && shaderType == SHT_FRAGMENT )
 	{
 		out += "#extension GL_ARB_conservative_depth : require\n";
 	}
 
-	if( GLEW_ARB_shader_image_load_store && shaderType == SHT_FRAGMENT )
+	if( glConfig.shader_image_load_store && shaderType == SHT_FRAGMENT )
 	{
 		out += "#extension GL_ARB_shader_image_load_store : require\n";
 	}
 
 	// GL_ARB_explicit_uniform_location
-	if( GLEW_ARB_explicit_uniform_location )
+	if( glConfig.explicit_uniform_location )
 	{
 		out += "#extension GL_ARB_explicit_uniform_location : require\n";
 	}
@@ -1460,22 +2021,26 @@ static void SetupHeaderExtensions( idShaderStringBuilder & out, shaderType_e sha
 	*/
 
 	// GL_AMD_vertex_shader_layer
-	if( GLEW_AMD_vertex_shader_layer && shaderType == SHT_VERTEX )
+	if( glConfig.vertex_shader_layer && shaderType == SHT_VERTEX )
 	{
 		out += "#extension GL_AMD_vertex_shader_layer : require\n";
 	}
-	// GLEW_AMD_vertex_shader_viewport_index
-	if( GLEW_AMD_vertex_shader_viewport_index && shaderType == SHT_VERTEX )
+	// GL_AMD_vertex_shader_viewport_index
+	if( glConfig.vertex_shader_viewport_index && shaderType == SHT_VERTEX )
 	{
 		out += "#extension GL_AMD_vertex_shader_viewport_index : require\n";
 	}
 	// GL_ARB_fragment_layer_viewport
-	if( GLEW_ARB_fragment_layer_viewport && shaderType == SHT_FRAGMENT )
+	if( glConfig.fragment_layer_viewport && shaderType == SHT_FRAGMENT )
 	{
 		//	in int gl_Layer;
 		//	in int gl_ViewportIndex;
 		out += "#extension GL_ARB_fragment_layer_viewport : require\n";
 	}
+	// GL_NV_viewport_array2 - gl_ViewportIndex / gl_ViewportMask[] / gl_Layer
+	// The gl_ViewportMask[] output is available in vertex, tessellation
+	//	control, tessellation evaluation, and geometry shaders.gl_ViewportIndex
+	//	and gl_Layer are also made available in all these shader stages.
 
 	// GL_ARB_draw_indirect
 	/*
@@ -1533,19 +2098,19 @@ static void SetupHeaderExtensions( idShaderStringBuilder & out, shaderType_e sha
 	*/
 
 	// GL_ARB_shader_draw_parameters
-	if( GLEW_ARB_shader_draw_parameters && shaderType == SHT_VERTEX )
+	if( glConfig.shader_draw_parameters && shaderType == SHT_VERTEX )
 	{
 		// gl_BaseVertexARB gl_BaseInstanceARB gl_DrawID
 		out += "#extension GL_ARB_shader_draw_parameters : require\n";
 	}
 
-	if( GLEW_ARB_cull_distance )
+	if( glConfig.cull_distance )
 	{
 		out += "#extension GL_ARB_cull_distance : require\n";
 	}
 
 	// GL_ARB_derivative_control
-	if( GLEW_ARB_derivative_control && shaderType == SHT_FRAGMENT )
+	if( glConfig.derivative_control && shaderType == SHT_FRAGMENT )
 	{/*
 	 To select the coarse derivative, use:
 
@@ -1571,9 +2136,9 @@ static void SetupHeaderExtensions( idShaderStringBuilder & out, shaderType_e sha
 	}
 
 	// GL_ARB_shading_language_packing
-	if( GLEW_ARB_shading_language_packing )
+	if( glConfig.shading_language_packing )
 	{
-		out += "#extension GL_ARB_shading_language_packing : require\n";
+		//out += "#extension GL_ARB_shading_language_packing : require\n";
 	}
 
 	// GL_ARB_compute_shader
@@ -1660,6 +2225,7 @@ static void BuiltHeader( idShaderStringBuilder & out, shaderType_e shaderType )
 	const char* fragmentInsert_GLSL_1_50 = {
 		"\n"
 		"vec4 tex2D( sampler2D img, const in vec2 tc ) { return texture( img, tc.xy ); }\n"
+		"vec4 tex2D( sampler2D img, const in vec2 tc, const ivec2 offset ) { return textureOffset( img, tc.xy, offset ); }\n"
 		"vec4 tex2D( sampler2DShadow img, const in vec3 tc ) { return vec4( texture( img, tc.xyz ) ); }\n"
 		"vec4 tex2DARRAY( sampler2DArray img, const in vec3 tc ) { return texture( img, tc.xyz ); }\n"
 		"\n"
@@ -1675,26 +2241,29 @@ static void BuiltHeader( idShaderStringBuilder & out, shaderType_e shaderType )
 		"vec4 tex3Dproj( sampler3D img, const in vec4 tc ) { return textureProj( img, tc ); }\n"
 		"\n"
 		"vec4 tex2Dbias( sampler2D img, const in vec4 tc ) { return texture( img, tc.xy, tc.w ); }\n"
+		"vec4 tex2Dbias( sampler2D img, const in vec4 tc, const ivec2 offset ) { return textureOffset( img, tc.xy, offset, tc.w ); }\n"
 		"vec4 tex2DARRAYbias( sampler2DArray img, const in vec4 tc ) { return texture( img, tc.xyz, tc.w ); }\n"
 		"vec4 tex3Dbias( sampler3D img, const in vec4 tc ) { return texture( img, tc.xyz, tc.w ); }\n"
 		"vec4 texCUBEbias( samplerCube img, const in vec4 tc ) { return texture( img, tc.xyz, tc.w ); }\n"
 		"vec4 texCUBEARRAYbias( samplerCubeArray img, const in vec4 tc, const in float bias ) { return texture( img, tc.xyzw, bias ); }\n"
 		"\n"
 		"vec4 tex2Dlod( sampler2D img, const in vec4 tc ) { return textureLod( img, tc.xy, tc.w ); }\n"
+		"vec4 tex2Dlod( sampler2D img, const in vec4 tc, const ivec2 offset ) { return textureLodOffset( img, tc.xy, tc.w, offset ); }\n"
 		"vec4 tex2DARRAYlod( sampler2DArray img, const in vec4 tc ) { return textureLod( img, tc.xyz, tc.w ); }\n"
+		"vec4 tex2DARRAYlod( sampler2DArray img, const in vec4 tc, const ivec2 offset ) { return textureLodOffset( img, tc.xyz, tc.w, offset ); }\n"
 		"vec4 tex3Dlod( sampler3D img, const in vec4 tc ) { return textureLod( img, tc.xyz, tc.w ); }\n"
 		"vec4 texCUBElod( samplerCube img, const in vec4 tc ) { return textureLod( img, tc.xyz, tc.w ); }\n"
 		"vec4 texCUBEARRAYlod( samplerCubeArray img, const in vec4 tc, const in float lod ) { return textureLod( img, tc.xyzw, lod ); }\n"
-		"\n"
+		"\n" //SEA: TODO GL_ARB_gpu_shader5
 		"vec4 tex2DGatherR( sampler2D img, const in vec2 tc ) { return textureGather( img, tc, 0 ); }\n"
 		"vec4 tex2DGatherG( sampler2D img, const in vec2 tc ) { return textureGather( img, tc, 1 ); }\n"
 		"vec4 tex2DGatherB( sampler2D img, const in vec2 tc ) { return textureGather( img, tc, 2 ); }\n"
 		"vec4 tex2DGatherA( sampler2D img, const in vec2 tc ) { return textureGather( img, tc, 3 ); }\n"
 		"\n"
-		"vec4 tex2DGatherOffsetR( sampler2D img, const in vec2 tc, const in ivec2 v0 ) { return textureGatherOffset( img, tc, v0, 0 ); }\n"
-		"vec4 tex2DGatherOffsetG( sampler2D img, const in vec2 tc, const in ivec2 v0 ) { return textureGatherOffset( img, tc, v0, 1 ); }\n"
-		"vec4 tex2DGatherOffsetB( sampler2D img, const in vec2 tc, const in ivec2 v0 ) { return textureGatherOffset( img, tc, v0, 2 ); }\n"
-		"vec4 tex2DGatherOffsetA( sampler2D img, const in vec2 tc, const in ivec2 v0 ) { return textureGatherOffset( img, tc, v0, 3 ); }\n"
+		"vec4 tex2DGatherR( sampler2D img, const in vec2 tc, const in ivec2 v0 ) { return textureGatherOffset( img, tc, v0, 0 ); }\n"
+		"vec4 tex2DGatherG( sampler2D img, const in vec2 tc, const in ivec2 v0 ) { return textureGatherOffset( img, tc, v0, 1 ); }\n"
+		"vec4 tex2DGatherB( sampler2D img, const in vec2 tc, const in ivec2 v0 ) { return textureGatherOffset( img, tc, v0, 2 ); }\n"
+		"vec4 tex2DGatherA( sampler2D img, const in vec2 tc, const in ivec2 v0 ) { return textureGatherOffset( img, tc, v0, 3 ); }\n"
 		"\n"
 		"#define tex2DGatherOffsetsR( img, tc, v0, v1, v2, v3 ) textureGatherOffsets( img, tc, ivec2[]( v0, v1, v2, v3 ), 0 )\n"
 		"#define tex2DGatherOffsetsG( img, tc, v0, v1, v2, v3 ) textureGatherOffsets( img, tc, ivec2[]( v0, v1, v2, v3 ), 1 )\n"
@@ -1724,7 +2293,9 @@ static void BuiltHeader( idShaderStringBuilder & out, shaderType_e shaderType )
 		"float dot4( const in vec2 a, const in vec4 b ) { return dot( vec4( a, 0.0f, 1.0f ), b ); }\n"
 		"\n"
 		"vec4 tex2Dfetch( sampler2D img, const in ivec4 tc ) { return texelFetch( img, tc.st, tc.q ); }\n"
+		"vec4 tex2Dfetch( sampler2D img, const in ivec4 tc, const ivec2 offsets ) { return texelFetchOffset( img, tc.st, tc.q, offsets ); }\n"
 		"vec4 tex2DARRAYfetch( sampler2DArray img, const in ivec4 tc ) { return texelFetch( img, tc.stp, tc.q ); }\n"
+		"vec4 tex2DARRAYfetch( sampler2DArray img, const in ivec4 tc, const ivec2 offsets ) { return texelFetchOffset( img, tc.stp, tc.q, offsets ); }\n"
 		"vec4 tex2DMSfetch( sampler2DMS img, const in ivec4 tc ) { return texelFetch( img, tc.st, tc.p ); }\n"
 		"vec4 tex2DMSARRAYfetch( sampler2DMSArray img, const in ivec4 tc ) { return texelFetch( img, tc.stp, tc.p ); }\n"
 		"vec4 tex3Dfetch( sampler3D img, const in ivec4 tc ) { return texelFetch( img, tc.stp, tc.q ); }\n"
@@ -1764,7 +2335,7 @@ static void BuiltHeader( idShaderStringBuilder & out, shaderType_e shaderType )
 				out += "#version 300 es\n";
 				//SetupHeaderExtensions( out, shaderType );
 				//out.Append( geometryInsert_GLSL_ES_3_00, idStr::Length( geometryInsert_GLSL_ES_3_00 ) );
-				release_assert( "TODO geometryInsert_GLSL_ES_3_00" );
+				assert( "TODO geometryInsert_GLSL_ES_3_00" );
 				break;
 			}
 
@@ -1804,65 +2375,31 @@ static void BuiltHeader( idShaderStringBuilder & out, shaderType_e shaderType )
 /*
 	const GLchar *name = "/commonInsert";
 	const GLint namelen = idStr::Length( name );
-	
+
 	const GLchar * string = commonInsert_GLSL_1_50;
 	const GLint stringlen = idStr::Length( string );
-	
+
 	glNamedStringARB( GL_SHADER_INCLUDE_ARB, namelen, name, stringlen, string );
 */
 }
 
-const char* GetHLSLTextureType( const idDeclRenderParm * decl )
-{
-	release_assert( decl != nullptr );
-	auto img = decl->GetDefaultImage();
-	release_assert( img != nullptr );
-
-	if( img->GetOpts().textureType == TT_2D )
-	{
-		if( img->GetOpts().IsMultisampled() )
-		{
-			return img->GetOpts().IsArray()? "Texture2DMSArray" : "Texture2DMS";
-		}
-		else {
-			return img->GetOpts().IsArray()? "Texture2DArray" : "Texture2D";
-		}
-	}
-	else if( img->GetOpts().textureType == TT_CUBIC )
-	{
-		return img->GetOpts().IsArray()? "TextureCubeArray" : "TextureCube";
-	}
-	else if( img->GetOpts().textureType == TT_3D )
-	{
-		return "Texture3D";
-	}
-
-	return "TextureType unknown";
-	// return "Buffer"; // texture buffer 
-
-	// Object1 [<Type>] Name;
-	// Texture2DMS/Texture2DMSArray [<Type, Samples>] Name;
-	// Type - Optional. Any scalar HLSL type or vector HLSL type, surrounded by angle brackets.The default type is float4.
-	// Samples - The number of samples( ranges between 1 and 128 ).
-	// TextureCubeArray is available in shader model 4.1 or higher.
-	// Shader model 4.1 is available in Direct3D 10.1 or higher.
-}
-
 static void SetupParms( idShaderStringBuilder & out, progParseData_t & parseData, shaderType_e shaderType )
 {
-	//SEA: only arrays[] of basic types can be updated with single call :(
+	//SEA:GLSL only arrays[] of basic types can be updated with single call :(
 
 	// Setup uniforms
 	int vecCount = parseData.GetVecParmCount();
 	if( vecCount && parseData.vecParmsUsed[ shaderType ].Num() )
 	{
+	#ifdef USE_OPENGL
+
 		//out += "\n//Used:\n";
 		out += "\n";
-	#if 0
+	  #if 0
 		if( r_useProgUBO.GetBool() ) // cbuffer 'Name' : register( b0 )
 		{
 			if( parseData.shading_language_420pack ) {
-				out += idStrStatic<128>().Format( "layout( binding = %i ) uniform parms_ubo {\n", BINDING_PROG_PARMS_UBO );
+				out += _Txt( "layout( binding = %i ) uniform parms_ubo {\n", BINDING_PROG_PARMS_UBO );
 			} else {
 				out += "uniform parms_ubo {\n";
 			}
@@ -1880,11 +2417,11 @@ static void SetupParms( idShaderStringBuilder & out, progParseData_t & parseData
 			out += idStrStatic<96>().Format( "\tvec4 %s;\n", parm->GetName() );
 		}
 		out += idStrStatic<24>().Format( "} " COMMON_PARMBLOCK_NAME ";\n" );
-	#else
+	  #else
 		if( r_useProgUBO.GetBool() ) // cbuffer 'Name' : register( b0 )
 		{
-			if( parseData.shading_language_420pack ) {
-				out += idStrStatic<128>().Format( "layout( binding = %i ) uniform parms_ubo {\n", BINDING_PROG_PARMS_UBO );
+			if( glConfig.shading_language_420pack ) {
+				out += _Txt( "layout( binding = %i ) uniform parms_ubo {\n", BINDING_PROG_PARMS_UBO );
 			} else {
 				out += "uniform parms_ubo {\n";
 			}
@@ -1904,56 +2441,87 @@ static void SetupParms( idShaderStringBuilder & out, progParseData_t & parseData
 
 				out += idStrStatic<96>().Format( "// %i.%s\n", index, parm->GetName() );
 			}*/
-			if( parseData.explicit_uniform_location )
-			{
-				out += idStrStatic<128>().Format( "layout( location = 0 ) uniform vec4 " COMMON_PARMBLOCK_NAME "[%i];\n", vecCount );
-			}
-			else {
-				out += idStrStatic<128>().Format( "uniform vec4 " COMMON_PARMBLOCK_NAME "[%i];\n", vecCount );
+			if( glConfig.explicit_uniform_location ) {
+				out += _Txt( "layout( location = 0 ) uniform vec4 " COMMON_PARMBLOCK_NAME "[%i];\n", vecCount );
+			} else {
+				out += _Txt( "uniform vec4 " COMMON_PARMBLOCK_NAME "[%i];\n", vecCount );
 			}
 		}
+	  #endif
+
+	#else // HLSL
+
+		out += "\n";
+		out += _Txt( "// cbuffer parms_ubo : register( b%i ) {\n", BINDING_PROG_PARMS_UBO );
+		for( int i = 0; i < vecCount; ++i )
+		{
+			auto parm = parseData.GetVecParm( i );
+			out += idStrStatic<96>().Format( "// \tfloat4 %s;\n", parm->GetName() );
+		}
+		out += idStrStatic<24>().Format( "// } " COMMON_PARMBLOCK_NAME ";\n" );
+
 	#endif
 	}
 
-	// Setup samplers
+	// Setup samplers/textures
 	int texCount = parseData.GetTexParmCount();
 	if( texCount && parseData.texParmsUsed[ shaderType ].Num() )
 	{
 		out += "\n";
+	#ifdef USE_OPENGL
+
 		for( int i = 0; i < parseData.texParmsUsed[ shaderType ].Num(); ++i )
 		{
 			int index = parseData.texParmsUsed[ shaderType ][ i ];
 			auto parm = parseData.GetTexParm( index );
 
-			if( parseData.shading_language_420pack ) {
-				out += idStrStatic<128>().Format( "layout( binding = %i ) uniform %s %s;\n", index, GetGLSLSamplerType( parm ), parm->GetName() );
+			if( glConfig.shading_language_420pack ) {
+				out += _Txt( "layout( binding = %i ) uniform %s %s;\n", index, GetGLSLSamplerType( parm ), parm->GetName() );
 			} else {
-				out += idStrStatic<128>().Format( "uniform %s %s;\n", GetGLSLSamplerType( parm ), parm->GetName() );
+				out += _Txt( "uniform %s %s;\n", GetGLSLSamplerType( parm ), parm->GetName() );
 			}
-
-			/////////////////////////////// HLSL			
-			//out += idStrStatic<128>().Format( "SamplerState %s : register( s%i ); \n", GetHLSLSamplerType( parm ), i ); // SamplerState 'sampName' : register( s0 );
-			//out += idStrStatic<128>().Format( "%s %s : register( t%i );\n", GetHLSLTextureType( parm ), parm->GetName(), j ); // Texture2D<float> 'texName' : register( t3 );
-			// RWTexture1D<uint> 'Name' : register( u4 );
 		}
+
+	#else // HLSL
+
+		for( int i = 0; i < parseData.texParmsUsed[ shaderType ].Num(); ++i )
+		{
+			int index = parseData.texParmsUsed[ shaderType ][ i ];
+			auto parm = parseData.GetTexParm( index );
+
+			out += _Txt( "// %s _tex_%s : register( t%i );\n", GetHLSLTextureType( parm ), parm->GetName(), index );
+			if( parm->GetDefaultTextureUsage() == TD_SHADOWMAP ) {
+				out += _Txt( "// SamplerComparisonState _smp_%s : register( s%i );\n", parm->GetName(), index );
+			} else {
+				out += _Txt( "// SamplerState _smp_%s : register( s%i );\n", parm->GetName(), index );
+			}
+			out += _Txt( "// #define %s InitSamp( _tex_%s, _smp_%s )\n", parm->GetName(), parm->GetName(), parm->GetName() );
+		}
+
+	#endif
 	}
 }
 
 static bool ParseState( idParser & src, progParseData_t & parseData )
 {
+	extern bool ParseGLState( idParser &, uint64 & stateBits );
+
 	if( !src.ExpectTokenString( "{" ) )
 		return false;
 
 	idToken token;
+	uint64 state = 0;
 	while( !src.CheckTokenString( "}" ) )
 	{
-		if( !token.Icmp( "blend" ) )
+		if( !ParseGLState( src, state ) )
 		{
-			//ParseBlend( src, ss );
-			continue;
+			src.Error( "ParseGLState() fails and defaulted" );
+			state = 0;
+			break;
 		}
 	}
 
+	parseData.glState = state;
 	return true;
 }
 
@@ -2032,10 +2600,10 @@ static bool ParseVariablesBlock( idParser & src, const idStr & text, progParseDa
 }
 
 static const char * texbuff_formats[] = {
-	"rgba32f",	"rgba16f", "rg32f", "rg16f", "r11f_g11f_b10f", "r32f", "r16f", "rgba32ui", "rgba16ui",
-	"rgb10_a2ui", "rgba8ui", "rg32ui", "rg16ui", "rg8ui", "r32ui", "r16ui", "r8ui", "rgba32i", "rgba16i", 
-	"rgba8i", "rg32i", "rg16i", "rg8i", "r32i", "r16i", "r8i", "rgba16", "rgb10_a2", "rgba8", "rg16", "rg8",
-	"r16", "r8", "rgba16_snorm", "rgba8_snorm", "rg16_snorm", "rg8_snorm", "r16_snorm", "r8_snorm",
+	"RGBA32F",	"RGBA16F", "RG32F", "RG16F", "R11F_G11F_B10F", "R32F", "R16F", "RGBA32UI", "RGBA16UI",
+	"RGB10_A2UI", "RGBA8UI", "RG32UI", "RG16UI", "RG8UI", "R32UI", "R16UI", "R8UI", "RGBA32I", "RGBA16I",
+	"RGBA8I", "RG32I", "RG16I", "RG8I", "R32I", "R16I", "R8I", "RGBA16", "RGB10_A2", "RGBA8", "RG16", "RG8",
+	"R16", "R8", "RGBA16_SNORM", "RGBA8_SNORM", "RG16_SNORM", "RG8_SNORM", "R16_SNORM", "R8_SNORM",
 };
 
 /*
@@ -2067,17 +2635,110 @@ static void ConvertCG2GLSL( const idStr & in, const char* name, progParseData_t 
 
 		if( token.is( "MAIN_BLOCK" ) )
 		{
-			inMain = true;		
+			inMain = true;
+		#ifdef USE_OPENGL
 			program += "\n\nvoid main()";
+		#else
+			/*/*/if( shaderType == SHT_VERTEX )
+			{
+				program += "\n\nvoid VSMain( in VS_IN input, out VS_OUT output )";
+			}
+			else if( shaderType == SHT_TESS_CTRL )
+			{
+				program += "struct TCS_OUT_CONST {\n";
+				program += "\tfloat	tessLevelOuter[ 4 ]	: SV_TessFactor;\n";
+				program += "\tfloat	tessLevelInner[ 2 ] : SV_InsideTessFactor;\n";
+				program += "\t%s %s : %s;\n"; // custom per patch vars
+				program += "};\n";
+
+				// void PATCH_BLOCK( in InputPatch<TCS_IN, INPUT_PATCH_SIZE> input, out TCS_OUT_CONST output, uint primitiveID : SV_PrimitiveID ) {
+				program += _Txt( "\n\nTCS_OUT TCSMain( in InputPatch<TCS_IN, %u> input, in uint invocationID : SV_OutputControlPointID, in uint primitiveID : SV_PrimitiveID )", ( uint32 )parseData.tessLayout.count );
+
+				src.ReadToken( &token );
+				if( token == "{" )
+				{
+					program += CHECK_NEW_LINE_AND_SPACES();
+					program += "{\n";
+
+					int len = idMath::Min( idStr::Length( newline ) + 1, ( int )sizeof( newline ) - 1 );
+					newline[ len - 1 ] = '\t';
+					newline[ len - 0 ] = '\0';
+
+					program += CHECK_NEW_LINE_AND_SPACES();
+					program += "TCS_OUT output = (TCS_OUT)0;\n";
+				}
+				else {
+					src.Error( "Expected open brace '{' after MAIN_BLOCK not found." );
+					return;
+				}
+			}
+			else if( shaderType == SHT_TESS_EVAL )
+			{
+				program += _Txt( "\n\nvoid TESMain( in TCS_OUT_CONST cinput, in OutputPatch<TES_IN, %u> input, out TES_OUT output, in float3 tessCoord : SV_DomainLocation, in uint primitiveID : SV_PrimitiveID )", ( uint32 )parseData.tessLayout.count );
+			}
+			else if( shaderType == SHT_GEOMETRY )
+			{
+				if( ( uint32 )parseData.tessLayout.count > 3 )
+				{
+					program += _Txt( "\n\nvoid GSMain( InputPatch<GS_IN, %u> input, inout %s<GS_OUT> stream )", ( uint32 )parseData.tessLayout.count, gs_primOut[ parseData.primLayout.prim_out_type ].hlslName )
+				}
+				else {
+					program += _Txt( "\n\nvoid GSMain( %s GS_IN input[%u], inout %s<GS_OUT> stream )",
+						gs_primIn[ parseData.primLayout.prim_in_type ].hlslName,
+						gs_primIn[ parseData.primLayout.prim_in_type ].count,
+						gs_primOut[ parseData.primLayout.prim_out_type ].hlslName );
+				}
+				src.ReadToken( &token );
+				if( token == "{" )
+				{
+					program += CHECK_NEW_LINE_AND_SPACES();
+					program += "{\n";
+
+					int len = idMath::Min( idStr::Length( newline ) + 1, ( int )sizeof( newline ) - 1 );
+					newline[ len - 1 ] = '\t';
+					newline[ len - 0 ] = '\0';
+
+					program += CHECK_NEW_LINE_AND_SPACES();
+					program += "GS_OUT _out = (GS_OUT)0;\n";
+				}
+				else {
+					src.Error( "Expected open brace '{' after MAIN_BLOCK not found." );
+					return;
+				}
+			}
+			else if( shaderType == SHT_FRAGMENT )
+			{
+				program += "\n\nvoid PSMain( in PS_IN input, out PS_OUT output )";
+			}
+			else if( shaderType == SHT_COMPUTE )
+			{
+				// [numthreads( %d, %d, %d )]
+				// void CSMain( uint3 groupID : SV_GroupID, uint3 threadID : SV_GroupThreadID, uint3 dispatchThreadID : SV_DispatchThreadID )
+			}
+		#endif
 			continue;
 		}
 
 		// strip 'const' from local variables in main()
-		if( token == "const" && inMain && !parseData.shading_language_420pack )
+		if( token == "const" && inMain && !glConfig.shading_language_420pack )
 		{
 			program += CHECK_NEW_LINE_AND_SPACES();
 			src.SkipWhiteSpace( true ); // remove white space between 'const' and the next token
 			continue;
+		}
+
+		if( inMain && shaderType == SHT_TESS_CTRL )
+		{
+			if( token.is( "BEGIN_PATCH_BLOCK_" ) )
+			{
+				program += "//BEGIN_PATCH_BLOCK_"; program += "\n";
+				continue;
+			}
+			else if( token.is( "_FINISH_PATCH_BLOCK" ) )
+			{
+				program += "//_FINISH_PATCH_BLOCK"; program += "\n";
+				continue;
+			}
 		}
 
 		// maintain indentation
@@ -2102,21 +2763,22 @@ static void ConvertCG2GLSL( const idStr & in, const char* name, progParseData_t 
 		}
 
 		if( shaderType == SHT_FRAGMENT )
-		{ 
+		{
 			if( token == "clip" || token == "discard" ) {
-				parseData.data.hasFragClip = true;
+				parseData.flags.SetFlag( HAS_FRAG_CLIP );
 			}
 
-			if( !inMain ) {
+			/*if( !inMain ) {
 				if( token == "EARLY_FRAG_TESTS" ) {
-					parseData.data.hasForcedEarlyFragTests = true;
+					parseData.flags.SetFlag( HAS_FORCED_EARLY_FRAG_TESTS );
+					continue;
 				}
-			}
+			}*/
 		}
-		if( shaderType == SHT_VERTEX )
+		if( shaderType == SHT_VERTEX || shaderType == SHT_GEOMETRY )
 		{
 			if( token.is( "matrices_ubo" ) ) {
-				parseData.data.hasHardwareSkinning = true;
+				parseData.flags.SetFlag( HAS_HARDWARE_SKINNING );
 			}
 		}
 
@@ -2194,7 +2856,7 @@ static void ConvertCG2GLSL( const idStr & in, const char* name, progParseData_t 
 
 #undef CHECK_NEW_LINE_AND_SPACES
 
-static void StripDeadCode( const char* in, const char* name, idStr & out, int baseLine )
+static void StripDeadCode( const char* in, const char* name, idStr & out, int baseLine, progParseData_t & parseData )
 {
 	if( r_skipStripDeadProgCode.GetBool() )
 	{
@@ -2218,6 +2880,16 @@ static void StripDeadCode( const char* in, const char* name, idStr & out, int ba
 	idToken token;
 	while( !src.EndOfFile() )
 	{
+		if( src.CheckTokenString( "EARLY_FRAG_TESTS" ) || src.CheckTokenString( "early_frag_tests" ) ) {
+			parseData.flags.SetFlag( HAS_FORCED_EARLY_FRAG_TESTS );
+			continue;
+		}
+
+		/*if( src.CheckTokenString( "UNIFORM_BLOCK" ) )
+		{
+
+		}*/
+
 		auto & block = blocks.Alloc();
 
 		// read prefix
@@ -2310,6 +2982,10 @@ static void StripDeadCode( const char* in, const char* name, idStr & out, int ba
 			else {
 				src.ParseBracedSection( body, -1, true, '{', '}' );
 				block.postfix = parms + " " + body;
+				if( src.CheckTokenString( ";" ) )
+				{
+					block.postfix += ';';
+				}
 			}
 		}
 		else if( src.PeekTokenString( "{" ) )
@@ -2335,14 +3011,16 @@ static void StripDeadCode( const char* in, const char* name, idStr & out, int ba
 	for( int i = 0; i < blocks.Num(); ++i )
 	{
 		//blocks[ i ].used = ( ( blocks[ i ].name == "main" ) || blocks[ i ].name.Right( 4 ) == "_ubo" );
-		blocks[ i ].used = ( !blocks[ i ].name.Icmp( "main_block" ) || blocks[ i ].name.Right( 4 ) == "_ubo" || 
-			!blocks[ i ].name.Icmp( "prim_in" ) || !blocks[ i ].name.Icmp( "prim_out" ) );
+		blocks[ i ].used = ( !blocks[ i ].name.Icmp( "main_block" ) || blocks[ i ].name.Right( 4 ) == "_ubo" ||
+			!blocks[ i ].name.Icmp( "prim_in" ) || !blocks[ i ].name.Icmp( "prim_out" ) || !blocks[ i ].name.Icmp( "prim_inout" ) ||
+			!blocks[ i ].name.Icmp( "UNIFORM_BLOCK" )
+		);
 
-		if( blocks[ i ].name == "include" )
+		/*if( blocks[ i ].name == "include" )
 		{
 			blocks[ i ].used = true;
 			blocks[ i ].name = ""; // clear out the include tag
-		}
+		}*/
 
 		if( blocks[ i ].used )
 		{
@@ -2390,8 +3068,7 @@ static void StripDeadCode( const char* in, const char* name, idStr & out, int ba
 	outstr.ToString( out );
 }
 
-static bool ParseShaderBlock( idParser & src, progParseData_t & parseData, const shaderType_e shaderType, 
-							shaderType_e & prev_shaderType, const char * progName, const char * defScope )
+static bool ParseShaderBlock( idParser & src, progParseData_t & parseData, const shaderType_e shaderType, shaderType_e & prev_shaderType, const char * progName, const char * defScope )
 {
 	parseData.BeginShader( shaderType, prev_shaderType );
 	prev_shaderType = shaderType;
@@ -2400,7 +3077,7 @@ static bool ParseShaderBlock( idParser & src, progParseData_t & parseData, const
 
 	src.PushDefineScope( defScope );
 	if( !src.AddDefine( defScope ) ) {
-		common->Error( "ParseShaderBlock() !src.AddDefine( \"%s\" ) %s", defScope, progName );
+		src.Error( "ParseShaderBlock() !src.AddDefine( \"%s\" ) %s", defScope, progName );
 		return false;
 	}
 
@@ -2426,7 +3103,7 @@ static bool ParseShaderBlock( idParser & src, progParseData_t & parseData, const
 	if( !block.IsEmpty() )
 	{
 		idStr shaderHLSL;
-		StripDeadCode( block.c_str(), progName, shaderHLSL, baseLine );
+		StripDeadCode( block.c_str(), progName, shaderHLSL, baseLine, parseData );
 		block.Clear();
 
 		if( com_developer.GetBool() )
@@ -2437,17 +3114,59 @@ static bool ParseShaderBlock( idParser & src, progParseData_t & parseData, const
 		}
 
 		ConvertCG2GLSL( shaderHLSL, progName, parseData, shaderType );
+		return true;
 	}
+
+	src.Error("Empty %s block", _glslShaderInfo[ shaderType ].shaderTypeDeclName );
+	return false;
 }
 
+static const int PROG_PARSER_FLAGS =
+	//LEXFL_NOERRORS |	// don't print any errors
+	//LEXFL_NOWARNINGS |	// don't print any warnings
+	LEXFL_NOFATALERRORS |	// errors aren't fatal
+	//LEXFL_VCSTYLEREPORTS |	// warnings and errors are reported in M$ VC style
+	//LEXFL_NOSTRINGCONCAT |	// multiple strings separated by whitespaces are not concatenated
+	LEXFL_NOSTRINGESCAPECHARS |	// no escape characters inside strings
+	LEXFL_NODOLLARPRECOMPILE |	// don't use the $ sign for precompilation
+	//LEXFL_NOBASEINCLUDES |	// don't include files embraced with < >
+	//LEXFL_ALLOWPATHNAMES |	// allow path separators in names
+	//LEXFL_ALLOWNUMBERNAMES |	// allow names to start with a number
+	//LEXFL_ALLOWIPADDRESSES |	// allow ip addresses to be parsed as numbers
+	//LEXFL_ALLOWFLOATEXCEPTIONS | 	// allow float exceptions like 1.#INF or 1.#IND to be parsed
+	//LEXFL_ALLOWMULTICHARLITERALS |	// allow multi character literals
+	LEXFL_ALLOWBACKSLASHSTRINGCONCAT |	// allow multiple strings seperated by '\' to be concatenated
+	//LEXFL_ONLYSTRINGS |	// parse as whitespace deliminated strings (quoted strings keep quotes)
+	//LEXFL_NOEMITSTRINGESCAPECHARS |	// no escape characters inside strings
+	LEXFL_ALLOWRAWSTRINGBLOCKS;	// allow raw text blocks embraced with <% %>
+
 /*
-===========================================
-	idDeclRenderProg::Parse
-===========================================
+=====================================================================================================
+ idDeclRenderProg::Parse
+
+	#if defined( HLSL ) && defined( _GS_ )
+		#define TRIANGLE_INPUT 		triangle GS_IN input[3]
+		#define POINT_INPUT 		point GS_IN input[1]
+		#define LINE_INPUT 			line GS_IN input[2]
+		#define LINEADJ_INPUT 		lineadj GS_IN input[4]
+		#define TRIANGLEADJ_INPUT 	triangleadj GS_IN input[6]
+
+		#define TRIANGLE_OUTPUT 	out TriangleStream<GS_OUT> stream
+		#define POINT_OUTPUT 		out PointStream<GS_OUT> stream
+		#define LINE_OUTPUT 		out LineStream<GS_OUT> stream
+
+		#define FinishVertex( x ) stream.Append( x )
+		#define FinishPrimitive() stream.RestartStrip()
+
+		//SEA add this on top of main():
+		#define BeginVertex() GS_OUT output = (GS_OUT)0
+	#endif
+=====================================================================================================
 */
 bool idDeclRenderProg::Parse( const char* text, const int textLength, bool allowBinaryVersion )
 {
-	/*if( cvarSystem->GetCVarBool( "fs_buildresources" ) ) {
+/*
+	if( cvarSystem->GetCVarBool( "fs_buildresources" ) ) {
 		fileSystem->AddProgPreload( GetName() );
 	}
 
@@ -2458,8 +3177,7 @@ bool idDeclRenderProg::Parse( const char* text, const int textLength, bool allow
 		// - Create an MD5 of the hash of the source
 		// - Load the MD5 of the generated, if they differ, create a new generated
 		idStrStatic< MAX_OSPATH > generatedFileName;
-
-		generatedFileName = "generated/renderprogs/";
+		generatedFileName = "generated/renderprogs/glsl/";
 		generatedFileName.AppendPath( GetName() );
 		generatedFileName.SetFileExtension( ".bprog" );
 
@@ -2470,106 +3188,109 @@ bool idDeclRenderProg::Parse( const char* text, const int textLength, bool allow
 		{
 			return true;
 		}
-	}*/
+	}
+*/
 	/////////////////////////////////////////////////////////////////////////////
-
-	const int PROG_PARSER_FLAGS = 
-		//LEXFL_NOERRORS |	// don't print any errors
-		//LEXFL_NOWARNINGS |	// don't print any warnings
-		LEXFL_NOFATALERRORS |	// errors aren't fatal
-		//LEXFL_VCSTYLEREPORTS |	// warnings and errors are reported in M$ VC style
-		//LEXFL_NOSTRINGCONCAT |	// multiple strings separated by whitespaces are not concatenated
-		LEXFL_NOSTRINGESCAPECHARS |	// no escape characters inside strings
-		LEXFL_NODOLLARPRECOMPILE |	// don't use the $ sign for precompilation
-		//LEXFL_NOBASEINCLUDES |	// don't include files embraced with < >
-		//LEXFL_ALLOWPATHNAMES |	// allow path separators in names
-		//LEXFL_ALLOWNUMBERNAMES |	// allow names to start with a number
-		//LEXFL_ALLOWIPADDRESSES |	// allow ip addresses to be parsed as numbers
-		//LEXFL_ALLOWFLOATEXCEPTIONS | 	// allow float exceptions like 1.#INF or 1.#IND to be parsed
-		//LEXFL_ALLOWMULTICHARLITERALS |	// allow multi character literals
-		LEXFL_ALLOWBACKSLASHSTRINGCONCAT |	// allow multiple strings seperated by '\' to be concatenated
-		//LEXFL_ONLYSTRINGS |	// parse as whitespace deliminated strings (quoted strings keep quotes)
-		//LEXFL_NOEMITSTRINGESCAPECHARS |	// no escape characters inside strings
-		LEXFL_ALLOWRAWSTRINGBLOCKS;	// allow raw text blocks embraced with <% %>
-
-	idParser src( PROG_PARSER_FLAGS );
-	src.LoadMemory( text, textLength, GetName(), GetLineNum() );
-	if( !src.IsLoaded() ) 
+	try
 	{
-		common->Error( "idParser:: couldn't load %s", GetName() );
-		return false;
-	}
-	src.SkipUntilString( "{" );
-	/////////////////////////////////////////////////////////////
+		idParser src( PROG_PARSER_FLAGS );
+		src.LoadMemory( text, textLength, GetName(), GetLineNum() );
+		if( !src.IsLoaded() )
+		{
+			///common->Error( "idParser:: couldn't load %s", GetName() );
+			throw idProgException( _Txt( "idParser::LoadMemory() fail for %s", GetName() ));
+			///return false;
+		}
+		src.SetIncludePath( PROG_INCLUDE_PATH );
 
-	src.SetIncludePath( "renderprogs/include" );
+		if( !src.SkipUntilString( "{" ) )
+			throw idProgException( "idParser::SkipUntilString(\"{\") Fail" );
 
-#ifdef ID_PC //SEA: TODO fix global define code!
-	src.AddDefine( "PC" );
+		/////////////////////////////////////////////////////////////
 
-	if( glConfig.driverType == GLDRV_OPENGL_ES3 ) {
-		src.AddDefine( "GLES" );
-	} else {
-		src.AddDefine( "GLSL" );
-	}
+	#ifdef ID_PC //SEA: TODO fix global define code!
+		src.AddDefine( "PC" );
 
-	if( glConfig.vendor == VENDOR_NVIDIA ) {
-		src.AddDefine( "_NVIDIA_" );
-	}
-	else if( glConfig.vendor == VENDOR_AMD ) {
-		src.AddDefine( "_AMD_" );
-	}
-	else if( glConfig.vendor == VENDOR_INTEL ) {
-		src.AddDefine( "_INTEL_" );
-	}
+		if( glConfig.driverType == GLDRV_OPENGL_ES3 ) {
+			src.AddDefine( "GLES" );
+		} else {
+			src.AddDefine( "GLSL" );
+		}
 
-	if( r_useProgUBO.GetBool() ) {
-		src.AddDefine( "USE_UBO_PARMS" );
-	}
+		if( glConfig.vendor == VENDOR_NVIDIA ) {
+			src.AddDefine( "_NVIDIA_" );
+		}
+		else if( glConfig.vendor == VENDOR_AMD ) {
+			src.AddDefine( "_AMD_" );
+		}
+		else if( glConfig.vendor == VENDOR_INTEL ) {
+			src.AddDefine( "_INTEL_" );
+		}
 
-	if( r_useHalfLambertLighting.GetBool() ) {
-		src.AddDefine( "USE_HALF_LAMBERT" );
-	}
-	if( r_useHDR.GetBool() ) {
-		src.AddDefine( "USE_LINEAR_RGB" );
-	}
-	src.AddDefine( "USE_YCOCG" );
+		if( r_useProgUBO.GetBool() ) {
+			src.AddDefine( "USE_UBO_PARMS" );
+		}
 
-	if( GLEW_ARB_gpu_shader5 ) {
-		src.AddDefine( "GS_INSTANCED" );
-		src.AddDefine( "TEXTURE_GATHER" );
-	}
-	if( GLEW_ARB_cull_distance ) {
-		src.AddDefine( "CULL_DISTANCE" );
-	}
+		if( r_useHalfLambertLighting.GetBool() ) {
+			src.AddDefine( "USE_HALF_LAMBERT" );
+		}
+		if( r_useHDR.GetBool() ) {
+			src.AddDefine( "USE_LINEAR_RGB" );
+		}
+		src.AddDefine( "USE_YCOCG" );
+		src.AddDefine( "SKINNING_MAT_COUNT 408" );
 
-	// SMAA configuration
-	src.AddDefine( "SMAA_GLSL_3" );
-	src.AddDefine( "SMAA_RT_METRICS $rpScreenCorrectionFactor" );
-	src.AddDefine( "SMAA_PRESET_HIGH" );
-#else
-	#error Non PC world. Implement Me!
-#endif
+		// Extensions ------------------------
 
-	shaderType_e prev_shaderType = SHT_VERTEX;
+		if( glConfig.gpu_shader5 ) // HLSL Shader Model 5
+		{
+			src.AddDefine( "GS_INSTANCED" ); //  Instance a Geometry Shader, Index Multiple Output Streams
+			src.AddDefine( "TEXTURE_GATHER" );
+			// Tessshaders
+			// Coverage as PS Input
+			// Programmable Interpolation of Inputs - The pixel shader can evaluate attributes within the pixel, anywhere on the multisample grid
+			// Compute shader
+			// conservative oDepth
+			// Addressable Stream output / Increase Stream output count to 4 / Change all stream output buffers to be multi-element
 
-	progParseData_t	parseData;
-	parseData.explicit_attrib_location = GLEW_ARB_explicit_attrib_location;
-	parseData.explicit_uniform_location = GLEW_ARB_explicit_uniform_location;
-	parseData.gpu_shader5 = GLEW_ARB_gpu_shader5;
-	parseData.shading_language_420pack = GLEW_ARB_shading_language_420pack;
-	parseData.cull_distance = GLEW_ARB_cull_distance;
-	parseData.shader_image_load_store = GLEW_ARB_shader_image_load_store;
+			// Doubles with denorms
+			// Count bits set instruction
+			// Find first bit set instruction
+			// Carry / Overflow handling
+			// Bit reversal instructions for FFTs
+			// Conditional Swap intrinsic
+			// Resinfo on buffers
+			// Reduced - precision reciprocal
+			// Shader conversion instructions - fp16 to fp32 and vice versa
+			// Structured buffer, which is a new type of buffer containing structured elements.
 
-	/*if( parseData.explicit_uniform_location ) {
-		src.AddDefine( "EXPLICIT_LOCATIONS" );
-	}
-	if( parseData.shading_language_420pack ) {
-		src.AddDefine( "EXPLICIT_BINDINGS" );
-	}*/
 
-	//try
-	{		
+		}
+		if( glConfig.cull_distance ) src.AddDefine( "CULL_DISTANCE" );
+		if( glConfig.vertex_shader_layer && glConfig.vertex_shader_viewport_index ) src.AddDefine( "GLSL_VS_LAYER_VIEWPORT" );
+		if( glConfig.fragment_layer_viewport ) src.AddDefine( "GLSL_FS_LAYER_VIEWPORT" );
+		if( glConfig.shader_draw_parameters ) src.AddDefine( "GLSL_DRAW_PARMS" );
+		if( glConfig.texture_cube_map_array ) src.AddDefine( "CUBE_MAP_ARRAY" );
+		if( glConfig.sample_shading ) src.AddDefine( "SAMPLE_SHADING" );
+
+	#else
+		#error Non PC world. Implement Me!
+	#endif
+
+		shaderType_e prev_shaderType = SHT_VERTEX;
+		progParseData_t	parseData;
+
+		// support for globals.inc
+		//parseData.dependencies.SetGranularity( 1 );
+		//parseData.dependencies.SetNum( 1 );
+
+		/*if( parseData.explicit_uniform_location ) {
+			src.AddDefine( "EXPLICIT_LOCATIONS" );
+		}
+		if( parseData.shading_language_420pack ) {
+			src.AddDefine( "EXPLICIT_BINDINGS" );
+		}*/
+
 		if( src.CheckTokenString( "parms" ) )
 		{
 			src.SkipBracedSection();
@@ -2583,27 +3304,37 @@ bool idDeclRenderProg::Parse( const char* text, const int textLength, bool allow
 
 		if( src.CheckTokenString( "state" ) )
 		{
-			src.SkipBracedSection();
-			
+			//src.SkipBracedSection();
+
 			//src.AddDefine( "_STATE_" );
+			//src.PushDefineScope( "_STATE_" );
 			//idStrStatic<512> text;
 			//src.ParseBracedSection( text );
 			//src.RemoveDefine( "_STATE_" );
+			//src.PopDefineScope();
 
-			//ParseGLState( parseData );
+			if( !src.ExpectTokenString( "{" ) )
+				throw idProgException( _Txt( "Parse general state block error for '%s'", GetName() ) );
 
-			/*if( !ParseState( src, parseData ) )
+			idToken token;
+			uint64 state = 0;
+			while( !src.CheckTokenString( "}" ) )
 			{
-				src.Error( "ParseState() fail" );
-				return false;
-			}*/
+				if( !idRenderStateParse::ParseGLState( src, state ) )
+				{
+					src.Error( "ParseGLState() fails and defaulted" );
+					state = 0;
+					break;
+				}
+			}
+			parseData.glState = state;
 		}
-		
+
 		if( src.CheckTokenString( "variables" ) )
 		{
 		#if 0
 			idStrStatic<1024> block;
-			src.AddDefine("_VARS_");		
+			src.AddDefine("_VARS_");
 			src.ParseBracedSection( block, -1, '{', '}', true );
 			src.RemoveDefine("_VARS_");
 			if( !block.IsEmpty() )
@@ -2618,124 +3349,197 @@ bool idDeclRenderProg::Parse( const char* text, const int textLength, bool allow
 			idStr block;
 			if( !ParseVariablesBlock( src, block, parseData ) )
 			{
-				src.Error( "ParseVariablesBlock() fail" );
-				return false;
+				throw idProgException( "ParseVariablesBlock() fail" );
+				///return false;
 			}
 		#else
 			src.SkipBracedSection();
 		#endif
 		}
-		
+
 		if( src.CheckTokenString( "vertexShader" ) )
 		{
 			ParseShaderBlock( src, parseData, SHT_VERTEX, prev_shaderType, GetName(), "_VS_" );
 		}
-		
+
 		if( src.CheckTokenString( "tessCtrlShader" ) )
 		{
 			src.SkipBracedSection();
 		}
-		
+
 		if( src.CheckTokenString( "tessEvalShader" ) )
 		{
 			src.SkipBracedSection();
 		}
-		
+
 		if( src.CheckTokenString( "geometryShader" ) )
 		{
 			ParseShaderBlock( src, parseData, SHT_GEOMETRY, prev_shaderType, GetName(), "_GS_" );
 		}
-		
+
 		if( src.CheckTokenString( "fragmentShader" ) )
 		{
 			ParseShaderBlock( src, parseData, SHT_FRAGMENT, prev_shaderType, GetName(), "_FS_" );
 		}
-		
+
 		if( src.CheckTokenString( "computeShader" ) )
 		{
 			src.SkipBracedSection();
 			//src.AddDefine( "_CS_" );
 			//src.RemoveDefine( "_CS_" );
-			//ParseShader( parseData );		
+			//ParseShader( parseData );
 		}
 
-		if( !src.ExpectTokenString("}") )
+		if( !src.ExpectTokenString( "}" ) )
 		{
 			//common->Warning( "unknown program's general block '%s' in '%s'", token.c_str(), GetName() );
+			//return false;
+			throw idProgException(_Txt( "Parse general block error for '%s'", GetName() ));
+		}
+
+		////////////////////////////////////////////////
+	#if 0
+		idStrList dependencies;
+		ID_TIME_T dependenciesTimestamp;
+		const char * inc_name = nullptr;
+		int inc_Count = 0;
+		do {
+			inc_name = src.GetNextDependency( inc_Count );
+			if( inc_name )
+			{
+				common->DPrintf( "---include< %s >\n", inc_name );
+
+				idStrStatic<128> name( inc_name );
+
+				dependenciesTimestamp += fileSystem->GetTimestamp( inc_name );
+
+				name.StripLeadingOnce( PROG_INCLUDE_PATH );
+
+				auto & str = dependencies.Alloc();
+				str = name;
+			}
+		} while( inc_name );
+	#endif
+		//////////////////////////////////////////////////////////////////////////
+		// Save off dependencies
+		parseData.dependencies.Clear();
+		const char * inc_name = NULL;
+		int inc_Count = 0;
+		do {
+			inc_name = src.GetNextDependency( inc_Count );
+			if( inc_name ) {
+				auto str = parseData.dependencies.Alloc(); str->Clear(); *str = inc_name;
+				auto ts = fileSystem->GetTimestamp( inc_name );
+				parseData.dependenciesTimestamp += ts;
+				///common->DPrintf("--- include: \"%s\" %i, %i\n", str->c_str(), ts, inc_Count );
+			}
+		} while( inc_name != NULL );
+		//////////////////////////////////////////////////////////////////////////
+
+		src.FreeSource();
+
+		if( !renderSystem->IsRenderDeviceRunning() )
+		{
+			idLib::Error( "idDeclRenderProg::Parse() called befor render initialization" );
 			return false;
 		}
 
-	} 
-	//catch( idException& )
-	//{
-	//}
-/*
-	// GL_ARB_shading_language_include
-	// #include </foo/bar.glsl>
-	struct glslInclude_t {
-		const char * name;		// defines the name associated with the string.
-		GLint nameLength;		// <namelen> is the number of <char>s in <name>.
-		GLint stringLength;		// the number of <char>s in <string>. 
-		const char * string;
-	};
-	// If <namelen> or <stringlen> are negative, then <name> or <string> respectively are considered to be null - terminated strings
-	glNamedStringARB( GL_SHADER_INCLUDE_ARB, int namelen, const char *name, int stringlen, const char *string );
-	glDeleteNamedStringARB( int namelen, const char *name );
-	glCompileShaderIncludeARB( uint shader, sizei count, const char *const *path, const int *length );
-	//boolean IsNamedStringARB( int namelen, const char *name );
-	//void GetNamedStringARB( int namelen, const char *name, sizei bufSize, int *stringlen, char *string );
-	//void GetNamedStringivARB( int namelen, const char *name, enum pname, int *params );
-*/
-	for( int i = 0; i < parseData.parseTexts.Num(); i++ )
-	{
-		if( parseData.parseTexts[ i ].IsEmpty() )
-			continue;
-
-		idShaderStringBuilder gatherGLSL;
-
-		// Format name and type
-		gatherGLSL += idStrStatic<128>().Format( "// %s%s\n", GetName(), _glslShaderInfo[ i ].shaderTypeName );
-
-		BuiltHeader( gatherGLSL, ( shaderType_e )i );
-
-		SetupLayouts( gatherGLSL, parseData, ( shaderType_e )i );
-		SetupInOutVars( gatherGLSL, parseData, ( shaderType_e )i );
-		SetupParms( gatherGLSL, parseData, ( shaderType_e )i );
-
-		gatherGLSL += "\n";
-		gatherGLSL += parseData.parseTexts[ i ];
-		parseData.parseTexts[ i ].Clear();
-
-		auto & shaderGLSL = parseData.shaderTexts[ i ];
-		gatherGLSL.ToString( shaderGLSL );
-		gatherGLSL.Clear();
-
-		if( com_developer.GetBool() )
+		// Build shader text
+		for( int i = 0; i < parseData.parseTexts.Num(); i++ )
 		{
-			idStrStatic<MAX_OSPATH> outFilePass;
-			outFilePass.Format( "renderprogs/debug/parsed_glsl/%s%s.glsl", GetName(), _glslShaderInfo[ i ].shaderTypeName );
-			fileSystem->WriteFile( outFilePass.c_str(), shaderGLSL.c_str(), shaderGLSL.Length(), "fs_basepath" );
+			if( parseData.parseTexts[ i ].IsEmpty() )
+				continue;
+
+			idShaderStringBuilder gatherGLSL;
+
+			// Format name and type
+			gatherGLSL += _Txt( "// %s%s\n", GetName(), _glslShaderInfo[ i ].shaderTypeName );
+
+			BuiltHeader( gatherGLSL, ( shaderType_e )i );
+
+			SetupLayouts( gatherGLSL, parseData, ( shaderType_e )i );
+			SetupInOutVars( gatherGLSL, parseData, ( shaderType_e )i );
+			SetupParms( gatherGLSL, parseData, ( shaderType_e )i );
+
+			gatherGLSL += "\n";
+			gatherGLSL += parseData.parseTexts[ i ];
+			parseData.parseTexts[ i ].Clear();
+
+			idStr shaderGLSL;
+			gatherGLSL.ToString( shaderGLSL );
+			gatherGLSL.Clear();
+
+			if( com_developer.GetBool() )
+			{
+				idStrStatic<MAX_OSPATH> outFilePass;
+				outFilePass.Format( "renderprogs/debug/parsed_glsl/%s%s.glsl", GetName(), _glslShaderInfo[ i ].shaderTypeName );
+				fileSystem->WriteFile( outFilePass.c_str(), shaderGLSL.c_str(), shaderGLSL.Length(), "fs_basepath" );
+			}
+
+			///uint32 checksum = idHashing::MD5_BlockChecksum( shaderGLSL.c_str(), shaderGLSL.Length() );
+
+			parseData.glslProgram.shaderObjects[ i ] = GL_CreateGLSLShaderObject( ( shaderType_e )i, shaderGLSL.c_str(), GetName() );
+			if( !parseData.glslProgram.shaderObjects[ i ] )
+			{
+				shaderGLSL.Clear();
+				///idLib::Error( "GLSL %s compile error in '%s'", _glslShaderInfo[ i ].shaderTypeDeclName, GetName() );
+				throw idProgException( _Txt( "GLSL %s compile error in '%s'", _glslShaderInfo[ i ].shaderTypeDeclName, GetName() ));
+				///return false;
+			}
+			shaderGLSL.Clear();
 		}
 
-		///uint32 checksum = idHashing::MD5_BlockChecksum( shaderGLSL.c_str(), shaderGLSL.Length() );
+		GL_CreateGLSLProgram( parseData, GetName(), com_developer.GetBool() );
 
-		parseData.glslProgram.shaderObjects[ i ] = GL_CreateGLSLShaderObject( ( shaderType_e )i, shaderGLSL.c_str(), GetName() );
-		if( parseData.glslProgram.shaderObjects[ i ] == GL_ZERO ) 
+		// copy glsl program data
+		*( ( glslProgram_t *)apiObject ) = parseData.glslProgram;
+
+		// copy decl prog data
 		{
-			idLib::Error( "GLSL %s compile error in '%s'", _glslShaderInfo[ i ].shaderTypeDeclName, GetName() );
-			return false;
+		#if 0
+			data.dependencies.SetNum( src.GetDependenciesCount() );
+			const char * inc_name = nullptr;
+			int inc_Count = 0;
+			do {
+				inc_name = src.GetNextDependency( inc_Count );
+				if( inc_name )
+				{
+					data.dependencies[ inc_Count - 1 ] = inc_name;
+					data.dependenciesTimestamp += fileSystem->GetTimestamp( inc_name );
+				}
+			} while( inc_name );
+		#else
+			data.dependencies.SetNum( parseData.dependencies.Num() );
+			for( int i = 0; i < parseData.dependencies.Num(); i++ ) {
+				data.dependencies[ i ] = parseData.dependencies[ i ];
+			}
+			data.dependenciesTimestamp = parseData.dependenciesTimestamp;
+		#endif
+			data.glState = parseData.glState;
+			data.flags = parseData.flags;
+			data.vertexMask = parseData.vertexMask;
+
+			data.vecParms.SetNum( parseData.GetVecParmCount() );
+			for( int i = 0; i < data.vecParms.Num(); i++ ) { data.vecParms[ i ] = parseData.GetVecParm( i ); }
+
+			data.texParms.SetNum( parseData.GetTexParmCount() );
+			for( int i = 0; i < data.texParms.Num(); i++ ) { data.texParms[ i ] = parseData.GetTexParm( i ); }
 		}
-		shaderGLSL.Clear();
 	}
+	catch( idProgException & ex )
+	{
+		/*if( com_developer.GetBool() )
+		{
+			common->Error( ex.GetError() );
+			return false;
+		}*/
 
-	GL_CreateGLSLProgram( parseData, GetName(), true );
+		//SEA: tofix! sometimes stack overflow happenes :(
 
-	memcpy( apiObject, &parseData.glslProgram, sizeof( parseData.glslProgram ) );
-	memcpy( &data, &parseData.data, sizeof( parseData.data ) );
-
-	vecParms.SetNum( parseData.GetVecParmCount() ); for( int i = 0; i < vecParms.Num(); i++ ) { vecParms[i] = parseData.vecParms[i]; }
-	texParms.SetNum( parseData.GetTexParmCount() ); for( int i = 0; i < texParms.Num(); i++ ) { texParms[i] = parseData.texParms[i]; }
-
+		common->Warning( ex.GetError() );
+		MakeDefault();
+		return false;
+	}
 	return true;
 }
 
@@ -2747,7 +3551,7 @@ idDeclRenderProg::idDeclRenderProg
 idDeclRenderProg::idDeclRenderProg()
 {
 	apiObject = new( TAG_RENDERPROG ) glslProgram_t();
-	
+
 	Clear();
 }
 /*
@@ -2777,8 +3581,6 @@ idDeclRenderProg::Clear
 void idDeclRenderProg::Clear()
 {
 	data.Clear();
-	vecParms.Clear();
-	texParms.Clear();
 }
 
 /*
@@ -2804,14 +3606,14 @@ idDeclRenderProg::Size
 */
 size_t idDeclRenderProg::Size() const
 {
-	size_t size = sizeof( *this );
+	size_t size = idDecl::Size();
 
+	size += data.Size();
+
+	size += sizeof( apiObject );
 	if( IsValidAPIObject() ) {
-		size += sizeof( glslProgram_t );
+		size += (( glslProgram_t * )GetAPIObject())->Size();
 	}
-	size += sizeof( data );
-	size += vecParms.Size();
-	size += texParms.Size();
 
 	return size;
 }
@@ -2823,35 +3625,58 @@ idDeclRenderProg::Print
 */
 void idDeclRenderProg::Print() const
 {
-	common->Printf( "Prog: %s, File: %s\n", GetName(), GetFileName() );
-	if( data.hasCoverageOutput ) {
-		common->Printf("\thasCoverageOutput\n");
-	}
-	if( data.hasStencilOutput ) {
-		common->Printf("\thasCoverageOutput\n");
-	}
-	if( data.hasHardwareSkinning ) {
-		common->Printf("\thasHardwareSkinning\n");
-	}
-	if( data.hasOptionalSkinning ) {
-		common->Printf("\thasOptionalSkinning\n");
-	}
-	if( data.hasFragClip ) {
-		common->Printf("\thasFragClip\n");
-	}
-	if( data.hasDepthOutput ) {
-		common->Printf("\thasFragClip\n");
-	}
-	if( data.hasDepthOutput ) {
-		common->Printf("\thasDepthOutput\n");
-	}
-	if( data.hasForcedEarlyFragTests ) {
-		common->Printf("\thasForcedEarlyFragmentTests\n");
+	common->Printf( "Prog: %s, File: %s, Size: %u\n", GetName(), GetFileName(), Size() );
+
+	if( data.dependencies.Num() )
+	{
+		common->Printf( "includes:\n" );
+		for( int i = 0; i < data.dependencies.Num(); i++ )
+		{
+			common->Printf( "\t%s\n", data.dependencies[ i ].c_str() );
+		}
 	}
 
-	for( int i = 0; i < _countof( _vertexAttribsPC ); i++ ) {
-		if( data.vertexMask.HasFlag( BIT( _vertexAttribsPC[ i ].bind ) ) ) {
-			common->Printf( "\tuses vertmask %s\n", _vertexAttribsPC[ i ].glsl );
+	if( !data.flags.IsEmpty() )
+	{
+		common->Printf( "options:\n" );
+		if( HasFlag( HAS_COVERAGE_OUTPUT ) ) common->Printf( "\thasCoverageOutput\n" );
+		if( HasFlag( HAS_STENCIL_OUTPUT ) ) common->Printf( "\thasStencilRefOutput\n" );
+		if( HasFlag( HAS_HARDWARE_SKINNING ) ) common->Printf( "\thasHardwareSkinning\n" );
+		if( HasFlag( HAS_OPTIONAL_SKINNING ) ) common->Printf( "\thasOptionalSkinning\n" );
+		if( HasFlag( HAS_FRAG_CLIP ) ) common->Printf( "\thasFragClip\n" );
+		if( HasFlag( HAS_FRAG_OUTPUT ) ) common->Printf( "\thasFragOutput\n" );
+		if( HasFlag( HAS_MRT_OUTPUT ) ) common->Printf( "\thasMRT\n" );
+		if( HasFlag( HAS_DEPTH_OUTPUT ) ) common->Printf( "\thasDepthOutput\n" );
+		if( HasFlag( HAS_FORCED_EARLY_FRAG_TESTS ) ) common->Printf( "\thasForcedEarlyFragmentTests\n" );
+	}
+
+	if( !data.vertexMask.IsEmpty() )
+	{
+		common->Printf( "vertex attributes:\n" );
+		for( uint32 i = 0; i < _countof( _vertexAttribsPC ); i++ )
+		{
+			if( data.vertexMask.HasFlag( BIT( _vertexAttribsPC[ i ].bind ) ) )
+			{
+				common->Printf( "\t%s\n", _vertexAttribsPC[ i ].glsl );
+			}
+		}
+	}
+
+	if( GetVecParms().Num() )
+	{
+		common->Printf( "vectors:\n" );
+		for( uint32 i = 0; i < GetVecParms().Num(); i++ )
+		{
+			common->Printf( "\t%s\n", GetVecParms()[ i ]->GetName() );
+		}
+	}
+
+	if( GetTexParms().Num() )
+	{
+		common->Printf( "textures:\n" );
+		for( uint32 i = 0; i < GetTexParms().Num(); i++ )
+		{
+			common->Printf( "\t%s\n", GetTexParms()[ i ]->GetName() );
 		}
 	}
 }
@@ -2872,20 +3697,42 @@ idDeclRenderProg::DefaultDefinition
 ===========================================
 */
 const char * idDeclRenderProg::DefaultDefinition() const {
-	return
-	"{ // DefaultDefinition\n\
-		state { depthFunc LEQUAL }\n\
-		vertexShader {\n\
-			output.position.x = dot4( input.position, $MVPmatrixX );\n\
-			output.position.y = dot4( input.position, $MVPmatrixY );\n\
-			output.position.z = dot4( input.position, $MVPmatrixZ );\n\
-			output.position.w = dot4( input.position, $MVPmatrixW );\n\
-		}\n\
-		fragmentShader {\n\
-			output.hcolor = float4( 0.2, 1.0, 0.4, 1.0 );\n\
-		}\n\
-	}\n";
+return
+"{ // DefaultDefinition\n\
+	state { depthFunc LEQUAL }\n\
+	vertexShader { main_block {\n\
+		output.position.x = dot4( input.position, $MVPmatrixX );\n\
+		output.position.y = dot4( input.position, $MVPmatrixY );\n\
+		output.position.z = dot4( input.position, $MVPmatrixZ );\n\
+		output.position.w = dot4( input.position, $MVPmatrixW );\n\
+	}}\n\
+	fragmentShader { main_block {\n\
+		output.hcolor = float4( 0.2, 1.0, 0.4, 1.0 );\n\
+	}}\n\
+}\n";
 }
+
+/*
+===========================================
+idDeclRenderProg::SourceFileChanged
+===========================================
+*/
+bool idDeclRenderProg::SourceFileChanged() const
+{
+	if( idDecl::SourceFileChanged() )
+		return true;
+
+	ID_TIME_T dependenciesTimestamp = 0;
+	for( int i = 0; i < data.dependencies.Num(); i++ ) {
+		dependenciesTimestamp += fileSystem->GetTimestamp( data.dependencies[ i ] );
+		assert( dependenciesTimestamp > 0 );
+	}
+	if( data.dependenciesTimestamp != dependenciesTimestamp )
+		return true;
+
+	return false;
+}
+
 
 /*
 ===========================================
@@ -2894,16 +3741,18 @@ const char * idDeclRenderProg::DefaultDefinition() const {
 */
 bool idDeclRenderProg::ProgUsesParm( const idDeclRenderParm * parm ) const
 {
-	for( int i = 0; i < vecParms.Num(); i++ )
+	assert( parm != nullptr );
+
+	for( int i = 0; i < GetVecParms().Num(); i++ )
 	{
-		if( vecParms[ i ] == parm )
+		if( GetVecParms()[ i ] == parm )
 		{
 			return true;
 		}
 	}
-	for( int i = 0; i < texParms.Num(); i++ )
+	for( int i = 0; i < GetTexParms().Num(); i++ )
 	{
-		if( texParms[ i ] == parm )
+		if( GetTexParms()[ i ] == parm )
 		{
 			return true;
 		}
@@ -2912,7 +3761,24 @@ bool idDeclRenderProg::ProgUsesParm( const idDeclRenderParm * parm ) const
 }
 
 
+struct IncludeEntry {
+	idStr   name;
+	idStr   filename;
+	idStr   content;
+};
+typedef idList<IncludeEntry> IncludeRegistry;
+IncludeRegistry m_includes;
+void GL_RegisterInclude( idStr const & name, idStr const & filename, idStr const & content )
+{
+	IncludeEntry entry;
+	entry.name = name;	// <name> must begin with the character '/'
+	entry.filename = filename;
+	entry.content = content;
 
+	m_includes.Append( entry );
+
+	glNamedStringARB( GL_SHADER_INCLUDE_ARB, name.Length(), name.c_str(), content.Length(), content.c_str() );
+}
 
 
 /*
@@ -2920,7 +3786,7 @@ bool idDeclRenderProg::ProgUsesParm( const idDeclRenderParm * parm ) const
  GL_CreateGLSLShaderObject
 ===========================================
 */
-GLuint GL_CreateGLSLShaderObject( shaderType_e shaderType, const char * sourceGLSL, const char * fileName )
+static GLuint GL_CreateGLSLShaderObject( shaderType_e shaderType, const char * sourceGLSL, const char * fileName )
 {
 	// create and compile the shader
 	const GLuint shader = glCreateShader( _glslShaderInfo[ shaderType ].glTargetType );
@@ -2931,6 +3797,11 @@ GLuint GL_CreateGLSLShaderObject( shaderType_e shaderType, const char * sourceGL
 
 	const char* source[ 1 ] = { sourceGLSL };
 	glShaderSource( shader, 1, source, NULL );
+
+	//GLsizei count;
+	//const GLchar * incPaths[1];
+	//idList<const GLchar *> incPaths;
+	//glCompileShaderIncludeARB( shader, incPaths.Num(), incPaths.Ptr(), NULL );
 	glCompileShader( shader );
 
 	GLint compiled = GL_FALSE;
@@ -2987,13 +3858,15 @@ GLuint GL_CreateGLSLShaderObject( shaderType_e shaderType, const char * sourceGL
 */
 void GL_CreateGLSLProgram( progParseData_t & parseData, const char * progName, bool bRetrieveBinary )
 {
+	assert( progName != nullptr );
+
 	auto & shaderObjects = parseData.glslProgram.shaderObjects;
 
-	if( !shaderObjects[ shaderType_e::SHT_VERTEX ] || !shaderObjects[ shaderType_e::SHT_FRAGMENT ] )
+	if( !shaderObjects[ SHT_VERTEX ] || !shaderObjects[ SHT_FRAGMENT ] )
 	{
-		idLib::Error( "Fail to create GLSL program VS:%u, FS:%u ( VS&FS must be valid )", 
-			shaderObjects[ shaderType_e::SHT_VERTEX ], shaderObjects[ shaderType_e::SHT_FRAGMENT ] );
-		return;
+		///idLib::Error( "Fail to create GLSL program VS:%u, FS:%u ( VS&FS must be valid )", shaderObjects[ SHT_VERTEX ], shaderObjects[ SHT_FRAGMENT ] );
+		throw idProgException(_Txt( "Fail to create GLSL program for '%s' VS:%u, FS:%u ( VS&FS must be valid )", progName, shaderObjects[ SHT_VERTEX ], shaderObjects[ SHT_FRAGMENT ] ));
+		///return;
 	}
 
 	const GLuint program = glCreateProgram();
@@ -3001,6 +3874,12 @@ void GL_CreateGLSLProgram( progParseData_t & parseData, const char * progName, b
 	{
 		idLib::Error( "Fail to create GLSL program object for %s", progName );
 		return;
+	}
+	if( GLEW_KHR_debug )
+	{
+		idStrStatic<128> name;
+		name.Format( "GLSLProg( %u, %s )", program, progName );
+		glObjectLabel( GL_PROGRAM, program, name.Length(), name.c_str() );
 	}
 
 	for( int i = 0; i < shaderObjects.Num(); i++ )
@@ -3011,7 +3890,7 @@ void GL_CreateGLSLProgram( progParseData_t & parseData, const char * progName, b
 	}
 
 	// Bind input / output attributes locations.
-	if( !parseData.explicit_attrib_location )
+	if( !glConfig.explicit_attrib_location )
 	{
 		// bind vertex input locations
 		for( int i = 0; i < parseData.vsInputs.Num(); i++ )
@@ -3019,6 +3898,7 @@ void GL_CreateGLSLProgram( progParseData_t & parseData, const char * progName, b
 			auto & var = parseData.vsInputs[ i ];
 			glBindAttribLocation( program, var.bind, var.glsl );
 		}
+		parseData.vsInputs.Clear();
 
 		// bind fragment output locations
 		for( int i = 0; i < parseData.fsOutputs.Num(); i++ )
@@ -3026,6 +3906,7 @@ void GL_CreateGLSLProgram( progParseData_t & parseData, const char * progName, b
 			auto & var = parseData.fsOutputs[ i ];
 			glBindFragDataLocation( program, var.bind, var.glsl );
 		}
+		parseData.fsOutputs.Clear();
 
 		// bind transform feedback attributes
 		/*for( size_t i = 0; i < 0; i++ ) {
@@ -3051,20 +3932,20 @@ void GL_CreateGLSLProgram( progParseData_t & parseData, const char * progName, b
 			idTempArray<char> infoLog( infologLength );
 			glGetProgramInfoLog( program, infologLength, NULL, infoLog.Ptr() );
 
-			idLib::Printf( S_COLOR_LT_GREY "Linking GLSL prog:%u with vs:%u, ts1:%u, ts2:%u, gs:%u, fs:%u Fail. InfoLog:" S_COLOR_DEFAULT "\n", 
-				program, 
-				shaderObjects[ shaderType_e::SHT_VERTEX ], 
-				shaderObjects[ shaderType_e::SHT_TESS_CTRL ], 
-				shaderObjects[ shaderType_e::SHT_TESS_EVAL ], 
-				shaderObjects[ shaderType_e::SHT_GEOMETRY ], 
-				shaderObjects[ shaderType_e::SHT_FRAGMENT ] 
+			idLib::Printf( S_COLOR_LT_GREY "Linking GLSL prog:%u with vs:%u, ts1:%u, ts2:%u, gs:%u, fs:%u Fail. InfoLog:" S_COLOR_DEFAULT "\n",
+				program,
+				shaderObjects[ shaderType_e::SHT_VERTEX ],
+				shaderObjects[ shaderType_e::SHT_TESS_CTRL ],
+				shaderObjects[ shaderType_e::SHT_TESS_EVAL ],
+				shaderObjects[ shaderType_e::SHT_GEOMETRY ],
+				shaderObjects[ shaderType_e::SHT_FRAGMENT ]
 			);
 			idLib::Printf( S_COLOR_LT_GREY "%s" S_COLOR_DEFAULT "\n", infoLog.Ptr() );
 		}
 
 		glDeleteProgram( program );
-		idLib::Error( "Failed linkage ( Prog:%u Name:%s )\n", program, progName );
-		return;
+		throw idProgException(_Txt( "Failed linkage ( Prog:%u Name:%s )\n", program, progName ));
+		///return;
 	}
 
 	GLint valid = GL_FALSE;
@@ -3092,8 +3973,8 @@ void GL_CreateGLSLProgram( progParseData_t & parseData, const char * progName, b
 		}
 
 		glDeleteProgram( program );
-		idLib::Error( "Failed validation ( Prog:%u Name:%s )\n", program, progName );
-		return;
+		throw idProgException(_Txt( "Failed validation ( Prog:%u Name:%s )\n", program, progName ));
+		///return;
 	}
 
 	if( bRetrieveBinary )
@@ -3136,7 +4017,7 @@ void GL_CreateGLSLProgram( progParseData_t & parseData, const char * progName, b
 	{
 		if( r_useProgUBO.GetBool() )
 		{
-			if( !parseData.shading_language_420pack )
+			if( !glConfig.shading_language_420pack )
 			{
 				// get the uniform buffer binding for prog parameters
 				GLint blockIndex = glGetUniformBlockIndex( program, "parms_ubo" );
@@ -3152,10 +4033,10 @@ void GL_CreateGLSLProgram( progParseData_t & parseData, const char * progName, b
 			parseData.glslProgram.parmBlockIndex = glGetUniformLocation( program, COMMON_PARMBLOCK_NAME );
 		}
 	}
-	
-	// set the texture unit locations once for the render program. 
+
+	// set the texture unit locations once for the render program.
 	// We only need to do this once since we only link the program once.
-	if( !parseData.shading_language_420pack )
+	if( !glConfig.shading_language_420pack )
 	{
 		glUseProgram( program );
 		for( int i = 0; i < parseData.GetTexParmCount(); ++i )
@@ -3172,100 +4053,4 @@ void GL_CreateGLSLProgram( progParseData_t & parseData, const char * progName, b
 	parseData.glslProgram.programObject = program;
 }
 
-/*
-===========================================
- idDeclRenderProg::CommitUniforms
-===========================================
-*/
-void idDeclRenderProg::CommitUniforms() const
-{
-	///const char * SHT[ SHT_MAX ] = { "VS", "TCS", "TES", "GS", "FS" };
-
-	auto prog = ( const glslProgram_t * )GetAPIObject();
-
-	/*{
-		auto & parms = GetSmpParms();
-		for( int i = 0; i < parms.Num(); ++i )
-		{
-			GLuint sampler;
-			glBindSampler( i, sampler );
-		}
-	}*/
-	{
-		auto & parms = GetTexParms();
-		for( int i = 0; i < parms.Num(); ++i )
-		{
-			GL_BindTexture( i, parms[ i ]->GetImage() );
-		}
-	}
-
-	if( r_useProgUBO.GetBool() && GetVecParms().Num() )
-	{
-		auto & ubo = backEnd.progParmsUniformBuffer; //GetParmsUBO();
-		const GLuint bo = reinterpret_cast<GLuint>( ubo.GetAPIObject() );
-		const GLuint bindIndex = BINDING_PROG_PARMS_UBO;
-
-		idRenderVector localVectors[ 128 ];
-		auto & parms = GetVecParms();
-		for( int i = 0; i < parms.Num(); ++i )
-		{
-		#if defined( USE_INTRINSICS )
-			_mm_store_ps( localVectors[ i ].ToFloatPtr(), _mm_load_ps( parms[ i ]->GetVecPtr() ) );
-		#else
-			localVectors[ i ] = parms[ i ]->GetVec4();
-		#endif
-		}
-		const int updateSize = parms.Num() * sizeof( idRenderVector );
-		ubo.Update( updateSize, localVectors->ToFloatPtr() );
-
-		/*auto bufPtr = ( idRenderVector * )ubo.MapBuffer( BM_WRITE );
-		for( int i = 0; i < parms.Num(); ++i )
-		{
-		#if defined( USE_INTRINSICS )
-			_mm_stream_ps( bufPtr[ i ].ToFloatPtr(), _mm_load_ps( parms[ i ]->GetVecPtr() ) );
-		#else
-			bufPtr[ i ] = parms[ i ]->GetVec4();
-		#endif
-		}
-		ubo.UnmapBuffer();*/
-
-		// When you use glBindBufferRange on uniform buffers, the `offset` parameter must be aligned to an implementation-dependent 
-		// value: GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT.
-		glBindBufferRange( GL_UNIFORM_BUFFER, bindIndex, bo, ubo.GetOffset(), updateSize );
-		///glBindBufferBase( GL_UNIFORM_BUFFER, bindIndex, bo );
-
-		RENDERLOG_PRINT( "UBO( binding:%u, count:%i, size:%i, offset:%i, bsize:%i )\n", bindIndex, parms.Num(), updateSize, ubo.GetOffset(), ubo.GetSize() );
-	} 
-	else // Uniform Arrays
-	{
-		const GLint uniformArray = prog->parmBlockIndex;
-		if( uniformArray != -1 )
-		{
-			idRenderVector localVectors[ 128 ];
-
-			auto & parms = GetVecParms();
-			for( int i = 0; i < parms.Num(); ++i )
-			{
-			#if defined( USE_INTRINSICS )
-				_mm_store_ps( localVectors[ i ].ToFloatPtr(), _mm_load_ps( parms[ i ]->GetVecPtr() ) );
-			#else
-				localVectors[ i ] = parms[ i ]->GetVec4();
-			#endif
-			}
-			glUniform4fv( uniformArray, parms.Num(), localVectors->ToFloatPtr() );
-
-			RENDERLOG_PRINT( "Uniforms( Binding:%i, Count:%i )\n", uniformArray, parms.Num() );
-		}
-	}
-}
-
-/*
-===========================================
- idDeclRenderProg::Bind
-===========================================
-*/
-void idDeclRenderProg::Bind() const
-{
-	auto prog = ( const glslProgram_t * )GetAPIObject();
-	glUseProgram( prog->programObject );
-}
+#undef _Txt

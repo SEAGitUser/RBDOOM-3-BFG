@@ -184,6 +184,7 @@ public:
 	virtual void				Init2();
 	virtual void				Shutdown();
 	virtual void				Reload( bool force );
+	virtual void				ReloadType( declType_t type, bool force );
 	virtual void				BeginLevelLoad();
 	virtual void				EndLevelLoad();
 	virtual void				RegisterDeclType( const char* typeName, declType_t type, idDecl * ( *allocator )() );
@@ -669,14 +670,13 @@ int idDeclFile::LoadAndParse()
 	idToken		token;
 	int			startMarker;
 	char* 		buffer;
-	int			length, size;
 	int			sourceLine;
 	idStr		name;
 	bool		reparse;
 	
 	// load the text
 	common->DPrintf( "...loading '%s'\n", fileName.c_str() );
-	length = fileSystem->ReadFile( fileName, ( void** )&buffer, &timestamp );
+	int length = fileSystem->ReadFile( fileName, ( void** )&buffer, &timestamp );
 	if( length == -1 )
 	{
 		common->FatalError( "couldn't load %s", fileName.c_str() );
@@ -686,8 +686,8 @@ int idDeclFile::LoadAndParse()
 	src.SetFlags( DECL_LEXER_FLAGS );
 	if( !src.LoadMemory( buffer, length, fileName ) )
 	{
-		common->Error( "Couldn't load %s", fileName.c_str() );
 		Mem_Free( buffer );
+		common->Error( "Couldn't load %s", fileName.c_str() );
 		return 0;
 	}
 	
@@ -787,7 +787,7 @@ int idDeclFile::LoadAndParse()
 		
 		// now take everything until a matched closing brace
 		src.SkipBracedSection();
-		size = src.GetFileOffset() - startMarker;
+		int size = src.GetFileOffset() - startMarker;
 		
 		// look it up, possibly getting a newly created default decl
 		reparse = false;
@@ -1016,6 +1016,17 @@ void idDeclManagerLocal::Reload( bool force )
 	for( int i = 0; i < loadedFiles.Num(); ++i )
 	{
 		loadedFiles[ i ]->Reload( force );
+	}
+}
+
+void idDeclManagerLocal::ReloadType( declType_t type, bool force )
+{
+	for( int i = 0; i < loadedFiles.Num(); ++i )
+	{
+		if( loadedFiles[ i ]->defaultType == type )
+		{
+			loadedFiles[ i ]->Reload( force );
+		}
 	}
 }
 
@@ -2579,10 +2590,7 @@ bool idDeclLocal::SourceFileChanged() const
 	ID_TIME_T newTimestamp;
 	int newLength = fileSystem->ReadFile( GetFileName(), NULL, &newTimestamp );
 	
-	if( newLength != sourceFile->fileSize || newTimestamp != sourceFile->timestamp ) {
-		return true;
-	}	
-	return false;
+	return ( newLength != sourceFile->fileSize || newTimestamp != sourceFile->timestamp );
 }
 
 ID_TIME_T idDeclLocal::GetSourceTimestamp() const
@@ -2598,14 +2606,13 @@ idDeclLocal::MakeDefault
 void idDeclLocal::MakeDefault()
 {
 	static int recursionLevel;
-	const char* defaultText;
 	
 	declManagerLocal.MediaPrint( "DEFAULTED\n" );
 	declState = DS_DEFAULTED;
 	
 	AllocateSelf();
 	
-	defaultText = self->DefaultDefinition();
+	const char * defaultText = self->DefaultDefinition();
 	
 	// a parse error inside a DefaultDefinition() string could
 	// cause an infinite loop, but normal default definitions could

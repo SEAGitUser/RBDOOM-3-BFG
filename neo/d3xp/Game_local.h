@@ -334,11 +334,11 @@ public:
 	int						cinematicMaxSkipTime;	// time to end cinematic when skipping.  there's a possibility of an infinite loop if the map isn't set up right.
 	bool					inCinematic;			// game is playing cinematic (player controls frozen)
 	bool					skipCinematic;
-	
+private:
 	int						framenum;
 	int						time;					// in msec
 	int						previousTime;			// time in msec of last frame
-	
+public:
 	int						vacuumAreaNum;			// -1 if level doesn't have any outside areas
 	
 	gameType_t				gameType;

@@ -690,7 +690,7 @@ void idIK_Walk::Evaluate()
 			{
 				w += footModel->GetTraceModel()->verts[j];
 			}
-			gameRenderWorld->DebugWinding( colorRed, w, results.endpos, results.endAxis );
+			gameRenderWorld->DebugWinding( idColor::red.ToVec4(), w, results.endpos, results.endAxis );
 		}
 	}
 	
@@ -815,10 +815,10 @@ void idIK_Walk::Evaluate()
 		
 		if( ik_debug.GetBool() )
 		{
-			gameRenderWorld->DebugLine( colorCyan, hipOrigin, kneeOrigin );
-			gameRenderWorld->DebugLine( colorRed, kneeOrigin, jointOrigins[i] );
-			gameRenderWorld->DebugLine( colorYellow, kneeOrigin, kneeOrigin + hipDir );
-			gameRenderWorld->DebugLine( colorGreen, kneeOrigin, kneeOrigin + kneeDir );
+			gameRenderWorld->DebugLine( idColor::cyan.ToVec4(), hipOrigin, kneeOrigin );
+			gameRenderWorld->DebugLine( idColor::red.ToVec4(), kneeOrigin, jointOrigins[i] );
+			gameRenderWorld->DebugLine( idColor::yellow.ToVec4(), kneeOrigin, kneeOrigin + hipDir );
+			gameRenderWorld->DebugLine( idColor::green.ToVec4(), kneeOrigin, kneeOrigin + kneeDir );
 		}
 		
 		// get the axis for the hip joint
@@ -1178,10 +1178,10 @@ void idIK_Reach::Evaluate()
 		
 		if( ik_debug.GetBool() )
 		{
-			gameRenderWorld->DebugLine( colorCyan, shoulderOrigin, elbowOrigin );
-			gameRenderWorld->DebugLine( colorRed, elbowOrigin, handOrigin );
-			gameRenderWorld->DebugLine( colorYellow, elbowOrigin, elbowOrigin + elbowDir );
-			gameRenderWorld->DebugLine( colorGreen, elbowOrigin, elbowOrigin + shoulderDir );
+			gameRenderWorld->DebugLine( idColor::cyan.ToVec4(), shoulderOrigin, elbowOrigin );
+			gameRenderWorld->DebugLine( idColor::red.ToVec4(), elbowOrigin, handOrigin );
+			gameRenderWorld->DebugLine( idColor::yellow.ToVec4(), elbowOrigin, elbowOrigin + elbowDir );
+			gameRenderWorld->DebugLine( idColor::green.ToVec4(), elbowOrigin, elbowOrigin + shoulderDir );
 		}
 		
 		// get the axis for the shoulder joint

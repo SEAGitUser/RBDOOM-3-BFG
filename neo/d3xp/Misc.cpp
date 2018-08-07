@@ -162,7 +162,7 @@ void idPlayerStart::Event_TeleportStage( idEntity* _player )
 	switch( teleportStage )
 	{
 		case 0:
-			player->playerView.Flash( colorWhite, 125 );
+			player->playerView.Flash( idColor::white.ToVec4(), 125 );
 			player->SetInfluenceLevel( INFLUENCE_LEVEL3 );
 			player->SetInfluenceView( spawnArgs.GetString( "mtr_teleportFx" ), NULL, 0.0f, NULL );
 			gameSoundWorld->FadeSoundClasses( 0, -20.0f, teleportDelay );
@@ -408,7 +408,7 @@ void idPathCorner::DrawDebugInfo()
 		}
 		
 		idVec3 org = ent->GetPhysics()->GetOrigin();
-		gameRenderWorld->DebugBounds( colorRed, bnds, org, 0 );
+		gameRenderWorld->DebugBounds( idColor::red.ToVec4(), bnds, org, 0 );
 	}
 }
 
@@ -2421,12 +2421,12 @@ void idTextEntity::Think()
 {
 	if( thinkFlags & TH_THINK )
 	{
-		gameRenderWorld->DrawText( text, GetPhysics()->GetOrigin(), 0.25, colorWhite, playerOriented ? gameLocal.GetLocalPlayer()->viewAngles.ToMat3() : GetPhysics()->GetAxis().Transpose(), 1 );
+		gameRenderWorld->DrawText( text, GetPhysics()->GetOrigin(), 0.25, idColor::white.ToVec4(), playerOriented ? gameLocal.GetLocalPlayer()->viewAngles.ToMat3() : GetPhysics()->GetAxis().Transpose(), 1 );
 		for( int i = 0; i < targets.Num(); i++ )
 		{
 			if( targets[i].GetEntity() )
 			{
-				gameRenderWorld->DebugArrow( colorBlue, GetPhysics()->GetOrigin(), targets[i].GetEntity()->GetPhysics()->GetOrigin(), 1 );
+				gameRenderWorld->DebugArrow( idColor::blue.ToVec4(), GetPhysics()->GetOrigin(), targets[i].GetEntity()->GetPhysics()->GetOrigin(), 1 );
 			}
 		}
 	}
@@ -3970,7 +3970,7 @@ void idShockwave::Think()
 		
 		if( g_debugShockwave.GetBool() )
 		{
-			gameRenderWorld->DebugBounds( colorRed,  bounds, vec3_origin );
+			gameRenderWorld->DebugBounds( idColor::red.ToVec4(),  bounds, vec3_origin );
 		}
 		
 		listedClipModels = gameLocal.clip.ClipModelsTouchingBounds( bounds, -1, clipModelList, MAX_GENTITIES );

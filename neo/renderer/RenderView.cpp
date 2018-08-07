@@ -6,8 +6,8 @@
 
 /*
 =====================================================================================================
-	
-	idRenderView	
+
+	idRenderView
 
 	A view may be either the actual camera view,
 	a mirror / remote location, or a 3D view on a gui surface.
@@ -28,14 +28,14 @@ idCVar r_jitter( "r_jitter", "0", CVAR_RENDERER | CVAR_BOOL, "randomly subpixel 
 
  ModifyProjectionMatrix
 
- The following code modifies the OpenGL projection matrix so that the near plane of the standard 
- view frustum is moved so that it coincides with a given arbitrary plane. The far plane is adjusted 
- so that the resulting view frustum has the best shape possible. This code assumes that the original 
+ The following code modifies the OpenGL projection matrix so that the near plane of the standard
+ view frustum is moved so that it coincides with a given arbitrary plane. The far plane is adjusted
+ so that the resulting view frustum has the best shape possible. This code assumes that the original
  projection matrix is a perspective projection (standard or infinite). The clipPlane parameter must
- be in camera-space coordinates, and its w-coordinate must be negative (corresponding to the camera 
+ be in camera-space coordinates, and its w-coordinate must be negative (corresponding to the camera
  being on the negative side of the plane).
 
- For algorithmic details, see “Oblique View Frustum Depth Projection and Clipping”, 
+ For algorithmic details, see “Oblique View Frustum Depth Projection and Clipping”,
  by Eric Lengyel. This technique is also described in Game Programming Gems 5, Section 2.6.
 
 =========================================================
@@ -371,7 +371,7 @@ void idRenderView::DeriveData()
 	}
 
 	// setup the matrix for world space to eye space
-	{		
+	{
 		memset( &this->worldSpace, 0, sizeof( this->worldSpace ) );
 
 		// the model matrix is an identity
@@ -456,7 +456,7 @@ void idRenderView::DeriveData()
 		this->frustums[ FRUSTUM_PRIMARY ][ 4 ][ 3 ] -= r_znear.GetFloat();
 	}
 
-	// RB Shadow maps split frustums 
+	// RB Shadow maps split frustums
 	if( r_useShadowMapping.GetBool() )
 	{
 		const float zNearStart = this->GetZNear();
@@ -549,7 +549,7 @@ void idRenderView::ScreenRectFromWinding( const idWinding & w, const idRenderMat
 
 		GlobalToNormalizedDeviceCoordinates( v, ndc );
 
-		screenRect.AddPoint( 
+		screenRect.AddPoint(
 			( ndc[ 0 ] * 0.5f + 0.5f ) * viewWidth,		// windowX
 			( ndc[ 1 ] * 0.5f + 0.5f ) * viewHeight		// windowY
 		);
@@ -765,11 +765,60 @@ bool CullLightToView( const idRenderLightLocal* light, idBounds *_projected )
 		idRenderMatrix::ProjectedFullyClippedBounds( projected, invProjectMVPMatrix, bounds_zeroOneCube );
 	}
 
-	if( _projected ) 
+	if( _projected )
 	{
 		*_projected = projected;
 	}
 
 	// 'true' if the light was culled to the view frustum
 	return( projected[ 0 ][ 2 ] >= projected[ 1 ][ 2 ] );
+}
+
+/*
+======================
+ TAA
+	idVec3 translation = GetHaltonSequence();
+	viewProjection = viewProjection * Matrix.CreateTranslation( translation );
+======================
+*/
+const idVec3 & GetHaltonSequence()
+{
+	static idVec3 _inverseResolution;
+
+	static idVec3 * _haltonSequence;
+	static int _haltonSequenceIndex = -1;
+	static const int HaltonSequenceLength = 16;
+
+	//First time? Create the sequence
+	if( _haltonSequence == nullptr )
+	{
+		_haltonSequence = new idVec3[ HaltonSequenceLength ];
+		for( int index = 0; index < HaltonSequenceLength; index++ )
+		{
+			for( int baseValue = 2; baseValue <= 3; baseValue++ )
+			{
+				float result = 0;
+				float f = 1;
+				int i = index + 1;
+
+				while( i > 0 )
+				{
+					f = f / baseValue;
+					result = result + f * ( i % baseValue );
+					i = i / baseValue; //floor / int()
+				}
+
+				if( baseValue == 2 )
+					_haltonSequence[ index ].x = ( result - 0.5f ) * 2.0f * _inverseResolution.x;
+				else
+					_haltonSequence[ index ].y = ( result - 0.5f ) * 2.0f * _inverseResolution.y;
+			}
+		}
+	}
+
+	_haltonSequenceIndex++;
+	if( _haltonSequenceIndex >= HaltonSequenceLength ) {
+		_haltonSequenceIndex = 0;
+	}
+	return _haltonSequence[ _haltonSequenceIndex ];
 }

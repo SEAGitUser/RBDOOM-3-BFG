@@ -221,7 +221,7 @@ void idSliderWindow::SetValue( float _value )
 
 void idSliderWindow::Draw( int time, float x, float y )
 {
-	idVec4 color = foreColor;
+	idColor color = foreColor;
 	
 	if( !cvar && !buddyWin )
 	{
@@ -251,7 +251,7 @@ void idSliderWindow::Draw( int time, float x, float y )
 		return;
 	}
 	
-	float thumbPos = ( range ) ? ( value - low ) / range : 0.0;
+	float thumbPos = ( range )? (( value - low ) / range ) : 0.0;
 	if( vertical )
 	{
 		if( verticalFlip )
@@ -275,7 +275,7 @@ void idSliderWindow::Draw( int time, float x, float y )
 	
 	if( hover && !noEvents && Contains( gui->CursorX(), gui->CursorY() ) )
 	{
-		color = hoverColor;
+		color = hoverColor.ToVec4();
 	}
 	else
 	{
@@ -283,7 +283,7 @@ void idSliderWindow::Draw( int time, float x, float y )
 	}
 	if( flags & WIN_CAPTURE )
 	{
-		color = hoverColor;
+		color = hoverColor.ToVec4();
 		hover = true;
 	}
 	

@@ -80,7 +80,6 @@ void SSDCrossHair::ReadFromSaveGame( idFile* savefile )
 
 void SSDCrossHair::InitCrosshairs()
 {
-
 	crosshairMaterial[CROSSHAIR_STANDARD] = declManager->FindMaterial( CROSSHAIR_STANDARD_MATERIAL );
 	crosshairMaterial[CROSSHAIR_SUPER] = declManager->FindMaterial( CROSSHAIR_SUPER_MATERIAL );
 	
@@ -93,11 +92,10 @@ void SSDCrossHair::InitCrosshairs()
 
 void SSDCrossHair::Draw( const idVec2& cursor )
 {
-
 	float x, y;
 	x = cursor.x - ( crosshairWidth / 2 );
 	y = cursor.y - ( crosshairHeight / 2 );
-	dc->DrawMaterial( x, y, crosshairWidth, crosshairHeight, crosshairMaterial[currentCrosshair], colorWhite, 1.0f, 1.0f );
+	dc->DrawMaterial( x, y, crosshairWidth, crosshairHeight, crosshairMaterial[currentCrosshair], idColor::white, 1.0f, 1.0f );
 	
 }
 
@@ -118,7 +116,6 @@ SSDEntity::~SSDEntity()
 
 void SSDEntity::WriteToSaveGame( idFile* savefile )
 {
-
 	savefile->Write( &type, sizeof( type ) );
 	game->WriteSaveGameString( materialName, savefile );
 	savefile->Write( &position, sizeof( position ) );
@@ -147,7 +144,6 @@ void SSDEntity::WriteToSaveGame( idFile* savefile )
 
 void SSDEntity::ReadFromSaveGame( idFile* savefile,  idGameSSDWindow* _game )
 {
-
 	savefile->Read( &type, sizeof( type ) );
 	game->ReadSaveGameString( materialName, savefile );
 	SetMaterial( materialName );
@@ -260,9 +256,7 @@ void SSDEntity::Update()
 
 bool SSDEntity::HitTest( const idVec2& pt )
 {
-
-	if( noHit )
-	{
+	if( noHit ) {
 		return false;
 	}
 	
@@ -283,13 +277,12 @@ bool SSDEntity::HitTest( const idVec2& pt )
 	{
 		return true;
 	}
+
 	return false;
 }
 
 void SSDEntity::Draw()
 {
-
-
 	idVec2 persize;
 	float x, y;
 	
@@ -322,7 +315,6 @@ void SSDEntity::DestroyEntity()
 
 idBounds SSDEntity::WorldToScreen( const idBounds worldBounds )
 {
-
 	idVec3 screenMin = WorldToScreen( worldBounds[0] );
 	idVec3 screenMax = WorldToScreen( worldBounds[1] );
 	
@@ -332,7 +324,6 @@ idBounds SSDEntity::WorldToScreen( const idBounds worldBounds )
 
 idVec3 SSDEntity::WorldToScreen( const idVec3& worldPos )
 {
-
 	float d = 0.5f * V_WIDTH * idMath::Tan( DEG2RAD( 90.0f ) / 2.0f );
 	
 	//World To Camera Coordinates
@@ -913,10 +904,10 @@ void SSDPoints::Init( idGameSSDWindow* _game, SSDEntity* _ent, int _points, int 
 	endPosition.y += _distance;
 	
 	//beginColor.Set(0,1,0,1);
-	endColor.Set( 1, 1, 1, 0 );
+	endColor.Set( 1.0, 1.0, 1.0, 0.0 );
 	
 	beginColor = color;
-	beginColor.w = 1;
+	beginColor.a = 1.0;
 	
 	noPlayerDamage = true;
 	noHit = true;
@@ -924,7 +915,6 @@ void SSDPoints::Init( idGameSSDWindow* _game, SSDEntity* _ent, int _points, int 
 
 void SSDPoints::EntityUpdate()
 {
-
 	float t = ( float )( currentTime - beginTime ) / ( float )length;
 	
 	//Move up from the start position

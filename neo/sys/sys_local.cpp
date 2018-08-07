@@ -42,36 +42,7 @@ idCVar sys_lang( "sys_lang", ID_LANG_ENGLISH, CVAR_SYSTEM | CVAR_INIT, "", sysLa
 idSysLocal sysLocal;
 idSys * sys = &sysLocal;
 
-
-double idSysLocal::GetClockTicks()
-{
-	return Sys_GetClockTicks();
-}
-
-double idSysLocal::ClockTicksPerSecond()
-{
-	return Sys_ClockTicksPerSecond();
-}
-
-cpuid_t idSysLocal::GetProcessorId()
-{
-	return Sys_GetProcessorId();
-}
-
-const char* idSysLocal::GetProcessorString()
-{
-	return Sys_GetProcessorString();
-}
-
-bool idSysLocal::LockMemory( void* ptr, int bytes )
-{
-	return Sys_LockMemory( ptr, bytes );
-}
-
-bool idSysLocal::UnlockMemory( void* ptr, int bytes )
-{
-	return Sys_UnlockMemory( ptr, bytes );
-}
+/////////////////////////////////////////////////////////////////////////////////////////////////////
 
 void idSysLocal::DLL_GetFileName( const char* baseName, char* dllName, int maxLength )
 {
@@ -143,8 +114,8 @@ const char* Sys_TimeStampToStr( ID_TIME_T timeStamp )
 		out += ":";
 		out += va( "%02d", time->tm_min );
 	}
+
 	idStr::Copynz( timeString, out, sizeof( timeString ) );
-	
 	return timeString;
 }
 

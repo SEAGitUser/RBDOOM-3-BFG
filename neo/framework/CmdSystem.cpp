@@ -370,7 +370,6 @@ idCmdSystemLocal::Init
 */
 void idCmdSystemLocal::Init()
 {
-
 	AddCommand( "listCmds", List_f, CMD_FL_SYSTEM, "lists commands" );
 	AddCommand( "listSystemCmds", SystemList_f, CMD_FL_SYSTEM, "lists system commands" );
 	AddCommand( "listRendererCmds", RendererList_f, CMD_FL_SYSTEM, "lists renderer commands" );
@@ -724,8 +723,7 @@ void idCmdSystemLocal::ExecuteCommandBuffer()
 	idCmdArgs	args;
 	
 	while( textLength )
-	{
-	
+	{	
 		if( wait )
 		{
 			// skip out while text still remains in buffer, leaving it for next frame
@@ -743,25 +741,24 @@ void idCmdSystemLocal::ExecuteCommandBuffer()
 			{
 				quotes++;
 			}
-			if( !( quotes & 1 ) &&  text[i] == ';' )
+			if( !( quotes & 1 ) && text[ i ] == ';' )
 			{
 				break;	// don't break if inside a quoted string
 			}
-			if( text[i] == '\n' || text[i] == '\r' )
+			if( text[ i ] == '\n' || text[ i ] == '\r' )
 			{
 				break;
 			}
 		}
 		
-		text[i] = 0;
+		text[ i ] = 0;
 		
 		if( !idStr::Cmp( text, "_execTokenized" ) )
 		{
 			args = tokenizedCmds[ 0 ];
 			tokenizedCmds.RemoveIndex( 0 );
 		}
-		else
-		{
+		else {
 			args.TokenizeString( text, false );
 		}
 		
@@ -773,8 +770,7 @@ void idCmdSystemLocal::ExecuteCommandBuffer()
 		{
 			textLength = 0;
 		}
-		else
-		{
+		else {
 			i++;
 			textLength -= i;
 			memmove( text, text + i, textLength );

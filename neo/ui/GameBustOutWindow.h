@@ -45,7 +45,7 @@ public:
 	idStr					materialName;
 	const idMaterial* 		material;
 	float					width, height;
-	idVec4					color;
+	idColor					color;
 	idVec2					position;
 	idVec2					velocity;
 	

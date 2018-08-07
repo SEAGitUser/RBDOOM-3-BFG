@@ -182,11 +182,12 @@ void idMaterial::FreeData()
 		for( int i = 0; i < numStages; i++ )
 		{
 			// delete any idCinematic textures
-			if( stages[ i ].texture.cinematic != NULL )
-			{ 
+			if( stages[ i ].texture.cinematic != nullptr )
+			{
 				delete stages[ i ].texture.cinematic;
-				stages[ i ].texture.cinematic = NULL;
+				stages[ i ].texture.cinematic = nullptr;
 			}
+
 			if( stages[ i ].newStage != NULL )
 			{
 				stages[ i ].newStage->Clear();
@@ -1180,9 +1181,8 @@ void idMaterial::ParseFragmentMap( idLexer& src, stageParseData_t* newStage )
 
 	textureFilter_t tf = TF_DEFAULT;
 	textureRepeat_t trp = TR_REPEAT;
-
 	textureUsage_t td = TD_DEFAULT;
-	textureLayout_t cubeMap = IMG_LAYOUT_2D;
+	textureLayout_t layout = IMG_LAYOUT_2D;
 
 	src.ReadTokenOnLine( &token );
 	int	unit = token.GetIntValue();
@@ -1215,12 +1215,12 @@ void idMaterial::ParseFragmentMap( idLexer& src, stageParseData_t* newStage )
 		}
 		if( token.is( "cubeMap" ) )
 		{
-			cubeMap = IMG_LAYOUT_CUBE_NATIVE;
+			layout = IMG_LAYOUT_CUBE_NATIVE;
 			continue;
 		}
 		if( token.is( "cameraCubeMap" ) )
 		{
-			cubeMap = IMG_LAYOUT_CUBE_CAMERA;
+			layout = IMG_LAYOUT_CUBE_CAMERA;
 			continue;
 		}
 
@@ -1254,7 +1254,7 @@ void idMaterial::ParseFragmentMap( idLexer& src, stageParseData_t* newStage )
 			trp = TR_CLAMP_TO_ZERO_ALPHA;
 			continue;
 		}
-		
+
 		if( token.is( "forceHighQuality" ) )
 		{
 			continue;
@@ -1279,7 +1279,7 @@ void idMaterial::ParseFragmentMap( idLexer& src, stageParseData_t* newStage )
 
 	str = R_ParsePastImageProgram( src );
 
-	newStage->textures[ unit ].image = renderImageManager->ImageFromFile( str, tf, trp, td, cubeMap );
+	newStage->textures[ unit ].image = renderImageManager->ImageFromFile( str, tf, trp, td, layout );
 	if( !newStage->textures[ unit ].image )
 	{
 		newStage->textures[ unit ].image = renderImageManager->defaultImage;
@@ -1351,26 +1351,23 @@ An open brace has been parsed
 */
 void idMaterial::ParseStage( idLexer& src, const textureRepeat_t trpDefault )
 {
-	idToken	token;
-	char imageName[ MAX_IMAGE_NAME ];
-	int	a, b;
-	int	matrix[ 2 ][ 3 ];
-
 	if( numStages >= MAX_SHADER_STAGES )
 	{
 		SetMaterialFlag( MF_DEFAULTED );
 		common->Warning( "material '%s' exceeded %i stages", GetName(), MAX_SHADER_STAGES );
 	}
 
-	textureFilter_t tf = TF_DEFAULT;
-	textureRepeat_t trp = trpDefault;
-	textureUsage_t td = TD_DEFAULT;
-	textureLayout_t cubeMap = IMG_LAYOUT_2D;
+	char imageName[ MAX_IMAGE_NAME ] = { 0 };
 
-	imageName[ 0 ] = 0;
+	int	a, b, matrix[ 2 ][ 3 ];
+
+	textureFilter_t tf = TF_DEFAULT;
+	textureWrap_t trp = trpDefault;
+	textureUsage_t td = TD_DEFAULT;
+	textureLayout_t layout = IMG_LAYOUT_2D;
 
 	stageParseData_t newStage;
-	///memset( &newStage, 0, sizeof( newStage ) );
+
 	int program = -1;
 	int fragmentProgram = -1;
 	int vertexProgram = -1;
@@ -1380,10 +1377,11 @@ void idMaterial::ParseStage( idLexer& src, const textureRepeat_t trpDefault )
 
 	ClearStage( ss );
 
+	idToken	token;
 	while( 1 )
 	{
-		if( TestMaterialFlag( MF_DEFAULTED ) ) { 	
-			// we have a parse error 
+		if( TestMaterialFlag( MF_DEFAULTED ) ) {
+			// we have a parse error
 			return;
 		}
 		if( !src.ExpectAnyToken( &token ) ) {
@@ -1470,11 +1468,9 @@ void idMaterial::ParseStage( idLexer& src, const textureRepeat_t trpDefault )
 					continue;
 				}
 			}
-			ts->cinematic = idCinematic::Alloc();
-			ts->cinematic->InitFromFile( token.c_str(), loop );
+			ts->cinematic = renderCinematicManager->CreateFromFile( token.c_str(), loop );
 			continue;
 		}
-
 		if( !token.Icmp( "soundmap" ) )
 		{
 			if( !src.ReadToken( &token ) )
@@ -1486,27 +1482,24 @@ void idMaterial::ParseStage( idLexer& src, const textureRepeat_t trpDefault )
 			ts->cinematic->InitFromFile( token.c_str(), true );
 			continue;
 		}
-
 		if( !token.Icmp( "map" ) )
 		{
 			auto str = R_ParsePastImageProgram( src );
 			idStr::Copynz( imageName, str, sizeof( imageName ) );
 			continue;
 		}
-
 		if( !token.Icmp( "cubeMap" ) )
 		{
 			auto str = R_ParsePastImageProgram( src );
 			idStr::Copynz( imageName, str, sizeof( imageName ) );
-			cubeMap = IMG_LAYOUT_CUBE_NATIVE;
+			layout = IMG_LAYOUT_CUBE_NATIVE;
 			continue;
 		}
-
 		if( !token.Icmp( "cameraCubeMap" ) )
 		{
 			auto str = R_ParsePastImageProgram( src );
 			idStr::Copynz( imageName, str, sizeof( imageName ) );
-			cubeMap = IMG_LAYOUT_CUBE_CAMERA;
+			layout = IMG_LAYOUT_CUBE_CAMERA;
 			continue;
 		}
 
@@ -1682,7 +1675,7 @@ void idMaterial::ParseStage( idLexer& src, const textureRepeat_t trpDefault )
 		if( !token.Icmp( "rotate" ) )
 		{
 			const idDeclTable* table;
-			int		sinReg, cosReg;
+			int	sinReg, cosReg;
 
 			// in cycles
 			a = ParseExpression( src );
@@ -1885,17 +1878,17 @@ void idMaterial::ParseStage( idLexer& src, const textureRepeat_t trpDefault )
 	///if( newStage.fragmentProgram || newStage.vertexProgram )
 	if( program != -1 || fragmentProgram != -1 || vertexProgram != -1 )
 	{
-		///newStage.glslProgram = renderProgManager.FindGLSLProgram( GetName(), newStage.vertexProgram, newStage.fragmentProgram );		
+		///newStage.glslProgram = renderProgManager.FindGLSLProgram( GetName(), newStage.vertexProgram, newStage.fragmentProgram );
 		ss->newStage = allocManager.StaticAlloc< newShaderStage_t >();
-		///memcpy( ss->newStage, &newStage, sizeof( newShaderStage_t ) );		
-		
+		///memcpy( ss->newStage, &newStage, sizeof( newShaderStage_t ) );
+
 		// Copy parsed parms
 
 		ss->newStage->program = program;
 		if( ss->newStage->program == -1 ) {
 			ss->newStage->program = ( fragmentProgram != -1 )? fragmentProgram : vertexProgram;
 		}
-		release_assert( ss->newStage->program != -1 );
+		assert( ss->newStage->program != -1 );
 
 		ss->newStage->numVectors = newStage.numVectors;
 		ss->newStage->numTextures = newStage.numTextures;
@@ -1945,7 +1938,7 @@ void idMaterial::ParseStage( idLexer& src, const textureRepeat_t trpDefault )
 		// now load the image with all the parms we parsed for the coverage stage
 		if( imageName[ 0 ] )
 		{
-			newCoverageStage.texture.image = renderImageManager->ImageFromFile( imageName, tf, trp, TD_COVERAGE, cubeMap );
+			newCoverageStage.texture.image = renderImageManager->ImageFromFile( imageName, tf, trp, TD_COVERAGE, layout );
 			if( !newCoverageStage.texture.image )
 			{
 				newCoverageStage.texture.image = renderImageManager->defaultImage;
@@ -1961,7 +1954,7 @@ void idMaterial::ParseStage( idLexer& src, const textureRepeat_t trpDefault )
 	// now load the image with all the parms we parsed
 	if( imageName[ 0 ] )
 	{
-		ts->image = renderImageManager->ImageFromFile( imageName, tf, trp, td, cubeMap );
+		ts->image = renderImageManager->ImageFromFile( imageName, tf, trp, td, layout );
 		if( !ts->image )
 		{
 			ts->image = renderImageManager->defaultImage;
@@ -2581,7 +2574,7 @@ void idMaterial::ParseMaterial( idLexer& src )
 	{
 		for( int i = 0; i < numStages; i++ )
 		{
-			if( pd->parseStages[ i ].lighting != SL_AMBIENT || 
+			if( pd->parseStages[ i ].lighting != SL_AMBIENT ||
 				pd->parseStages[ i ].texture.texgen != TG_EXPLICIT )
 			{
 				if( cullType == CT_TWO_SIDED )
@@ -2701,7 +2694,7 @@ bool idMaterial::Parse( const char* text, const int textLength, bool allowBinary
 			( pd->parseStages[ 0 ].drawStateBits & GLS_SRCBLEND_BITS ) == GLS_SRCBLEND_DST_COLOR ||
 			( pd->parseStages[ 0 ].drawStateBits & GLS_SRCBLEND_BITS ) == GLS_SRCBLEND_ONE_MINUS_DST_COLOR ||
 			( pd->parseStages[ 0 ].drawStateBits & GLS_SRCBLEND_BITS ) == GLS_SRCBLEND_DST_ALPHA ||
-			( pd->parseStages[ 0 ].drawStateBits & GLS_SRCBLEND_BITS ) == GLS_SRCBLEND_ONE_MINUS_DST_ALPHA ) 
+			( pd->parseStages[ 0 ].drawStateBits & GLS_SRCBLEND_BITS ) == GLS_SRCBLEND_ONE_MINUS_DST_ALPHA )
 		{
 			// blended with the destination
 			coverage = MC_TRANSLUCENT;
@@ -2789,12 +2782,12 @@ bool idMaterial::Parse( const char* text, const int textLength, bool allowBinary
 		{
 			// post-process effects fill the depth buffer as they draw, so only the
 			// topmost post-process effect is rendered
-			pStage->drawStateBits |= GLS_DEPTHFUNC_LESS;
+			pStage->drawStateBits |= GLS_DEPTHFUNC_LEQUAL;
 		}
 		else if( coverage == MC_TRANSLUCENT || pStage->ignoreAlphaTest )
 		{
 			// translucent surfaces can extend past the exactly marked depth buffer
-			pStage->drawStateBits |= GLS_DEPTHFUNC_LESS | GLS_DEPTHMASK;
+			pStage->drawStateBits |= GLS_DEPTHFUNC_LEQUAL | GLS_DEPTHMASK;
 		}
 		else {
 			// opaque and perforated surfaces must exactly match the depth buffer,
@@ -2960,7 +2953,7 @@ set to their apropriate values.
 ===============
 */
 void idMaterial::EvaluateRegisters(
-	float* 			registers,
+	float 			registers[],
 	const float		localShaderParms[ MAX_ENTITY_SHADER_PARMS ],
 	const float		globalShaderParms[ MAX_GLOBAL_SHADER_PARMS ],
 	const float		floatTime,
@@ -2977,6 +2970,7 @@ void idMaterial::EvaluateRegisters(
 
 	// copy the local and global parameters
 	registers[ EXP_REG_TIME ] = floatTime;
+
 	registers[ EXP_REG_PARM0 ]  = localShaderParms[ 0 ];
 	registers[ EXP_REG_PARM1 ]  = localShaderParms[ 1 ];
 	registers[ EXP_REG_PARM2 ]  = localShaderParms[ 2 ];
@@ -2989,6 +2983,7 @@ void idMaterial::EvaluateRegisters(
 	registers[ EXP_REG_PARM9 ]  = localShaderParms[ 9 ];
 	registers[ EXP_REG_PARM10 ] = localShaderParms[ 10 ];
 	registers[ EXP_REG_PARM11 ] = localShaderParms[ 11 ];
+
 	registers[ EXP_REG_GLOBAL0 ] = globalShaderParms[ 0 ];
 	registers[ EXP_REG_GLOBAL1 ] = globalShaderParms[ 1 ];
 	registers[ EXP_REG_GLOBAL2 ] = globalShaderParms[ 2 ];
@@ -3449,4 +3444,67 @@ fail:
 	fastPathBumpImage = NULL;
 	fastPathDiffuseImage = NULL;
 	fastPathSpecularImage = NULL;
+}
+
+
+
+
+/*
+======================
+ RB_GetShaderTextureMatrix
+======================
+*/
+void idMaterial::GetTexMatrixFromStage( const float* shaderRegisters, const textureStage_t* texture, float matrix[ 16 ] )
+{
+	matrix[ 0 * 4 + 0 ] = shaderRegisters[ texture->matrix[ 0 ][ 0 ] ];
+	matrix[ 1 * 4 + 0 ] = shaderRegisters[ texture->matrix[ 0 ][ 1 ] ];
+	matrix[ 2 * 4 + 0 ] = 0.0f;
+	matrix[ 3 * 4 + 0 ] = shaderRegisters[ texture->matrix[ 0 ][ 2 ] ];
+
+	matrix[ 0 * 4 + 1 ] = shaderRegisters[ texture->matrix[ 1 ][ 0 ] ];
+	matrix[ 1 * 4 + 1 ] = shaderRegisters[ texture->matrix[ 1 ][ 1 ] ];
+	matrix[ 2 * 4 + 1 ] = 0.0f;
+	matrix[ 3 * 4 + 1 ] = shaderRegisters[ texture->matrix[ 1 ][ 2 ] ];
+
+	// we attempt to keep scrolls from generating incredibly large texture values, but
+	// center rotations and center scales can still generate offsets that need to be > 1
+	if( matrix[ 3 * 4 + 0 ] < -40.0f || matrix[ 3 * 4 + 0 ] > 40.0f ) matrix[ 3 * 4 + 0 ] -= ( int ) matrix[ 3 * 4 + 0 ];
+	if( matrix[ 3 * 4 + 1 ] < -40.0f || matrix[ 3 * 4 + 1 ] > 40.0f ) matrix[ 3 * 4 + 1 ] -= ( int ) matrix[ 3 * 4 + 1 ];
+
+	matrix[ 0 * 4 + 2 ] = 0.0f;
+	matrix[ 1 * 4 + 2 ] = 0.0f;
+	matrix[ 2 * 4 + 2 ] = 1.0f;
+	matrix[ 3 * 4 + 2 ] = 0.0f;
+
+	matrix[ 0 * 4 + 3 ] = 0.0f;
+	matrix[ 1 * 4 + 3 ] = 0.0f;
+	matrix[ 2 * 4 + 3 ] = 0.0f;
+	matrix[ 3 * 4 + 3 ] = 1.0f;
+}
+void idMaterial::GetTexMatrixFromStage( const float* shaderRegisters, const textureStage_t * texture, idRenderMatrix & matrix )
+{
+	matrix[ 0 ][ 0 ] = shaderRegisters[ texture->matrix[ 0 ][ 0 ] ];
+	matrix[ 0 ][ 1 ] = shaderRegisters[ texture->matrix[ 0 ][ 1 ] ];
+	matrix[ 0 ][ 2 ] = 0.0f;
+	matrix[ 0 ][ 3 ] = shaderRegisters[ texture->matrix[ 0 ][ 2 ] ];
+
+	matrix[ 1 ][ 0 ] = shaderRegisters[ texture->matrix[ 1 ][ 0 ] ];
+	matrix[ 1 ][ 1 ] = shaderRegisters[ texture->matrix[ 1 ][ 1 ] ];
+	matrix[ 1 ][ 2 ] = 0.0f;
+	matrix[ 1 ][ 3 ] = shaderRegisters[ texture->matrix[ 1 ][ 2 ] ];
+
+	// we attempt to keep scrolls from generating incredibly large texture values, but
+	// center rotations and center scales can still generate offsets that need to be > 1
+	if( matrix[ 0 ][ 3 ] < -40.0f || matrix[ 0 ][ 3 ] > 40.0f ) matrix[ 0 ][ 3 ] -= ( int ) matrix[ 0 ][ 3 ];
+	if( matrix[ 1 ][ 3 ] < -40.0f || matrix[ 1 ][ 3 ] > 40.0f ) matrix[ 1 ][ 3 ] -= ( int ) matrix[ 1 ][ 3 ];
+
+	matrix[ 2 ][ 0 ] = 0.0f;
+	matrix[ 2 ][ 1 ] = 0.0f;
+	matrix[ 2 ][ 2 ] = 1.0f;
+	matrix[ 2 ][ 3 ] = 0.0f;
+
+	matrix[ 3 ][ 0 ] = 0.0f;
+	matrix[ 3 ][ 1 ] = 0.0f;
+	matrix[ 3 ][ 2 ] = 0.0f;
+	matrix[ 3 ][ 3 ] = 1.0f;
 }

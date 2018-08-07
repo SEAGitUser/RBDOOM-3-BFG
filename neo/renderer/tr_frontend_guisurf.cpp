@@ -57,75 +57,75 @@ void R_SurfaceToTextureAxis( const idTriangles* tri, idVec3& origin, idMat3& axi
 	// find the bounds of the texture
 	idVec2 boundsMin( 999999.0f, 999999.0f );
 	idVec2 boundsMax( -999999.0f, -999999.0f );
-	for( int i = 0 ; i < tri->numVerts ; i++ )
+	for( int i = 0; i < tri->numVerts; i++ )
 	{
-		const idVec2 uv = tri->verts[i].GetTexCoord();
+		const idVec2 uv = tri->verts[ i ].GetTexCoord();
 		boundsMin.x = idMath::Min( uv.x, boundsMin.x );
 		boundsMax.x = idMath::Max( uv.x, boundsMax.x );
 		boundsMin.y = idMath::Min( uv.y, boundsMin.y );
 		boundsMax.y = idMath::Max( uv.y, boundsMax.y );
 	}
-	
+
 	// use the floor of the midpoint as the origin of the
 	// surface, which will prevent a slight misalignment
 	// from throwing it an entire cycle off
 	const idVec2 boundsOrg( idMath::Floor( ( boundsMin.x + boundsMax.x ) * 0.5f ), idMath::Floor( ( boundsMin.y + boundsMax.y ) * 0.5f ) );
-	
+
 	// determine the world S and T vectors from the first drawSurf triangle
-	
+
 	// RB: added check wether GPU skinning is available at all
 	const idJointMat* joints = ( tri->staticModelWithJoints != NULL && r_useGPUSkinning.GetBool() && glConfig.gpuSkinningAvailable )? tri->staticModelWithJoints->jointsInverted : NULL;
 	// RB end
-	
-	const idVec3 aXYZ = idDrawVert::GetSkinnedDrawVertPosition( tri->verts[ tri->indexes[0] ], joints );
-	const idVec3 bXYZ = idDrawVert::GetSkinnedDrawVertPosition( tri->verts[ tri->indexes[1] ], joints );
-	const idVec3 cXYZ = idDrawVert::GetSkinnedDrawVertPosition( tri->verts[ tri->indexes[2] ], joints );
-	
-	const idVec2 aST = tri->verts[ tri->indexes[0] ].GetTexCoord();
-	const idVec2 bST = tri->verts[ tri->indexes[1] ].GetTexCoord();
-	const idVec2 cST = tri->verts[ tri->indexes[2] ].GetTexCoord();
-	
-	float d0[5];
-	d0[0] = bXYZ[0] - aXYZ[0];
-	d0[1] = bXYZ[1] - aXYZ[1];
-	d0[2] = bXYZ[2] - aXYZ[2];
-	d0[3] = bST.x - aST.x;
-	d0[4] = bST.y - aST.y;
-	
-	float d1[5];
-	d1[0] = cXYZ[0] - aXYZ[0];
-	d1[1] = cXYZ[1] - aXYZ[1];
-	d1[2] = cXYZ[2] - aXYZ[2];
-	d1[3] = cST.x - aST.x;
-	d1[4] = cST.y - aST.y;
-	
-	const float area = d0[3] * d1[4] - d0[4] * d1[3];
+
+	const idVec3 aXYZ = idDrawVert::GetSkinnedDrawVertPosition( tri->verts[ tri->indexes[ 0 ] ], joints );
+	const idVec3 bXYZ = idDrawVert::GetSkinnedDrawVertPosition( tri->verts[ tri->indexes[ 1 ] ], joints );
+	const idVec3 cXYZ = idDrawVert::GetSkinnedDrawVertPosition( tri->verts[ tri->indexes[ 2 ] ], joints );
+
+	const idVec2 aST = tri->verts[ tri->indexes[ 0 ] ].GetTexCoord();
+	const idVec2 bST = tri->verts[ tri->indexes[ 1 ] ].GetTexCoord();
+	const idVec2 cST = tri->verts[ tri->indexes[ 2 ] ].GetTexCoord();
+
+	float d0[ 5 ];
+	d0[ 0 ] = bXYZ[ 0 ] - aXYZ[ 0 ];
+	d0[ 1 ] = bXYZ[ 1 ] - aXYZ[ 1 ];
+	d0[ 2 ] = bXYZ[ 2 ] - aXYZ[ 2 ];
+	d0[ 3 ] = bST.x - aST.x;
+	d0[ 4 ] = bST.y - aST.y;
+
+	float d1[ 5 ];
+	d1[ 0 ] = cXYZ[ 0 ] - aXYZ[ 0 ];
+	d1[ 1 ] = cXYZ[ 1 ] - aXYZ[ 1 ];
+	d1[ 2 ] = cXYZ[ 2 ] - aXYZ[ 2 ];
+	d1[ 3 ] = cST.x - aST.x;
+	d1[ 4 ] = cST.y - aST.y;
+
+	const float area = d0[ 3 ] * d1[ 4 ] - d0[ 4 ] * d1[ 3 ];
 	if( area == 0.0f )
 	{
-		axis[0].Zero();
-		axis[1].Zero();
-		axis[2].Zero();
+		axis[ 0 ].Zero();
+		axis[ 1 ].Zero();
+		axis[ 2 ].Zero();
 		return;	// degenerate
 	}
 	const float inva = 1.0f / area;
-	
-	axis[0][0] = ( d0[0] * d1[4] - d0[4] * d1[0] ) * inva;
-	axis[0][1] = ( d0[1] * d1[4] - d0[4] * d1[1] ) * inva;
-	axis[0][2] = ( d0[2] * d1[4] - d0[4] * d1[2] ) * inva;
-	
-	axis[1][0] = ( d0[3] * d1[0] - d0[0] * d1[3] ) * inva;
-	axis[1][1] = ( d0[3] * d1[1] - d0[1] * d1[3] ) * inva;
-	axis[1][2] = ( d0[3] * d1[2] - d0[2] * d1[3] ) * inva;
-	
+
+	axis[ 0 ][ 0 ] = ( d0[ 0 ] * d1[ 4 ] - d0[ 4 ] * d1[ 0 ] ) * inva;
+	axis[ 0 ][ 1 ] = ( d0[ 1 ] * d1[ 4 ] - d0[ 4 ] * d1[ 1 ] ) * inva;
+	axis[ 0 ][ 2 ] = ( d0[ 2 ] * d1[ 4 ] - d0[ 4 ] * d1[ 2 ] ) * inva;
+
+	axis[ 1 ][ 0 ] = ( d0[ 3 ] * d1[ 0 ] - d0[ 0 ] * d1[ 3 ] ) * inva;
+	axis[ 1 ][ 1 ] = ( d0[ 3 ] * d1[ 1 ] - d0[ 1 ] * d1[ 3 ] ) * inva;
+	axis[ 1 ][ 2 ] = ( d0[ 3 ] * d1[ 2 ] - d0[ 2 ] * d1[ 3 ] ) * inva;
+
 	idPlane plane;
 	plane.FromPoints( aXYZ, bXYZ, cXYZ );
-	axis[2][0] = plane[0];
-	axis[2][1] = plane[1];
-	axis[2][2] = plane[2];
-	
+	axis[ 2 ][ 0 ] = plane[ 0 ];
+	axis[ 2 ][ 1 ] = plane[ 1 ];
+	axis[ 2 ][ 2 ] = plane[ 2 ];
+
 	// take point 0 and project the vectors to the texture origin
-	VectorMA( aXYZ, boundsOrg.x - aST.x, axis[0], origin );
-	VectorMA( origin, boundsOrg.y - aST.y, axis[1], origin );
+	VectorMA( aXYZ, boundsOrg.x - aST.x, axis[ 0 ], origin );
+	VectorMA( origin, boundsOrg.y - aST.y, axis[ 1 ], origin );
 }
 
 /*
@@ -136,14 +136,14 @@ R_AddInGameGuis
 void R_AddInGameGuis( idRenderView * const renderView )
 {
 	SCOPED_PROFILE_EVENT( "R_AddInGameGuis" );
-	
+
 	// check for gui surfaces
 	for( int i = 0; i < renderView->numDrawSurfs; ++i )
 	{
 		const drawSurf_t * const drawSurf = renderView->drawSurfs[ i ];
 
 		idUserInterface* gui = drawSurf->material->GlobalGui();
-		
+
 		int guiNum = drawSurf->material->GetEntityGui() - 1;
 		if( guiNum >= 0 && guiNum < MAX_RENDERENTITY_GUI )
 		{
@@ -152,12 +152,12 @@ void R_AddInGameGuis( idRenderView * const renderView )
 				gui = drawSurf->space->entityDef->GetParms().gui[ guiNum ];
 			}
 		}
-		
+
 		if( gui == NULL )
 		{
 			continue;
 		}
-		
+
 		idBounds ndcBounds;
 		if( !renderView->PreciseCullSurface( drawSurf, ndcBounds ) )
 		{
@@ -193,10 +193,10 @@ void R_AddInGameGuis( idRenderView * const renderView )
 				const float inGameGUIVirtualHeight = r_gui_vr_y.GetFloat();
 
 				idRenderMatrix guiTransform;
-				idRenderMatrix::CreateFromOriginAxisScale( origin, axis, 
-					idVec3( ( 1.0f / inGameGUIVirtualWidth ), ( 1.0f / inGameGUIVirtualHeight ), 1.0f ), 
-					guiTransform );
-				
+				idRenderMatrix::CreateFromOriginAxisScale( origin, axis,
+														   idVec3( ( 1.0f / inGameGUIVirtualWidth ), ( 1.0f / inGameGUIVirtualHeight ), 1.0f ),
+														   guiTransform );
+
 				idRenderMatrix::Multiply( drawSurf->space->modelMatrix, guiTransform, guiModelMatrix );
 			}
 

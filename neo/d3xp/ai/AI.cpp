@@ -1311,7 +1311,7 @@ void idAI::Think()
 	}
 	/*	this still draws in retail builds.. not sure why.. don't care at this point.
 		if ( !aas && developer.GetBool() && !fl.hidden && !num_cinematics ) {
-			gameRenderWorld->DrawText( "No AAS", physicsObj.GetAbsBounds().GetCenter(), 0.1f, colorWhite, gameLocal.GetLocalPlayer()->viewAngles.ToMat3(), 1, 1 );
+			gameRenderWorld->DrawText( "No AAS", physicsObj.GetAbsBounds().GetCenter(), 0.1f, idColor::white.ToVec4(), gameLocal.GetLocalPlayer()->viewAngles.ToMat3(), 1, 1 );
 		}
 	*/
 	
@@ -1325,7 +1325,7 @@ void idAI::Think()
 	if( ai_showHealth.GetBool() )
 	{
 		idVec3 aboveHead( 0, 0, 20 );
-		gameRenderWorld->DrawText( va( "%d", ( int )health ), this->GetEyePosition() + aboveHead, 0.5f, colorWhite, gameLocal.GetLocalPlayer()->viewAngles.ToMat3() );
+		gameRenderWorld->DrawText( va( "%d", ( int )health ), this->GetEyePosition() + aboveHead, 0.5f, idColor::white.ToVec4(), gameLocal.GetLocalPlayer()->viewAngles.ToMat3() );
 	}
 }
 
@@ -1666,8 +1666,8 @@ float idAI::TravelDistance( const idVec3& start, const idVec3& end ) const
 		
 		if( ai_debugMove.GetBool() )
 		{
-			gameRenderWorld->DebugLine( colorBlue, start, end, 1, false );
-			gameRenderWorld->DrawText( va( "%d", ( int )dist ), ( start + end ) * 0.5f, 0.1f, colorWhite, gameLocal.GetLocalPlayer()->viewAngles.ToMat3() );
+			gameRenderWorld->DebugLine( idColor::blue.ToVec4(), start, end, 1, false );
+			gameRenderWorld->DrawText( va( "%d", ( int )dist ), ( start + end ) * 0.5f, 0.1f, idColor::white.ToVec4(), gameLocal.GetLocalPlayer()->viewAngles.ToMat3() );
 		}
 		
 		return dist;
@@ -1690,8 +1690,8 @@ float idAI::TravelDistance( const idVec3& start, const idVec3& end ) const
 		
 		if( ai_debugMove.GetBool() )
 		{
-			gameRenderWorld->DebugLine( colorBlue, start, end, 1, false );
-			gameRenderWorld->DrawText( va( "%d", ( int )dist ), ( start + end ) * 0.5f, 0.1f, colorWhite, gameLocal.GetLocalPlayer()->viewAngles.ToMat3() );
+			gameRenderWorld->DebugLine( idColor::blue.ToVec4(), start, end, 1, false );
+			gameRenderWorld->DrawText( va( "%d", ( int )dist ), ( start + end ) * 0.5f, 0.1f, idColor::white.ToVec4(), gameLocal.GetLocalPlayer()->viewAngles.ToMat3() );
 		}
 		
 		return dist;
@@ -2624,7 +2624,7 @@ bool idAI::GetMovePos( idVec3& seekPos )
 		seekPos = org + move.moveDir * 2048.0f;
 		if( ai_debugMove.GetBool() )
 		{
-			gameRenderWorld->DebugLine( colorYellow, org, seekPos, 1, true );
+			gameRenderWorld->DebugLine( idColor::yellow.ToVec4(), org, seekPos, 1, true );
 		}
 	}
 	else
@@ -2634,7 +2634,7 @@ bool idAI::GetMovePos( idVec3& seekPos )
 	
 	if( result && ( ai_debugMove.GetBool() ) )
 	{
-		gameRenderWorld->DebugLine( colorCyan, physicsObj.GetOrigin(), seekPos );
+		gameRenderWorld->DebugLine( idColor::cyan.ToVec4(), physicsObj.GetOrigin(), seekPos );
 	}
 	
 	return result;
@@ -2802,9 +2802,9 @@ void idAI::Turn()
 	if( ai_debugMove.GetBool() )
 	{
 		const idVec3& org = physicsObj.GetOrigin();
-		gameRenderWorld->DebugLine( colorRed, org, org + idAngles( 0, ideal_yaw, 0 ).ToForward() * 64, 1 );
-		gameRenderWorld->DebugLine( colorGreen, org, org + idAngles( 0, current_yaw, 0 ).ToForward() * 48, 1 );
-		gameRenderWorld->DebugLine( colorYellow, org, org + idAngles( 0, current_yaw + turnVel, 0 ).ToForward() * 32, 1 );
+		gameRenderWorld->DebugLine( idColor::red.ToVec4(), org, org + idAngles( 0, ideal_yaw, 0 ).ToForward() * 64, 1 );
+		gameRenderWorld->DebugLine( idColor::green.ToVec4(), org, org + idAngles( 0, current_yaw, 0 ).ToForward() * 48, 1 );
+		gameRenderWorld->DebugLine( idColor::yellow.ToVec4(), org, org + idAngles( 0, current_yaw + turnVel, 0 ).ToForward() * 32, 1 );
 	}
 }
 
@@ -2942,8 +2942,8 @@ void idAI::CheckObstacleAvoidance( const idVec3& goalPos, idVec3& newPos )
 	foundPath = FindPathAroundObstacles( &physicsObj, aas, enemy.GetEntity(), origin, goalPos, path );
 	if( ai_showObstacleAvoidance.GetBool() )
 	{
-		gameRenderWorld->DebugLine( colorBlue, goalPos + idVec3( 1.0f, 1.0f, 0.0f ), goalPos + idVec3( 1.0f, 1.0f, 64.0f ), 1 );
-		gameRenderWorld->DebugLine( foundPath ? colorYellow : colorRed, path.seekPos, path.seekPos + idVec3( 0.0f, 0.0f, 64.0f ), 1 );
+		gameRenderWorld->DebugLine( idColor::blue.ToVec4(), goalPos + idVec3( 1.0f, 1.0f, 0.0f ), goalPos + idVec3( 1.0f, 1.0f, 64.0f ), 1 );
+		gameRenderWorld->DebugLine( foundPath ? idColor::yellow.ToVec4() : idColor::red.ToVec4(), path.seekPos, path.seekPos + idVec3( 0.0f, 0.0f, 64.0f ), 1 );
 	}
 	
 	if( !foundPath )
@@ -3146,7 +3146,7 @@ void idAI::AnimMove()
 	
 	if( ai_debugMove.GetBool() )
 	{
-		gameRenderWorld->DebugLine( colorCyan, oldorigin, physicsObj.GetOrigin(), 5000 );
+		gameRenderWorld->DebugLine( idColor::cyan.ToVec4(), oldorigin, physicsObj.GetOrigin(), 5000 );
 	}
 	
 	moveResult = physicsObj.GetMoveResult();
@@ -3175,9 +3175,9 @@ void idAI::AnimMove()
 	
 	if( ai_debugMove.GetBool() )
 	{
-		gameRenderWorld->DebugBounds( colorMagenta, physicsObj.GetBounds(), org, 1 );
-		gameRenderWorld->DebugBounds( colorMagenta, physicsObj.GetBounds(), move.moveDest, 1 );
-		gameRenderWorld->DebugLine( colorYellow, org + EyeOffset(), org + EyeOffset() + viewAxis[ 0 ] * physicsObj.GetGravityAxis() * 16.0f, 1, true );
+		gameRenderWorld->DebugBounds( idColor::magenta.ToVec4(), physicsObj.GetBounds(), org, 1 );
+		gameRenderWorld->DebugBounds( idColor::magenta.ToVec4(), physicsObj.GetBounds(), move.moveDest, 1 );
+		gameRenderWorld->DebugLine( idColor::yellow.ToVec4(), org + EyeOffset(), org + EyeOffset() + viewAxis[ 0 ] * physicsObj.GetGravityAxis() * 16.0f, 1, true );
 		DrawRoute();
 	}
 }
@@ -3302,7 +3302,7 @@ void idAI::SlideMove()
 	
 	if( ai_debugMove.GetBool() )
 	{
-		gameRenderWorld->DebugLine( colorCyan, oldorigin, physicsObj.GetOrigin(), 5000 );
+		gameRenderWorld->DebugLine( idColor::cyan.ToVec4(), oldorigin, physicsObj.GetOrigin(), 5000 );
 	}
 	
 	moveResult = physicsObj.GetMoveResult();
@@ -3331,9 +3331,9 @@ void idAI::SlideMove()
 	
 	if( ai_debugMove.GetBool() )
 	{
-		gameRenderWorld->DebugBounds( colorMagenta, physicsObj.GetBounds(), org, 1 );
-		gameRenderWorld->DebugBounds( colorMagenta, physicsObj.GetBounds(), move.moveDest, 1 );
-		gameRenderWorld->DebugLine( colorYellow, org + EyeOffset(), org + EyeOffset() + viewAxis[ 0 ] * physicsObj.GetGravityAxis() * 16.0f, 1, true );
+		gameRenderWorld->DebugBounds( idColor::magenta.ToVec4(), physicsObj.GetBounds(), org, 1 );
+		gameRenderWorld->DebugBounds( idColor::magenta.ToVec4(), physicsObj.GetBounds(), move.moveDest, 1 );
+		gameRenderWorld->DebugLine( idColor::yellow.ToVec4(), org + EyeOffset(), org + EyeOffset() + viewAxis[ 0 ] * physicsObj.GetGravityAxis() * 16.0f, 1, true );
 		DrawRoute();
 	}
 }
@@ -3412,7 +3412,7 @@ void idAI::AddFlyBob( idVec3& vel )
 		if( ai_debugMove.GetBool() )
 		{
 			const idVec3& origin = physicsObj.GetOrigin();
-			gameRenderWorld->DebugArrow( colorOrange, origin, origin + fly_bob_add, 0 );
+			gameRenderWorld->DebugArrow( idColor::orange.ToVec4(), origin, origin + fly_bob_add, 0 );
 		}
 	}
 }
@@ -3448,7 +3448,7 @@ void idAI::AdjustFlyHeight( idVec3& vel, const idVec3& goalPos )
 		
 		if( ai_debugMove.GetBool() )
 		{
-			gameRenderWorld->DebugBounds( goLower ? colorRed : colorGreen, physicsObj.GetBounds(), path.endPos, 1 );
+			gameRenderWorld->DebugBounds( goLower ? idColor::red.ToVec4() : idColor::green.ToVec4(), physicsObj.GetBounds(), path.endPos, 1 );
 		}
 	}
 	
@@ -3629,12 +3629,12 @@ void idAI::FlyMove()
 	
 	if( ai_debugMove.GetBool() )
 	{
-		gameRenderWorld->DebugLine( colorCyan, oldorigin, physicsObj.GetOrigin(), 4000 );
-		gameRenderWorld->DebugBounds( colorOrange, physicsObj.GetBounds(), org, 1 );
-		gameRenderWorld->DebugBounds( colorMagenta, physicsObj.GetBounds(), move.moveDest, 1 );
-		gameRenderWorld->DebugLine( colorRed, org, org + physicsObj.GetLinearVelocity(), 1, true );
-		gameRenderWorld->DebugLine( colorBlue, org, goalPos, 1, true );
-		gameRenderWorld->DebugLine( colorYellow, org + EyeOffset(), org + EyeOffset() + viewAxis[ 0 ] * physicsObj.GetGravityAxis() * 16.0f, 1, true );
+		gameRenderWorld->DebugLine( idColor::cyan.ToVec4(), oldorigin, physicsObj.GetOrigin(), 4000 );
+		gameRenderWorld->DebugBounds( idColor::orange.ToVec4(), physicsObj.GetBounds(), org, 1 );
+		gameRenderWorld->DebugBounds( idColor::magenta.ToVec4(), physicsObj.GetBounds(), move.moveDest, 1 );
+		gameRenderWorld->DebugLine( idColor::red.ToVec4(), org, org + physicsObj.GetLinearVelocity(), 1, true );
+		gameRenderWorld->DebugLine( idColor::blue.ToVec4(), org, goalPos, 1, true );
+		gameRenderWorld->DebugLine( idColor::yellow.ToVec4(), org + EyeOffset(), org + EyeOffset() + viewAxis[ 0 ] * physicsObj.GetGravityAxis() * 16.0f, 1, true );
 		DrawRoute();
 	}
 }
@@ -3680,9 +3680,9 @@ void idAI::StaticMove()
 	if( ai_debugMove.GetBool() )
 	{
 		const idVec3& org = physicsObj.GetOrigin();
-		gameRenderWorld->DebugBounds( colorMagenta, physicsObj.GetBounds(), org, 1 );
-		gameRenderWorld->DebugLine( colorBlue, org, move.moveDest, 1, true );
-		gameRenderWorld->DebugLine( colorYellow, org + EyeOffset(), org + EyeOffset() + viewAxis[ 0 ] * physicsObj.GetGravityAxis() * 16.0f, 1, true );
+		gameRenderWorld->DebugBounds( idColor::magenta.ToVec4(), physicsObj.GetBounds(), org, 1 );
+		gameRenderWorld->DebugLine( idColor::blue.ToVec4(), org, move.moveDest, 1, true );
+		gameRenderWorld->DebugLine( idColor::yellow.ToVec4(), org + EyeOffset(), org + EyeOffset() + viewAxis[ 0 ] * physicsObj.GetGravityAxis() * 16.0f, 1, true );
 	}
 }
 
@@ -4023,7 +4023,7 @@ void idAI::PlayCinematic()
 	{
 		if( g_debugCinematic.GetBool() )
 		{
-			gameLocal.Printf( "%d: '%s' stop\n", gameLocal.framenum, GetName() );
+			gameLocal.Printf( "%d: '%s' stop\n", gameLocal.GetFrameNum(), GetName() );
 		}
 		if( !spawnArgs.GetBool( "cinematic_no_hide" ) )
 		{
@@ -4050,7 +4050,7 @@ void idAI::PlayCinematic()
 	
 	if( g_debugCinematic.GetBool() )
 	{
-		gameLocal.Printf( "%d: '%s' start '%s'\n", gameLocal.framenum, GetName(), animname );
+		gameLocal.Printf( "%d: '%s' start '%s'\n", gameLocal.GetFrameNum(), GetName(), animname );
 	}
 	
 	headAnim.animBlendFrames = 0;
@@ -4501,8 +4501,8 @@ void idAI::UpdateEnemyPosition()
 	
 	if( ai_debugMove.GetBool() )
 	{
-		gameRenderWorld->DebugBounds( colorLtGrey, enemyEnt->GetPhysics()->GetBounds(), lastReachableEnemyPos, 1 );
-		gameRenderWorld->DebugBounds( colorWhite, enemyEnt->GetPhysics()->GetBounds(), lastVisibleReachableEnemyPos, 1 );
+		gameRenderWorld->DebugBounds( idColor::ltGrey.ToVec4(), enemyEnt->GetPhysics()->GetBounds(), lastReachableEnemyPos, 1 );
+		gameRenderWorld->DebugBounds( idColor::white.ToVec4(), enemyEnt->GetPhysics()->GetBounds(), lastVisibleReachableEnemyPos, 1 );
 	}
 }
 
@@ -5083,7 +5083,7 @@ bool idAI::TestMelee() const
 	
 	if( ai_debugMove.GetBool() )
 	{
-		gameRenderWorld->DebugBounds( colorYellow, bounds, vec3_zero, 1 );
+		gameRenderWorld->DebugBounds( idColor::yellow.ToVec4(), bounds, vec3_zero, 1 );
 	}
 	
 	if( !bounds.IntersectsBounds( enemyBounds ) )
@@ -5744,7 +5744,7 @@ bool idAI::UpdateAnimationControllers()
 		eyeOffset.z = eyepos.z - physicsObj.GetOrigin().z;
 		if( ai_debugMove.GetBool() )
 		{
-			gameRenderWorld->DebugLine( colorRed, eyepos, eyepos + orientationJointAxis[ 0 ] * 32.0f, 1 );
+			gameRenderWorld->DebugLine( idColor::red.ToVec4(), eyepos, eyepos + orientationJointAxis[ 0 ] * 32.0f, 1 );
 		}
 	}
 	else
@@ -5798,9 +5798,9 @@ bool idAI::UpdateAnimationControllers()
 	newLookAng.pitch = 0.0f;
 	
 #if 0
-	gameRenderWorld->DebugLine( colorRed, orientationJointPos, focusPos, 1 );
-	gameRenderWorld->DebugLine( colorYellow, orientationJointPos, orientationJointPos + orientationJointAxis[ 0 ] * 32.0f, 1 );
-	gameRenderWorld->DebugLine( colorGreen, orientationJointPos, orientationJointPos + newLookAng.ToForward() * 48.0f, 1 );
+	gameRenderWorld->DebugLine( idColor::red.ToVec4(), orientationJointPos, focusPos, 1 );
+	gameRenderWorld->DebugLine( idColor::yellow.ToVec4(), orientationJointPos, orientationJointPos + orientationJointAxis[ 0 ] * 32.0f, 1 );
+	gameRenderWorld->DebugLine( idColor::green.ToVec4(), orientationJointPos, orientationJointPos + newLookAng.ToForward() * 48.0f, 1 );
 #endif
 	
 	// determine pitch from joint position
@@ -6049,15 +6049,15 @@ void idCombatNode::DrawDebugInfo()
 		node = static_cast<idCombatNode*>( ent );
 		if( node->disabled )
 		{
-			color = colorMdGrey;
+			color = idColor::mdGrey.ToVec4();
 		}
 		else if( player != NULL && node->EntityInView( player, player->GetPhysics()->GetOrigin() ) )
 		{
-			color = colorYellow;
+			color = idColor::yellow.ToVec4();
 		}
 		else
 		{
-			color = colorRed;
+			color = idColor::red.ToVec4();
 		}
 		
 		idVec3 leftDir( -node->cone_left.y, node->cone_left.x, 0.0f );

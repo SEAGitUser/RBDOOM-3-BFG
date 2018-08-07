@@ -39,32 +39,31 @@ const int VIRTUAL_WIDTH = 640;
 const int VIRTUAL_HEIGHT = 480;
 const int BLINK_DIVISOR = 200;
 
-class idDeviceContext
-{
+#undef DrawText
+
+class idDeviceContext {
 public:
 	idDeviceContext();
 	~idDeviceContext() { }
 	
 	void				Init();
 	void				Shutdown();
-	bool				Initialized()
-	{
-		return initialized;
-	}
+	bool				Initialized() const { return initialized; }
+
 	void				EnableLocalization();
 	
 	void				GetTransformInfo( idVec3& origin, idMat3& mat );
 	
 	void				SetTransformInfo( const idVec3& origin, const idMat3& mat );
-	void				DrawMaterial( float x, float y, float w, float h, const idMaterial* mat, const idVec4& color, float scalex = 1.0, float scaley = 1.0 );
-	void				DrawRect( float x, float y, float width, float height, float size, const idVec4& color );
-	void				DrawFilledRect( float x, float y, float width, float height, const idVec4& color );
-	int					DrawText( const char* text, float textScale, int textAlign, idVec4 color, idRectangle rectDraw, bool wrap, int cursor = -1, bool calcOnly = false, idList<int>* breaks = NULL, int limit = 0 );
-	void				DrawMaterialRect( float x, float y, float w, float h, float size, const idMaterial* mat, const idVec4& color );
-	void				DrawStretchPic( float x, float y, float w, float h, float s0, float t0, float s1, float t1, const idMaterial* mat );
-	void				DrawMaterialRotated( float x, float y, float w, float h, const idMaterial* mat, const idVec4& color, float scalex = 1.0, float scaley = 1.0, float angle = 0.0f );
-	void				DrawStretchPicRotated( float x, float y, float w, float h, float s0, float t0, float s1, float t1, const idMaterial* mat, float angle = 0.0f );
-	void				DrawWinding( idWinding& w, const idMaterial* mat );
+	void				DrawMaterial( float x, float y, float w, float h, const idMaterial* mat, const idColor &, float scalex = 1.0, float scaley = 1.0 );
+	void				DrawRect( float x, float y, float width, float height, float size, const idColor & );
+	void				DrawFilledRect( float x, float y, float width, float height, const idColor & );
+	int					DrawText( const char* text, float textScale, int textAlign, const idColor &, idRectangle rectDraw, bool wrap, int cursor = -1, bool calcOnly = false, idList<int>* breaks = NULL, int limit = 0 );
+	void				DrawMaterialRect( float x, float y, float w, float h, float size, const idMaterial*, const idColor & );
+	void				DrawStretchPic( float x, float y, float w, float h, float s0, float t0, float s1, float t1, const idMaterial* );
+	void				DrawMaterialRotated( float x, float y, float w, float h, const idMaterial*, const idColor &, float scalex = 1.0, float scaley = 1.0, float angle = 0.0f );
+	void				DrawStretchPicRotated( float x, float y, float w, float h, float s0, float t0, float s1, float t1, const idMaterial*, float angle = 0.0f );
+	void				DrawWinding( idWinding&, const idMaterial* );
 	
 	int					CharWidth( const char c, float scale );
 	int					TextWidth( const char* text, float scale, int limit );
@@ -84,29 +83,19 @@ public:
 	
 	// clipping rects
 	virtual bool		ClippedCoords( float* x, float* y, float* w, float* h, float* s1, float* t1, float* s2, float* t2 );
-	virtual void		PushClipRect( idRectangle r );
+	virtual void		PushClipRect( idRectangle );
 	virtual void		PopClipRect();
 	virtual void		EnableClipping( bool b );
 	
-	void				SetFont( idFont* font )
-	{
-		activeFont = font;
-	}
+	void				SetFont( idFont* font ) { activeFont = font; }
 	
-	void				SetOverStrike( bool b )
-	{
-		overStrikeMode = b;
-	}
+	void				SetOverStrike( bool b ) { overStrikeMode = b; }
 	
-	bool				GetOverStrike()
-	{
-		return overStrikeMode;
-	}
+	bool				GetOverStrike() const { return overStrikeMode; }
 	
 	void				DrawEditCursor( float x, float y, float scale );
 	
-	enum
-	{
+	enum {
 		CURSOR_ARROW,
 		CURSOR_HAND,
 		CURSOR_HAND_JOY1,
@@ -116,15 +105,13 @@ public:
 		CURSOR_COUNT
 	};
 	
-	enum
-	{
+	enum {
 		ALIGN_LEFT,
 		ALIGN_CENTER,
 		ALIGN_RIGHT
 	};
 	
-	enum
-	{
+	enum {
 		SCROLLBAR_HBACK,
 		SCROLLBAR_VBACK,
 		SCROLLBAR_THUMB,
@@ -135,18 +122,18 @@ public:
 		SCROLLBAR_COUNT
 	};
 	
-	static idVec4 colorPurple;
-	static idVec4 colorOrange;
-	static idVec4 colorYellow;
-	static idVec4 colorGreen;
-	static idVec4 colorBlue;
-	static idVec4 colorRed;
-	static idVec4 colorWhite;
-	static idVec4 colorBlack;
-	static idVec4 colorNone;
+	//static idVec4 idColor::purple.ToVec4();
+	//static idVec4 idColor::orange.ToVec4();
+	//static idVec4 idColor::yellow.ToVec4();
+	//static idVec4 idColor::green.ToVec4();
+	//static idVec4 idColor::blue.ToVec4();
+	//static idVec4 idColor::red.ToVec4();
+	//static idVec4 idColor::white.ToVec4();
+	//static idVec4 idColor::black.ToVec4();
+	//static idVec4 colorNone;
 	
 protected:
-	virtual int			DrawText( float x, float y, float scale, idVec4 color, const char* text, float adjust, int limit, int style, int cursor = -1 );
+	virtual int			DrawText( float x, float y, float scale, const idColor &, const char* text, float adjust, int limit, int style, int cursor = -1 );
 	void				PaintChar( float x, float y, const scaledGlyphInfo_t& glyphInfo );
 	void				Clear();
 	
@@ -182,7 +169,7 @@ class idDeviceContextOptimized : public idDeviceContext
 	virtual void		PopClipRect();
 	virtual void		EnableClipping( bool b );
 	
-	virtual int			DrawText( float x, float y, float scale, idVec4 color, const char* text, float adjust, int limit, int style, int cursor = -1 );
+	virtual int			DrawText( float x, float y, float scale, const idColor &, const char* text, float adjust, int limit, int style, int cursor = -1 );
 	
 	float				clipX1;
 	float				clipX2;

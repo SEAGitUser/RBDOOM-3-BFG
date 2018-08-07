@@ -51,7 +51,7 @@ enum bufferUsageType_t
 	BU_DEFAULT,			// mappable, no dinamic update, draw
 	BU_STATIC,			// no map, no dinamic update, draw
 	BU_DYNAMIC,			// no map, dinamic update, draw
-	BU_STAGING			// internal copy
+	BU_STAGING			// for internal copy
 };
 
 // Returns all targets to virtual memory use instead of buffer object use.
@@ -311,6 +311,9 @@ public:
 	// Allocate or free the buffer.
 	bool				AllocBufferObject( int allocSize, bufferUsageType_t allocUsage, const void* data = nullptr );
 	void				FreeBufferObject();
+
+	void				Bind( uint slot ) const;
+	void				Bind( uint slot, int offset, int size ) const;
 
 	// Make this buffer a reference to another buffer.
 	void				Reference( const idUniformBuffer& other );

@@ -68,22 +68,18 @@ void idSIMD::InitProcessor( const char* module, bool forceGeneric )
 	
 	if( forceGeneric )
 	{
-	
-		newProcessor = generic;
-		
+		newProcessor = generic;		
 	}
 	else
 	{
-	
 		if( processor == NULL )
 		{
-#if defined(USE_INTRINSICS)
+		#if defined( USE_INTRINSICS )
 			if( ( cpuid & CPUID_MMX ) && ( cpuid & CPUID_SSE ) )
 			{
 				processor = new( TAG_MATH ) idSIMD_SSE;
-			}
-			else
-#endif
+			} else
+		#endif
 			{
 				processor = generic;
 			}

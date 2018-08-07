@@ -903,7 +903,7 @@ void idAI::Event_MeleeAttackToJoint( const char* jointname, const char* meleeDef
 	
 	if( ai_debugMove.GetBool() )
 	{
-		gameRenderWorld->DebugLine( colorYellow, start, end, 1 );
+		gameRenderWorld->DebugLine( idColor::yellow.ToVec4(), start, end, 1 );
 	}
 	
 	gameLocal.clip.TranslationEntities( trace, start, end, NULL, mat3_identity, MASK_SHOT_BOUNDINGBOX, this );
@@ -2023,8 +2023,8 @@ void idAI::Event_TestChargeAttack()
 	
 	if( ai_debugMove.GetBool() )
 	{
-		gameRenderWorld->DebugLine( colorGreen, physicsObj.GetOrigin(), end, 1 );
-		gameRenderWorld->DebugBounds( path.endEvent == 0 ? colorYellow : colorRed, physicsObj.GetBounds(), end, 1 );
+		gameRenderWorld->DebugLine( idColor::green.ToVec4(), physicsObj.GetOrigin(), end, 1 );
+		gameRenderWorld->DebugBounds( path.endEvent == 0 ? idColor::yellow.ToVec4() : idColor::red.ToVec4(), physicsObj.GetBounds(), end, 1 );
 	}
 	
 	if( ( path.endEvent == 0 ) || ( path.blockingEntity == enemyEnt ) )
@@ -2076,8 +2076,8 @@ void idAI::Event_TestAnimMoveTowardEnemy( const char* animname )
 	
 	if( ai_debugMove.GetBool() )
 	{
-		gameRenderWorld->DebugLine( colorGreen, physicsObj.GetOrigin(), physicsObj.GetOrigin() + moveVec, 1 );
-		gameRenderWorld->DebugBounds( path.endEvent == 0 ? colorYellow : colorRed, physicsObj.GetBounds(), physicsObj.GetOrigin() + moveVec, 1 );
+		gameRenderWorld->DebugLine( idColor::green.ToVec4(), physicsObj.GetOrigin(), physicsObj.GetOrigin() + moveVec, 1 );
+		gameRenderWorld->DebugBounds( path.endEvent == 0 ? idColor::yellow.ToVec4() : idColor::red.ToVec4(), physicsObj.GetBounds(), physicsObj.GetOrigin() + moveVec, 1 );
 	}
 	
 	idThread::ReturnInt( path.endEvent == 0 );
@@ -2107,8 +2107,8 @@ void idAI::Event_TestAnimMove( const char* animname )
 	
 	if( ai_debugMove.GetBool() )
 	{
-		gameRenderWorld->DebugLine( colorGreen, physicsObj.GetOrigin(), physicsObj.GetOrigin() + moveVec, 1 );
-		gameRenderWorld->DebugBounds( path.endEvent == 0 ? colorYellow : colorRed, physicsObj.GetBounds(), physicsObj.GetOrigin() + moveVec, 1 );
+		gameRenderWorld->DebugLine( idColor::green.ToVec4(), physicsObj.GetOrigin(), physicsObj.GetOrigin() + moveVec, 1 );
+		gameRenderWorld->DebugBounds( path.endEvent == 0 ? idColor::yellow.ToVec4() : idColor::red.ToVec4(), physicsObj.GetBounds(), physicsObj.GetOrigin() + moveVec, 1 );
 	}
 	
 	idThread::ReturnInt( path.endEvent == 0 );
@@ -2127,11 +2127,11 @@ void idAI::Event_TestMoveToPosition( const idVec3& position )
 	
 	if( ai_debugMove.GetBool() )
 	{
-		gameRenderWorld->DebugLine( colorGreen, physicsObj.GetOrigin(), position, 1 );
-		gameRenderWorld->DebugBounds( colorYellow, physicsObj.GetBounds(), position, 1 );
+		gameRenderWorld->DebugLine( idColor::green.ToVec4(), physicsObj.GetOrigin(), position, 1 );
+		gameRenderWorld->DebugBounds( idColor::yellow.ToVec4(), physicsObj.GetBounds(), position, 1 );
 		if( path.endEvent )
 		{
-			gameRenderWorld->DebugBounds( colorRed, physicsObj.GetBounds(), path.endPos, 1 );
+			gameRenderWorld->DebugBounds( idColor::red.ToVec4(), physicsObj.GetBounds(), path.endPos, 1 );
 		}
 	}
 	

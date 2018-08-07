@@ -97,7 +97,7 @@ static void WIN_EnableAltTab()
 
 void WIN_Sizing( WORD side, RECT* rect )
 {
-	if( !R_IsInitialized() || renderSystem->GetWidth() <= 0 || renderSystem->GetHeight() <= 0 )
+	if( !renderSystem->IsRenderDeviceRunning() || renderSystem->GetWidth() <= 0 || renderSystem->GetHeight() <= 0 )
 	{
 		return;
 	}
@@ -108,7 +108,7 @@ void WIN_Sizing( WORD side, RECT* rect )
 	
 	// Adjust width/height for window decoration
 	RECT decoRect = { 0, 0, 0, 0 };
-	AdjustWindowRect( &decoRect, WINDOW_STYLE | WS_SYSMENU, FALSE );
+	::AdjustWindowRect( &decoRect, WINDOW_STYLE | WS_SYSMENU, FALSE );
 	int decoWidth = decoRect.right - decoRect.left;
 	int decoHeight = decoRect.bottom - decoRect.top;
 	
@@ -116,14 +116,8 @@ void WIN_Sizing( WORD side, RECT* rect )
 	height -= decoHeight;
 	
 	// Clamp to a minimum size
-	if( width < SCREEN_WIDTH / 4 )
-	{
-		width = SCREEN_WIDTH / 4;
-	}
-	if( height < SCREEN_HEIGHT / 4 )
-	{
-		height = SCREEN_HEIGHT / 4;
-	}
+	if( width < SCREEN_WIDTH / 4 ) width = SCREEN_WIDTH / 4;
+	if( height < SCREEN_HEIGHT / 4 ) height = SCREEN_HEIGHT / 4;
 	
 	const int minWidth = height * 4 / 3;
 	const int maxHeight = width * 3 / 4;
@@ -176,7 +170,7 @@ LONG WINAPI MainWndProc( HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam )
 	switch( uMsg )
 	{
 		case WM_WINDOWPOSCHANGED:
-			if( R_IsInitialized() )
+			if( renderSystem->IsRenderDeviceRunning() )
 			{
 				RECT rect;
 				if( ::GetClientRect( win32.hWnd, &rect ) )
@@ -187,7 +181,7 @@ LONG WINAPI MainWndProc( HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam )
 						glConfig.nativeScreenHeight = rect.bottom - rect.top;
 						
 						// save the window size in cvars if we aren't fullscreen
-						int style = GetWindowLong( hWnd, GWL_STYLE );
+						int style = ::GetWindowLong( hWnd, GWL_STYLE );
 						if( ( style & WS_POPUP ) == 0 )
 						{
 							r_windowWidth.SetInteger( glConfig.nativeScreenWidth );
@@ -203,7 +197,7 @@ LONG WINAPI MainWndProc( HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam )
 			RECT r;
 			
 			// save the window origin in cvars if we aren't fullscreen
-			int style = GetWindowLong( hWnd, GWL_STYLE );
+			int style = ::GetWindowLong( hWnd, GWL_STYLE );
 			if( ( style & WS_POPUP ) == 0 )
 			{
 				xPos = ( short ) LOWORD( lParam ); // horizontal position
@@ -214,7 +208,7 @@ LONG WINAPI MainWndProc( HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam )
 				r.right  = 1;
 				r.bottom = 1;
 				
-				AdjustWindowRect( &r, style, FALSE );
+				::AdjustWindowRect( &r, style, FALSE );
 				
 				r_windowX.SetInteger( xPos + r.left );
 				r_windowY.SetInteger( yPos + r.top );
@@ -535,5 +529,5 @@ LONG WINAPI MainWndProc( HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam )
 		}
 	}
 	
-	return DefWindowProc( hWnd, uMsg, wParam, lParam );
+	return ::DefWindowProc( hWnd, uMsg, wParam, lParam );
 }

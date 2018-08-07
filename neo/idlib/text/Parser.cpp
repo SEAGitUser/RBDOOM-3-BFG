@@ -2312,7 +2312,7 @@ bool idParser::Directive_include()
 {
 	idLexer *script;
 	idToken token;
-	idStr path;
+	idStrStatic<MAX_OSPATH> path;
 
 	if( !ReadSourceToken( &token ) )
 	{

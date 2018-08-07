@@ -197,7 +197,7 @@ bool idDeclRenderParm::ParseTexture( idLexer& src )
 	/*/*/if( src.CheckTokenString( "bump" ) )
 	{
 		m_defaults.texture.defaultUsage = TD_BUMP;
-	} 
+	}
 	else if( src.CheckTokenString( "diffuse" ) )
 	{
 		m_defaults.texture.defaultUsage = TD_DIFFUSE;
@@ -232,12 +232,19 @@ bool idDeclRenderParm::ParseTexture( idLexer& src )
 		return false;
 
 	m_defaults.texture.image = renderImageManager->GetImage( token );
-	if( !m_defaults.texture.image ) 
+	if( !m_defaults.texture.image )
 	{
-		m_defaults.texture.image = renderImageManager->defaultImage;
-		src.Error("ParseTexture() %s image not found", token.c_str() );
-		return false;
+		// Look for render targets
+		m_defaults.texture.image = renderDestManager.FinedRenderTargetImageByName( token.c_str() );
+		if( !m_defaults.texture.image )
+		{
+			// none was found, make it default.
+			m_defaults.texture.image = renderImageManager->defaultImage;
+			src.Error( "ParseTexture() %s image not found", token.c_str() );
+			return false;
+		}
 	}
+
 	//m_defaults.texture.defaultLayout = m_defaults.texture.image->layout;
 	//m_defaults.texture.defaultUsage = m_defaults.texture.image->usage;
 	//SEA: ??? TODO!!!
@@ -254,7 +261,7 @@ bool idDeclRenderParm::ParseTexture( idLexer& src )
 bool idDeclRenderParm::Parse( const char* text, const int textLength, bool allowBinaryVersion )
 {
 	const punctuation_t parm_punctuations[] = {
-		{ "(", P_PARENTHESESOPEN },	
+		{ "(", P_PARENTHESESOPEN },
 		{ ")", P_PARENTHESESCLOSE },
 		{ "{", P_BRACEOPEN },
 		{ "}", P_BRACECLOSE },

@@ -46,49 +46,49 @@ The internal *Texture Format Types*, ::textureFormat_t, are:
 enum textureFormat_t
 {
 	FMT_NONE,
-	
+
 	//------------------------
 	// Standard color image formats
 	//------------------------
-	
+
 	FMT_RGBA8,			// 32 bpp
 	FMT_XRGB8,			// 32 bpp
 	// FMT_XRGB8<-FMT_ARGB8
 	//------------------------
 	// Alpha channel only
 	//------------------------
-	
+
 	// Alpha ends up being the same as L8A8 in our current implementation, because straight
 	// alpha gives 0 for color, but we want 1.
 	FMT_ALPHA,
-	
+
 	//------------------------
 	// Luminance replicates the value across RGB with a constant A of 255
 	// Intensity replicates the value across RGBA
 	//------------------------
-	
+
 	FMT_L8A8,			// 16 bpp
 	// FMT_RG8
 	FMT_LUM8,			//  8 bpp
 	FMT_INT8,			//  8 bpp
-	
+
 	//------------------------
 	// Compressed texture formats
 	//------------------------
-	
+
 	FMT_DXT1,			// 4 bpp
 	FMT_DXT5,			// 8 bpp
-	
+
 	//------------------------
 	// Depth buffer formats
 	//------------------------
-	
+
 	FMT_DEPTH,			// 24 bpp
 	///FMT_DEPTH_STENCIL,	// 24+8 bpp
 	//------------------------
 	//
 	//------------------------
-	
+
 	// FMT_X32F
 	// FMT_Y16F_X16F
 
@@ -96,16 +96,18 @@ enum textureFormat_t
 	FMT_Y16_X16,		// 32 bpp
 	FMT_RGB565,			// 16 bpp
 
-	FMT_DEPTH_STENCIL,	//SEA 24+8 bpp
-	FMT_RG11F_B10F,		//SEA 32 bpp
-	FMT_RG16F,			//SEA 32 bpp
+	FMT_DEPTH_STENCIL,	// 24+8 bpp
+	FMT_RG11B10F,		// 32 bpp
+	FMT_RG16F,			// 32 bpp
+	FMT_R16F,			// 16 bpp
 	/*
 GL_RGB5_A1:		5 bits each for RGB, 1 for Alpha. This format is generally trumped by compressed formats (see below), which give greater than 16-bit quality in much less storage than 16-bits of color.
 GL_RGB10_A2:	10 bits each for RGB, 2 for Alpha. This can be a useful format for framebuffers, if you do not need a high-precision destination alpha value. It carries more color depth, thus preserving subtle gradations. They can also be used for normals, though there is no signed-normalized version, so you have to do the conversion manually. It is also a required format (see below), so you can count on it being present.
 GL_RGB10_A2UI:	10 bits each for RGB, 2 for Alpha, as unsigned integers. There is no signed integral version.
-	
+
 	*/
-	
+	FMT_RGB10_A2,		// 32bpp  Alpha is signed.
+
 	// RB: don't change above for legacy .bimage compatibility
 	FMT_ETC1_RGB8_OES,	// 4 bpp
 	FMT_RGBA16F,		// 64 bpp
@@ -132,7 +134,7 @@ enum textureColor_t
 	CFM_NORMAL_DXT5,		// XY format and use the fast DXT5 compressor
 	CFM_YCOCG_DXT5,			// convert RGBA to CoCg_Y format
 	CFM_GREEN_ALPHA,		// Copy the alpha channel to green
-	
+
 	// RB: don't change above for legacy .bimage compatibility
 	CFM_YCOCG_RGBA8,
 	// RB end
@@ -162,42 +164,54 @@ enum textureBindType_t //SEA
 /*
 ================================================
 idImageOpts hold parameters for texture operations.
+Defaults:
+	format			= FMT_NONE;
+	colorFormat		= CFM_DEFAULT;
+	width			= 0;
+	height			= 0;
+	depth			= 1;
+	numLevels		= 0;
+	numSamples		= 1;
+	textureType		= TT_2D;
+	gammaMips		= false;
+	readback		= false;
 ================================================
 */
-class idImageOpts
-{
+class idImageOpts {
 public:
 	idImageOpts();
-	
+
 	bool	operator==( const idImageOpts& opts );
-	
+
 	//---------------------------------------------------
 	// these determine the physical memory size and layout
 	//---------------------------------------------------
-	
+
 	textureType_t		textureType;
 	textureFormat_t		format;
 	textureColor_t		colorFormat;
 	int					width;
 	int					height;			// not needed for cube maps
-	int					depth; //SEA
+	int					depth;					//SEA
 	int					numLevels;		// if 0, will be 1 for NEAREST / LINEAR filters, otherwise based on size
-	int					numSamples; //SEA
-	//int					packedTail; //SEA
-	//bool					readback; //SEA
-	//bool					linear; //SEA
-	//bool					partiallyResident; //SEA
-	//bool					cubeFilter; //SEA
-	//bool					overlayMemory; //SEA
-	//bool					startPurged; //SEA
-	//int					struct_pad; //SEA
-	//textureBindType_t		textureBindType; //SEA
-	//textureUsage_t		textureUsage; //SEA
-	//textureOptions_t		textureOptions; //SEA
-	//idTextureSampler *	sampler; //SEA
-	//int					struct_pad2; //SEA
+	int					numSamples;				//SEA
+	//int					packedTail;			//SEA
+	//bool					readback;			//SEA
+	//bool					linear;				//SEA
+	//bool					partiallyResident;	//SEA
+	//bool					cubeFilter;			//SEA
+	//bool					overlayMemory;		//SEA
+	//bool					startPurged;		//SEA
+//int	struct_pad; //SEA
+	//textureBindType_t		textureBindType;	//SEA
+	//textureUsage_t		textureUsage;		//SEA
+	//textureOptions_t		textureOptions;		//SEA
+	//idTextureSampler *	sampler;			//SEA
+//int	struct_pad2; //SEA
 	bool				gammaMips;		// if true, mips will be generated with gamma correction
 	bool				readback;		// 360 specific - cpu reads back from this texture, so allocate with cached memory
+
+	bool				renderTarget;	//SEA
 
 	ID_INLINE bool		IsCompressed() const { return( format == FMT_DXT1 || format == FMT_DXT5 ); }
 	ID_INLINE bool		IsArray() const { return( depth > 1 ); }
@@ -228,6 +242,7 @@ ID_INLINE idImageOpts::idImageOpts()
 	textureType		= TT_2D;
 	gammaMips		= false;
 	readback		= false;
+	renderTarget	= false;
 };
 
 /*

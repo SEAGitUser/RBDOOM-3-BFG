@@ -41,13 +41,13 @@ typedef struct primitive_s
 } primitive_t;
 
 
-typedef struct
+struct uArea_t
 {
 	struct optimizeGroup_s*	groups;
 	// we might want to add other fields later
-} uArea_t;
+};
 
-typedef struct
+struct uEntity_t
 {
 	idMapEntity* 		mapEntity;		// points into mapFile_t data
 	
@@ -57,7 +57,7 @@ typedef struct
 	
 	int					numAreas;
 	uArea_t* 			areas;
-} uEntity_t;
+};
 
 
 // chains of mapTri_t are the general unit of processing
@@ -84,11 +84,11 @@ typedef struct mapTri_s
 	struct optVertex_s* optVert[3];
 } mapTri_t;
 
-typedef struct
+struct mesh_t
 {
 	int					width, height;
 	idDrawVert* 		verts;
-} mesh_t;
+};
 
 
 #define	MAX_PATCH_SIZE	32
@@ -250,7 +250,7 @@ typedef struct optimizeGroup_s
 
 // dmap.cpp
 
-typedef enum
+enum shadowOptLevel_t
 {
 	SO_NONE,			// 0
 	SO_MERGE_SURFACES,	// 1
@@ -258,46 +258,46 @@ typedef enum
 	SO_CLIP_OCCLUDERS,	// 3
 	SO_CLIP_SILS,		// 4
 	SO_SIL_OPTIMIZE		// 5
-} shadowOptLevel_t;
+};
 
-typedef struct
+struct dmapGlobals_t
 {
 	// mapFileBase will contain the qpath without any extension: "maps/test_box"
-	char		mapFileBase[1024];
+	char				mapFileBase[1024];
 	
-	idMapFile*	dmapFile;
+	idMapFile*			dmapFile;
 	
-	idPlaneSet	mapPlanes;
+	idPlaneSet			mapPlanes;
 	
-	int			num_entities;
-	uEntity_t*	uEntities;
+	int					num_entities;
+	uEntity_t*			uEntities;
 	
-	int			entityNum;
+	int					entityNum;
 	
 	idList<mapLight_t*>	mapLights;
 	
-	bool	verbose;
+	bool				verbose;
 	
-	bool	glview;
-	bool	noOptimize;
-	bool	verboseentities;
-	bool	noCurves;
-	bool	fullCarve;
-	bool	noModelBrushes;
-	bool	noTJunc;
-	bool	nomerge;
-	bool	noFlood;
-	bool	noClipSides;		// don't cut sides by solid leafs, use the entire thing
-	bool	noLightCarve;		// extra triangle subdivision by light frustums
+	bool				glview;
+	bool				noOptimize;
+	bool				verboseentities;
+	bool				noCurves;
+	bool				fullCarve;
+	bool				noModelBrushes;
+	bool				noTJunc;
+	bool				nomerge;
+	bool				noFlood;
+	bool				noClipSides;		// don't cut sides by solid leafs, use the entire thing
+	bool				noLightCarve;		// extra triangle subdivision by light frustums
 	shadowOptLevel_t	shadowOptLevel;
-	bool	noShadow;			// don't create optimized shadow volumes
+	bool				noShadow;			// don't create optimized shadow volumes
 	
-	idBounds	drawBounds;
-	bool	drawflag;
+	idBounds			drawBounds;
+	bool				drawflag;
 	
-	int		totalShadowTriangles;
-	int		totalShadowVerts;
-} dmapGlobals_t;
+	int					totalShadowTriangles;
+	int					totalShadowVerts;
+};
 
 extern dmapGlobals_t dmapGlobals;
 
@@ -340,9 +340,9 @@ node_t* AllocNode();
 
 // map.cpp
 
-bool 		LoadDMapFile( const char* filename );
-void		FreeOptimizeGroupList( optimizeGroup_t* groups );
-void		FreeDMapFile();
+bool LoadDMapFile( const char* filename );
+void FreeOptimizeGroupList( optimizeGroup_t* groups );
+void FreeDMapFile();
 
 //=============================================================================
 
@@ -390,16 +390,16 @@ void FreePortal( uPortal_t* p );
 
 // glfile.cpp -- write a debug file to be viewd with glview.exe
 
-void OutputWinding( idWinding* w, idFile* glview );
+void OutputWinding( idWinding*, idFile* glview );
 
-void WriteGLView( tree_t* tree, const char* source, int entityNum, bool force = false );
+void WriteGLView( tree_t*, const char* source, int entityNum, bool force = false );
 void WriteGLView( bspface_t* list, const char* source );
 
 //=============================================================================
 
 // leakfile.cpp
 
-void LeakFile( tree_t* tree );
+void LeakFile( tree_t* );
 
 //=============================================================================
 
@@ -407,30 +407,30 @@ void LeakFile( tree_t* tree );
 
 tree_t* AllocTree();
 
-void FreeTree( tree_t* tree );
+void FreeTree( tree_t* );
 
-void FreeTree_r( node_t* node );
-void FreeTreePortals_r( node_t* node );
+void FreeTree_r( node_t* );
+void FreeTreePortals_r( node_t* );
 
 
 bspface_t*	MakeStructuralBspFaceList( primitive_t* list );
 //bspface_t*	MakeVisibleBspFaceList( primitive_t* list );
 tree_t*		FaceBSP( bspface_t* list );
 
-node_t*		NodeForPoint( node_t* node, const idVec3& origin );
+node_t*		NodeForPoint( node_t*, const idVec3& origin );
 
 //=============================================================================
 
 // surface.cpp
 
-mapTri_t* CullTrisInOpaqueLeafs( mapTri_t* triList, tree_t* tree );
-void	ClipSidesByTree( uEntity_t* e );
-void	SplitTrisToSurfaces( mapTri_t* triList, tree_t* tree );
-void	PutPrimitivesInAreas( uEntity_t* e );
+mapTri_t* CullTrisInOpaqueLeafs( mapTri_t* triList, tree_t* );
+void	ClipSidesByTree( uEntity_t* );
+void	SplitTrisToSurfaces( mapTri_t* triList, tree_t* );
+void	PutPrimitivesInAreas( uEntity_t* );
 void	Prelight( uEntity_t* e );
 
 // RB begin
-void	FilterMeshesIntoTree( uEntity_t* e );
+void	FilterMeshesIntoTree( uEntity_t* );
 // RB end
 
 //=============================================================================

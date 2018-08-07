@@ -64,7 +64,7 @@ public:
 											float b0, float b1, float b2, float b3,
 											float c0, float c1, float c2, float c3,
 											float d0, float d1, float d2, float d3 );
-											
+
 	const float* 			operator[]( int index ) const
 	{
 		assert( index >= 0 && index < 4 );
@@ -80,7 +80,7 @@ public:
 	{
 		return m;
 	}
-	
+
 	ID_INLINE void			Zero()
 	{
 	#if !defined(USE_INTRINSICS)
@@ -122,7 +122,7 @@ public:
 	ID_INLINE bool			IsIdentity( float epsilon ) const;
 	ID_INLINE bool			IsAffineTransform( float epsilon ) const;
 	ID_INLINE bool			IsUniformScale( float epsilon ) const;
-	
+
 	// Transform a point.
 	// NOTE: the idVec3 out variant does not divide by W.
 	ID_INLINE void			TransformPoint( const idVec3& in, idVec3& out ) const;
@@ -133,25 +133,25 @@ public:
 	// NOTE: a direction will only stay normalized if the matrix has no skewing or scaling.
 	ID_INLINE void			TransformDir( const idVec3& in, idVec3& out, bool normalize = false ) const;
 	ID_INLINE void			TransformPlane( const idPlane& in, idPlane& out, bool normalize = false ) const;
-	
+
 	ID_INLINE void			InverseTransformPoint( const idVec3& in, idVec3& out ) const;
 
 	// These transforms work with non-uniform scaling and shearing by multiplying
 	// with 'transpose(inverse(M))' where this matrix is assumed to be 'inverse(M)'.
 	ID_INLINE void			InverseTransformDir( const idVec3& in, idVec3& out, bool normalize = false ) const;
 	ID_INLINE void			InverseTransformPlane( const idPlane& in, idPlane& out, bool normalize = false ) const;
-	
+
 	// Project a point.
 	static ID_INLINE void	TransformModelToClip( const idVec3& src, const idRenderMatrix& modelMatrix, const idRenderMatrix& projectionMatrix, idVec4& eye, idVec4& clip );
 	static ID_INLINE void	TransformClipToDevice( const idVec4& clip, idVec3& ndc );
-	
+
 	// Create a matrix that goes from local space to the space defined by the 'origin' and 'axis'.
 	static void				CreateFromOriginAxis( const idVec3& origin, const idMat3& axis, idRenderMatrix& out );
 	static void				CreateFromOriginAxisScale( const idVec3& origin, const idMat3& axis, const idVec3& scale, idRenderMatrix& out );
-	
+
 	// Create a matrix that goes from a global coordinate to a view coordinate (OpenGL looking down -Z) based on the given view origin/axis.
 	static void				CreateViewMatrix( const idVec3& origin, const idMat3& axis, idRenderMatrix& out );
-	
+
 	// Create a projection matrix.
 	static void				CreateProjectionMatrix( float xMin, float xMax, float yMin, float yMax, float zNear, float zFar, idRenderMatrix& out );
 	static void				CreateProjectionMatrixFov( float xFovDegrees, float yFovDegrees, float zNear, float zFar, float xOffset, float yOffset, idRenderMatrix& out );
@@ -159,29 +159,29 @@ public:
 	// Create a orthogonal projection matrix.
 	static void				CreateOrthogonalProjection( float width, float hight, float zNear, float zFar, idRenderMatrix & out, const bool wtf );
 	static void				CreateOrthogonalOffCenterProjection( float xMin_left, float xMax_right, float yMin_bottom, float yMax_top, float zNear, float zFar, idRenderMatrix & out );
-		
+
 	// Apply depth hacks to a projection matrix.
 	static ID_INLINE void	ApplyDepthHack( idRenderMatrix& src );
 	static ID_INLINE void	ApplyModelDepthHack( idRenderMatrix& src, float value );
-	
+
 	// Offset and scale the given matrix such that the result matrix transforms the unit-cube to exactly cover the given bounds (and the inverse).
 	static void				OffsetScaleForBounds( const idRenderMatrix& src, const idBounds& bounds, idRenderMatrix& out );
 	static void				InverseOffsetScaleForBounds( const idRenderMatrix& src, const idBounds& bounds, idRenderMatrix& out );
-	
+
 	// Basic matrix operations.
 	static void				Transpose( const idRenderMatrix& src, idRenderMatrix& out );
 	static void				Multiply( const idRenderMatrix& a, const idRenderMatrix& b, idRenderMatrix& out );
 	static bool				Inverse( const idRenderMatrix& src, idRenderMatrix& out );
 	static void				InverseByTranspose( const idRenderMatrix& src, idRenderMatrix& out );
 	static bool				InverseByDoubles( const idRenderMatrix& src, idRenderMatrix& out );
-	
+
 	// Copy or create a matrix that is stored directly into four float4 vectors which is useful for directly setting program uniforms.
 	static void				CopyMatrix( const idRenderMatrix& matrix, idVec4& row0, idVec4& row1, idVec4& row2, idVec4& row3 );
 	static void				Multiply( const idRenderMatrix& a, const idRenderMatrix& b, idVec4& row0, idVec4& row1, idVec4& row2, idVec4& row3 );
 	static void				SetMVP( const idRenderMatrix& mvp, idVec4& row0, idVec4& row1, idVec4& row2, idVec4& row3, bool& negativeDeterminant );
 	static void				SetMVPForBounds( const idRenderMatrix& mvp, const idBounds& bounds, idVec4& row0, idVec4& row1, idVec4& row2, idVec4& row3, bool& negativeDeterminant );
 	static void				SetMVPForInverseProject( const idRenderMatrix& mvp, const idRenderMatrix& inverseProject, idVec4& row0, idVec4& row1, idVec4& row2, idVec4& row3, bool& negativeDeterminant );
-	
+
 	// Cull to a Model-View-Projection (MVP) matrix.
 	static bool				CullPointToMVP( const idRenderMatrix& mvp, const idVec3& point, bool zeroToOne = false );
 	static bool				CullPointToMVPbits( const idRenderMatrix& mvp, const idVec3& point, byte* outBits, bool zeroToOne = false );
@@ -189,22 +189,22 @@ public:
 	static bool				CullBoundsToMVPbits( const idRenderMatrix& mvp, const idBounds& bounds, byte* outBits, bool zeroToOne = false );
 	static bool				CullExtrudedBoundsToMVP( const idRenderMatrix& mvp, const idBounds& bounds, const idVec3& extrudeDirection, const idPlane& clipPlane, bool zeroToOne = false );
 	static bool				CullExtrudedBoundsToMVPbits( const idRenderMatrix& mvp, const idBounds& bounds, const idVec3& extrudeDirection, const idPlane& clipPlane, byte* outBits, bool zeroToOne = false );
-	
+
 	// Calculate the projected bounds.
 	static void				ProjectedBounds( idBounds& projected, const idRenderMatrix& mvp, const idBounds& bounds, bool windowSpace = true );
 	static void				ProjectedNearClippedBounds( idBounds& projected, const idRenderMatrix& mvp, const idBounds& bounds, bool windowSpace = true );
 	static void				ProjectedFullyClippedBounds( idBounds& projected, const idRenderMatrix& mvp, const idBounds& bounds, bool windowSpace = true );
-	
+
 	// Calculate the projected depth bounds.
 	static void				DepthBoundsForBounds( float& min, float& max, const idRenderMatrix& mvp, const idBounds& bounds, bool windowSpace = true );
 	static void				DepthBoundsForExtrudedBounds( float& min, float& max, const idRenderMatrix& mvp, const idBounds& bounds, const idVec3& extrudeDirection, const idPlane& clipPlane, bool windowSpace = true );
 	static void				DepthBoundsForShadowBounds( float& min, float& max, const idRenderMatrix& mvp, const idBounds& bounds, const idVec3& localLightOrigin, bool windowSpace = true );
-	
+
 	// Create frustum planes and corners from a matrix.
 	static void				GetFrustumPlanes( idPlane planes[6], const idRenderMatrix& frustum, bool zeroToOne, bool normalize );
 	static void				GetFrustumCorners( frustumCorners_t& corners, const idRenderMatrix& frustumTransform, const idBounds& frustumBounds );
 	static frustumCull_t	CullFrustumCornersToPlane( const frustumCorners_t& corners, const idPlane& plane );
-	
+
 private:
 	ALIGN16( float			m[16] );
 };
@@ -221,7 +221,7 @@ extern const idRenderMatrix renderMatrix_clipSpaceToWindowSpace;
 idRenderMatrix::idRenderMatrix
 ========================
 */
-ID_INLINE idRenderMatrix::idRenderMatrix(	
+ID_INLINE idRenderMatrix::idRenderMatrix(
 	float a0, float a1, float a2, float a3,
 	float b0, float b1, float b2, float b3,
 	float c0, float c1, float c2, float c3,
@@ -257,23 +257,23 @@ ID_INLINE void idRenderMatrix::Identity()
 	m[0 * 4 + 1] = 0.0f;
 	m[0 * 4 + 2] = 0.0f;
 	m[0 * 4 + 3] = 0.0f;
-	
+
 	m[1 * 4 + 0] = 0.0f;
 	m[1 * 4 + 1] = 1.0f;
 	m[1 * 4 + 2] = 0.0f;
 	m[1 * 4 + 3] = 0.0f;
-	
+
 	m[2 * 4 + 0] = 0.0f;
 	m[2 * 4 + 1] = 0.0f;
 	m[2 * 4 + 2] = 1.0f;
 	m[2 * 4 + 3] = 0.0f;
-	
+
 	m[3 * 4 + 0] = 0.0f;
 	m[3 * 4 + 1] = 0.0f;
 	m[3 * 4 + 2] = 0.0f;
 	m[3 * 4 + 3] = 1.0f;
 #else
-	Copy( renderMatrix_identity ); 
+	Copy( renderMatrix_identity );
 #endif
 }
 

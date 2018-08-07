@@ -27,8 +27,8 @@
 	idRenderMatrix::ProjectedBounds( cropBounds, lightViewRenderMatrix, tmp, false );
 
 
-	The y-axis of clip space points upwards while the y axis in texture space points downwards: 
-	top left in clip space is (-1,1) whereas top left in texture coordinates is (0,0). Luckily we 
+	The y-axis of clip space points upwards while the y axis in texture space points downwards:
+	top left in clip space is (-1,1) whereas top left in texture coordinates is (0,0). Luckily we
 	can extend the combined shadow view and projection matrix to do the remapping:
 
 	// compute block index into shadow atlas
@@ -47,21 +47,45 @@
 	Doom4 tech:	Shadow Map Atlas
 
 	For each light casting a shadow, a unique depth map is generated and saved into one tile
-	of a giant 8k x 8k texture atlas. However not every single depth map is calculated at every frame:	
+	of a giant 8k x 8k texture atlas. However not every single depth map is calculated at every frame:
 	DOOM heavily re-uses the result of the previous frame and regenerates only the depth maps which need to be updated.
 
 	When a light is static and casts shadows only on static objects it makes sense to simply keep its depth map as-is
 	instead of doing unnecessary re-calculation. If some enemy is moving under the light though, the depth map must be generated again.
-	Depth map sizes can vary depending on the light distance from the camera, also re-generated depth maps don’t necessarily 
+	Depth map sizes can vary depending on the light distance from the camera, also re-generated depth maps don’t necessarily
 	stay inside the same tile within the atlas.
-	DOOM has specific optimizations like caching the static portion of a depth map, computing then only the 
+	DOOM has specific optimizations like caching the static portion of a depth map, computing then only the
 	dynamic meshes projection and compositing the results.
 
 
 ==============================================================================================
 */
 
-idCVar r_useSinglePassShadowMaps( "r_useSinglePassShadowMaps", "0", CVAR_RENDERER | CVAR_BOOL, "" );
+struct renderPassShadowBufferFillParms_t
+{
+	idRenderMatrix				shadowVPMatrices[ 6 ];
+
+	const idDeclRenderProg *	shadowBuffer_point;
+	const idDeclRenderProg *	shadowBuffer_perforated_point;
+	const idDeclRenderProg *	shadowBuffer_spot;
+	const idDeclRenderProg *	shadowBuffer_perforated_spot;
+	const idDeclRenderProg *	shadowBuffer_parallel;
+	const idDeclRenderProg *	shadowBuffer_perforated_parallel;
+
+};
+
+void Init( renderPassShadowBufferFillParms_t * pass )
+{
+	pass->shadowBuffer_point				= renderProgManager.FindRenderProgram( "shadowBuffer_point" );
+	pass->shadowBuffer_perforated_point		= renderProgManager.FindRenderProgram( "shadowBuffer_perforated_point" );
+	pass->shadowBuffer_spot					= renderProgManager.FindRenderProgram( "shadowBuffer_spot" );
+	pass->shadowBuffer_perforated_spot		= renderProgManager.FindRenderProgram( "shadowBuffer_perforated_spot" );
+	pass->shadowBuffer_parallel				= renderProgManager.FindRenderProgram( "shadowBuffer_parallel" );
+	pass->shadowBuffer_perforated_parallel	= renderProgManager.FindRenderProgram( "shadowBuffer_perforated_parallel" );
+
+
+
+}
 
 #if 0
 void CalcCascadeSplits( idRenderView * view, const viewLight_t * const vLight, idVec2 reductionDepth )
@@ -257,6 +281,141 @@ void CalcCascadeSplits( idRenderView * view, const viewLight_t * const vLight, i
 }
 #endif
 
+void RB_SetupShadowCommonParms( const lightType_e lightType, const uint32 shadowLOD )
+{
+	static const int JITTER_SIZE = 128;
+
+	// default high quality
+	float jitterSampleScale = 1.0f;
+	float shadowMapSamples = r_shadowMapSamples.GetInteger();
+
+	// screen power of two correction factor / rpScreenCorrectionFactor;
+	auto & screenCorrectionParm = renderProgManager.GetRenderParm( RENDERPARM_SCREENCORRECTIONFACTOR )->GetVec4();
+	screenCorrectionParm[ 0 ] = 1.0f / ( JITTER_SIZE * shadowMapSamples );
+	screenCorrectionParm[ 1 ] = 1.0f / JITTER_SIZE;
+	screenCorrectionParm[ 2 ] = 1.0f / shadowMapResolutions[ shadowLOD ];
+	screenCorrectionParm[ 3 ] = ( lightType == LIGHT_TYPE_PARALLEL ) ? r_shadowMapSunDepthBiasScale.GetFloat() : r_shadowMapRegularDepthBiasScale.GetFloat();
+
+	// rpJitterTexScale
+	auto & jitterTexScale = renderProgManager.GetRenderParm( RENDERPARM_JITTERTEXSCALE )->GetVec4();
+	jitterTexScale[ 0 ] = r_shadowMapJitterScale.GetFloat() * jitterSampleScale;	// TODO shadow buffer size fraction shadowMapSize / maxShadowMapSize
+	jitterTexScale[ 1 ] = r_shadowMapJitterScale.GetFloat() * jitterSampleScale;
+	jitterTexScale[ 2 ] = -r_shadowMapBiasScale.GetFloat();
+	jitterTexScale[ 3 ] = 0.0f;
+
+	// rpJitterTexOffset
+	auto & jitterTexOffset = renderProgManager.GetRenderParm( RENDERPARM_JITTERTEXOFFSET )->GetVec4();
+	if( r_shadowMapRandomizeJitter.GetBool() )
+	{
+		jitterTexOffset[ 0 ] = ( rand() & 255 ) / 255.0;
+		jitterTexOffset[ 1 ] = ( rand() & 255 ) / 255.0;
+	}
+	else {
+		jitterTexOffset[ 0 ] = 0;
+		jitterTexOffset[ 1 ] = 0;
+	}
+	jitterTexOffset[ 2 ] = 0.0f;
+	jitterTexOffset[ 3 ] = 0.0f;
+
+	/*if( vLight->parallel ) { // rpCascadeDistances
+	auto & cascadeDistances = renderProgManager.GetRenderParm( RENDERPARM_CASCADEDISTANCES )->GetVec4();
+	cascadeDistances[0] = backEnd.viewDef->GetSplitFrustumDistances()[0];
+	cascadeDistances[1] = backEnd.viewDef->GetSplitFrustumDistances()[1];
+	cascadeDistances[2] = backEnd.viewDef->GetSplitFrustumDistances()[2];
+	cascadeDistances[3] = backEnd.viewDef->GetSplitFrustumDistances()[3];
+	}*/
+
+	//auto & parm = renderProgManager.GetRenderParm( RENDERPARM_USERVEC0 )->GetVec4();
+	//parm[ 0 ] = parm[ 1 ] = parm[ 2 ] = parm[ 3 ] = 1.0f;
+	//if( r_useSinglePassShadowMaps.GetBool() )
+	//{
+	//	parm[ 0 ] = ( float )shadowMapResolutions[ shadowLOD ] / shadowMapResolutions[ 0 ];
+	//}
+
+	// texture 5 will be the shadow maps array
+	renderProgManager.SetRenderParm( RENDERPARM_SHADOWBUFFERMAP, renderDestManager.shadowBufferImage[ shadowLOD ] );
+
+	// texture 6 will be the jitter texture for soft shadowing
+	if( r_shadowMapSamples.GetInteger() == 16 )
+	{
+		renderProgManager.SetRenderParm( RENDERPARM_JITTERMAP, renderImageManager->jitterImage16 );
+	}
+	else if( r_shadowMapSamples.GetInteger() == 4 )
+	{
+		renderProgManager.SetRenderParm( RENDERPARM_JITTERMAP, renderImageManager->jitterImage4 );
+	}
+	else {
+		renderProgManager.SetRenderParm( RENDERPARM_JITTERMAP, renderImageManager->jitterImage1 );
+	}
+}
+
+/*
+=====================
+ RB_SetupShadowDrawMatrices
+=====================
+*/
+void RB_SetupShadowDrawMatrices( const lightType_e lightType, const drawSurf_t * const surf )
+{
+	if( lightType == LIGHT_TYPE_PARALLEL )
+	{
+		idRenderMatrix shadowClipMVPs[ 5 ];
+		const uint32 count = ( r_shadowMapSplits.GetInteger() + 1 );
+		for( uint32 i = 0; i < count; i++ )
+		{
+			///idRenderMatrix shadowClipMVP;
+			idRenderMatrix::Multiply( backEnd.shadowVP[ i ], surf->space->modelMatrix, shadowClipMVPs[ i ] );
+			///renderProgManager.SetRenderParms( ( renderParm_t )( RENDERPARM_SHADOW_MATRIX_0_X + i * 4 ), shadowClipMVP.Ptr(), 4 );
+		}
+
+		backEnd.shadowUniformBuffer.Update( sizeof( idRenderMatrix ) * count, shadowClipMVPs );
+	}
+	else if( lightType == LIGHT_TYPE_POINT )
+	{
+		idRenderMatrix shadowClipMVPs[ 6 ];
+		for( uint32 i = 0; i < 6; i++ )
+		{
+			///idRenderMatrix shadowClipMVP;
+			idRenderMatrix::Multiply( backEnd.shadowVP[ i ], surf->space->modelMatrix, shadowClipMVPs[ i ] );
+			///renderProgManager.SetRenderParms( ( renderParm_t )( RENDERPARM_SHADOW_MATRIX_0_X + i * 4 ), shadowClipMVP.Ptr(), 4 );
+		}
+
+		backEnd.shadowUniformBuffer.Update( sizeof( idRenderMatrix ) * 6, shadowClipMVPs );
+	}
+	else if( lightType == LIGHT_TYPE_SPOT )
+	{
+		idRenderMatrix shadowClipMVP;
+		idRenderMatrix::Multiply( backEnd.shadowVP[ 0 ], surf->space->modelMatrix, shadowClipMVP );
+
+		///renderProgManager.SetRenderParms( ( renderParm_t )( RENDERPARM_SHADOW_MATRIX_0_X ), shadowClipMVP.Ptr(), 4 );
+		backEnd.shadowUniformBuffer.Update( sizeof( idRenderMatrix ), shadowClipMVP.Ptr() );
+	}
+
+	//backEnd.shadowUniformBuffer.Bind( BINDING_SHADOW_UBO, backEnd.shadowUniformBuffer.GetOffset(), backEnd.shadowUniformBuffer.GetSize() );
+}
+/*
+=====================
+RB_SetupShadowDrawMatricesGlobal
+=====================
+*/
+void RB_SetupShadowDrawMatricesGlobal( const lightType_e lightType )
+{
+	if( lightType == LIGHT_TYPE_PARALLEL )
+	{
+		const uint32 count = ( r_shadowMapSplits.GetInteger() + 1 );
+		backEnd.shadowUniformBuffer.Update( sizeof( idRenderMatrix ) * count, backEnd.shadowVP );
+	}
+	else if( lightType == LIGHT_TYPE_POINT )
+	{
+		backEnd.shadowUniformBuffer.Update( sizeof( idRenderMatrix ) * 6, backEnd.shadowVP );
+	}
+	else if( lightType == LIGHT_TYPE_SPOT )
+	{
+		backEnd.shadowUniformBuffer.Update( sizeof( idRenderMatrix ), &backEnd.shadowVP[ 0 ] );
+	}
+
+	//backEnd.shadowUniformBuffer.Bind( BINDING_SHADOW_UBO, backEnd.shadowUniformBuffer.GetOffset(), backEnd.shadowUniformBuffer.GetSize() );
+}
+
 /*
 =====================
  idRenderMatrix is left-handed !?
@@ -268,10 +427,10 @@ void CalcCascadeSplits( idRenderView * view, const viewLight_t * const vLight, i
 =====================
 */
 static void idRenderMatrix_CreateOrthogonalOffCenterProjection(
-	float left, 	// Minimum x-value of view volume.	
-	float right, 	// Maximum x-value of view volume.	
-	float bottom,	// Minimum y-value of view volume.		
-	float top,		// Maximum y-value of view volume. 		
+	float left, 	// Minimum x-value of view volume.
+	float right, 	// Maximum x-value of view volume.
+	float bottom,	// Minimum y-value of view volume.
+	float top,		// Maximum y-value of view volume.
 	float zNear, float zFar,
 	idRenderMatrix & out )
 {
@@ -349,18 +508,18 @@ static void GetParallelLightViewProjMatrices( const viewLight_t * const vLight, 
 			// cropBounds.ToPoints( points );
 
 			// float diagonalLength;// As Single = ( frustumCornersWS( 0 ) - frustumCornersWS( 6 ) ).Length()
-			// 
+			//
 			// float worldsUnitsPerTexel = diagonalLength / float( shadowMapResolutions[ i ] );
 			// idVec3 vBorderOffset = ( idVec3( diagonalLength, diagonalLength, diagonalLength ) - ( cropBounds.GetMaxs() - cropBounds.GetMins() ) ) * 0.5f;
 			// cropBounds[1]/*Maximum*/ += vBorderOffset;
 			// cropBounds[0]/*Minimum*/ -= vBorderOffset;
-			// 
+			//
 			// cropBounds[0] /= worldsUnitsPerTexel;
 			// cropBounds[0].x = idMath::Floor( cropBounds[0].x );
 			// cropBounds[0].y = idMath::Floor( cropBounds[0].y );
 			// cropBounds[0].z = idMath::Floor( cropBounds[0].z );
 			// cropBounds[0] *= worldsUnitsPerTexel;
-			// 
+			//
 			// cropBounds[1] /= worldsUnitsPerTexel;
 			// cropBounds[1].x = idMath::Floor( cropBounds[1].x );
 			// cropBounds[1].y = idMath::Floor( cropBounds[1].y );
@@ -444,197 +603,192 @@ static void GetSpotLightViewProjMatrix( const viewLight_t * const vLight, idRend
 
 /*
 =====================
- RenderShadowBuffer
+ DrawSurfaceGeneric
 =====================
 */
-//static void RenderShadowBufferGeneric( const drawSurf_t * const * drawSurfs, uint32 numDrawSurfs, const idRenderMatrix & smVPMatrix )
-static void RenderShadowBufferGeneric( const drawSurf_t * const drawSurfs, const idRenderMatrix & smVPMatrix )
+static void DrawSurfaceGeneric( const drawSurf_t * const drawSurf, const idDeclRenderProg * progSolid, const idDeclRenderProg * progPerforated )
 {
-	// process the chain of shadows with the current rendering state
-	backEnd.ClearCurrentSpace();
+	auto const material = drawSurf->material;
+	assert( material != nullptr );
 
-	//for( int i = 0; i < numDrawSurfs; i++ ) {
-	//	const drawSurf_t* const drawSurf = drawSurfs[ i ];
+	auto const regs = drawSurf->shaderRegisters;
+	//release_assert( regs != nullptr );  empty for statics ?
 
-	for( const drawSurf_t* drawSurf = drawSurfs; drawSurf != NULL; drawSurf = drawSurf->nextOnLight ) 
+	RENDERLOG_OPEN_BLOCK( material->GetName() );
+
+	if( drawSurf->space != backEnd.currentSpace )
 	{
-		if( drawSurf->numIndexes == 0 )
-			continue;	// a job may have created an empty shadow geometry
+		backEnd.currentSpace = drawSurf->space;
+	#if 0
+		///idRenderMatrix smLightVP;
+		///idRenderMatrix::Multiply( lightProjectionRenderMatrix, lightViewRenderMatrix, smLightVP );
+		///
+		///idRenderMatrix clipMVP;
+		///idRenderMatrix::Multiply( smLightVP, drawSurf->space->modelMatrix, clipMVP );
 
-		if( drawSurf->space != backEnd.currentSpace )
+		if( vLight->parallel )
 		{
-		#if 0
-			///idRenderMatrix smLightVP;
-			///idRenderMatrix::Multiply( lightProjectionRenderMatrix, lightViewRenderMatrix, smLightVP );
-			///
-			///idRenderMatrix clipMVP;
-			///idRenderMatrix::Multiply( smLightVP, drawSurf->space->modelMatrix, clipMVP );
+			///idRenderMatrix MVP;
+			///idRenderMatrix::Multiply( renderMatrix_clipSpaceToWindowSpace, clipMVP, MVP );
 
-			if( vLight->parallel )
-			{
-				///idRenderMatrix MVP;
-				///idRenderMatrix::Multiply( renderMatrix_clipSpaceToWindowSpace, clipMVP, MVP );
+			idRenderMatrix clipMVP;
+			idRenderMatrix::Multiply( backEnd.shadowVP[ side ], drawSurf->space->modelMatrix, clipMVP );
 
-				idRenderMatrix clipMVP;
-				idRenderMatrix::Multiply( backEnd.shadowVP[ side ], drawSurf->space->modelMatrix, clipMVP );
-
-				RB_SetMVP( clipMVP );
-			}
-			else if( side < 0 ) // spot
-			{
-				idRenderMatrix clipMVP;
-				idRenderMatrix::Multiply( backEnd.shadowVP[ 0 ], drawSurf->space->modelMatrix, clipMVP );
-
-				/// from OpenGL view space to OpenGL NDC ( -1 : 1 in XYZ )
-				///idRenderMatrix MVP;
-				///idRenderMatrix::Multiply( renderMatrix_windowSpaceToClipSpace, clipMVP, MVP );		
-				///RB_SetMVP( MVP );
-
-				RB_SetMVP( clipMVP );
-			}
-			else
-			{
-				idRenderMatrix clipMVP;
-				idRenderMatrix::Multiply( backEnd.shadowVP[ side ], drawSurf->space->modelMatrix, clipMVP );
-
-				RB_SetMVP( clipMVP );
-			}
-		#endif
-			//idRenderMatrix clipMVP;
-			///const idRenderMatrix & smVPMatrix = backEnd.shadowVP[ ( side < 0 ) ? 0 : side ];
-			//idRenderMatrix::Multiply( smVPMatrix, drawSurf->space->modelMatrix, clipMVP );
-			//RB_SetMVP( clipMVP );
-
-			idRenderMatrix::Multiply( smVPMatrix, drawSurf->space->modelMatrix,
-				renderProgManager.GetRenderParm( RENDERPARM_MVPMATRIX_X ),
-				renderProgManager.GetRenderParm( RENDERPARM_MVPMATRIX_Y ),
-				renderProgManager.GetRenderParm( RENDERPARM_MVPMATRIX_Z ),
-				renderProgManager.GetRenderParm( RENDERPARM_MVPMATRIX_W ) );
-
-			backEnd.currentSpace = drawSurf->space;
+			renderProgManager.SetMVPMatrixParms( clipMVP );
 		}
-
-		const idMaterial* const material = drawSurf->material;
-		release_assert( material != nullptr );
-
-		RENDERLOG_OPEN_BLOCK( material->GetName() );
-
-		if( !drawSurf->space->modelMatrix.IsIdentity( MATRIX_EPSILON ) )
+		else if( side < 0 ) // spot
 		{
-			RENDERLOG_PRINT("-- modelMatrix.IsIdentity() --\n");
+			idRenderMatrix clipMVP;
+			idRenderMatrix::Multiply( backEnd.shadowVP[ 0 ], drawSurf->space->modelMatrix, clipMVP );
+
+			/// from OpenGL view space to OpenGL NDC ( -1 : 1 in XYZ )
+			///idRenderMatrix MVP;
+			///idRenderMatrix::Multiply( renderMatrix_windowSpaceToClipSpace, clipMVP, MVP );
+			///renderProgManager.SetMVPMatrixParms( MVP );
+
+			renderProgManager.SetMVPMatrixParms( clipMVP );
 		}
-
-		bool didDraw = false;
-
-		// get the expressions for conditionals / color / texcoords
-		const float* regs = drawSurf->shaderRegisters;
-
-		/*if( material->ConditionedOff( regs ) )
+		else
 		{
-			continue;
-		} //SEA regs == 0 ??? */
+			idRenderMatrix clipMVP;
+			idRenderMatrix::Multiply( backEnd.shadowVP[ side ], drawSurf->space->modelMatrix, clipMVP );
 
-		idRenderVector color( 0, 0, 0, 1 );
-
-		uint64 surfGLState = 0;
-
-		// set polygon offset if necessary
-		if( material && material->TestMaterialFlag( MF_POLYGONOFFSET ) )
-		{
-			surfGLState |= GLS_POLYGON_OFFSET;
-			GL_PolygonOffset( r_offsetFactor.GetFloat(), r_offsetUnits.GetFloat() * material->GetPolygonOffset() );
+			renderProgManager.SetMVPMatrixParms( clipMVP );
 		}
+	#endif
+		//idRenderMatrix clipMVP;
+		///const idRenderMatrix & smVPMatrix = backEnd.shadowVP[ ( side < 0 ) ? 0 : side ];
+		//idRenderMatrix::Multiply( smVPMatrix, drawSurf->space->modelMatrix, clipMVP );
+		//renderProgManager.SetMVPMatrixParms( clipMVP );
 
-		if( material && material->Coverage() == MC_PERFORATED )
-		{
-			// perforated surfaces may have multiple alpha tested stages
-			for( int stage = 0; stage < material->GetNumStages(); stage++ )
-			{
-				auto pStage = material->GetStage( stage );
-
-				if( !pStage->hasAlphaTest )
-					continue;
-
-				// check the stage enable condition
-				if( pStage->SkipStage( regs ) )
-					continue;
-
-				// if we at least tried to draw an alpha tested stage,
-				// we won't draw the opaque surface
-				didDraw = true;
-
-				// set the alpha modulate
-				color[ 3 ] = pStage->GetColorParmAlpha( regs );
-
-				// skip the entire stage if alpha would be black
-				if( color[ 3 ] <= 0.0f )
-					continue;
-
-				uint64 stageGLState = surfGLState;
-
-				// set privatePolygonOffset if necessary
-				if( pStage->privatePolygonOffset )
-				{
-					GL_PolygonOffset( r_offsetFactor.GetFloat(), r_offsetUnits.GetFloat() * pStage->privatePolygonOffset );
-					stageGLState |= GLS_POLYGON_OFFSET;
-				}
-
-				GL_Color( color );
-
-				GL_State( stageGLState );
-
-				auto & alphaTestValue = renderProgManager.GetRenderParm( RENDERPARM_ALPHA_TEST );
-				alphaTestValue.Fill( pStage->GetAlphaTestValue( regs ) );
-
-				renderProgManager.BindShader_TextureVertexColor( drawSurf->jointCache );
-
-				RB_SetVertexColorParms( SVC_IGNORE );
-
-				// bind the texture
-				///GL_BindTexture( 0, pStage->texture.image );
-				renderProgManager.SetRenderParm( RENDERPARM_MAP, pStage->texture.image );
-
-				// set texture matrix and texGens
-				RB_PrepareStageTexturing( pStage, drawSurf );
-
-				// must render with less-equal for Z-Cull to work properly
-				assert( ( GL_GetCurrentState() & GLS_DEPTHFUNC_BITS ) == GLS_DEPTHFUNC_LESS );
-
-				// draw it
-				GL_DrawIndexed( drawSurf );
-
-				// clean up
-				RB_FinishStageTexturing( pStage, drawSurf );
-
-				// unset privatePolygonOffset if necessary
-				if( pStage->privatePolygonOffset )
-				{
-					GL_PolygonOffset( r_offsetFactor.GetFloat(), r_offsetUnits.GetFloat() * material->GetPolygonOffset() );
-				}
-			}
-		}
-
-		if( !didDraw )
-		{
-			renderProgManager.BindShader_Depth( drawSurf->jointCache );
-
-			GL_DrawIndexed( drawSurf );
-		}
-
-		RENDERLOG_CLOSE_BLOCK();
+		renderProgManager.SetModelMatrixParms( drawSurf->space->modelMatrix );
 	}
+	if( drawSurf->space->modelMatrix.IsIdentity( MATRIX_EPSILON ) )
+	{
+		RENDERLOG_PRINT( "-- modelMatrix.IsIdentity() --\n" );
+	}
+
+	uint64 surfGLState = GLS_COLORMASK | GLS_ALPHAMASK | GLS_STENCILMASK | GLS_DEPTHFUNC_LEQUAL;
+	// facing ?? front facing for now.
+
+	// set polygon offset if necessary
+	if( material->TestMaterialFlag( MF_POLYGONOFFSET ) )
+	{
+		surfGLState |= GLS_POLYGON_OFFSET;
+		GL_PolygonOffset( r_offsetFactor.GetFloat(), r_offsetUnits.GetFloat() * material->GetPolygonOffset() );
+	}
+
+	bool didDraw = false;
+	if( material->Coverage() == MC_PERFORATED )
+	{
+		// perforated surfaces may have multiple alpha tested stages
+		for( int stage = 0; stage < material->GetNumStages(); stage++ )
+		{
+			auto pStage = material->GetStage( stage );
+
+			if( !pStage->hasAlphaTest )
+				continue;
+
+			// check the stage enable condition
+			assert( regs != nullptr );
+			if( pStage->SkipStage( regs ) )
+				continue;
+
+			// if we at least tried to draw an alpha tested stage,
+			// we won't draw the opaque surface
+			didDraw = true;
+
+			// skip the entire stage if alpha would be black
+			assert( regs != nullptr );
+			if( pStage->GetColorParmAlpha( regs ) <= 0.0f )
+				continue;
+
+			///renderProgManager.BindProg_FillShadowBufferOnePass( lightType, true );
+			GL_SetRenderProgram( progPerforated );
+
+			// set rpEnableSkinning if the shader has optional support for skinning
+			/*if( drawSurf->jointCache && renderProgManager.ShaderHasOptionalSkinning() )
+			{
+				GL_EnableSkinning();
+			}*/
+
+			uint64 stageGLState = surfGLState;
+
+			// set privatePolygonOffset if necessary
+			if( pStage->privatePolygonOffset )
+			{
+				GL_PolygonOffset( r_offsetFactor.GetFloat(), r_offsetUnits.GetFloat() * pStage->privatePolygonOffset );
+				stageGLState |= GLS_POLYGON_OFFSET;
+			}
+
+			GL_State( stageGLState );
+
+			assert( regs != nullptr );
+			renderProgManager.EnableAlphaTestParm( pStage->GetAlphaTestValue( regs ) );
+
+			// bind the texture
+			renderProgManager.SetRenderParm( RENDERPARM_MAP, pStage->texture.image );
+
+			// set the texture matrix if needed
+			renderProgManager.SetupTextureMatrixParms( drawSurf->shaderRegisters, &pStage->texture );
+
+			// must render with less-equal for Z-Cull to work properly
+			assert( ( GL_GetCurrentState() & GLS_DEPTHFUNC_BITS ) == GLS_DEPTHFUNC_LEQUAL );
+
+			// draw it
+			GL_DrawIndexed( drawSurf );
+
+			// unset privatePolygonOffset if necessary
+			if( pStage->privatePolygonOffset )
+			{
+				GL_PolygonOffset( r_offsetFactor.GetFloat(), r_offsetUnits.GetFloat() * material->GetPolygonOffset() );
+			}
+
+			// clear rpEnableSkinning if it was set
+			/*if( drawSurf->jointCache && renderProgManager.ShaderHasOptionalSkinning() )
+			{
+				GL_DisableSkinning();
+			}*/
+		}
+	}
+
+	if( !didDraw )
+	{
+		///renderProgManager.BindProg_FillShadowBufferOnePass( lightType, false );
+		GL_SetRenderProgram( progSolid );
+
+		// set rpEnableSkinning if the shader has optional support for skinning
+		/*if( drawSurf->jointCache && renderProgManager.ShaderHasOptionalSkinning() )
+		{
+			GL_EnableSkinning();
+		}*/
+
+		GL_DrawIndexed( drawSurf );
+
+		// clear rpEnableSkinning if it was set
+		/*if( drawSurf->jointCache && renderProgManager.ShaderHasOptionalSkinning() )
+		{
+			GL_DisableSkinning();
+		}*/
+	}
+
+	RENDERLOG_CLOSE_BLOCK();
 }
-#if 0
+
 /*
 =====================
  RenderShadowBufferFast
 =====================
 */
-static void RenderShadowBufferFast( const drawSurf_t * const drawSurfs, const idRenderMatrix & smVPMatrix )
+static void RenderShadowBufferFast( const drawSurf_t * const drawSurfs,
+	const idDeclRenderProg * progStaticGeometry, const idDeclRenderProg * progSolid, const idDeclRenderProg * progPerforated )
 {
-	auto perforatedSurfaces = ( const drawSurf_t** )_alloca( backEnd.viewDef->numPerforatedSurfaces * sizeof( drawSurf_t* ) );
-	uint32 numPerforatedSurfaces = 0;
-	uint32 numTransSurfaces = 0;
+	auto deferredList = ( const drawSurf_t** )_alloca( 256 * sizeof( drawSurf_t* ) );
+	uint32 numDeferredSurfaces = 0;
+
+	GL_StartDrawBatch();
+
+	GL_SetRenderProgram( progStaticGeometry );
 
 	for( const drawSurf_t* surf = drawSurfs; surf != NULL; surf = surf->nextOnLight )
 	{
@@ -642,72 +796,111 @@ static void RenderShadowBufferFast( const drawSurf_t * const drawSurfs, const id
 			continue;	// a job may have created an empty shadow geometry
 		}
 
-		// translucent surfaces don't put anything in the depth buffer
-		if( surf->material->Coverage() == MC_TRANSLUCENT )
+		if( surf->material->Coverage() == MC_PERFORATED ||
+			surf->jointCache ||
+			!surf->space->modelMatrix.IsIdentity( MATRIX_EPSILON ) )
 		{
-			++numTransSurfaces;
-			continue;
-		}
-
-		if( surf->material->Coverage() == MC_PERFORATED )
-		{
-			release_assert( numPerforatedSurfaces <= backEnd.viewDef->numPerforatedSurfaces );
+			assert( numDeferredSurfaces <= 256 );
 
 			// save for later drawing
-			perforatedSurfaces[ numPerforatedSurfaces ] = surf;
-			++numPerforatedSurfaces;
+			deferredList[ numDeferredSurfaces++ ] = surf;
 			continue;
 		}
 
-		// set mvp matrix
-		if( surf->space != backEnd.currentSpace )
-		{
-			backEnd.currentSpace = surf->space;
+		RENDERLOG_OPEN_BLOCK( surf->material->GetName() );
 
-			idRenderMatrix clipMVP;
-			idRenderMatrix::Multiply( smVPMatrix, surf->space->modelMatrix, clipMVP );
-
-			RB_SetMVP( clipMVP );
-		}
-
-		RENDERLOG_PRINT( surf->material->GetName() );
-
-		if( surf->jointCache )
-		{
-			renderProgManager.BindShader_DepthSkinned();
-		}
-		else {
-			renderProgManager.BindShader_Depth();
-		}
+		/*if( surf->space->modelMatrix.IsIdentity( MATRIX_EPSILON ) ) {
+			RENDERLOG_PRINT( "-- modelMatrix.IsIdentity() --\n" );
+		}*/
 
 		// must render with less-equal for Z-Cull to work properly
-		assert( ( GL_GetCurrentState() & GLS_DEPTHFUNC_BITS ) == GLS_DEPTHFUNC_LESS );
+		assert( ( GL_GetCurrentState() & GLS_DEPTHFUNC_BITS ) == GLS_DEPTHFUNC_LEQUAL );
 
 		// draw it solid
-		GL_DrawIndexed( surf );
+		//GL_DrawIndexed( surf, LAYOUT_DRAW_VERT_POSITION_ONLY );
+		GL_SetupDrawBatchParms( surf );
 
-		//RENDERLOG_CLOSE_BLOCK();
+		RENDERLOG_CLOSE_BLOCK();
 	}
-	RENDERLOG_PRINT( "---( counted perfs %u, precounted %u, trans %u )---\n", numPerforatedSurfaces, backEnd.viewDef->numPerforatedSurfaces, numTransSurfaces );
+
+	GL_FinishDrawBatch();
+	///RENDERLOG_PRINT( "---( counted perfs %u, precounted %u, trans %u )---\n", numPerforatedSurfaces, backEnd.viewDef->numPerforatedSurfaces, numTransSurfaces );
 
 	// draw all perforated surfaces with the general code path
-	if( numPerforatedSurfaces > 0 )
+	if( numDeferredSurfaces > 0 )
 	{
-		RenderShadowBufferGeneric( perforatedSurfaces, numPerforatedSurfaces, smVPMatrix );
+		backEnd.ClearCurrentSpace();
+
+		for( uint32 i = 0; i < numDeferredSurfaces; ++i )
+		{
+			DrawSurfaceGeneric( deferredList[ i ], progSolid, progPerforated );
+		}
 	}
 }
-#endif
+
 /*
 =====================
-RB_ShadowMapPass
+ RenderShadowBufferOnePass
+=====================
+*/
+static void RenderShadowBuffer( const drawSurf_t * const drawSurfs, const lightType_e lightType,
+	const idDeclRenderProg * progSBSolid, const idDeclRenderProg * progSBPerforated )
+{
+	backEnd.ClearCurrentSpace();
+
+	for( const drawSurf_t* drawSurf = drawSurfs; drawSurf != NULL; drawSurf = drawSurf->nextOnLight )
+	{
+		if( drawSurf->numIndexes == 0 )
+			continue;	// a job may have created an empty shadow geometry
+
+		DrawSurfaceGeneric( drawSurf, progSBSolid, progSBPerforated );
+	}
+}
+
+ID_INLINE void ClearShadowBuffer( const bool bUseProgram )
+{
+	if( bUseProgram )
+	{
+		GL_SetRenderProgram( renderProgManager.prog_shadowBuffer_clear );
+		GL_DrawUnitSquare( LAYOUT_DRAW_VERT_POSITION_ONLY, 6 );
+	}
+	else {
+		///GL_ClearDepth( 1.0f );
+		GL_Clear( false, true, false, 0, 0, 0, 0, 0 );
+	}
+}
+
+ID_INLINE auto GetProg_FillShadowBufferOnePass( lightType_e lightType, const bool bPerforated, const bool bStatic )
+{
+	switch( lightType )
+	{
+		case LIGHT_TYPE_POINT:
+			return bStatic ? renderProgManager.prog_shadowBuffer_static_point : ( bPerforated ? renderProgManager.prog_shadowBuffer_perforated_point : renderProgManager.prog_shadowBuffer_point );
+
+		case LIGHT_TYPE_SPOT:
+			return bStatic ? renderProgManager.prog_shadowbuffer_static_spot : ( bPerforated ? renderProgManager.prog_shadowBuffer_perforated_spot : renderProgManager.prog_shadowBuffer_spot );
+
+		case LIGHT_TYPE_PARALLEL:
+			return bStatic ? renderProgManager.prog_shadowBuffer_static_parallel : ( bPerforated ? renderProgManager.prog_shadowBuffer_perforated_parallel : renderProgManager.prog_shadowBuffer_parallel );
+
+			//case LIGHT_TYPE_AREA:
+			//return perforated ? prog_shadowBuffer_perforated_area : prog_shadowBuffer_area;
+	}
+	assert( "GetProg_FillShadowBufferOnePass returns NULL" );
+	return ( const idDeclRenderProg * )NULL;
+}
+
+/*
+=====================
+RB_FillShadowBuffer
 
 	TODO: some world models do not have some faces, not issue for stencils but problem for shadow maps
-		
+
 		set separate culling for world models and the rest of the models ?
 
 =====================
 */
-void RB_ShadowMapPass( const drawSurf_t * const drawSurfs, const viewLight_t * const vLight )
+void RB_FillShadowBuffer( const drawSurf_t * const drawSurfs, const viewLight_t * const vLight )
 {
 	if( r_skipShadows.GetBool() )
 		return;
@@ -715,143 +908,179 @@ void RB_ShadowMapPass( const drawSurf_t * const drawSurfs, const viewLight_t * c
 	if( drawSurfs == NULL )
 		return;
 
-	RENDERLOG_OPEN_BLOCK( "RB_ShadowMapPass" );
+	RENDERLOG_OPEN_BLOCK( "RB_FillShadowBuffer" );
 
-	if( vLight->parallel )
-	{
-		GetParallelLightViewProjMatrices( vLight, backEnd.shadowVP );
-	}
-	else if( vLight->pointLight )
+	const idDeclRenderProg * progSolid;
+	const idDeclRenderProg * progPerforated;
+	const idDeclRenderProg * progStaticGeometry;
+
+	/*/*/if( vLight->IsPointType() )
 	{
 		GetPointLightViewProjMatrices( vLight, backEnd.shadowVP );
+
+		progSolid			= GetProg_FillShadowBufferOnePass( LIGHT_TYPE_POINT, false, false );
+		progPerforated		= GetProg_FillShadowBufferOnePass( LIGHT_TYPE_POINT, true, false );
+		progStaticGeometry	= GetProg_FillShadowBufferOnePass( LIGHT_TYPE_POINT, false, true );
+
+		// Update shadow view projection matrices
+		backEnd.shadowUniformBuffer.Update( sizeof( idRenderMatrix ) * 6, backEnd.shadowVP );
 	}
-	else {
-		GetSpotLightViewProjMatrix( vLight, backEnd.shadowVP[ 0 ] );
-	}
-
-	GL_ResetTexturesState();
-
-	uint64 glState = 0;
-
-	// the actual stencil func will be set in the draw code, but we need to make sure it isn't
-	// disabled here, and that the value will get reset for the interactions without looking
-	// like a no-change-required
-	GL_State( glState | GLS_POLYGON_OFFSET );
-#if 0
-	if( GLEW_ARB_polygon_offset_clamp )
+	else if( vLight->IsParallelType() )
 	{
-		// This extension adds a new parameter to the polygon offset function
-		// that clamps the calculated offset to a minimum or maximum value.
-		// The clamping functionality is useful when polygons are nearly
-		// parallel to the view direction because their high slopes can result
-		// in arbitrarily large polygon offsets.In the particular case of
-		// shadow mapping, the lack of clamping can produce the appearance of
-		// unwanted holes when the shadow casting polygons are offset beyond
-		// the shadow receiving polygons, and this problem can be alleviated by
-		// enforcing a maximum offset value.
-		glPolygonOffsetClamp( float factor, float units, float clamp );
+		GetParallelLightViewProjMatrices( vLight, backEnd.shadowVP );
+
+		progSolid			= GetProg_FillShadowBufferOnePass( LIGHT_TYPE_PARALLEL, false, false );
+		progPerforated		= GetProg_FillShadowBufferOnePass( LIGHT_TYPE_PARALLEL, true, false );
+		progStaticGeometry	= GetProg_FillShadowBufferOnePass( LIGHT_TYPE_PARALLEL, false, true );
+
+		// Update shadow view projection matrices
+		backEnd.shadowUniformBuffer.Update( sizeof( idRenderMatrix ) * ( r_shadowMapSplits.GetInteger() + 1 ), backEnd.shadowVP );
 	}
-	else
+	else if( vLight->IsSpotType() )
 	{
-		GL_PolygonOffset
+		GetSpotLightViewProjMatrix( vLight, backEnd.shadowVP[0] );
+
+		progSolid			= GetProg_FillShadowBufferOnePass( LIGHT_TYPE_SPOT, false, false );
+		progPerforated		= GetProg_FillShadowBufferOnePass( LIGHT_TYPE_SPOT, true, false );
+		progStaticGeometry	= GetProg_FillShadowBufferOnePass( LIGHT_TYPE_SPOT, false, true );
+
+		// Update shadow view projection matrices
+		backEnd.shadowUniformBuffer.Update( sizeof( idRenderMatrix ), backEnd.shadowVP );
 	}
-#endif
+
+	GL_ResetTextureState();
+
+	uint64 glState = GLS_COLORMASK | GLS_ALPHAMASK | GLS_STENCILMASK | GLS_DEPTHFUNC_LESS;
+	float polyScale, polyBias;
+
+	glState |= GLS_POLYGON_OFFSET;
 	switch( r_shadowMapOccluderFacing.GetInteger() )
 	{
 		case 0:
-			GL_Cull( CT_FRONT_SIDED );
-			GL_PolygonOffset( r_shadowMapPolygonFactor.GetFloat(), r_shadowMapPolygonOffset.GetFloat() );
+			glState |= GLS_FRONTSIDED;
+			polyScale = r_shadowMapPolygonFactor.GetFloat(),
+			polyBias = r_shadowMapPolygonOffset.GetFloat();
 			break;
 
 		case 1:
-			GL_Cull( CT_BACK_SIDED );
-			GL_PolygonOffset( -r_shadowMapPolygonFactor.GetFloat(), -r_shadowMapPolygonOffset.GetFloat() );
+			glState |= GLS_BACKSIDED;
+			polyScale = -r_shadowMapPolygonFactor.GetFloat(),
+			polyBias = -r_shadowMapPolygonOffset.GetFloat();
 			break;
 
+		case 2:
 		default:
-			GL_Cull( CT_TWO_SIDED );
-			GL_PolygonOffset( r_shadowMapPolygonFactor.GetFloat(), r_shadowMapPolygonOffset.GetFloat() );
+			glState |= GLS_TWOSIDED;
+			polyScale = r_shadowMapPolygonFactor.GetFloat(),
+			polyBias = r_shadowMapPolygonOffset.GetFloat();
 			break;
 	}
 
-	if( r_useSinglePassShadowMaps.GetBool() )
 	{
-		const int32 shadowLOD = backEnd.viewDef->isSubview ? ( MAX_SHADOWMAP_RESOLUTIONS - 1 ) : 
-			( vLight->parallel ? vLight->shadowLOD : idMath::Max( vLight->shadowLOD, 1 ) );
+		const uint32 shadowLOD = vLight->GetShadowLOD();
 
-		GL_SetRenderDestination( renderDestManager.renderDestShadowOnePass );
+		GL_SetRenderDestination( renderDestManager.renderDestShadowOnePass[ shadowLOD ] );
 		GL_ViewportAndScissor( 0, 0, shadowMapResolutions[ shadowLOD ], shadowMapResolutions[ shadowLOD ] );
+
+		GL_State( glState );
+		GL_PolygonOffset( polyScale, polyBias );
+
 		GL_ClearDepth( 1.0f );
 
-		renderProgManager.BindShader_FillShadowDepthBufferOnePass();
-	}
-	else {
-		renderProgManager.BindShader_Depth( false );
-
-		GL_SetRenderDestination( renderDestManager.renderDestShadow );
-
-		int	side, sideStop;
-
-		if( vLight->parallel )
+		if( r_useLightDepthBounds.GetBool() )
 		{
-			side = 0;
-			sideStop = r_shadowMapSplits.GetInteger() + 1;
-		}
-		else if( vLight->pointLight )
-		{
-			if( r_shadowMapSingleSide.GetInteger() != -1 )
-			{
-				side = r_shadowMapSingleSide.GetInteger();
-				sideStop = side + 1;
-			}
-			else {
-				side = 0;
-				sideStop = 6;
-			}
-		}
-		else { // spot light
-			side = -1;
-			sideStop = 0;
+			GL_DepthBoundsTest( 0.0f, 0.0f );
 		}
 
-		for(/**/; side < sideStop; side++ )
-		{
-			///const int32 shadowLOD = backEnd.viewDef->isSubview ? ( Max( vLight->shadowLOD + 1, MAX_SHADOWMAP_RESOLUTIONS-1 ) ) : vLight->shadowLOD ;
-			const int32 shadowLOD = backEnd.viewDef->isSubview ? ( MAX_SHADOWMAP_RESOLUTIONS - 1 ) : (( vLight->parallel && side >= 0 )? vLight->shadowLOD : idMath::Max( vLight->shadowLOD, 1 ));
-			const int32 layer = ( side < 0 )? 0 : side;
+		RENDERLOG_PRINT( "--- %s shadowLOD %ux%i ----------\n", renderDestManager.renderDestShadowOnePass[ shadowLOD ]->GetName(), shadowLOD, shadowMapResolutions[ shadowLOD ] );
 
-			RENDERLOG_OPEN_BLOCK( idStrStatic<128>().Format( "--- side %i, shadowLOD %i, layer %i ----------", side, shadowLOD, layer ).c_str() );
-
-			///GL_SetRenderDestination( renderDestManager.renderDestShadow );
-			
-			renderDestManager.renderDestShadow->SetTargetOGL( renderImageManager->shadowImage[ shadowLOD ], 0, layer, 0 );
-
-			GL_ViewportAndScissor( 0, 0, shadowMapResolutions[ shadowLOD ], shadowMapResolutions[ shadowLOD ] );
-			GL_ClearDepth( 1.0f );
-
-			// process the chain of surfaces with the current rendering state
-			//RenderShadowBufferFast( drawSurfs, backEnd.shadowVP[ ( side < 0 )? 0 : side ] );
-			RenderShadowBufferGeneric( drawSurfs, backEnd.shadowVP[ layer ] );
-
-			RENDERLOG_CLOSE_BLOCK();
-		}
+		//RenderShadowBuffer( drawSurfs, vLight->GetLightType(), progSolid, progPerforated );
+		RenderShadowBufferFast( drawSurfs, progStaticGeometry, progSolid, progPerforated );
 	}
 
 	//
 	// cleanup the shadow specific rendering state
 	//
-
-	RB_ResetRenderDest( r_useHDR.GetBool() );
+	renderProgManager.DisableAlphaTestParm();
 
 	GL_ResetProgramState();
-	GL_ResetTexturesState();
-
-	GL_State( GLS_DEFAULT );
-	GL_Cull( CT_FRONT_SIDED );
-
-	renderProgManager.SetRenderParm( RENDERPARM_ALPHA_TEST, vec4_zero );
+	GL_ResetTextureState();
 
 	RENDERLOG_CLOSE_BLOCK();
 }
 
 
+static void RB_RenderScreenSpaceShadowMap( const idRenderView * const renderView )
+{
+	if( r_skipShadows.GetBool() )
+		return;
+
+	RENDERLOG_OPEN_MAINBLOCK( MRB_DRAW_INTERACTIONS );
+	RENDERLOG_OPEN_BLOCK( "RB_DrawInteractionsWithScreenSpaceShadows" );
+
+	GL_ResetTextureState();
+
+	const bool useLightDepthBounds = r_useLightDepthBounds.GetBool() && !r_useShadowMapping.GetBool();
+	const int shadowMaskWidth = 0;
+	const int shadowMaskHeight = 0;
+
+	//
+	// For each light, perform shadowing to screen sized ( or less ) texture, blur it, upscale if needed.
+	//
+	for( const viewLight_t* vLight = renderView->viewLights; vLight != NULL; vLight = vLight->next )
+	{
+		// do fogging later
+		if( vLight->lightShader->IsFogLight() || vLight->lightShader->IsBlendLight() )
+			continue;
+
+		if( vLight->NoInteractions() )
+			continue;
+
+		RENDERLOG_OPEN_BLOCK( vLight->lightShader->GetName() );
+
+		const uint32 shadowLOD = vLight->GetShadowLOD();
+
+		GL_SetRenderDestination( renderDestManager.renderDestShadowOnePass[ shadowLOD ] );
+		GL_ViewportAndScissor( 0, 0, shadowMapResolutions[ shadowLOD ], shadowMapResolutions[ shadowLOD ] );
+		GL_ClearDepth( 1.0f );
+
+		// set the depth bounds for the whole light
+		if( useLightDepthBounds )
+		{
+			GL_DepthBoundsTest( vLight->scissorRect.zmin, vLight->scissorRect.zmax );
+		}
+
+		RENDERLOG_PRINT( "--- %s shadowLOD %ix%i ----------\n", renderDestManager.renderDestShadowOnePass[ shadowLOD ]->GetName(), shadowLOD, shadowMapResolutions[ shadowLOD ] );
+
+		// RB_FillShadowDepthBuffer( vLight->globalShadows, vLight );
+
+		// render the shadows into destination alpha on the included pixels
+		// RB_FillScreenSpaceShadowMap( vLight );
+
+		RENDERLOG_CLOSE_BLOCK();
+
+		RENDERLOG_OPEN_BLOCK( "DrawShadowMask" );
+
+		//GL_SetRenderDestination( renderDestManager.renderDestShadowMask );
+		GL_Viewport( 0, 0, shadowMaskWidth, shadowMaskHeight );
+		RB_SetScissor( vLight->scissorRect );
+
+
+		RENDERLOG_CLOSE_BLOCK();
+	}
+
+	// disable stencil shadow test
+	GL_State( GLS_DEFAULT );
+
+	// unbind texture units
+	GL_ResetTextureState();
+
+	// reset depth bounds
+	if( useLightDepthBounds )
+	{
+		GL_DepthBoundsTest( 0.0f, 0.0f );
+	}
+
+	RENDERLOG_CLOSE_BLOCK();
+	RENDERLOG_CLOSE_MAINBLOCK();
+}

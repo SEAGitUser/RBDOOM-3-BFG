@@ -1,78 +1,121 @@
 
 #include "../../tr_local.h"
-
-static ID_INLINE GLuint GetGLObject( void * apiObject ) {
-#pragma warning( suppress: 4311 4302 )
-	return reinterpret_cast<GLuint>( apiObject );
-}
+//#include "renderer\RenderContext.h"
 
 extern idCVar stereoRender_swapEyes;
 extern idCVar r_skipInteractionFastPath;
 
-static const ALIGNTYPE16 float zero[ 4 ] = { 0, 0, 0, 0 };
-static const ALIGNTYPE16 float one[ 4 ] = { 1, 1, 1, 1 };
-static const ALIGNTYPE16 float negOne[ 4 ] = { -1, -1, -1, -1 };
-
-const int INTERACTION_TEXUNIT_BUMP = 0;
-const int INTERACTION_TEXUNIT_FALLOFF = 1;
-const int INTERACTION_TEXUNIT_PROJECTION = 2;
-const int INTERACTION_TEXUNIT_DIFFUSE = 3;
-const int INTERACTION_TEXUNIT_SPECULAR = 4;
-const int INTERACTION_TEXUNIT_SHADOWMAPS = 5;
-const int INTERACTION_TEXUNIT_JITTER = 6;
-
 // complex light / surface interactions are broken up into multiple passes of a
 // simple interaction shader
 struct drawInteraction_t {
-	const drawSurf_t * 	surf;
+	const drawSurf_t * 			surf;
 
-	idImage * 			bumpImage;
-	idImage * 			diffuseImage;
-	idImage * 			specularImage;
+	const idDeclRenderParm *	bumpImage;
+	const idDeclRenderParm *	diffuseImage;
+	const idDeclRenderParm *	specularImage;
 
-	idRenderVector		diffuseColor;	// may have a light color baked into it
-	idRenderVector		specularColor;	// may have a light color baked into it
-	stageVertexColor_t	vertexColor;	// applies to both diffuse and specular
+	const idDeclRenderParm *	diffuseColor;	// may have a light color baked into it
+	const idDeclRenderParm *	specularColor;	// may have a light color baked into it
+	const idDeclRenderParm *	vertexColor;	// applies to both diffuse and specular
 
-	int					ambientLight;	// use tr.ambientNormalMap instead of normalization cube map
+												// these are loaded into the vertex program
+	const idDeclRenderParm *	bumpMatrix[ 2 ];
+	const idDeclRenderParm *	diffuseMatrix[ 2 ];
+	const idDeclRenderParm *	specularMatrix[ 2 ];
 
-										// these are loaded into the vertex program
-	idRenderVector		bumpMatrix[ 2 ];
-	idRenderVector		diffuseMatrix[ 2 ];
-	idRenderVector		specularMatrix[ 2 ];
+	int ambientLight;	// use tr.ambientNormalMap instead of normalization cube map
+
+	drawInteraction_t()
+	{
+		bumpImage = renderProgManager.GetRenderParm( RENDERPARM_BUMPMAP );
+		diffuseImage = renderProgManager.GetRenderParm( RENDERPARM_DIFFUSEMAP );
+		specularImage = renderProgManager.GetRenderParm( RENDERPARM_SPECULARMAP );
+
+		// may have a light color baked into it
+
+		diffuseColor = renderProgManager.GetRenderParm( RENDERPARM_DIFFUSEMODIFIER );
+		specularColor = renderProgManager.GetRenderParm( RENDERPARM_SPECULARMODIFIER );
+
+		// applies to both diffuse and specular
+		vertexColor = renderProgManager.GetRenderParm( RENDERPARM_VERTEXCOLOR_MAD );
+
+		// these are loaded into the vertex program
+
+		bumpMatrix[ 0 ] = renderProgManager.GetRenderParm( RENDERPARM_BUMPMATRIX_S );
+		bumpMatrix[ 1 ] = renderProgManager.GetRenderParm( RENDERPARM_BUMPMATRIX_T );
+
+		diffuseMatrix[ 0 ] = renderProgManager.GetRenderParm( RENDERPARM_DIFFUSEMATRIX_S );
+		diffuseMatrix[ 1 ] = renderProgManager.GetRenderParm( RENDERPARM_DIFFUSEMATRIX_T );
+
+		specularMatrix[ 0 ] = renderProgManager.GetRenderParm( RENDERPARM_SPECULARMATRIX_S );
+		specularMatrix[ 1 ] = renderProgManager.GetRenderParm( RENDERPARM_SPECULARMATRIX_T );
+	}
 
 	void Clear()
 	{
-		bumpImage = nullptr;
-		diffuseImage = nullptr;
-		specularImage = nullptr;
+		bumpImage->Set( ( idImage * )NULL );
+		diffuseImage->Set( ( idImage * )NULL );
+		specularImage->Set( ( idImage * )NULL );
 
-		diffuseColor[ 0 ] = diffuseColor[ 1 ] = diffuseColor[ 2 ] = diffuseColor[ 3 ] = 1.0f;
-		specularColor[ 0 ] = specularColor[ 1 ] = specularColor[ 2 ] = specularColor[ 3 ] = 0.0f;
-		vertexColor = SVC_IGNORE;
+		diffuseColor->Set( 1.0f );
+		specularColor->Set( 0.0f );
+
+		vertexColor->Set( 0, 1, 0, 0 ); //  SVC_IGNORE;
 
 		ambientLight = 0;
 	}
 };
-void RB_ResetViewportAndScissorToDefaultCamera( const idRenderView * const view );
-void RB_SetMVP( const idRenderMatrix& mvp );
-void RB_SetSurfaceSpaceMatrices( const drawSurf_t *const );
-void RB_SetMVPWithStereoOffset( const idRenderMatrix& mvp, const float stereoOffset );
-void RB_SetVertexColorParms( stageVertexColor_t );
-void RB_GetShaderTextureMatrix( const float* shaderRegisters, const textureStage_t*, float matrix[ 16 ] );
-void RB_LoadShaderTextureMatrix( const float* shaderRegisters, const textureStage_t* );
+void RB_DrawComplexMaterialInteraction( drawInteraction_t &, const float* surfaceRegs, const idMaterial* const );
+
+ID_INLINE void RB_ResetViewportAndScissorToDefaultCamera( const idRenderView * const viewDef )
+{
+	// set the window clipping
+	GL_Viewport(
+		viewDef->GetViewport().x1,
+		viewDef->GetViewport().y1,
+		viewDef->GetViewport().GetWidth(),
+		viewDef->GetViewport().GetHeight() );
+
+	// the scissor may be smaller than the viewport for subviews
+	GL_Scissor(
+		viewDef->GetViewport().x1 + viewDef->GetScissor().x1,
+		viewDef->GetViewport().y1 + viewDef->GetScissor().y1,
+		viewDef->GetScissor().GetWidth(),
+		viewDef->GetScissor().GetHeight() );
+
+	backEnd.currentScissor = viewDef->GetScissor();
+}
+
 void RB_BakeTextureMatrixIntoTexgen( idPlane lightProject[ 3 ], const float* textureMatrix );
 void RB_ResetViewportAndScissorToDefaultCamera( const idRenderView * const );
-void RB_SetScissor( const idScreenRect & );
-void RB_SetBaseRenderDestination( const idRenderView * const, const viewLight_t * const = nullptr );
-void RB_ResetRenderDest( const bool hdrIsActive );
+ID_INLINE void RB_SetScissor( const idScreenRect & scissorRect )
+{
+	if( !backEnd.currentScissor.Equals( scissorRect ) )
+	{
+		GL_Scissor(
+			backEnd.viewDef->GetViewport().x1 + scissorRect.x1,
+			backEnd.viewDef->GetViewport().y1 + scissorRect.y1,
+			scissorRect.GetWidth(),
+			scissorRect.GetHeight() );
 
-void RB_SetupForFastPathInteractions( const idVec4& diffuseColor, const idVec4& specularColor );
-void RB_DrawSingleInteraction( drawInteraction_t* );
-void RB_SetupInteractionStage( const materialStage_t*, const float* surfaceRegs, const float lightColor[ 4 ], idVec4 matrix[ 2 ], float color[ 4 ] );
-void RB_DrawComplexMaterialInteraction( drawInteraction_t & inter,
-	const float* surfaceRegs, const idMaterial* const surfaceMaterial,
-	const idRenderVector & diffuseColorMul, const idRenderVector & specularColorMul );
+		backEnd.currentScissor = scissorRect;
+
+		RENDERLOG_PRINT( "GL_Scissor( %i, %i, %i, %i )\n", backEnd.viewDef->GetViewport().x1 + scissorRect.x1,
+														   backEnd.viewDef->GetViewport().y1 + scissorRect.y1,
+														   scissorRect.GetWidth(), scissorRect.GetHeight() );
+	}
+}
+void RB_SetBaseRenderDestination( const idRenderView * const, const viewLight_t * const = nullptr );
+ID_INLINE void RB_ResetBaseRenderDest( const bool hdrIsActive )
+{
+	if( hdrIsActive ) {
+		GL_SetRenderDestination( renderDestManager.renderDestBaseHDR );
+	} else {
+		GL_SetRenderDestination( renderDestManager.renderDestBaseLDR );
+	}
+}
+
+void RB_SetupForFastPathInteractions();
 
 void RB_PrepareStageTexturing( const materialStage_t*, const drawSurf_t* );
 void RB_FinishStageTexturing( const materialStage_t*, const drawSurf_t* );
@@ -82,19 +125,63 @@ void RB_FinishStageTexturing( const materialStage_t*, const drawSurf_t* );
 
 void RB_FillDepthBufferFast( const drawSurf_t * const * drawSurfs, int numDrawSurfs );
 
+void RB_FillGBuffer( const idRenderView * const, const drawSurf_t * const *, int );
+void RB_DrawInteractionsDeferred( const idRenderView * const );
+
+void RB_AmbientPass( const idRenderView *, const drawSurf_t* const* drawSurfs, int numDrawSurfs );
 void RB_DrawInteractionsForward( const idRenderView * const );
 
-void RB_ShadowMapPass( const drawSurf_t * const drawSurfs, const viewLight_t * const vLight );
+void RB_FillShadowBuffer( const drawSurf_t * const drawSurfs, const viewLight_t * const );
+void RB_SetupShadowCommonParms( const lightType_e, const uint32 shadowLOD );
+void RB_SetupShadowDrawMatrices( const lightType_e, const drawSurf_t * const );
 
-void RB_StencilShadowPass( const drawSurf_t* const drawSurfs, const viewLight_t* const vLight );
-void RB_StencilSelectLight( const viewLight_t* const vLight );
+void RB_StencilShadowPass( const drawSurf_t* const drawSurfs, const viewLight_t * const );
+void RB_StencilSelectLight( const viewLight_t* const );
 
 int  RB_DrawTransMaterialPasses( const drawSurf_t* const* const drawSurfs, const int numDrawSurfs, const float guiStereoScreenOffset, const int stereoEye );
 
 void RB_FogAllLights();
 
+void RB_CalculateAdaptation();
+void RB_Tonemap();
+
+extern idCVar r_useBloom;
+void RB_Bloom();
+void RB_BloomNatural();
+void RB_BloomNatural2();
+
+extern idCVar r_useSSAO;
+extern idCVar r_ssaoDebug;
+void RB_SSAO();
+
+extern idCVar r_useSSGI;
+extern idCVar r_ssgiDebug;
+void RB_SSGI();
+
+extern idCVar r_motionBlur;
+void RB_MotionBlur();
+
+void RB_SMAA( const idRenderView * );
+
+
+
 
 /*
+template< typename T >
+class idPresentablePtr {
+	// operator=
+	// operator==
+	// operator->
+	// operator class idPresentable *
+	IsValid();
+	GetPresentable();
+	GetIndex();
+	Serialize();
+	GetSpawnId();
+	SetPresentable();
+	uint32 spawnId;
+
+};
 
 idTokenStatic<256>
 	buffer
@@ -107,13 +194,13 @@ idImageByteArray
 	height;
 idImageByteArray
 
-struct stateTable_t 
+struct stateTable_t
 {
-	stateFlag 
+	stateFlag
 	stateName
 };
 
-enum queryState_t 
+enum queryState_t
 {
 	QUERY_INVALID
 	QUERY_STARTED
@@ -126,7 +213,7 @@ QUERY_BATCH_BITS
 QUERY_BATCH_MASK
 QUERY_BATCH_SHIFT
 
-struct renderStateGL_t 
+struct renderStateGL_t
 {
 	uint64	frameNumber;
 	uint64	currentState;
@@ -164,7 +251,7 @@ struct renderStateGL_t
 	bool	hardwareSkinning;
 } renderStateGL;
 
-struct vaoInfo_t 
+struct vaoInfo_t
 {
 	vao;
 	vb;
@@ -177,7 +264,7 @@ struct vaoInfo_t
 {
 	idVaoContainer()
 	AddVaoInfo()
-	RemoveVaoInfo() 
+	RemoveVaoInfo()
 	FindVaoInfo()
 	RemoveVertexBuffer()
 	RemoveIndexBuffer()
@@ -268,7 +355,7 @@ inputType_t
 
 */
 
-struct renderSettings_t 
+struct renderSettings_t
 {
 	bool	isComboMap;
 	bool	isToolsWorld;

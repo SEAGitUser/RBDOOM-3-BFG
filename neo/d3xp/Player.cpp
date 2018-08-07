@@ -1988,7 +1988,7 @@ void idPlayer::Init()
 	// laser sight for 3DTV
 	laserSightRenderEntity.Clear();
 	laserSightRenderEntity.hModel = renderModelManager->FindModel( "_BEAM" );
-	laserSightRenderEntity.customShader = declManager->FindMaterial( "stereoRenderLaserSight" );
+	laserSightRenderEntity.customMaterial = declManager->FindMaterial( "stereoRenderLaserSight" );
 }
 
 /*
@@ -2892,7 +2892,7 @@ void idPlayer::Restore( idRestoreGame* savefile )
 	// re-init the laser model
 	memset( &laserSightRenderEntity, 0, sizeof( laserSightRenderEntity ) );
 	laserSightRenderEntity.hModel = renderModelManager->FindModel( "_BEAM" );
-	laserSightRenderEntity.customShader = declManager->FindMaterial( "stereoRenderLaserSight" );
+	laserSightRenderEntity.customMaterial = declManager->FindMaterial( "stereoRenderLaserSight" );
 	
 	for( int i = 0; i < MAX_PLAYER_PDA; i++ )
 	{
@@ -8350,7 +8350,7 @@ void idPlayer::RunPhysics_RemoteClientCorrection()
 		// We are still overriding client's position
 		if( pm_clientAuthoritative_debug.GetBool() )
 		{
-			//clientGame->renderWorld->DebugPoint( idColor::colorRed, GetOrigin() );
+			//clientGame->renderWorld->DebugPoint( idColor::idColor::red.ToVec4(), GetOrigin() );
 			idLib::Printf( "[%d]Ignoring client auth:  cmd.serverTime: %d  overrideTime: %d \n", entityNumber,  usercmd.serverGameMilliseconds, serverOverridePositionTime );
 		}
 		return;
@@ -8418,14 +8418,14 @@ void idPlayer::RunPhysics_RemoteClientCorrection()
 			if( pm_clientAuthoritative_debug.GetBool() && delta > pm_clientAuthoritative_warnDist.GetFloat() )
 			{
 				idLib::Warning( "Remote client player physics: delta movement for frame was %f units", delta );
-				gameRenderWorld->DebugLine( colorRed, newOrigin, desiredPos );
+				gameRenderWorld->DebugLine( idColor::red.ToVec4(), newOrigin, desiredPos );
 			}
 		}
 		if( pm_clientAuthoritative_debug.GetBool() )
 		{
 			//idLib::Printf( "[%d]Remote client player physics delta: %.2f. forward: %d pos <%.2f, %.2f, %.2f> \n", usercmd.clientGameFrame, delta, (int)usercmd.forwardmove, desiredPos.x, desiredPos.y, desiredPos.z );
-			gameRenderWorld->DebugLine( colorRed, newOrigin, desiredPos );
-			//gameRenderWorld->DebugPoint( colorBlue, cmdPos );
+			gameRenderWorld->DebugLine( idColor::red.ToVec4(), newOrigin, desiredPos );
+			//gameRenderWorld->DebugPoint( idColor::blue.ToVec4(), cmdPos );
 		}
 		
 		// Set velocity if significantly different than client.
@@ -9049,7 +9049,7 @@ void idPlayer::Think()
 		for( ent = enemyList.Next(); ent != NULL; ent = ent->enemyNode.Next() )
 		{
 			gameLocal.Printf( "enemy (%d)'%s'\n", ent->entityNumber, ent->name.c_str() );
-			gameRenderWorld->DebugBounds( colorRed, ent->GetPhysics()->GetBounds().Expand( 2 ), ent->GetPhysics()->GetOrigin() );
+			gameRenderWorld->DebugBounds( idColor::red.ToVec4(), ent->GetPhysics()->GetBounds().Expand( 2 ), ent->GetPhysics()->GetOrigin() );
 			num++;
 		}
 		gameLocal.Printf( "%d: enemies\n", num );
@@ -9376,7 +9376,7 @@ void idPlayer::Killed( idEntity* inflictor, idEntity* attacker, int damage, cons
 	
 	if( !g_testDeath.GetBool() && !common->IsMultiplayer() )
 	{
-		playerView.Fade( colorBlack, 3000 );
+		playerView.Fade( idColor::black.ToVec4(), 3000 );
 	}
 	
 	AI_DEAD = true;
@@ -10036,7 +10036,7 @@ void idPlayer::Teleport( const idVec3& origin, const idAngles& angles, idEntity*
 	
 	if( common->IsMultiplayer() )
 	{
-		playerView.Flash( colorWhite, 140 );
+		playerView.Flash( idColor::white.ToVec4(), 140 );
 	}
 	
 	UpdateVisuals();
@@ -11208,7 +11208,7 @@ void idPlayer::Event_ExitTeleporter()
 	physicsObj.SetLinearVelocity( exitEnt->GetPhysics()->GetAxis()[ 0 ] * pushVel );
 	physicsObj.ClearPushedVelocity();
 	// teleport fx
-	playerView.Flash( colorWhite, 120 );
+	playerView.Flash( idColor::white.ToVec4(), 120 );
 	
 	// clear the ik heights so model doesn't appear in the wrong place
 	walkIK.EnableAll();

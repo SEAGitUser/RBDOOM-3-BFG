@@ -226,9 +226,7 @@ idDict::Clear
 */
 void idDict::Clear()
 {
-	int i;
-	
-	for( i = 0; i < args.Num(); i++ )
+	for( int i = 0; i < args.Num(); i++ )
 	{
 		globalKeys.FreeString( args[i].key );
 		globalValues.FreeString( args[i].value );
@@ -245,11 +243,8 @@ idDict::Print
 */
 void idDict::Print() const
 {
-	int i;
-	int n;
-	
-	n = args.Num();
-	for( i = 0; i < n; i++ )
+	int n = args.Num();
+	for( int i = 0; i < n; i++ )
 	{
 		idLib::common->Printf( "%s = %s\n", args[i].GetKey().c_str(), args[i].GetValue().c_str() );
 	}
@@ -293,9 +288,7 @@ idDict::Allocated
 size_t idDict::Allocated() const
 {
 	int		i;
-	size_t	size;
-	
-	size = args.Allocated() + argHash.Allocated();
+	size_t size = args.Allocated() + argHash.Allocated();
 	for( i = 0; i < args.Num(); i++ )
 	{
 		size += args[i].Size();
@@ -343,9 +336,7 @@ idDict::GetFloat
 bool idDict::GetFloat( const char* key, const char* defaultString, float& out ) const
 {
 	const char*	s;
-	bool		found;
-	
-	found = GetString( key, defaultString, &s );
+	bool found = GetString( key, defaultString, &s );
 	out = atof( s );
 	return found;
 }
@@ -358,9 +349,7 @@ idDict::GetInt
 bool idDict::GetInt( const char* key, const char* defaultString, int& out ) const
 {
 	const char*	s;
-	bool		found;
-	
-	found = GetString( key, defaultString, &s );
+	bool found = GetString( key, defaultString, &s );
 	out = atoi( s );
 	return found;
 }
@@ -373,9 +362,7 @@ idDict::GetBool
 bool idDict::GetBool( const char* key, const char* defaultString, bool& out ) const
 {
 	const char*	s;
-	bool		found;
-	
-	found = GetString( key, defaultString, &s );
+	bool found = GetString( key, defaultString, &s );
 	out = ( atoi( s ) != 0 );
 	return found;
 }

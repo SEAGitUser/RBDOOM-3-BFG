@@ -459,7 +459,7 @@ void idSoundHardware_OpenAL::Update()
 	{
 		if( vuMeterPeakTimes[i] < currentTime )
 		{
-			vuMeterPeak->SetValue( i, vuMeterPeak->GetValue( i ) * 0.9f, colorRed );
+			vuMeterPeak->SetValue( i, vuMeterPeak->GetValue( i ) * 0.9f, idColor::red.ToVec4() );
 		}
 	}
 	
@@ -478,7 +478,7 @@ void idSoundHardware_OpenAL::Update()
 		vuMeterRMS->SetValue( i, rmsLevels[ i ], idVec4( 0.5f, 1.0f, 0.0f, 1.00f ) );
 		if( peakLevels[ i ] >= vuMeterPeak->GetValue( i ) )
 		{
-			vuMeterPeak->SetValue( i, peakLevels[ i ], colorRed );
+			vuMeterPeak->SetValue( i, peakLevels[ i ], idColor::red.ToVec4() );
 			vuMeterPeakTimes[i] = currentTime + s_meterTopTime.GetInteger();
 		}
 	}

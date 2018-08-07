@@ -30,6 +30,8 @@ If you have questions concerning this license or the applicable additional terms
 #pragma hdrstop
 #include "precompiled.h"
 
+#include "gl_header.h"
+
 #include "../tr_local.h"
 #include "../../framework/Common_local.h"
 
@@ -43,45 +45,13 @@ idCVar stereoRender_warpParmZ( "stereoRender_warpParmZ", "0", CVAR_RENDERER | CV
 idCVar stereoRender_warpParmW( "stereoRender_warpParmW", "0", CVAR_RENDERER | CVAR_FLOAT | CVAR_ARCHIVE, "development parm" );
 idCVar stereoRender_warpTargetFraction( "stereoRender_warpTargetFraction", "1.0", CVAR_RENDERER | CVAR_FLOAT | CVAR_ARCHIVE, "fraction of half-width the through-lens view covers" );
 
-idCVar r_showSwapBuffers( "r_showSwapBuffers", "0", CVAR_BOOL, "Show timings from GL_BlockingSwapBuffers" );
-idCVar r_syncEveryFrame( "r_syncEveryFrame", "1", CVAR_BOOL, "Don't let the GPU buffer execution past swapbuffers" );
-
-static int		swapIndex;		// 0 or 1 into renderSync
-static GLsync	renderSync[2];
-
-void GLimp_SwapBuffers();
-extern void RB_SetMVP( const idRenderMatrix& mvp );
-
 /*
 ============================================================================
 
-RENDER BACK END THREAD FUNCTIONS
+					RENDER BACK END THREAD FUNCTIONS
 
 ============================================================================
 */
-
-/*
-=============
-RB_DrawFlickerBox
-=============
-*/
-static void RB_DrawFlickerBox()
-{
-	if( !r_drawFlickerBox.GetBool() )
-	{
-		return;
-	}
-	if( tr.GetFrameCount() & 1 )
-	{
-		glClearColor( 1, 0, 0, 1 );
-	}
-	else
-	{
-		glClearColor( 0, 1, 0, 1 );
-	}
-	glScissor( 0, 0, 256, 256 );
-	glClear( GL_COLOR_BUFFER_BIT );
-}
 
 /*
 =============
@@ -91,9 +61,9 @@ RB_SetBuffer
 static void	RB_SetBuffer( const void* data )
 {
 	// see which draw buffer we want to render the frame to
-	
-	const setBufferCommand_t* cmd = ( const setBufferCommand_t* )data;
-	
+
+	auto cmd = ( const setBufferCommand_t* )data;
+
 	RENDERLOG_PRINT( "---------- RB_SetBuffer ---------- to buffer # %d\n", cmd->buffer );
 
 	GL_Scissor( 0, 0, tr.GetWidth(), tr.GetHeight() );
@@ -106,108 +76,20 @@ static void	RB_SetBuffer( const void* data )
 		float c[ 3 ];
 		if( sscanf( r_clear.GetString(), "%f %f %f", &c[ 0 ], &c[ 1 ], &c[ 2 ] ) == 3 )
 		{
-			GL_Clear( true, false, false, 0, c[ 0 ], c[ 1 ], c[ 2 ], 1.0f, true );
+			GL_Clear( true, false, false, 0, c[ 0 ], c[ 1 ], c[ 2 ], 1.0f );
 		}
 		else if( r_clear.GetInteger() == 2 )
 		{
-			GL_Clear( true, false, false, 0, 0.0f, 0.0f, 0.0f, 1.0f, true );
+			GL_Clear( true, false, false, 0, 0.0f, 0.0f, 0.0f, 1.0f );
 		}
 		else if( r_showOverDraw.GetBool() )
 		{
-			GL_Clear( true, false, false, 0, 1.0f, 1.0f, 1.0f, 1.0f, true );
-		}
-		else
-		{
-			GL_Clear( true, false, false, 0, 0.4f, 0.0f, 0.25f, 1.0f, true );
-		}
-	}
-}
-
-/*
-=============
-GL_BlockingSwapBuffers
-
-We want to exit this with the GPU idle, right at vsync
-=============
-*/
-const void GL_BlockingSwapBuffers()
-{
-	RENDERLOG_PRINT( "***************** GL_BlockingSwapBuffers *****************\n\n\n" );
-	
-	const int beforeFinish = sys->Milliseconds();
-	
-	if( !glConfig.syncAvailable )
-	{
-		glFinish();
-	}
-	
-	const int beforeSwap = sys->Milliseconds();
-	if( r_showSwapBuffers.GetBool() && beforeSwap - beforeFinish > 1 )
-	{
-		common->Printf( "%i msec to glFinish\n", beforeSwap - beforeFinish );
-	}
-	
-	GLimp_SwapBuffers();
-	
-	const int beforeFence = sys->Milliseconds();
-	if( r_showSwapBuffers.GetBool() && beforeFence - beforeSwap > 1 )
-	{
-		common->Printf( "%i msec to swapBuffers\n", beforeFence - beforeSwap );
-	}
-	
-	if( glConfig.syncAvailable )
-	{
-		swapIndex ^= 1;
-		
-		if( glIsSync( renderSync[swapIndex] ) )
-		{
-			glDeleteSync( renderSync[swapIndex] );
-		}
-		// draw something tiny to ensure the sync is after the swap
-		const int start = sys->Milliseconds();
-		glScissor( 0, 0, 1, 1 );
-		glEnable( GL_SCISSOR_TEST );
-		glClear( GL_COLOR_BUFFER_BIT );
-		renderSync[swapIndex] = glFenceSync( GL_SYNC_GPU_COMMANDS_COMPLETE, 0 );
-		const int end = sys->Milliseconds();
-		if( r_showSwapBuffers.GetBool() && end - start > 1 )
-		{
-			common->Printf( "%i msec to start fence\n", end - start );
-		}
-		
-		GLsync	syncToWaitOn;
-		if( r_syncEveryFrame.GetBool() )
-		{
-			syncToWaitOn = renderSync[ swapIndex ];
+			GL_Clear( true, false, false, 0, 1.0f, 1.0f, 1.0f, 1.0f );
 		}
 		else {
-			syncToWaitOn = renderSync[ !swapIndex ];
-		}
-		
-		if( glIsSync( syncToWaitOn ) )
-		{
-			for( GLenum r = GL_TIMEOUT_EXPIRED; r == GL_TIMEOUT_EXPIRED; )
-			{
-				r = glClientWaitSync( syncToWaitOn, GL_SYNC_FLUSH_COMMANDS_BIT, 1000 * 1000 );
-			}
+			GL_Clear( true, false, false, 0, 0.4f, 0.0f, 0.25f, 1.0f );
 		}
 	}
-	
-	const int afterFence = sys->Milliseconds();
-	if( r_showSwapBuffers.GetBool() && afterFence - beforeFence > 1 )
-	{
-		common->Printf( "%i msec to wait on fence\n", afterFence - beforeFence );
-	}
-	
-	const int64 exitBlockTime = sys->Microseconds();
-	
-	static int64 prevBlockTime;
-	if( r_showSwapBuffers.GetBool() && prevBlockTime )
-	{
-		const int delta = ( int )( exitBlockTime - prevBlockTime );
-		common->Printf( "blockToBlock: %i\n", delta );
-	}
-	prevBlockTime = exitBlockTime;
 }
 
 /*
@@ -222,7 +104,12 @@ static void R_MakeStereoRenderImage( idImage* image )
 	opts.height = renderSystem->GetHeight();
 	opts.numLevels = 1;
 	opts.format = FMT_RGBA8;
-	image->AllocImage( opts, TF_LINEAR, TR_CLAMP );
+
+	idSamplerOpts smp;
+	smp.filter = TF_LINEAR;
+	smp.wrap = TR_CLAMP;
+
+	image->AllocImage( opts, smp );
 }
 
 /*
@@ -235,7 +122,7 @@ Renders the draw list twice, with slight modifications for left eye / right eye
 void RB_StereoRenderExecuteBackEndCommands( const emptyCommand_t* const allCmds )
 {
 	uint64 backEndStartTime = sys->Microseconds();
-	
+
 	// If we are in a monoscopic context, this draws to the only buffer, and is
 	// the same as GL_BACK.  In a quad-buffer stereo context, this is necessary
 	// to prevent GL from forcing the rendering to go to both BACK_LEFT and
@@ -244,7 +131,7 @@ void RB_StereoRenderExecuteBackEndCommands( const emptyCommand_t* const allCmds 
 	// textures anyway, so there isn't any benefit to rendering to BACK_RIGHT for
 	// that eye.
 	glDrawBuffer( GL_BACK_LEFT );
-	
+
 	// create the stereoRenderImage if we haven't already
 	static idImage* stereoRenderImages[2];
 	for( int i = 0; i < 2; i++ )
@@ -253,7 +140,7 @@ void RB_StereoRenderExecuteBackEndCommands( const emptyCommand_t* const allCmds 
 		{
 			stereoRenderImages[i] = renderImageManager->ImageFromFunction( va( "_stereoRender%i", i ), R_MakeStereoRenderImage );
 		}
-		
+
 		// resize the stereo render image if the main window has changed size
 		if( stereoRenderImages[i]->GetUploadWidth() != renderSystem->GetWidth() ||
 			stereoRenderImages[i]->GetUploadHeight() != renderSystem->GetHeight() )
@@ -261,27 +148,26 @@ void RB_StereoRenderExecuteBackEndCommands( const emptyCommand_t* const allCmds 
 			stereoRenderImages[i]->Resize( renderSystem->GetWidth(), renderSystem->GetHeight() );
 		}
 	}
-	
+
 	// In stereoRender mode, the front end has generated two RC_DRAW_VIEW commands
 	// with slightly different origins for each eye.
-	
+
 	// TODO: only do the copy after the final view has been rendered, not mirror subviews?
-	
+
 	// Render the 3D draw views from the screen origin so all the screen relative
 	// texture mapping works properly, then copy the portion we are going to use
 	// off to a texture.
 	bool foundEye[2] = { false, false };
-	
+
 	for( int stereoEye = 1; stereoEye >= -1; stereoEye -= 2 )
 	{
 		// set up the target texture we will draw to
-		const int targetEye = ( stereoEye == 1 ) ? 1 : 0;
-		
+		const int targetEye = ( stereoEye == 1 )? 1 : 0;
+
 		// Set the back end into a known default state to fix any stale render state issues
 		GL_SetDefaultState();
-		renderProgManager.Unbind();
 		renderProgManager.ZeroUniforms();
-		
+
 		for( const emptyCommand_t* cmds = allCmds; cmds != NULL; cmds = ( const emptyCommand_t* )cmds->next )
 		{
 			switch( cmds->commandId )
@@ -294,13 +180,13 @@ void RB_StereoRenderExecuteBackEndCommands( const emptyCommand_t* const allCmds 
 				{
 					const drawSurfsCommand_t * const dsc = ( const drawSurfsCommand_t* )cmds;
 					const idRenderView & eyeViewDef = *dsc->viewDef;
-					
+
 					if( eyeViewDef.GetStereoEye() && eyeViewDef.GetStereoEye() != stereoEye )
 					{
 						// this is the render view for the other eye
 						continue;
 					}
-					
+
 					foundEye[ targetEye ] = true;
 					RB_CMD_DrawView( dsc, stereoEye );
 					if( cmds->commandId == RC_DRAW_VIEW_GUI )
@@ -332,18 +218,18 @@ void RB_StereoRenderExecuteBackEndCommands( const emptyCommand_t* const allCmds 
 					break;
 			}
 		}
-		
+
 		// copy to the target
 		GL_CopyCurrentColorToTexture( stereoRenderImages[ targetEye ], 0, 0, renderSystem->GetWidth(), renderSystem->GetHeight() );
 	}
-	
+
 	// perform the final compositing / warping / deghosting to the actual framebuffer(s)
 	assert( foundEye[0] && foundEye[1] );
-	
+
 	GL_SetDefaultState();
-	
-	RB_SetMVP( renderMatrix_identity );
-	
+
+	renderProgManager.SetMVPMatrixParms( renderMatrix_identity );
+
 	// If we are in quad-buffer pixel format but testing another 3D mode,
 	// make sure we draw to both eyes.  This is likely to be sub-optimal
 	// performance on most cards and drivers, but it is better than getting
@@ -352,10 +238,9 @@ void RB_StereoRenderExecuteBackEndCommands( const emptyCommand_t* const allCmds 
 	{
 		glDrawBuffer( GL_BACK );
 	}
-	
-	GL_State( GLS_DEPTHFUNC_ALWAYS );
-	GL_Cull( CT_TWO_SIDED );
-	
+
+	GL_State( GLS_DEPTHFUNC_ALWAYS | GLS_TWOSIDED );
+
 	// We just want to do a quad pass - so make sure we disable any texgen and
 	// set the texture matrix to the identity so we don't get anomalies from
 	// any stale uniform data being present from a previous draw call
@@ -363,47 +248,40 @@ void RB_StereoRenderExecuteBackEndCommands( const emptyCommand_t* const allCmds 
 	const float texT[4] = { 0.0f, 1.0f, 0.0f, 0.0f };
 	renderProgManager.SetRenderParm( RENDERPARM_TEXTUREMATRIX_S, texS );
 	renderProgManager.SetRenderParm( RENDERPARM_TEXTUREMATRIX_T, texT );
-	
+
 	// disable any texgen
 	const float texGenEnabled[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
 	renderProgManager.SetRenderParm( RENDERPARM_TEXGEN_0_ENABLED, texGenEnabled );
-	
-	renderProgManager.BindShader_Texture();
-	GL_Color( 1, 1, 1, 1 );
-	
+
+	GL_SetRenderProgram( renderProgManager.prog_texture );
+
+	renderProgManager.SetColorParm( 1, 1, 1, 1 );
+
 	switch( renderSystem->GetStereo3DMode() )
 	{
 		case STEREO3D_QUAD_BUFFER:
 			glDrawBuffer( GL_BACK_RIGHT );
-			///GL_BindTexture( 0, stereoRenderImages[1] );
-			///GL_BindTexture( 1, stereoRenderImages[0] );
 			renderProgManager.SetRenderParm( ( renderParm_t )( RENDERPARM_USERMAP0 + 0 ), stereoRenderImages[ 1 ] );
 			renderProgManager.SetRenderParm( ( renderParm_t )( RENDERPARM_USERMAP0 + 1 ), stereoRenderImages[ 0 ] );
 			GL_DrawIndexed( &backEnd.unitSquareSurface );
-			
+
 			glDrawBuffer( GL_BACK_LEFT );
-			///GL_BindTexture( 0, stereoRenderImages[ 0 ] );
-			///GL_BindTexture( 1, stereoRenderImages[ 1 ] );
 			renderProgManager.SetRenderParm( ( renderParm_t )( RENDERPARM_USERMAP0 + 0 ), stereoRenderImages[ 0 ] );
 			renderProgManager.SetRenderParm( ( renderParm_t )( RENDERPARM_USERMAP0 + 1 ), stereoRenderImages[ 1 ] );
 			GL_DrawIndexed( &backEnd.unitSquareSurface );
-			
+
 			break;
 		case STEREO3D_HDMI_720: // HDMI 720P 3D
-			///GL_BindTexture( 0, stereoRenderImages[ 1 ] );
-			///GL_BindTexture( 1, stereoRenderImages[ 0 ] );
 			GL_ViewportAndScissor( 0, 0, 1280, 720 );
 			renderProgManager.SetRenderParm( ( renderParm_t )( RENDERPARM_USERMAP0 + 0 ), stereoRenderImages[ 1 ] );
 			renderProgManager.SetRenderParm( ( renderParm_t )( RENDERPARM_USERMAP0 + 1 ), stereoRenderImages[ 0 ] );
 			GL_DrawIndexed( &backEnd.unitSquareSurface );
-			
-			///GL_BindTexture( 0, stereoRenderImages[ 0 ] );
-			///GL_BindTexture( 1, stereoRenderImages[ 1 ] );
+
 			GL_ViewportAndScissor( 0, 750, 1280, 720 );
 			renderProgManager.SetRenderParm( ( renderParm_t )( RENDERPARM_USERMAP0 + 0 ), stereoRenderImages[ 0 ] );
 			renderProgManager.SetRenderParm( ( renderParm_t )( RENDERPARM_USERMAP0 + 1 ), stereoRenderImages[ 1 ] );
 			GL_DrawIndexed( &backEnd.unitSquareSurface );
-			
+
 			// force the HDMI 720P 3D guard band to a constant color
 			GL_Scissor( 0, 720, 1280, 30 );
 			glClear( GL_COLOR_BUFFER_BIT );
@@ -416,115 +294,101 @@ void RB_StereoRenderExecuteBackEndCommands( const emptyCommand_t* const allCmds 
 				// this is the Rift warp
 				// renderSystem->GetWidth() / GetHeight() have returned equal values (640 for initial Rift)
 				// and we are going to warp them onto a symetric square region of each half of the screen
-				
-				renderProgManager.BindShader_StereoWarp();
-				
+
+				GL_SetRenderProgram( renderProgManager.prog_stereoWarp );
+
 				// clear the entire screen to black
 				// we could be smart and only clear the areas we aren't going to draw on, but
 				// clears are fast...
 				GL_Scissor( 0, 0, glConfig.nativeScreenWidth, glConfig.nativeScreenHeight );
-				GL_Clear( true, false, false, 0, 0.0, 0.0, 0.0, 0.0, false );
-				
+				GL_Clear( true, false, false, 0, 0.0, 0.0, 0.0, 0.0 );
+
 				// the size of the box that will get the warped pixels
 				// With the 7" displays, this will be less than half the screen width
 				const int pixelDimensions = ( glConfig.nativeScreenWidth >> 1 ) * stereoRender_warpTargetFraction.GetFloat();
-				
+
 				// Always scissor to the half-screen boundary, but the viewports
 				// might cross that boundary if the lenses can be adjusted closer
 				// together.
 				GL_Viewport( ( glConfig.nativeScreenWidth >> 1 ) - pixelDimensions, ( glConfig.nativeScreenHeight >> 1 ) - ( pixelDimensions >> 1 ), pixelDimensions, pixelDimensions );
 				GL_Scissor( 0, 0, glConfig.nativeScreenWidth >> 1, glConfig.nativeScreenHeight );
-				
+
 				idVec4	color( stereoRender_warpCenterX.GetFloat(), stereoRender_warpCenterY.GetFloat(), stereoRender_warpParmZ.GetFloat(), stereoRender_warpParmW.GetFloat() );
-				// don't use GL_Color(), because we don't want to clamp
+				// don't use renderProgManager.SetColorParm(), because we don't want to clamp
 				renderProgManager.SetRenderParm( RENDERPARM_COLOR, color.ToFloatPtr() );
-				
-				///GL_BindTexture( 0, stereoRenderImages[ 0 ] );
+
 				renderProgManager.SetRenderParm( ( renderParm_t )( RENDERPARM_USERMAP0 + 0 ), stereoRenderImages[ 0 ] );
-				glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER );
-				glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER );
+				glTextureParameterfEXT( GetGLObject( stereoRenderImages[ 0 ]->GetAPIObject() ), GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER );
+				glTextureParameterfEXT( GetGLObject( stereoRenderImages[ 0 ]->GetAPIObject() ), GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER );
+
 				GL_DrawIndexed( &backEnd.unitSquareSurface );
-				
+
 				idVec4	color2( stereoRender_warpCenterX.GetFloat(), stereoRender_warpCenterY.GetFloat(), stereoRender_warpParmZ.GetFloat(), stereoRender_warpParmW.GetFloat() );
-				// don't use GL_Color(), because we don't want to clamp
+				// don't use renderProgManager.SetColorParm(), because we don't want to clamp
 				renderProgManager.SetRenderParm( RENDERPARM_COLOR, color2.ToFloatPtr() );
-				
+
 				GL_Viewport( ( glConfig.nativeScreenWidth >> 1 ), ( glConfig.nativeScreenHeight >> 1 ) - ( pixelDimensions >> 1 ), pixelDimensions, pixelDimensions );
 				GL_Scissor( glConfig.nativeScreenWidth >> 1, 0, glConfig.nativeScreenWidth >> 1, glConfig.nativeScreenHeight );
-				
-				GL_BindTexture( 0, stereoRenderImages[ 1 ] );
-				glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER );
-				glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER );
+
+				renderProgManager.SetRenderParm( ( renderParm_t ) ( RENDERPARM_USERMAP0 + 0 ), stereoRenderImages[ 1 ] );
+				glTextureParameterfEXT( GetGLObject( stereoRenderImages[ 1 ]->GetAPIObject() ), GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER );
+				glTextureParameterfEXT( GetGLObject( stereoRenderImages[ 1 ]->GetAPIObject() ), GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER );
+
 				GL_DrawIndexed( &backEnd.unitSquareSurface );
 				break;
 			}
 		// a non-warped side-by-side-uncompressed (dual input cable) is rendered
 		// just like STEREO3D_SIDE_BY_SIDE_COMPRESSED, so fall through.
 		case STEREO3D_SIDE_BY_SIDE_COMPRESSED:
-			///GL_BindTexture( 0, stereoRenderImages[ 0 ] );
-			///GL_BindTexture( 1, stereoRenderImages[ 1 ] );
 			GL_ViewportAndScissor( 0, 0, renderSystem->GetWidth(), renderSystem->GetHeight() );
 			renderProgManager.SetRenderParm( ( renderParm_t )( RENDERPARM_USERMAP0 + 0 ), stereoRenderImages[ 0 ] );
 			renderProgManager.SetRenderParm( ( renderParm_t )( RENDERPARM_USERMAP0 + 1 ), stereoRenderImages[ 1 ] );
 			GL_DrawIndexed( &backEnd.unitSquareSurface );
-			
-			///GL_BindTexture( 0, stereoRenderImages[ 1] );
-			///GL_BindTexture( 1, stereoRenderImages[ 0 ] );
+
 			GL_ViewportAndScissor( renderSystem->GetWidth(), 0, renderSystem->GetWidth(), renderSystem->GetHeight() );
 			renderProgManager.SetRenderParm( ( renderParm_t )( RENDERPARM_USERMAP0 + 0 ), stereoRenderImages[ 1 ] );
 			renderProgManager.SetRenderParm( ( renderParm_t )( RENDERPARM_USERMAP0 + 1 ), stereoRenderImages[ 0 ] );
 			GL_DrawIndexed( &backEnd.unitSquareSurface );
 			break;
-			
-		case STEREO3D_TOP_AND_BOTTOM_COMPRESSED:			
-			///GL_BindTexture( 0, stereoRenderImages[ 1 ] );
-			///GL_BindTexture( 1, stereoRenderImages[ 0 ] );
+
+		case STEREO3D_TOP_AND_BOTTOM_COMPRESSED:
 			GL_ViewportAndScissor( 0, 0, renderSystem->GetWidth(), renderSystem->GetHeight() );
 			renderProgManager.SetRenderParm( ( renderParm_t )( RENDERPARM_USERMAP0 + 0 ), stereoRenderImages[ 1 ] );
 			renderProgManager.SetRenderParm( ( renderParm_t )( RENDERPARM_USERMAP0 + 1 ), stereoRenderImages[ 0 ] );
 			GL_DrawIndexed( &backEnd.unitSquareSurface );
-						
-			///GL_BindTexture( 0, stereoRenderImages[ 0 ] );
-			///GL_BindTexture( 1, stereoRenderImages[ 1 ] );
+
 			GL_ViewportAndScissor( 0, renderSystem->GetHeight(), renderSystem->GetWidth(), renderSystem->GetHeight() );
 			renderProgManager.SetRenderParm( ( renderParm_t )( RENDERPARM_USERMAP0 + 0 ), stereoRenderImages[ 0 ] );
 			renderProgManager.SetRenderParm( ( renderParm_t )( RENDERPARM_USERMAP0 + 1 ), stereoRenderImages[ 1 ] );
 			GL_DrawIndexed( &backEnd.unitSquareSurface );
 			break;
-			
-		case STEREO3D_INTERLACED: // every other scanline
-			///GL_BindTexture( 0, stereoRenderImages[ 0 ] );
-			renderProgManager.SetRenderParm( ( renderParm_t )( RENDERPARM_USERMAP0 + 0 ), stereoRenderImages[ 0 ] );
-			glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST );
-			glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST );
 
-			///GL_BindTexture( 1, stereoRenderImages[ 1 ] );
+		case STEREO3D_INTERLACED: // every other scanline
+			renderProgManager.SetRenderParm( ( renderParm_t )( RENDERPARM_USERMAP0 + 0 ), stereoRenderImages[ 0 ] );
+			glTextureParameterfEXT( GetGLObject( stereoRenderImages[ 0 ]->GetAPIObject() ), GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST );
+			glTextureParameterfEXT( GetGLObject( stereoRenderImages[ 0 ]->GetAPIObject() ), GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST );
+
 			renderProgManager.SetRenderParm( ( renderParm_t )( RENDERPARM_USERMAP0 + 1 ), stereoRenderImages[ 1 ] );
-			glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST );
-			glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST );
-			
+			glTextureParameterfEXT( GetGLObject( stereoRenderImages[ 1 ]->GetAPIObject() ), GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST );
+			glTextureParameterfEXT( GetGLObject( stereoRenderImages[ 1 ]->GetAPIObject() ), GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST );
+
 			GL_ViewportAndScissor( 0, 0, renderSystem->GetWidth(), renderSystem->GetHeight() * 2 );
-			renderProgManager.BindShader_StereoInterlace();
+			GL_SetRenderProgram( renderProgManager.prog_stereoInterlace );
 			GL_DrawIndexed( &backEnd.unitSquareSurface );
-			
-			GL_SelectTexture( 0 );
-			glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
-			glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
-			
-			GL_SelectTexture( 1 );
-			glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
-			glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );			
+
+			glTextureParameterfEXT( GetGLObject( stereoRenderImages[ 0 ]->GetAPIObject() ), GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
+			glTextureParameterfEXT( GetGLObject( stereoRenderImages[ 0 ]->GetAPIObject() ), GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
+
+			glTextureParameterfEXT( GetGLObject( stereoRenderImages[ 1 ]->GetAPIObject() ), GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
+			glTextureParameterfEXT( GetGLObject( stereoRenderImages[ 1 ]->GetAPIObject() ), GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
 			break;
 	}
-	
-	// debug tool
-	RB_DrawFlickerBox();
-	
+
 	// make sure the drawing is actually started
-	glFlush();
-	
+	GL_Flush();
+
 	// we may choose to sync to the swapbuffers before the next frame
-	
+
 	// stop rendering on this thread
 	uint64 backEndFinishTime = sys->Microseconds();
 	backEnd.pc.totalMicroSec = backEndFinishTime - backEndStartTime;
@@ -540,39 +404,42 @@ void RB_StereoRenderExecuteBackEndCommands( const emptyCommand_t* const allCmds 
 */
 void RB_ExecuteBackEndCommands( const emptyCommand_t* cmds )
 {
+	if( cmds->commandId == RC_NOP && !cmds->next )
+		return;
+
 	// r_debugRenderToTexture
 	int c_draw3d = 0;
 	int c_draw2d = 0;
 	int c_setBuffers = 0;
 	int c_copyRenders = 0;
-	
+
 	resolutionScale.SetCurrentGPUFrameTime( commonLocal.GetRendererGPUMicroseconds() );
-	
+
 	RENDERLOG_START_FRAME();
-	
-	if( cmds->commandId == RC_NOP && !cmds->next )
-	{
-		return;
-	}
-	
+	GL_StartFrame( 0 );
+
 	if( renderSystem->GetStereo3DMode() != STEREO3D_OFF )
 	{
-		RB_StereoRenderExecuteBackEndCommands( cmds );	
+		// If we have a stereo pixel format, this will draw to both
+		// the back left and back right buffers, which will have a
+		// performance penalty.
+
+		RB_StereoRenderExecuteBackEndCommands( cmds );
+
+		GL_EndFrame();
 		RENDERLOG_END_FRAME();
 		return;
 	}
-	
+
 	uint64 backEndStartTime = sys->Microseconds();
-	
+
 	// needed for editor rendering
 	GL_SetDefaultState();
-	
-	// If we have a stereo pixel format, this will draw to both
-	// the back left and back right buffers, which will have a
-	// performance penalty.
-	glDrawBuffer( GL_BACK );
-	
-	for( ; cmds != NULL; cmds = ( const emptyCommand_t* )cmds->next )
+
+	// upload any image loads that have completed
+	//globalImages->CompleteBackgroundImageLoads();
+
+	for(/**/; cmds != NULL; cmds = ( const emptyCommand_t* )cmds->next )
 	{
 		switch( cmds->commandId )
 		{
@@ -580,46 +447,48 @@ void RB_ExecuteBackEndCommands( const emptyCommand_t* cmds )
 				break;
 
 			case RC_DRAW_VIEW_3D:
+				RB_CMD_DrawView( cmds, 0 );
+				++c_draw3d;
+				break;
+
 			case RC_DRAW_VIEW_GUI:
 				RB_CMD_DrawView( cmds, 0 );
-				if( ( ( const drawSurfsCommand_t* )cmds )->viewDef->viewEntitys ) {
-					c_draw3d++;
-				} else {
-					c_draw2d++;
-				}
+				++c_draw2d;
 				break;
 
 			case RC_SET_BUFFER:
 				//RB_SetBuffer( cmds );
-				c_setBuffers++;
+				++c_setBuffers;
 				break;
 
 			case RC_COPY_RENDER:
 				RB_CMD_CopyRender( cmds );
-				c_copyRenders++;
+				++c_copyRenders;
 				break;
 
 			case RC_POST_PROCESS:
 				RB_CMD_PostProcess( cmds );
 				break;
 
+			//case RC_SWAP_BUFFERS:
+			//	RB_SwapBuffers( cmds );
+			//	++c_swapBuffers;
+			//	break;
+
 			default:
 				common->Error( "RB_ExecuteBackEndCommands: bad commandId" );
 				break;
 		}
 	}
-	
-	RB_DrawFlickerBox();
-	
-	// Fix for the steam overlay not showing up while in game without Shell/Debug/Console/Menu also rendering
-	glColorMask( 1, 1, 1, 1 );
-	
-	glFlush();
-	
+
+	//GL_SetNativeRenderDestination();
+
+	GL_EndFrame();
+
 	// stop rendering on this thread
 	uint64 backEndFinishTime = sys->Microseconds();
 	backEnd.pc.totalMicroSec = backEndFinishTime - backEndStartTime;
-	
+
 	if( r_debugRenderToTexture.GetInteger() == 1 )
 	{
 		common->Printf( "3d: %i, 2d: %i, SetBuf: %i, CpyRenders: %i, CpyFrameBuf: %i\n", c_draw3d, c_draw2d, c_setBuffers, c_copyRenders, backEnd.pc.c_copyFrameBuffer );

@@ -57,10 +57,45 @@ idRenderProgManager::~idRenderProgManager()
 R_ReloadShaders
 ================================================================================================
 */
-static void R_ReloadShaders( const idCmdArgs& args )
+void R_ReloadProgs( const idCmdArgs& args )
 {
-	renderProgManager.KillAllShaders();
-	renderProgManager.LoadAllShaders( false );
+	bool force;
+
+	if( !idStr::Icmp( args.Argv( 1 ), "all" ) )
+	{
+		force = true;
+		common->Printf( "reloading all prog files:\n" );
+	}
+	else {
+		force = false;
+		common->Printf( "reloading changed prog files:\n" );
+	}
+
+	renderProgManager.Reload( force );
+
+	///renderProgManager.KillAllShaders();
+	///renderProgManager.LoadAllShaders( false );
+}
+
+void idRenderProgManager::Reload( bool all )
+{
+	GL_ResetProgramState();
+
+	/*for( int i = 0; i < declManager->GetNumDecls( DECL_RENDERPROG ); ++i )
+	{
+		auto prog = const_cast<idDeclRenderProg*>( declManager->RenderProgByIndex( i, false ) );
+		assert( prog != NULL );
+
+		if( prog->SourceFileChanged() || all )
+		{
+			prog->Invalidate();
+			prog->FreeData();
+
+			declManager->ReloadFile( prog->GetFileName(), true );
+		}
+	}*/
+
+	declManager->ReloadType( DECL_RENDERPROG, true );
 }
 
 /*
@@ -91,16 +126,16 @@ void idRenderProgManager::Init()
 		{ RENDERPARM_MODELVIEWMATRIX_Y,			"ModelViewMatrixY" },
 		{ RENDERPARM_MODELVIEWMATRIX_Z,			"ModelViewMatrixZ" },
 		{ RENDERPARM_MODELVIEWMATRIX_W,			"ModelViewMatrixW" },
-		{ RENDERPARM_INVERSEMODELVIEWMATRIX_X,	"InverseModelMatrixX" },
-		{ RENDERPARM_INVERSEMODELVIEWMATRIX_Y,	"InverseModelMatrixY" },
-		{ RENDERPARM_INVERSEMODELVIEWMATRIX_Z,	"InverseModelMatrixZ" },
-		{ RENDERPARM_INVERSEMODELVIEWMATRIX_W,	"InverseModelMatrixW" },
+		{ RENDERPARM_INVERSEMODELVIEWMATRIX_X,	"InverseModelViewMatrixX" },
+		{ RENDERPARM_INVERSEMODELVIEWMATRIX_Y,	"InverseModelViewMatrixY" },
+		{ RENDERPARM_INVERSEMODELVIEWMATRIX_Z,	"InverseModelViewMatrixZ" },
+		{ RENDERPARM_INVERSEMODELVIEWMATRIX_W,	"InverseModelViewMatrixW" },
 		{ RENDERPARM_AMBIENT_COLOR,				"AmbientColor" },
 		{ RENDERPARM_ENABLE_SKINNING,			"SkinningParms" },
 		{ RENDERPARM_ALPHA_TEST,				"AlphaTest" },
 		{ RENDERPARM_SCREENCORRECTIONFACTOR,	"ScreenCorrectionFactor" },
 		//{ RENDERPARM_WINDOWCOORD,				"WindowCoord" },
-		{ RENDERPARM_OVERBRIGHT,				"Overbright" },
+		//{ RENDERPARM_OVERBRIGHT,				"Overbright" },
 		{ RENDERPARM_GLOBALLIGHTORIGIN,			"GlobalLightOrigin" },
 		{ RENDERPARM_LOCALLIGHTORIGIN,			"LocalLightOrigin" },
 		{ RENDERPARM_LOCALVIEWORIGIN,			"LocalViewOrigin" },
@@ -122,8 +157,6 @@ void idRenderProgManager::Init()
 		{ RENDERPARM_DIFFUSEMATRIX_T,			"DiffuseMatrixT" },
 		{ RENDERPARM_SPECULARMATRIX_S,			"SpecularMatrixS" },
 		{ RENDERPARM_SPECULARMATRIX_T,			"SpecularMatrixT" },
-		{ RENDERPARM_VERTEXCOLOR_MODULATE,		"VertexColorModulate" },
-		{ RENDERPARM_VERTEXCOLOR_ADD,			"VertexColorAdd" },
 		{ RENDERPARM_VERTEXCOLOR_MAD,			"VertexColorMAD" },
 		{ RENDERPARM_COLOR,						"Color" },
 		{ RENDERPARM_TEXTUREMATRIX_S,			"TextureMatrixS" },
@@ -195,10 +228,11 @@ void idRenderProgManager::Init()
 		{ RENDERPARM_SCRATCHIMAGE2,			"scratchImage2" },
 		{ RENDERPARM_ACCUMMAP,				"accumMap" },
 		{ RENDERPARM_CURRENTRENDERMAP,		"currentRenderMap" },
-		{ RENDERPARM_CURRENTDEPTHMAP,		"currentDepthMap" },
+		{ RENDERPARM_VIEWDEPTHSTENCILMAP,		"viewDepthStencilMap" },
 		{ RENDERPARM_JITTERMAP,				"jitterMap" },
 		{ RENDERPARM_RANDOMIMAGE256,		"randomImage256" },
 		{ RENDERPARM_GRAINMAP,				"grainMap" },
+		{ RENDERPARM_VIEWCOLORMAP,			"viewColorMap" },
 		{ RENDERPARM_VIEWNORMALMAP,			"viewNormalMap" },
 		{ RENDERPARM_SHADOWBUFFERMAP,		"shadowBufferMap" },
 		{ RENDERPARM_SHADOWBUFFERDEBUGMAP,	"shadowBufferDebugMap" },
@@ -231,120 +265,143 @@ void idRenderProgManager::Init()
 	for( int i = 0; i < _countof( builtin_parms ); ++i )
 	{
 		auto parm = declManager->FindRenderParm( builtin_parms[ i ].name );
-		release_assert( parm != NULL );
-
-		parm->Print();
-
+		assert( parm != NULL );
+		if( com_developer.GetBool() ) {
+			parm->Print();
+		}
 		builtinParms[ builtin_parms[ i ].index ] = parm;
 	}
 
 	common->Printf( "----- Initializing Render Programs -----\n" );
 
-	builtins_t builtin_progs[] =
-	{
-		{ BUILTIN_GUI, "gui" },
-		{ BUILTIN_COLOR, "color" },
-		// RB begin
-		{ BUILTIN_COLOR_SKINNED, "color_skinned" },
-		{ BUILTIN_VERTEX_COLOR, "vertex_color" },
-		{ BUILTIN_AMBIENT_LIGHTING, "ambient_lighting" },
-		{ BUILTIN_AMBIENT_LIGHTING_SKINNED, "ambient_lighting_skinned" },
-		{ BUILTIN_SMALL_GEOMETRY_BUFFER, "gbuffer" },
-		{ BUILTIN_SMALL_GEOMETRY_BUFFER_SKINNED, "gbuffer_skinned" },
-//SEA ->
-		{ BUILTIN_SMALL_GBUFFER_SML, "gbuffer_sml" },
-		{ BUILTIN_SMALL_GBUFFER_SML_SKINNED, "gbuffer_sml_skinned" },
-		{ BUILTIN_DEPTH_WORLD, "depth_world" },
-//SEA <-
-		// RB end
-//		{ BUILTIN_SIMPLESHADE, "simpleshade", 0, false },
-		{ BUILTIN_TEXTURED, "texture" },
-		{ BUILTIN_TEXTURE_VERTEXCOLOR, "texture_color" },
-		{ BUILTIN_TEXTURE_VERTEXCOLOR_SRGB, "texture_color_srgb" },
-		{ BUILTIN_TEXTURE_VERTEXCOLOR_SKINNED, "texture_color_skinned" },
-		{ BUILTIN_TEXTURE_TEXGEN_VERTEXCOLOR, "texture_color_texgen" },
-		// RB begin
-		{ BUILTIN_INTERACTION, "interaction" },
-		{ BUILTIN_INTERACTION_SKINNED, "interaction_skinned" },
-		{ BUILTIN_INTERACTION_AMBIENT, "interactionAmbient" },
-		{ BUILTIN_INTERACTION_AMBIENT_SKINNED, "interactionAmbient_skinned" },
-		{ BUILTIN_INTERACTION_SHADOW_MAPPING_SPOT, "interactionSM_spot"},
-		{ BUILTIN_INTERACTION_SHADOW_MAPPING_SPOT_SKINNED, "interactionSM_spot_skinned" },
-		{ BUILTIN_INTERACTION_SHADOW_MAPPING_POINT, "interactionSM_point" },
-		{ BUILTIN_INTERACTION_SHADOW_MAPPING_POINT_SKINNED, "interactionSM_point_skinned" },
-		{ BUILTIN_INTERACTION_SHADOW_MAPPING_PARALLEL, "interactionSM_parallel" },
-		{ BUILTIN_INTERACTION_SHADOW_MAPPING_PARALLEL_SKINNED, "interactionSM_parallel_skinned" },
-		// RB end
-		{ BUILTIN_ENVIRONMENT, "environment" },
-		{ BUILTIN_ENVIRONMENT_SKINNED, "environment_skinned" },
-		{ BUILTIN_BUMPY_ENVIRONMENT, "bumpyenvironment" },
-		{ BUILTIN_BUMPY_ENVIRONMENT_SKINNED, "bumpyenvironment_skinned" },
-		
-		{ BUILTIN_DEPTH, "depth" },
-		{ BUILTIN_DEPTH_SKINNED, "depth_skinned" },
-		
-		{ BUILTIN_SHADOW, "shadow" },
-		{ BUILTIN_SHADOW_SKINNED, "shadow_skinned" },
-		
-		{ BUILTIN_SHADOW_DEBUG, "shadowDebug" },
-		{ BUILTIN_SHADOW_DEBUG_SKINNED, "shadowDebug_skinned" },
-		
-		{ BUILTIN_BLENDLIGHT, "blendlight" },
-		{ BUILTIN_BLENDLIGHT_SCREENSPACE, "blendlight2" },
-		{ BUILTIN_FOG, "fog" },
-		{ BUILTIN_FOG_SKINNED, "fog_skinned" },
-		{ BUILTIN_SKYBOX, "skybox" },
-		{ BUILTIN_WOBBLESKY, "wobblesky" },
-		{ BUILTIN_POSTPROCESS, "postprocess"},
-		// RB begin
-		{ BUILTIN_SCREEN, "screen" },
-		{ BUILTIN_TONEMAP, "tonemap" },
-		{ BUILTIN_BRIGHTPASS, "tonemap_brightpass" },
-		{ BUILTIN_HDR_GLARE_CHROMATIC, "hdr_glare_chromatic" },
-		{ BUILTIN_HDR_DEBUG, "tonemap_debug" },
-		
-		{ BUILTIN_SMAA_EDGE_DETECTION, "SMAA_edge_detection" },
-		{ BUILTIN_SMAA_BLENDING_WEIGHT_CALCULATION, "SMAA_blending_weight_calc" },
-		{ BUILTIN_SMAA_NEIGHBORHOOD_BLENDING, "SMAA_final" },
-		
-		{ BUILTIN_AMBIENT_OCCLUSION, "AmbientOcclusion_AO" },
-		{ BUILTIN_AMBIENT_OCCLUSION_AND_OUTPUT, "AmbientOcclusion_AO_write" },
-		{ BUILTIN_AMBIENT_OCCLUSION_BLUR, "AmbientOcclusion_blur", },
-		{ BUILTIN_AMBIENT_OCCLUSION_BLUR_AND_OUTPUT, "AmbientOcclusion_blur_write" },
-		{ BUILTIN_AMBIENT_OCCLUSION_MINIFY, "AmbientOcclusion_minify" },
-		{ BUILTIN_AMBIENT_OCCLUSION_RECONSTRUCT_CSZ, "AmbientOcclusion_minify_mip0" },
-		{ BUILTIN_DEEP_GBUFFER_RADIOSITY_SSGI, "DeepGBufferRadiosity_radiosity" },
-		{ BUILTIN_DEEP_GBUFFER_RADIOSITY_BLUR, "DeepGBufferRadiosity_blur" },
-		{ BUILTIN_DEEP_GBUFFER_RADIOSITY_BLUR_AND_OUTPUT, "DeepGBufferRadiosity_blur_write" },
-		// RB end
-		{ BUILTIN_STEREO_DEGHOST, "stereoDeGhost" },
-		{ BUILTIN_STEREO_WARP, "stereoWarp" },
-//		{ BUILTIN_ZCULL_RECONSTRUCT, "zcullReconstruct" },
-		{ BUILTIN_BINK, "bink" },
-		{ BUILTIN_BINK_GUI, "bink_gui" },
-		{ BUILTIN_STEREO_INTERLACE, "stereoInterlace" },
-		{ BUILTIN_MOTION_BLUR, "motionBlur" },
-		
-		// RB begin
-		{ BUILTIN_DEBUG_SHADOWMAP, "debug_shadowmap" },
-		// RB end
-	};
-	builtinProgs.Zero();
-	for( int i = 0; i < _countof( builtin_progs ); ++i )
-	{
-		auto prog = declManager->FindRenderProg( builtin_progs[ i ].name );
-		release_assert( prog != NULL );
+#define LOAD_PROG( Name ) prog_##Name = FindRenderProgram( #Name )
 
-		prog->Print();
+	LOAD_PROG( gui );
 
-		builtinProgs[ builtin_progs[ i ].index ] = prog;
-	}
+	LOAD_PROG( color );
+	LOAD_PROG( color_skinned );
+	LOAD_PROG( vertex_color );
+
+	LOAD_PROG( ambient_lighting );
+	LOAD_PROG( ambient_lighting_skinned );
+
+	LOAD_PROG( gbuffer );
+	LOAD_PROG( gbuffer_skinned );
+	LOAD_PROG( gbuffer_sml );
+	LOAD_PROG( gbuffer_sml_skinned );
+	LOAD_PROG( gbuffer_clear );
+	LOAD_PROG( fill_gbuffer_trivial );
+	LOAD_PROG( fill_gbuffer );
+
+	LOAD_PROG( texture );
+	LOAD_PROG( texture_color );
+	LOAD_PROG( texture_color_srgb );
+	LOAD_PROG( texture_color_skinned );
+	LOAD_PROG( texture_color_texgen );
+
+	LOAD_PROG( interaction_ambient );
+	LOAD_PROG( interaction_ambient_skinned );
+	LOAD_PROG( interaction );
+	LOAD_PROG( interaction_skinned );
+	LOAD_PROG( interaction_sm_spot );
+	LOAD_PROG( interaction_sm_spot_skinned );
+	LOAD_PROG( interaction_sm_point );
+	LOAD_PROG( interaction_sm_point_skinned );
+	LOAD_PROG( interaction_sm_parallel );
+	LOAD_PROG( interaction_sm_parallel_skinned );
+	LOAD_PROG( interaction_sm_deferred_light );
+	LOAD_PROG( interaction_deferred_light );
+
+	LOAD_PROG( shadowBuffer_clear );
+	LOAD_PROG( shadowBuffer_point );
+	LOAD_PROG( shadowBuffer_perforated_point );
+	LOAD_PROG( shadowBuffer_static_point );
+	LOAD_PROG( shadowBuffer_spot );
+	LOAD_PROG( shadowBuffer_perforated_spot );
+	LOAD_PROG( shadowbuffer_static_spot );
+	LOAD_PROG( shadowBuffer_parallel );
+	LOAD_PROG( shadowBuffer_perforated_parallel );
+	LOAD_PROG( shadowBuffer_static_parallel );
+	LOAD_PROG( debug_shadowmap );
+
+	LOAD_PROG( stencil_shadow );
+	LOAD_PROG( stencil_shadow_skinned );
+	LOAD_PROG( stencil_shadowDebug );
+	LOAD_PROG( stencil_shadowDebug_skinned );
+
+	LOAD_PROG( environment );
+	LOAD_PROG( environment_skinned );
+	LOAD_PROG( bumpyenvironment );
+	LOAD_PROG( bumpyenvironment_skinned );
+
+	LOAD_PROG( depth );
+	LOAD_PROG( depth_skinned );
+	LOAD_PROG( depth_world );
+	LOAD_PROG( HiZmap_construction );
+
+	LOAD_PROG( blendlight );
+	LOAD_PROG( blendlight2 );
+	LOAD_PROG( fog );
+	LOAD_PROG( fog_skinned );
+	LOAD_PROG( fog2 );
+
+	LOAD_PROG( skybox );
+	LOAD_PROG( wobblesky );
+	LOAD_PROG( wobblesky2 );
+
+	LOAD_PROG( postprocess );
+
+	LOAD_PROG( screen );
+
+	LOAD_PROG( tonemap );
+	LOAD_PROG( tonemap_brightpass );
+	LOAD_PROG( hdr_glare_chromatic );
+	LOAD_PROG( tonemap_debug );
+
+	LOAD_PROG( SMAA_edge_detection );
+	LOAD_PROG( SMAA_blending_weight_calc );
+	LOAD_PROG( SMAA_final );
+
+	LOAD_PROG( AmbientOcclusion_AO );
+	LOAD_PROG( AmbientOcclusion_AO_write );
+	LOAD_PROG( AmbientOcclusion_blur );
+	LOAD_PROG( AmbientOcclusion_blur_write );
+	LOAD_PROG( AmbientOcclusion_minify );
+	LOAD_PROG( AmbientOcclusion_minify_mip0 );
+
+	LOAD_PROG( DeepGBufferRadiosity_radiosity );
+	LOAD_PROG( DeepGBufferRadiosity_blur );
+	LOAD_PROG( DeepGBufferRadiosity_blur_write );
+
+	LOAD_PROG( stereoDeGhost );
+	LOAD_PROG( stereoWarp );
+	LOAD_PROG( stereoInterlace );
+
+//	LOAD_PROG( zcullReconstruct );
+
+	LOAD_PROG( bink );
+	LOAD_PROG( bink_gui );
+
+	LOAD_PROG( motionBlurMask );
+	LOAD_PROG( motionBlur );
+
+	LOAD_PROG( copyColor );
+	LOAD_PROG( copyColorAndPack );
+
+	//LOAD_PROG( autoExposure );
+
+	LOAD_PROG( bloomExtractLuminance );
+	LOAD_PROG( bloomExtractAvarage );
+	LOAD_PROG( bloomDownscaleBlur );
+	LOAD_PROG( bloomUpscaleBlur );
+
+	///////////////////////////////////////////////////////////////////////////
 
 	r_useHalfLambertLighting.ClearModified();
 	r_useHDR.ClearModified();
 	r_useProgUBO.ClearModified();
 
-	cmdSystem->AddCommand( "reloadShaders", R_ReloadShaders, CMD_FL_RENDERER, "reloads render programs" );
+	cmdSystem->AddCommand( "reloadProgs", R_ReloadProgs, CMD_FL_RENDERER, "reloads render programs" );
 
 /*#ifdef ID_PC
 	idParser::AddGlobalDefine( "PC" );
@@ -398,8 +455,64 @@ void idRenderProgManager::Init()
 	//TestParseProg();
 
 	//idParser::RemoveAllGlobalDefines();
+
+/*
+	for( int vertexID = 0; vertexID < 14; vertexID++ )
+	{
+		int b = 1 << vertexID;
+		int x = ( 0x287a & b ) != 0;
+		int y = ( 0x02af & b ) != 0;
+		int z = ( 0x31e3 & b ) != 0;
+
+		common->Printf( "QVert[%i] = X.%i, Y.%i, Z.%i\n", vertexID, x, y, z ); // 0 ... 1
+	}
+	common->Printf("\n");
+	for( int vertexID = 0; vertexID < 14; vertexID++ )
+	{
+		int r = int( vertexID > 6 );
+		int i = ( r == 1 ) ? ( 13 - vertexID ) : vertexID;
+
+		int x = int( i < 3 || i == 4 );
+		int y = r ^ int( i > 0 && i < 4 );
+		int z = r ^ int( i < 2 || i > 5 );
+
+		common->Printf( "QVert[%i] = X.%i, Y.%i, Z.%i\n", vertexID, x, y, z ); // 0 ... 1
+	}
+
+	common->Printf( "\nTriangles\n" );
+	idVec4 Pos; idVec2 Tex;
+	for( int vertexID = 0; vertexID < 3; vertexID++ )
+	{
+		float x = -1.0 + float( ( vertexID & 1 ) << 2 );
+		float y = -1.0 + float( ( vertexID & 2 ) << 1 );
+		Tex.x = ( ( x ) + 1.0 ) * 0.5;
+		Tex.y = ( ( y ) + 1.0 ) * 0.5;
+		Pos = idVec4( x, y, 0.0, 1.0 );
+
+		common->Printf( "TriVert[%i] = posX.%4.1f, posY.%4.1f\n", vertexID, Pos.x, Pos.y ); // -1 ... 3
+		common->Printf( "TriVert[%i] = texX.%4.1f, texY.%4.1f\n", vertexID, Tex.x, Tex.y ); //  0 ... 2
+	}
+	common->Printf( "\n" );
+	for( int vertexID = 0; vertexID < 3; vertexID++ )
+	{
+		idVec2i t = idVec2i( vertexID, vertexID << 1 ) & 2;
+		Tex = idVec2( t.x, t.y );
+		//Pos = idVec4( Lerp( idVec2( -1.0, 1.0 ), idVec2( 1.0, -1.0 ), Tex ), 0.0f, 1.0f );
+
+		Pos.x = Lerp( -1.0, 1.0, Tex.x );
+		Pos.y = Lerp( 1.0, -1.0, Tex.y );
+		Pos.z = 0.0;
+		Pos.w = 1.0;
+
+		common->Printf( "TriVert[%i] = posX.%4.1f, posY.%4.1f\n", vertexID, Pos.x, Pos.y ); // -1 ... 3
+		common->Printf( "TriVert[%i] = texX.%4.1f, texY.%4.1f\n", vertexID, Tex.x, Tex.y ); //  0 ... 2
+	}
+*/
+
+#undef LOAD_PROG
 }
 
+#if 0
 /*
 ================================================================================================
 idRenderProgManager::LoadAllShaders()
@@ -431,13 +544,17 @@ void idRenderProgManager::KillAllShaders()
 
 	for( int index = 0; index < declManager->GetNumDecls( DECL_RENDERPROG ); ++index )
 	{
-		auto prog = declManager->RenderProgByIndex( index, false );
-		release_assert( prog != NULL );
+		auto prog = const_cast<idDeclRenderProg*>( declManager->RenderProgByIndex( index, false ) );
+		assert( prog != NULL );
 
-		const_cast<idDeclRenderProg*>( prog )->FreeData();
+		prog->Invalidate();
+		prog->FreeData();
+
+		//prog->
 	}
 
 }
+#endif
 
 /*
 ================================================================================================
@@ -447,18 +564,9 @@ idRenderProgManager::Shutdown()
 void idRenderProgManager::Shutdown()
 {
 	//KillAllShaders();
-	//SEA: decl manager will handle this.	
-}
+	//SEA: decl manager will handle this.
 
-/*
-================================================================================================
-idRenderProgManager::Unbind
-================================================================================================
-*/
-void idRenderProgManager::Unbind()
-{
-	mCurrentDeclRenderProg = nullptr;
-	glUseProgram( GL_NONE );
+	//fileSystem->RemoveDir( "renderprogs\\debug" );
 }
 
 /*
@@ -466,10 +574,10 @@ void idRenderProgManager::Unbind()
 idRenderProgManager::GetRenderParm
 ================================================================================================
 */
-idRenderVector & idRenderProgManager::GetRenderParm( renderParm_t rp )
+/*const idDeclRenderParm * idRenderProgManager::GetRenderParm( renderParm_t rp ) const
 {
-	return builtinParms[ rp ]->GetVec4();
-}
+	return builtinParms[ rp ];
+}*/
 
 /*
 ================================================================================================
@@ -480,11 +588,11 @@ void idRenderProgManager::SetRenderParm( renderParm_t rp, const float* vector )
 {
 	///SetUniformValue( rp, value );
 	const idDeclRenderParm * parm = builtinParms[ rp ];
-	release_assert( parm != NULL );
+	assert( parm != NULL );
 
 #if defined( USE_INTRINSICS )
 	assert_16_byte_aligned( vector );
-	_mm_store_ps( parm->GetVecPtr(), _mm_load_ps( vector ) );	
+	_mm_store_ps( parm->GetVecPtr(), _mm_load_ps( vector ) );
 #else
 	parm->Set( vector );
 #endif
@@ -492,7 +600,7 @@ void idRenderProgManager::SetRenderParm( renderParm_t rp, const float* vector )
 void idRenderProgManager::SetRenderParm( renderParm_t rp, const idRenderVector & vector )
 {
 	const idDeclRenderParm * parm = builtinParms[ rp ];
-	release_assert( parm != NULL );
+	assert( parm != NULL );
 
 #if defined( USE_INTRINSICS )
 	assert_16_byte_aligned( vector.ToFloatPtr() );
@@ -514,31 +622,57 @@ void idRenderProgManager::SetRenderParm( renderParm_t rp, idImage * img )
 
 /*
 ================================================================================================
+RB_LoadShaderTextureMatrix
+================================================================================================
+*/
+void idRenderProgManager::SetupTextureMatrixParms( const float* shaderRegisters, const textureStage_t* texture ) const
+{
+	auto texS = GetRenderParm( RENDERPARM_TEXTUREMATRIX_S );
+	auto texT = GetRenderParm( RENDERPARM_TEXTUREMATRIX_T );
+#if USE_INTRINSICS
+	_mm_store_ps( texS->GetVecPtr(), _mm_set_ps( 0.0, 0.0, 0.0, 1.0 ) );
+	_mm_store_ps( texT->GetVecPtr(), _mm_set_ps( 0.0, 0.0, 1.0, 0.0 ) );
+#else
+	texS->GetVec4().Set( 1.0f, 0.0f, 0.0f, 0.0f );
+	texT->GetVec4().Set( 0.0f, 1.0f, 0.0f, 0.0f );
+#endif
+	if( texture->hasMatrix )
+	{
+		ALIGNTYPE16 float matrix[ 16 ];
+		idMaterial::GetTexMatrixFromStage( shaderRegisters, texture, matrix );
+	#if USE_INTRINSICS
+		_mm_store_ps( texS->GetVecPtr(), _mm_set_ps( matrix[ 3 * 4 + 0 ], matrix[ 2 * 4 + 0 ], matrix[ 1 * 4 + 0 ], matrix[ 0 * 4 + 0 ] ) );
+		_mm_store_ps( texT->GetVecPtr(), _mm_set_ps( matrix[ 3 * 4 + 1 ], matrix[ 2 * 4 + 1 ], matrix[ 1 * 4 + 1 ], matrix[ 0 * 4 + 1 ] ) );
+	#else
+		texS->GetVecPtr()[ 0 ] = matrix[ 0 * 4 + 0 ];
+		texS->GetVecPtr()[ 1 ] = matrix[ 1 * 4 + 0 ];
+		texS->GetVecPtr()[ 2 ] = matrix[ 2 * 4 + 0 ];
+		texS->GetVecPtr()[ 3 ] = matrix[ 3 * 4 + 0 ];
+
+		texT->GetVecPtr()[ 0 ] = matrix[ 0 * 4 + 1 ];
+		texT->GetVecPtr()[ 1 ] = matrix[ 1 * 4 + 1 ];
+		texT->GetVecPtr()[ 2 ] = matrix[ 2 * 4 + 1 ];
+		texT->GetVecPtr()[ 3 ] = matrix[ 3 * 4 + 1 ];
+	#endif
+		RENDERLOG_PRINT( "Setting Texture Matrix\n" );
+		RENDERLOG_INDENT();
+		RENDERLOG_PRINT( "Texture Matrix S : %4.3f, %4.3f, %4.3f, %4.3f\n", texS->GetVecPtr()[ 0 ], texS->GetVecPtr()[ 1 ], texS->GetVecPtr()[ 2 ], texS->GetVecPtr()[ 3 ] );
+		RENDERLOG_PRINT( "Texture Matrix T : %4.3f, %4.3f, %4.3f, %4.3f\n", texT->GetVecPtr()[ 0 ], texT->GetVecPtr()[ 1 ], texT->GetVecPtr()[ 2 ], texT->GetVecPtr()[ 3 ] );
+		RENDERLOG_OUTDENT();
+	}
+}
+
+/*
+================================================================================================
 idRenderProgManager::FindRenderProgram
 ================================================================================================
 */
 const idDeclRenderProg * idRenderProgManager::FindRenderProgram( const char * progName ) const
 {
 	auto decl = declManager->FindType( DECL_RENDERPROG, progName, false );
-	release_assert( decl != NULL );
+	assert( decl != NULL );
 
 	return decl->Cast<idDeclRenderProg>();
-}
-/*
-================================================================================================
-idRenderProgManager::BindRenderProg
-================================================================================================
-*/
-void idRenderProgManager::BindRenderProgram( const idDeclRenderProg * prog )
-{
-	if( mCurrentDeclRenderProg != prog )
-	{
-		mCurrentDeclRenderProg = prog;
-
-		RENDERLOG_PRINT( "Binding GLSL Program %s %s\n", prog->GetName(), prog->HasHardwareSkinning() ? "skinned" : "" );
-
-		prog->Bind();
-	}
 }
 
 /*

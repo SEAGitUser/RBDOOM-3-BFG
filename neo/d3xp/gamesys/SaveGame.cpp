@@ -632,8 +632,8 @@ void idSaveGame::WriteRenderEntity( const renderEntityParms_t& renderEntity )
 	WriteVec3( renderEntity.origin );
 	WriteMat3( renderEntity.axis );
 	
-	WriteMaterial( renderEntity.customShader );
-	WriteMaterial( renderEntity.referenceShader );
+	WriteMaterial( renderEntity.customMaterial );
+	WriteMaterial( renderEntity.referenceMaterial );
 	WriteSkin( renderEntity.customSkin );
 	
 	if( renderEntity.referenceSound != NULL )
@@ -1530,8 +1530,8 @@ void idRestoreGame::ReadRenderEntity( renderEntityParms_t& renderEntity )
 	ReadVec3( renderEntity.origin );
 	ReadMat3( renderEntity.axis );
 	
-	ReadMaterial( renderEntity.customShader );
-	ReadMaterial( renderEntity.referenceShader );
+	ReadMaterial( renderEntity.customMaterial );
+	ReadMaterial( renderEntity.referenceMaterial );
 	ReadSkin( renderEntity.customSkin );
 	
 	ReadInt( index );

@@ -112,23 +112,6 @@ class idVec4;
 #define SIZE_MB( x )						( ( ( SIZE_KB( x ) ) + 1023 ) / 1024 )
 #define SIZE_GB( x )						( ( ( SIZE_MB( x ) ) + 1023 ) / 1024 )
 
-// basic colors
-extern	idVec4 colorBlack;
-extern	idVec4 colorWhite;
-extern	idVec4 colorRed;
-extern	idVec4 colorGreen;
-extern	idVec4 colorBlue;
-extern	idVec4 colorYellow;
-extern	idVec4 colorMagenta;
-extern	idVec4 colorCyan;
-extern	idVec4 colorOrange;
-extern	idVec4 colorPurple;
-extern	idVec4 colorPink;
-extern	idVec4 colorBrown;
-extern	idVec4 colorLtGrey;
-extern	idVec4 colorMdGrey;
-extern	idVec4 colorDkGrey;
-
 // packs color floats in the range [0,1] into an integer
 dword	PackColor( const idVec3& color );
 void	UnpackColor( const dword color, idVec3& unpackedColor );
@@ -158,8 +141,7 @@ int		IntForSixtets( byte* in );
 idException
 ================================================
 */
-class idException
-{
+class idException {
 public:
 	static const int MAX_ERROR_LEN = 2048;
 	

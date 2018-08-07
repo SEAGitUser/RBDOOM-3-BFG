@@ -44,6 +44,8 @@ public:
 	virtual void			InitInput();
 	virtual void			ShutdownInput();
 
+	virtual bool			AlreadyRunning() const;
+
 	virtual void			Printf( VERIFY_FORMAT_STRING const char* msg, ... );
 	virtual void			DebugPrintf( VERIFY_FORMAT_STRING const char* fmt, ... );
 	virtual void			DebugVPrintf( const char* fmt, va_list arg );
@@ -51,10 +53,12 @@ public:
 	virtual int32			Milliseconds() const;
 	virtual uint64			Microseconds() const;
 	
-	virtual double			GetClockTicks();
-	virtual double			ClockTicksPerSecond();
-	virtual cpuid_t			GetProcessorId();
-	virtual const char* 	GetProcessorString();
+	virtual double			GetClockTicks() const;
+	virtual double			ClockTicksPerSecond() const;
+	virtual cpuid_t			GetProcessorId() const;
+	virtual const char* 	GetProcessorString() const;
+
+	virtual void			Sleep( int msec ) const;
 
 	virtual void			FPU_ClearStack();
 	virtual void			FPU_SetPrecision( int precision );
@@ -65,8 +69,12 @@ public:
 	virtual void			FPU_SetDAZ( bool enable );	
 	virtual void			FPU_EnableExceptions( int exceptions );
 	
-	virtual bool			LockMemory( void* ptr, int bytes );
-	virtual bool			UnlockMemory( void* ptr, int bytes );
+	virtual bool			LockMemory( void* ptr, int bytes ) const;
+	virtual bool			UnlockMemory( void* ptr, int bytes ) const;
+
+	virtual void			SetPhysicalWorkMemory( int minBytes, int maxBytes ) const;
+	virtual void			GetCurrentMemoryStatus( sysMemoryStats_t& ) const;
+	virtual void			GetExeLaunchMemoryStatus( sysMemoryStats_t& ) const;
 	
 	virtual intptr_t		DLL_Load( const char* dllName );
 	virtual void * 			DLL_GetProcAddress( intptr_t dllHandle, const char* procName );
@@ -86,6 +94,9 @@ public:
 
 	virtual char * 			GetClipboardData();
 	virtual void			SetClipboardData( const char * string );
+
+	virtual size_t			GetDriveFreeSpace( const char* path ) const;
+	virtual size_t			GetDriveFreeSpaceInBytes( const char* path ) const;
 };
 
 #endif /* !__SYS_LOCAL__ */

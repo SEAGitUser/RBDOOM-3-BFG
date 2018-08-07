@@ -74,13 +74,12 @@ dword idColor::PackColor( const idVec3& color, float alpha ) {
 idColor::PackColor
 ================
 */
-dword idColor::PackColor( const idVec4& color ) {
-	dword dw, dx, dy, dz;
-
-	dx = ColorFloatToByte( color.x );
-	dy = ColorFloatToByte( color.y );
-	dz = ColorFloatToByte( color.z );
-	dw = ColorFloatToByte( color.w );
+dword idColor::PackColor( const idVec4& color )
+{
+	dword dx = ColorFloatToByte( color.x );
+	dword dy = ColorFloatToByte( color.y );
+	dword dz = ColorFloatToByte( color.z );
+	dword dw = ColorFloatToByte( color.w );
 
 #if defined( _XENON )
 	return ( dx << 24 ) | ( dy << 16 ) | ( dz << 8 ) | ( dw << 0 );
@@ -104,28 +103,28 @@ idColor::UnpackColor
 */
 void idColor::UnpackColor( const dword color, idVec4& unpackedColor ) {
 #if defined( _XENON )
-	unpackedColor.Set( 
+	unpackedColor.Set(
 		( ( color >> 24 ) & 255 ) * ( 1.0f / 255.0f ),
-		( ( color >> 16 ) & 255 ) * ( 1.0f / 255.0f ), 
+		( ( color >> 16 ) & 255 ) * ( 1.0f / 255.0f ),
 		( ( color >> 8 ) & 255 ) * ( 1.0f / 255.0f ),
 		( ( color >> 0 ) & 255 ) * ( 1.0f / 255.0f ) );
 #elif defined( _WIN32 ) || defined( __linux__ )
-	unpackedColor.Set( 
+	unpackedColor.Set(
 		( ( color >> 0 ) & 255 ) * ( 1.0f / 255.0f ),
-		( ( color >> 8 ) & 255 ) * ( 1.0f / 255.0f ), 
+		( ( color >> 8 ) & 255 ) * ( 1.0f / 255.0f ),
 		( ( color >> 16 ) & 255 ) * ( 1.0f / 255.0f ),
 		( ( color >> 24 ) & 255 ) * ( 1.0f / 255.0f ) );
 #elif defined(MACOS_X)
 	#if defined ( __ppc__ )
-	unpackedColor.Set( 
+	unpackedColor.Set(
 		( ( color >> 24 ) & 255 ) * ( 1.0f / 255.0f ),
-		( ( color >> 16 ) & 255 ) * ( 1.0f / 255.0f ), 
+		( ( color >> 16 ) & 255 ) * ( 1.0f / 255.0f ),
 		( ( color >> 8 ) & 255 ) * ( 1.0f / 255.0f ),
 		( ( color >> 0 ) & 255 ) * ( 1.0f / 255.0f ) );
 	#else
-	unpackedColor.Set( 
+	unpackedColor.Set(
 		( ( color >> 0 ) & 255 ) * ( 1.0f / 255.0f ),
-		( ( color >> 8 ) & 255 ) * ( 1.0f / 255.0f ), 
+		( ( color >> 8 ) & 255 ) * ( 1.0f / 255.0f ),
 		( ( color >> 16 ) & 255 ) * ( 1.0f / 255.0f ),
 		( ( color >> 24 ) & 255 ) * ( 1.0f / 255.0f ) );
 	#endif

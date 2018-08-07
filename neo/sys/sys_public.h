@@ -419,8 +419,8 @@ enum keyNum_t
 	K_LAST_KEY
 };
 
-class idSysEvent {
-protected:
+class idSysEvent 
+{
 	sysEventType_t	evType;
 
 	int				evValue;
@@ -494,8 +494,6 @@ struct sysMemoryStats_t
 	int availExtendedVirtual;
 };
 
-// typedef unsigned long address_t; // DG: this isn't even used
-
 void			Sys_Init();
 void			Sys_Shutdown();
 void			Sys_Error( const char* error, ... );
@@ -508,41 +506,6 @@ void			Sys_SetLanguageFromSystem();
 const char* 	Sys_DefaultLanguage();
 void			Sys_Quit();
 
-bool			Sys_AlreadyRunning();
-
-// a decent minimum sleep time to avoid going below the process scheduler speeds
-#define			SYS_MINSLEEP	20
-
-// allow game to yield CPU time
-// NOTE: due to SYS_MINSLEEP this is very bad portability karma, and should be completely removed
-void			Sys_Sleep( int msec );
-
-// for accurate performance testing
-double			Sys_GetClockTicks();
-double			Sys_ClockTicksPerSecond();
-
-// returns a selection of the CPUID_* flags
-cpuid_t			Sys_GetProcessorId();
-const char* 	Sys_GetProcessorString();
-
-
-
-// returns amount of drive space in path
-int				Sys_GetDriveFreeSpace( const char* path );
-
-// returns amount of drive space in path in bytes
-int64			Sys_GetDriveFreeSpaceInBytes( const char* path );
-
-// returns memory stats
-void			Sys_GetCurrentMemoryStatus( sysMemoryStats_t& stats );
-void			Sys_GetExeLaunchMemoryStatus( sysMemoryStats_t& stats );
-
-// lock and unlock memory
-bool			Sys_LockMemory( void* ptr, int bytes );
-bool			Sys_UnlockMemory( void* ptr, int bytes );
-
-// set amount of physical work memory
-void			Sys_SetPhysicalWorkMemory( int minBytes, int maxBytes );
 
 // keyboard input polling
 int				Sys_PollKeyboardInputEvents();
@@ -579,7 +542,7 @@ void			Sys_ShowConsole( int visLevel, bool quitOnClose );
 // and has a function signature with 'FILE' in it, it kinda needs to be here =/
 
 // RB begin
-#if defined(_WIN32)
+#if defined( _WIN32 )
 typedef HANDLE idFileHandle;
 #else
 typedef FILE* idFileHandle;
@@ -590,7 +553,7 @@ typedef FILE* idFileHandle;
 ID_TIME_T		Sys_FileTimeStamp( idFileHandle fp );
 // NOTE: do we need to guarantee the same output on all platforms?
 const char* 	Sys_TimeStampToStr( ID_TIME_T timeStamp );
-const char* 	Sys_SecToStr( int sec );
+const char* 	Sys_SecToStr( int sec ); 
 
 const char* 	Sys_DefaultBasePath();
 const char* 	Sys_DefaultSavePath();
@@ -612,6 +575,7 @@ bool Sys_Exec(	const char* appPath, const char* workingPath, const char* args,
 // localization
 
 #define ID_LANG_ENGLISH		"english"
+#define ID_LANG_RUSSIAN		"russian"
 #define ID_LANG_FRENCH		"french"
 #define ID_LANG_ITALIAN		"italian"
 #define ID_LANG_GERMAN		"german"
@@ -628,20 +592,20 @@ const char* Sys_Lang( int idx );
 ==============================================================
 */
 
-typedef enum
+enum netadrtype_t
 {
 	NA_BAD,					// an address lookup failed
 	NA_LOOPBACK,
 	NA_BROADCAST,
 	NA_IP
-} netadrtype_t;
+};
 
-typedef struct
+struct netadr_t
 {
 	netadrtype_t	type;
 	unsigned char	ip[4];
 	unsigned short	port;
-} netadr_t;
+};
 
 #define	PORT_ANY			-1
 
@@ -736,21 +700,12 @@ class idJoystick {
 public:
 	virtual			~idJoystick() { }
 	
-	virtual bool	Init()
-	{
-		return false;
-	}
+	virtual bool	Init() { return false; }
 	virtual void	Shutdown() { }
 	virtual void	Deactivate() { }
 	virtual void	SetRumble( int deviceNum, int rumbleLow, int rumbleHigh ) { }
-	virtual int		PollInputEvents( int inputDeviceNum )
-	{
-		return 0;
-	}
-	virtual int		ReturnInputEvent( const int n, int& action, int& value )
-	{
-		return 0;
-	}
+	virtual int		PollInputEvents( int inputDeviceNum ) { return 0; }
+	virtual int		ReturnInputEvent( const int n, int& action, int& value ) { return 0; }
 	virtual void	EndInputEvents() { }
 };
 
@@ -763,6 +718,9 @@ enum inputType_t
 	INPUT_TYPE_MOUSE,
 	INPUT_TYPE_GAMEPAD,
 };
+
+// a decent minimum sleep time to avoid going below the process scheduler speeds
+#define	SYS_MINSLEEP		20
 
 /*
 ==============================================================
@@ -781,6 +739,8 @@ public:
 	virtual void			InitInput() = 0;
 	virtual void			ShutdownInput() = 0;
 
+	virtual bool			AlreadyRunning() const = 0;
+
 	// will go to the various text consoles
 	// NOT thread safe - never use in the async paths
 	virtual void			Printf( VERIFY_FORMAT_STRING const char* msg, ... ) = 0;
@@ -794,10 +754,16 @@ public:
 	virtual int32			Milliseconds() const = 0;
 	virtual uint64			Microseconds() const = 0;
 	
-	virtual double			GetClockTicks() = 0;
-	virtual double			ClockTicksPerSecond() = 0;
-	virtual cpuid_t			GetProcessorId() = 0;
-	virtual const char* 	GetProcessorString() = 0;
+	// for accurate performance testing
+	virtual double			GetClockTicks() const = 0;
+	virtual double			ClockTicksPerSecond() const = 0;
+	// returns a selection of the CPUID_* flags
+	virtual cpuid_t			GetProcessorId() const = 0;
+	virtual const char* 	GetProcessorString() const = 0;
+
+	// allow game to yield CPU time
+	// NOTE: due to SYS_MINSLEEP this is very bad portability karma, and should be completely removed
+	virtual void			Sleep( int msec ) const = 0;
 
 	// empties the FPU stack
 	virtual void			FPU_ClearStack() = 0;
@@ -816,8 +782,15 @@ public:
 	// enables the given FPU exceptions
 	virtual void			FPU_EnableExceptions( int exceptions ) = 0;
 	
-	virtual bool			LockMemory( void* ptr, int bytes ) = 0;
-	virtual bool			UnlockMemory( void* ptr, int bytes ) = 0;
+	// lock and unlock memory
+	virtual bool			LockMemory( void* ptr, int bytes ) const = 0;
+	virtual bool			UnlockMemory( void* ptr, int bytes ) const = 0;
+
+	// set amount of physical work memory
+	virtual void			SetPhysicalWorkMemory( int minBytes, int maxBytes ) const = 0;
+	// returns memory stats
+	virtual void			GetCurrentMemoryStatus( sysMemoryStats_t& ) const = 0;
+	virtual void			GetExeLaunchMemoryStatus( sysMemoryStats_t& ) const = 0;
 	
 	// DLL loading, the path should be a fully qualified OS path to the DLL file to be loaded.
 	virtual intptr_t		DLL_Load( const char* dllName ) = 0;
@@ -830,7 +803,7 @@ public:
 	virtual idSysEvent		GenerateMouseButtonEvent( int button, bool down ) = 0;
 	virtual idSysEvent		GenerateMouseMoveEvent( int deltax, int deltay ) = 0;
 	virtual idSysEvent		GetEvent() = 0;
-	virtual void			QueEvent( sysEventType_t type, int value, int value2, int ptrLength = 0, void *ptr = nullptr, int inputDeviceNum = 0 ) = 0;
+	virtual void			QueEvent( sysEventType_t, int value, int value2, int ptrLength = 0, void *ptr = nullptr, int inputDeviceNum = 0 ) = 0;
 	virtual void			ClearEvents() = 0;
 	
 	virtual void			OpenURL( const char* url, bool quit ) = 0;
@@ -839,9 +812,14 @@ public:
 	// note that this isn't journaled...
 	virtual char * 			GetClipboardData() = 0;
 	virtual void			SetClipboardData( const char * string ) = 0;
+
+	// returns amount of drive space in path in megabytes
+	virtual size_t			GetDriveFreeSpace( const char* path ) const = 0;
+	// returns amount of drive space in path in bytes
+	virtual size_t			GetDriveFreeSpaceInBytes( const char* path ) const = 0;
 };
 
-extern idSys* 				sys;
+extern idSys * 				sys;
 
 bool Sys_LoadOpenAL();
 void Sys_FreeOpenAL();

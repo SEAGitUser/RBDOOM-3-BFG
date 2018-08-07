@@ -1953,19 +1953,17 @@ int idFileSystemLocal::ReadFile( const char* relativePath, void** buffer, ID_TIM
 
 	// if this is a .cfg file and we are playing back a journal, read
 	// it from the journal file
-	if( strstr( relativePath, ".cfg" ) == relativePath + strlen( relativePath ) - 4 )
+	if( strstr( relativePath, ".cfg" ) == relativePath + idStr::Length( relativePath ) - 4 )
 	{
 		isConfig = true;
 		if( eventLoop && eventLoop->JournalLevel() == 2 )
 		{
-			int		r;
-
 			loadCount++;
 			loadStack++;
 
 			common->DPrintf( "Loading %s from journal file.\n", relativePath );
 			len = 0;
-			r = eventLoop->com_journalDataFile->Read( &len, sizeof( len ) );
+			int r = eventLoop->com_journalDataFile->Read( &len, sizeof( len ) );
 			if( r != sizeof( len ) )
 			{
 				*buffer = NULL;

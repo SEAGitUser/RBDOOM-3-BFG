@@ -107,6 +107,7 @@ void idFieldWindow::Draw( int time, float x, float y )
 	{
 		cursorPos = len;
 	}
+
 	dc->DrawText( &text[paintOffset], scale, 0, foreColor, rect, false, ( ( flags & WIN_FOCUS ) || showCursor ) ? cursorPos - paintOffset : -1 );
 }
 

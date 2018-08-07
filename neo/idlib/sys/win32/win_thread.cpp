@@ -65,16 +65,15 @@ static void Sys_SetThreadName( DWORD threadID, const char* name )
 #ifdef _MSC_VER
 	// this ugly mess is the official way to set a thread name on windows..
 	// see http://msdn.microsoft.com/en-us/library/xcb2z8hs.aspx
-	
-	
+
+
 	THREADNAME_INFO info;
 	info.dwType = 0x1000;
 	info.szName = name;
 	info.dwThreadID = threadID;
 	info.dwFlags = 0;
-	
-	__try
-	{
+
+	__try {
 		RaiseException( MS_VC_EXCEPTION, 0, sizeof( info ) / sizeof( DWORD ), ( const ULONG_PTR* )&info );
 	}
 	// this much is just to keep /analyze quiet
@@ -109,7 +108,7 @@ uintptr_t Sys_CreateThread( xthread_t function, void* parms, xthreadPriority pri
 	// On the other hand, if this flag is not set and the "Stack Reserve Size" is set to 16 MB in the
 	// project settings, then we would still be reserving 50 x 16 = 800 MB of virtual address space.
 	flags |= STACK_SIZE_PARAM_IS_A_RESERVATION;
-	
+
 	DWORD threadId;
 	HANDLE handle = CreateThread(	NULL,	// LPSECURITY_ATTRIBUTES lpsa, //-V513
 									stackSize,
@@ -140,9 +139,9 @@ uintptr_t Sys_CreateThread( xthread_t function, void* parms, xthreadPriority pri
 	{
 		SetThreadPriority( ( HANDLE )handle, THREAD_PRIORITY_LOWEST );
 	}
-	
+
 	// Under Windows, we don't set the thread affinity and let the OS deal with scheduling
-	
+
 	return ( uintptr_t )handle;
 }
 

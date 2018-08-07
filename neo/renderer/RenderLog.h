@@ -43,6 +43,7 @@ enum renderLogMainBlock_t
 	MRB_NONE,
 	MRB_BEGIN_DRAWING_VIEW,
 	MRB_FILL_DEPTH_BUFFER,
+	MRB_FILL_GBUFFER,
 	MRB_AMBIENT_PASS,
 	MRB_DRAW_INTERACTIONS,
 	MRB_DRAW_SHADER_PASSES,
@@ -73,7 +74,7 @@ enum renderLogMainBlock_t
 	 MRB_PPU_GPU_SYNC,
 	 MRB_SORT_DEPTH,
 	 MRB_SORT_SURFACES,
-	 MRB_CAPTURE_VIEW_DEPTH, 
+	 MRB_CAPTURE_VIEW_DEPTH,
 	 MRB_CAPTURE_VIEW_NORMAL,
 	 MRB_CAPTURE_VIEW_FEEDBACK,
 	 MRB_CAPTURE_VIEW_COLOR,
@@ -90,9 +91,9 @@ enum renderLogMainBlock_t
 	 MRB_RENDER_DIM_SHADOWS,
 	 MRB_RENDER_LIGHTS,
 	 MRB_RENDER_FOG,
-	 MRB_RENDER_BACKGROUND_SURFACES, 
+	 MRB_RENDER_BACKGROUND_SURFACES,
 	 MRB_RENDER_BACKGROUND_EMIT_SURFACES,
-	 MRB_RENDER_EMISSIVE_SURFACES, 
+	 MRB_RENDER_EMISSIVE_SURFACES,
 	 MRB_RENDER_EMMISIVE_ONLY_SURFACES,
 	 MRB_RENDER_BLENDED_SURFACES,
 	 MRB_RENDER_SORTED_SURFACES,
@@ -111,7 +112,7 @@ enum renderLogMainBlock_t
 	 MRB_BINK_NEXT_FRAME,
 	 MRB_RENDER_PREZ,
 	 MRB_TOTAL,
-	 MRB_MAX	
+	 MRB_MAX
 */
 };
 
@@ -136,12 +137,12 @@ class idRenderLog
 {
 public:
 	idRenderLog();
-	
+
 	void		StartFrame();
 	void		EndFrame();
 	void		Close();
 	int			Active() { return activeLevel; }    // returns greater than 1 for more detailed logging
-	
+
 	// The label must be a constant string literal and may not point to a temporary.
 	void		OpenMainBlock( renderLogMainBlock_t block );
 	void		CloseMainBlock();
@@ -151,14 +152,14 @@ public:
 
 	void		OpenBlock( const char* label );
 	void		CloseBlock();
-	
+
 	void		Indent( renderLogIndentLabel_t label = RENDER_LOG_INDENT_DEFAULT );
 	void		Outdent( renderLogIndentLabel_t label = RENDER_LOG_INDENT_DEFAULT );
-	
+
 	void		Printf( VERIFY_FORMAT_STRING const char* fmt, ... );
-	
+
 	static const int		MAX_LOG_LEVELS = 20;
-	
+
 	int						activeLevel;
 	renderLogIndentLabel_t	indentLabel[MAX_LOG_LEVELS];
 	char					indentString[MAX_LOG_LEVELS * 4];
@@ -167,29 +168,19 @@ public:
 	renderLogMainBlock_t	lastMainBlock;
 	idFile*					logFile;
 
-	struct logStats_t
-	{
+	struct logStats_t {
 		uint64	startTiming;
 		int		startDraws;
 		int		startIndexes;
 	};
-	
+
 	uint64					frameStartTime;
 	uint64					closeBlockTime;
 	logStats_t				logStats[MAX_LOG_LEVELS];
 	int						logLevel;
-	
+
 	void					LogOpenBlock( renderLogIndentLabel_t label, const char * fmt, va_list args );
 	void					LogCloseBlock( renderLogIndentLabel_t label );
-};
-
-class idScopedRenderLogIndent {
-	~idScopedRenderLogIndent();
-	renderLogIndentLabel_t label;
-};
-
-class idScopedRenderLogRecorderEvent {
-
 };
 
 /*
@@ -240,7 +231,7 @@ class idRenderLog
 {
 public:
 	idRenderLog() {}
-	
+
 	void		StartFrame() {}
 	void		EndFrame() {}
 	void		Close() {}
@@ -248,22 +239,57 @@ public:
 	{
 		return 0;
 	}
-	
+
 	void		OpenBlock( const char* label );
 	void		CloseBlock();
 	void		OpenMainBlock( renderLogMainBlock_t block ) {}
 	void		CloseMainBlock() {}
 	void		Indent( renderLogIndentLabel_t label = RENDER_LOG_INDENT_DEFAULT ) {}
 	void		Outdent( renderLogIndentLabel_t label = RENDER_LOG_INDENT_DEFAULT ) {}
-	
+
 	void		Printf( VERIFY_FORMAT_STRING const char* fmt, ... ) {}
-	
+
 	int			activeLevel;
 };
 
 #endif	// !STUB_RENDER_LOG
 
 extern idRenderLog renderLog;
+
+class idScopedRenderLogBlock {
+public:
+	idScopedRenderLogBlock( const char * label )
+	{
+		renderLog.OpenBlock( label );
+	}
+	~idScopedRenderLogBlock()
+	{
+		renderLog.CloseBlock();
+	}
+};
+
+class idScopedRenderLogIndent {
+public:
+	idScopedRenderLogIndent()
+	{
+		renderLog.Indent( RENDER_LOG_INDENT_DEFAULT );
+		this->label = RENDER_LOG_INDENT_DEFAULT;
+	}
+	explicit idScopedRenderLogIndent( renderLogIndentLabel_t label )
+	{
+		renderLog.Indent( label );
+		this->label = label;
+	}
+	~idScopedRenderLogIndent()
+	{
+		renderLog.Outdent( label );
+	}
+	renderLogIndentLabel_t label;
+};
+
+class idScopedRenderLogRecorderEvent {
+
+};
 
 //SEA: save some performance in retails
 #if defined( STUB_RENDER_LOG )
@@ -281,6 +307,8 @@ extern idRenderLog renderLog;
 	#define RENDERLOG_INDENT()
 	#define RENDERLOG_OUTDENT()
 #else
+#define RENDERLOG_SCOPED_BLOCK( Text ) idScopedRenderLogBlock logBlock( Text )
+
 	#define RENDERLOG_START_FRAME() renderLog.StartFrame()
 	#define RENDERLOG_END_FRAME() renderLog.EndFrame()
 

@@ -193,7 +193,7 @@ public:
 	// Returns true if the source file changed since it was loaded and parsed.
 	bool					SourceFileChanged() const { return base->SourceFileChanged(); }
 
-	ID_TIME_T				GetSourceTimestamp() const { return base->GetSourceTimestamp(); }
+	auto					GetSourceTimestamp() const { return base->GetSourceTimestamp(); }
 	
 	// Frees data and makes the decl a default.
 	void					MakeDefault() { base->MakeDefault(); }
@@ -274,6 +274,8 @@ public:
 	virtual void			Init2() = 0;
 	virtual void			Shutdown() = 0;
 	virtual void			Reload( bool force ) = 0;
+
+	virtual void			ReloadType( declType_t type, bool force ) = 0;
 	
 	virtual void			BeginLevelLoad() = 0;
 	virtual void			EndLevelLoad() = 0;

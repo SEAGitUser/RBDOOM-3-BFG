@@ -17,6 +17,7 @@ public:
 	explicit		idColor( const idVec4& rhs );
 
 	void 			Set( const float r, const float g, const float b, const float a );
+	ID_INLINE void 	Fill( const float value ) { Set( value, value, value, value ); }
 	void			Zero();
 
 	void			Normalize( float scaleFactor = 1.0f );

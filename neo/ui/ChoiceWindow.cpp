@@ -437,7 +437,7 @@ void idChoiceWindow::PostParse()
 
 void idChoiceWindow::Draw( int time, float x, float y )
 {
-	idVec4 color = foreColor;
+	idColor color = foreColor;
 	
 	UpdateChoicesAndVals();
 	UpdateChoice();
@@ -454,20 +454,19 @@ void idChoiceWindow::Draw( int time, float x, float y )
 		shadowRect.x += textShadow;
 		shadowRect.y += textShadow;
 		
-		dc->DrawText( shadowText, textScale, textAlign, colorBlack, shadowRect, false, -1 );
+		dc->DrawText( shadowText, textScale, textAlign, idColor::black, shadowRect, false, -1 );
 	}
 	
 	if( hover && !noEvents && Contains( gui->CursorX(), gui->CursorY() ) )
 	{
-		color = hoverColor;
+		color = hoverColor.ToVec4();
 	}
-	else
-	{
+	else {
 		hover = false;
 	}
 	if( flags & WIN_FOCUS )
 	{
-		color = hoverColor;
+		color = hoverColor.ToVec4();
 	}
 	
 	dc->DrawText( choices[currentChoice], textScale, textAlign, color, textRect, false, -1 );

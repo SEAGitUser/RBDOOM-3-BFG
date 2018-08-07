@@ -112,7 +112,7 @@ void idBindWindow::PostParse()
 
 void idBindWindow::Draw( int time, float x, float y )
 {
-	idVec4 color = foreColor;
+	idColor color = foreColor;
 	
 	idStr str;
 	if( waitingOnKey )
@@ -123,17 +123,15 @@ void idBindWindow::Draw( int time, float x, float y )
 	{
 		str = bindName.c_str();
 	}
-	else
-	{
+	else {
 		str = idLocalization::GetString( "#str_07001" );
 	}
 	
 	if( waitingOnKey || ( hover && !noEvents && Contains( gui->CursorX(), gui->CursorY() ) ) )
 	{
-		color = hoverColor;
+		color = hoverColor.ToVec4();
 	}
-	else
-	{
+	else {
 		hover = false;
 	}
 	

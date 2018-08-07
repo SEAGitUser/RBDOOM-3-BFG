@@ -31,19 +31,22 @@ If you have questions concerning this license or the applicable additional terms
 
 static const int MAX_SHADOWMAP_RESOLUTIONS = 5;
 static const int MAX_BLOOM_BUFFERS = 2;
+static const int MAX_BLOOM_BUFFER_MIPS = 6;  // native resolution + 5 MIP LEVELS
 static const int MAX_SSAO_BUFFERS = 2;
 static const int MAX_HIERARCHICAL_ZBUFFERS = 6; // native resolution + 5 MIP LEVELS
 
 #if 1
-static	int shadowMapResolutions[MAX_SHADOWMAP_RESOLUTIONS] = { 2048, 1024, 512, 256, 128 };
+static	int shadowMapResolutions[ MAX_SHADOWMAP_RESOLUTIONS ] = { 2048, 1024, 512, 256, 128 };
 #else
-static	int shadowMapResolutions[MAX_SHADOWMAP_RESOLUTIONS] = { 1024, 1024, 1024, 1024, 1024 };
+static	int shadowMapResolutions[ MAX_SHADOWMAP_RESOLUTIONS ] = { 1024, 1024, 1024, 1024, 1024 };
 #endif
 
 /*
 =============================================
 
 	idRenderDestination
+
+	Does not support stencil only render targets
 
 =============================================
 */
@@ -80,7 +83,7 @@ public:
 		friend class idRenderDestination;
 		struct target_t {
 			idImage *	image = nullptr;
-			uint16		layer	= 0;
+			uint16		layer = 0;
 			uint16		mipLevel = 0;
 			uint16		prevWidth = 0;
 			uint16		prevHeight = 0;
@@ -106,22 +109,32 @@ public:
 	~idRenderDestination();
 
 	/// Create( const idStr & name, int width, int height, renderClass_t texClass, const idImageOpts & opts );
-	void CreateFromImages( const targetList_t *, idImage* depth = nullptr, idImage* stencil = nullptr );
 
-	// change existing target ( not normal operation, openGL specific )
-	void SetTargetOGL( idImage * target, int iTarget = 0, int layer = 0, int level = 0 ); //SEA: temp
-	
+	//Note: For 3D/2DArray/Cube/CubeArray only layered rendering configuration for now.
+	void CreateFromImages( const targetList_t *, idImage * depthStencil = nullptr, int depthStencilLod = 0 );
+
+	// Change existing depth or depth_stencil target ( opengl specific ). To remove!
+	void SetDepthStencilGL( idImage * target, int layer = 0, int level = 0 );
+
 	///void Resize( int width, int height ); // for implicit only
 	///void ResolveTarget();
 
 	ID_INLINE void		SetDefault() { isDefault = true; }
 	ID_INLINE bool		IsDefault() const { return isDefault; };
+
+	// This is the biggest color target width if present, or depthstencil width.
 	ID_INLINE int		GetTargetWidth() const { return targetWidth; };
+	ID_INLINE float		GetTargetInvWidth() const { return( 1.0f / targetWidth ); };
+	// This is the biggest color target height if present, or depthstencil height.
 	ID_INLINE int		GetTargetHeight() const { return targetHeight; };
+	ID_INLINE float		GetTargetInvHeight() const { return( 1.0f / targetHeight ); };
+	// Vec4( w, h, 1/w, 1/h )
+	ID_INLINE idVec4	GetSizes() const { return idVec4( targetWidth, targetHeight, 1.0 / targetWidth, 1.0 / targetHeight ); }
+
 	ID_INLINE idImage *	GetColorImage() const { return targetList.list[ 0 ].image; };
 	ID_INLINE idImage *	GetTargetImage( int iTarget ) const { return targetList.list[ iTarget ].image; };
 	ID_INLINE int		GetTargetCount() const { return targetList.Count(); }
-	ID_INLINE idImage *	GetDepthImage() const { return depthImage; };
+	ID_INLINE idImage *	GetDepthStencilImage() const { return depthStencilImage; };
 
 	ID_INLINE const char * GetName() const { return name.c_str(); }
 	ID_INLINE bool		IsValid() const { return( apiObject != nullptr ); }
@@ -137,25 +150,67 @@ private:
 
 	void				Clear();
 
-	int					targetWidth;	// not wery useful for multitargets
-	int					targetHeight;	// not wery useful for multitargets
+	int					targetWidth;
+	int					targetHeight;
 	targetList_t		targetList;
-	idImage * 			depthImage;
-	idImage * 			stencilImage;
-	int					boundSide;
-	int					boundLevel;
+	idImage * 			depthStencilImage;
+	int					depthStencilLod;
 	bool				isDefault;
 	bool				isExplicit;
-
-	/*
-	The initial value is GL_FRONT for single-buffered contexts, and GL_BACK for double-buffered contexts.
-	*/
 };
 
 /*
 =============================================
 
 	idRenderDestinationManager
+
+	_shadowAtlas_d
+	_shadowAtlas_vsm
+	_ambient_atlas
+	_ambient_sh_coef
+	_particlesLightAtlas
+	_viewDepth
+	_gui
+	_guiDepth
+	_viewColor%d
+	_distortion%d
+	_viewColorR11G11B10F%d
+	_velocityDepth
+	_velocityTileMax
+	_accumulationBuffer%d
+	_accumulationBufferOpaque
+	_ssr
+	_viewColorR8
+	_viewColorScaled%d%d
+	_autoExposure%d
+	_autoExposureLum%d
+	_viewDepthScaledR16F_0
+	_viewDepthScaledR16F_1
+	_AO
+	_AmbOcclAccBuffer0
+	_AmbOcclAccBuffer1
+	_dofLayer01
+	_dofAccBuffer0
+	_dofAccBuffer1
+	_dofLayer00
+	_transparencyAccumulationBufferHalf
+	_transparencyDepth
+	_augmentDepth
+	_augmentLayer%d
+	_augment
+	_envProbeArray
+
+	_frontColor
+	_specularBuffer
+	_motionVector
+	_frontNormal
+
+
+	gpuParticleRender.
+	gpuParticleSimulate.
+	guiRender.
+
+	r_renderThreadStackSizeKB( "r_renderThreadStackSizeKB", "4194304", , "" )
 
 =============================================
 */
@@ -170,34 +225,83 @@ public:
 	idRenderDestination *			CreateRenderDestination( const char* name );
 	void							DestroyRenderDestination( idRenderDestination * );
 
-	static void						ListRenderDestinations_f( const idCmdArgs& args );
+	idRenderDestination *			FinedByName( const char * name ) const;
+	idImage *						FinedRenderTargetImageByName( const char * name ) const;
+
+	static void						ListRenderDestinations_f( const idCmdArgs& );
 
 public:
 
-	idRenderDestination *			renderDestRenderToTexture;	// to replace copytex
-	idRenderDestination *			renderDestDepthStencil;
-	idRenderDestination *			renderDestCopyCurrentRender;
-	idRenderDestination *			renderDestShadowOnePass;	// Depth24 x6_2DArray
-	idRenderDestination *			renderDestShadow;	// Depth24 x6_2DArray
-	idRenderDestination *			renderDestBaseHDR;	// HDRColor, DepthStencil
-	//idRenderDestination *			renderDestBaseHDRQuarter;
-	idRenderDestination *			renderDestBaseHDRsml64;
-	idRenderDestination *			renderDestGBufferSml;	// ambien pass + global normals
-	idRenderDestination *			renderDestBloomRender[ MAX_BLOOM_BUFFERS ];
-	idRenderDestination *			renderDestAmbientOcclusion[ MAX_SSAO_BUFFERS ];
-	idRenderDestination *			renderDestCSDepth[ MAX_HIERARCHICAL_ZBUFFERS ];
-	//idRenderDestination *			renderDestGeometryBuffer;
-	idRenderDestination *			renderDestSMAAEdges;
-	idRenderDestination *			renderDestSMAABlend;
+	idImage *						viewColorHDRImage = nullptr;		// RGBA16F
+	idImage *						viewColorLDRImage = nullptr;		// RGBA8
+	idImage *						viewDepthStencilImage = nullptr;	// D24_S8
+	idRenderDestination *			renderDestBaseHDR = nullptr;		// HDRColor + DepthStencil
+	idRenderDestination *			renderDestBaseLDR = nullptr;		// LDRColor + DepthStencil
 
+	idImage *						shadowBufferImage[ MAX_SHADOWMAP_RESOLUTIONS ] = { nullptr };
+	idRenderDestination *			renderDestShadowOnePass[ MAX_SHADOWMAP_RESOLUTIONS ] = { nullptr };	// Depth24 x6_2DArray
+
+	//idImage *						shadowMaskImage = nullptr;
+	//idRenderDestination *			renderDestShadowMask = nullptr;
+
+	//idImage *						viewVelocityImage = nullptr;
+
+	idImage *						viewColorHDRQuarterImage = nullptr;
+	//idRenderDestination *			renderDestBaseHDRQuarter = nullptr;
+	idImage *						viewColorHDRImageSml = nullptr;
+	idImage *						viewColorHDRImageSmlPrev = nullptr;
+	idRenderDestination *			renderDestBaseHDRsml64 = nullptr;
+
+	idImage *						viewColorsImage = nullptr;		// RGBA8 diffuse + specular
+	idImage *						viewNormalImage = nullptr;		// RGB10_A2 global normals
+	idRenderDestination *			renderDestGBuffer = nullptr;	// Colors + GlobalNormals + DepthStencil
+	idRenderDestination *			renderDestGBufferSml = nullptr;	// AmbienColor + GlobalNormals + DepthStencil
+
+	idImage *						hiZbufferImage = nullptr;	// zbuffer with mip maps to accelerate screen space ray tracing
+	idImage *						ambientOcclusionImage[ MAX_SSAO_BUFFERS ] = { nullptr }; // contain AO and bilateral filtering keys
+	idRenderDestination *			renderDestAmbientOcclusion[ MAX_SSAO_BUFFERS ] = { nullptr };
+	idRenderDestination *			renderDestCSDepth[ MAX_HIERARCHICAL_ZBUFFERS ] = { nullptr };
+	//idRenderDestination *			renderDestGeometryBuffer;
+
+	//idImage *						lumaImage = nullptr;
+	//idRenderDestination *			renderDestLuminance = nullptr;
+	//idImage *						autoExposureImage[ 2 ] = { nullptr };
+	//idRenderDestination *			renderDestAutoExposure[ 2 ] = { nullptr };
+
+	idImage *						bloomRenderImage[ MAX_BLOOM_BUFFERS ] = { nullptr };
+	idRenderDestination *			renderDestBloomRender[ MAX_BLOOM_BUFFERS ] = { nullptr };
+	//idImage *						bloomRenderMipsImage = nullptr;
+	idImage *						bloomRenderMipsImage[ MAX_BLOOM_BUFFER_MIPS ] = { nullptr };
+	idRenderDestination *			renderDestBloomMip[ MAX_BLOOM_BUFFER_MIPS ] = { nullptr };
+
+	//idImage *						viewColorLDRImagePrev = nullptr;
+
+	idImage *						smaaEdgesImage = nullptr;
+	idRenderDestination *			renderDestSMAAEdges = nullptr;
+	idImage *						smaaBlendImage = nullptr;
+	idRenderDestination *			renderDestSMAABlend = nullptr;
+
+	idRenderDestination *			renderDestRenderToTexture = nullptr;	// to replace copytex
+	idRenderDestination *			renderDestDepthStencil = nullptr;
+	idRenderDestination *			renderDestCopyCurrentRender = nullptr;
+
+	//idRenderDestination *			renderDestShadow = nullptr;	// Depth24 x6_2DArray
+
+	idRenderDestination *			renderDestStagingColor = nullptr;	// for misc usage
+	idRenderDestination *			renderDestStagingDepth = nullptr;	// for misc usage
 
 private:
+	idStaticList<idImage *, 32> renderTargetImgList;
 	idStaticList<idRenderDestination *, TAG_RENDER>	renderDestList;
+	bool bIsInitialized = false;
 
+	idImage * CreateRenderTargetImage( const char * Name,
+									   textureType_t Type, int Width, int Height, int Layers, int Levels, int Samples,
+									   textureFormat_t Format, textureFilter_t Filter, textureWrap_t WrapMode, bool CmpMode = false );
 };
 
 extern idRenderDestinationManager renderDestManager;
 
-
+//typedef idAutoPtr<idRenderDestination> idRenderDest;
 
 #endif // __RENDERDESTINATION_H__

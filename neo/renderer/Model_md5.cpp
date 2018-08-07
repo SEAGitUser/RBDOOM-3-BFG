@@ -1149,18 +1149,18 @@ void idRenderModelMD5::DrawJoints( const renderEntityParms_t* ent, const idRende
 		if( md5Joint->parent )
 		{
 			parentNum = md5Joint->parent - joints.Ptr();
-			common->RW()->DebugLine( colorWhite, ent->origin + ent->joints[ parentNum ].ToVec3() * ent->axis, pos );
+			common->RW()->DebugLine( idColor::white.ToVec4(), ent->origin + ent->joints[ parentNum ].ToVec3() * ent->axis, pos );
 		}
 		
-		common->RW()->DebugLine( colorRed,	pos, pos + joint->ToMat3()[ 0 ] * 2.0f * ent->axis );
-		common->RW()->DebugLine( colorGreen, pos, pos + joint->ToMat3()[ 1 ] * 2.0f * ent->axis );
-		common->RW()->DebugLine( colorBlue,	pos, pos + joint->ToMat3()[ 2 ] * 2.0f * ent->axis );
+		common->RW()->DebugLine( idColor::red.ToVec4(),	pos, pos + joint->ToMat3()[ 0 ] * 2.0f * ent->axis );
+		common->RW()->DebugLine( idColor::green.ToVec4(), pos, pos + joint->ToMat3()[ 1 ] * 2.0f * ent->axis );
+		common->RW()->DebugLine( idColor::blue.ToVec4(),	pos, pos + joint->ToMat3()[ 2 ] * 2.0f * ent->axis );
 	}
 	
 	idBounds bounds;
 	
 	bounds.FromTransformedBounds( ent->bounds, vec3_zero, ent->axis );
-	common->RW()->DebugBounds( colorMagenta, bounds, ent->origin );
+	common->RW()->DebugBounds( idColor::magenta.ToVec4(), bounds, ent->origin );
 	
 	if( ( r_jointNameScale.GetFloat() != 0.0f ) && ( bounds.Expand( 128.0f ).ContainsPoint( view->GetOrigin() - ent->origin ) ) )
 	{
@@ -1171,7 +1171,7 @@ void idRenderModelMD5::DrawJoints( const renderEntityParms_t* ent, const idRende
 		for( i = 0; i < num; i++, joint++ )
 		{
 			pos = ent->origin + joint->ToVec3() * ent->axis;
-			common->RW()->DrawText( joints[ i ].name, pos + offset, scale, colorWhite, view->GetAxis(), 1 );
+			common->RW()->DrawText( joints[ i ].name, pos + offset, scale, idColor::white.ToVec4(), view->GetAxis(), 1 );
 		}
 	}
 }
@@ -1366,7 +1366,7 @@ idRenderModel* idRenderModelMD5::InstantiateDynamicModel( const struct renderEnt
 		// avoid deforming the surface if it will be a nodraw due to a skin remapping
 		const idMaterial* shader = mesh->shader;
 		
-		shader = R_RemapShaderBySkin( shader, ent->customSkin, ent->customShader );
+		shader = R_RemapShaderBySkin( shader, ent->customSkin, ent->customMaterial );
 		
 		if( !shader || ( !shader->IsDrawn() && !shader->SurfaceCastsShadow() ) )
 		{

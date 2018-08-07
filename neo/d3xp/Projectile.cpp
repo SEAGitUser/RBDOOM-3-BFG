@@ -1707,7 +1707,7 @@ void idProjectile::SimulateProjectileFrame( int msec, int endTime )
 	{
 		float delta = ( GetPhysics()->GetOrigin() - oldOrigin ).Length();
 		idLib::Printf( "Simulated projectile %d. Delta: %.2f \n", GetEntityNumber(), delta );
-		//clientGame->renderWorld->DebugLine( idColor::colorYellow, oldOrigin, GetPhysics()->GetOrigin(), 5000 );
+		//clientGame->renderWorld->DebugLine( idColor::idColor::yellow.ToVec4(), oldOrigin, GetPhysics()->GetOrigin(), 5000 );
 	}
 }
 

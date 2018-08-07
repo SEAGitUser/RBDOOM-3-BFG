@@ -37,8 +37,7 @@ If you have questions concerning this license or the applicable additional terms
 ===============================================================================
 */
 
-class idCmdArgs
-{
+class idCmdArgs {
 public:
 	idCmdArgs()
 	{

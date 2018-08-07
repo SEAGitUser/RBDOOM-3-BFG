@@ -2,6 +2,8 @@
 #include "precompiled.h"
 #pragma hdrstop
 
+#include "..\..\OpenGL\gl_header.h"
+
 #include "Render.h"
 
 /*
@@ -34,9 +36,9 @@ void RB_StencilShadowPass( const drawSurf_t* const drawSurfs, const viewLight_t*
 
 	RENDERLOG_OPEN_BLOCK( "RB_StencilShadowPass" );
 
-	renderProgManager.BindShader_Shadow( false );
+	GL_SetRenderProgram( false ? renderProgManager.prog_stencil_shadow_skinned : renderProgManager.prog_stencil_shadow );
 
-	GL_ResetTexturesState();
+	GL_ResetTextureState();
 
 	uint64 glState = 0;
 
@@ -44,11 +46,11 @@ void RB_StencilShadowPass( const drawSurf_t* const drawSurfs, const viewLight_t*
 	if( r_showShadows.GetInteger() )
 	{
 		// set the debug shadow color
-		renderProgManager.SetRenderParm( RENDERPARM_COLOR, colorMagenta.ToFloatPtr() );
+		renderProgManager.SetRenderParm( RENDERPARM_COLOR, idColor::magenta.ToFloatPtr() );
 		if( r_showShadows.GetInteger() == 2 )
 		{
 			// draw filled in
-			glState = GLS_DEPTHMASK | GLS_SRCBLEND_ONE | GLS_DSTBLEND_ONE | GLS_DEPTHFUNC_LESS;
+			glState = GLS_DEPTHMASK | GLS_SRCBLEND_ONE | GLS_DSTBLEND_ONE | GLS_DEPTHFUNC_LEQUAL;
 		}
 		else {
 			// draw as lines, filling the depth buffer
@@ -57,7 +59,7 @@ void RB_StencilShadowPass( const drawSurf_t* const drawSurfs, const viewLight_t*
 	}
 	else {
 		// don't write to the color or depth buffer, just the stencil buffer
-		glState = GLS_DEPTHMASK | GLS_COLORMASK | GLS_ALPHAMASK | GLS_DEPTHFUNC_LESS;
+		glState = GLS_DEPTHMASK | GLS_COLORMASK | GLS_ALPHAMASK | GLS_DEPTHFUNC_LEQUAL;
 	}
 
 	GL_PolygonOffset( r_shadowPolygonFactor.GetFloat(), -r_shadowPolygonOffset.GetFloat() );
@@ -66,10 +68,11 @@ void RB_StencilShadowPass( const drawSurf_t* const drawSurfs, const viewLight_t*
 	// disabled here, and that the value will get reset for the interactions without looking
 	// like a no-change-required
 	GL_State( glState | GLS_STENCIL_OP_FAIL_KEEP | GLS_STENCIL_OP_ZFAIL_KEEP | GLS_STENCIL_OP_PASS_INCR |
-		GLS_STENCIL_MAKE_REF( STENCIL_SHADOW_TEST_VALUE ) | GLS_STENCIL_MAKE_MASK( STENCIL_SHADOW_MASK_VALUE ) | GLS_POLYGON_OFFSET );
-
+		GLS_STENCIL_MAKE_REF( STENCIL_SHADOW_TEST_VALUE ) | GLS_STENCIL_MAKE_MASK( STENCIL_SHADOW_MASK_VALUE ) | GLS_POLYGON_OFFSET |
+		GLS_TWOSIDED
+	);
 	// Two Sided Stencil reduces two draw calls to one for slightly faster shadows
-	GL_Cull( CT_TWO_SIDED );
+	//GL_Cull( CT_TWO_SIDED );
 
 
 	// process the chain of shadows with the current rendering state
@@ -106,23 +109,23 @@ void RB_StencilShadowPass( const drawSurf_t* const drawSurfs, const viewLight_t*
 
 		if( drawSurf->space != backEnd.currentSpace )
 		{
+			backEnd.currentSpace = drawSurf->space;
+
 			// change the matrix
-			RB_SetMVP( drawSurf->space->mvp );
+			renderProgManager.SetMVPMatrixParms( drawSurf->space->mvp );
 
 			// set the local light position to allow the vertex program to project the shadow volume end cap to infinity
 			idRenderVector localLight( 0.0f );
 			drawSurf->space->modelMatrix.InverseTransformPoint( vLight->globalLightOrigin, localLight.ToVec3() );
 			renderProgManager.SetRenderParm( RENDERPARM_LOCALLIGHTORIGIN, localLight.ToFloatPtr() );
-
-			backEnd.currentSpace = drawSurf->space;
 		}
 
 		if( r_showShadows.GetInteger() == 0 )
 		{
-			renderProgManager.BindShader_Shadow( drawSurf->jointCache );
+			GL_SetRenderProgram( drawSurf->HasSkinning() ? renderProgManager.prog_stencil_shadow_skinned : renderProgManager.prog_stencil_shadow );
 		}
 		else {
-			renderProgManager.BindShader_ShadowDebug( drawSurf->jointCache );
+			GL_SetRenderProgram( drawSurf->HasSkinning() ? renderProgManager.prog_stencil_shadowDebug_skinned : renderProgManager.prog_stencil_shadowDebug );
 		}
 
 		// set depth bounds per shadow
@@ -172,23 +175,23 @@ void RB_StencilShadowPass( const drawSurf_t* const drawSurfs, const viewLight_t*
 		idVertexBuffer vertexBuffer;
 		vertexCache.GetVertexBuffer( drawSurf->shadowCache, vertexBuffer );
 		const GLint vertOffset = vertexBuffer.GetOffset();
-		const GLuint vbo = reinterpret_cast<GLuint>( vertexBuffer.GetAPIObject() );
+		const GLuint vbo = GetGLObject( vertexBuffer.GetAPIObject() );
 
 		// get index buffer --------------------------------------------------------
 
 		idIndexBuffer indexBuffer;
 		vertexCache.GetIndexBuffer( drawSurf->indexCache, indexBuffer );
 		const GLintptr indexOffset = indexBuffer.GetOffset();
-		const GLuint ibo = reinterpret_cast<GLuint>( indexBuffer.GetAPIObject() );
+		const GLuint ibo = GetGLObject( indexBuffer.GetAPIObject() );
 
 		// -------------------------------------------------------------------------
 
 		const GLsizei indexCount = r_singleTriangle.GetBool() ? 3 : drawSurf->numIndexes;
-		const vertexLayoutType_t vertexLayout = drawSurf->jointCache ? LAYOUT_DRAW_SHADOW_VERT_SKINNED : LAYOUT_DRAW_SHADOW_VERT;
-		const GLsizei vertexSize = drawSurf->jointCache ? sizeof( idShadowVertSkinned ) : sizeof( idShadowVert );
+		const vertexLayoutType_t vertexLayout = drawSurf->HasSkinning() ? LAYOUT_DRAW_SHADOW_VERT_SKINNED : LAYOUT_DRAW_SHADOW_VERT;
+		const GLsizei vertexSize = drawSurf->HasSkinning() ? sizeof( idShadowVertSkinned ) : sizeof( idShadowVert );
 		const GLint baseVertexOffset = vertOffset / vertexSize;
 
-		if( drawSurf->jointCache )
+		if( drawSurf->HasSkinning() )
 		{
 			assert( renderProgManager.ShaderUsesJoints() );
 
@@ -200,24 +203,24 @@ void RB_StencilShadowPass( const drawSurf_t* const drawSurfs, const viewLight_t*
 			}
 			assert( ( jointBuffer.GetOffset() & ( glConfig.uniformBufferOffsetAlignment - 1 ) ) == 0 );
 
-			const GLintptr ubo = reinterpret_cast< GLintptr >( jointBuffer.GetAPIObject() );
+			const GLuint ubo = GetGLObject( jointBuffer.GetAPIObject() );
 			glBindBufferRange( GL_UNIFORM_BUFFER, BINDING_MATRICES_UBO, ubo, jointBuffer.GetOffset(), jointBuffer.GetNumJoints() * sizeof( idJointMat ) );
 		}
 
-		renderProgManager.GetCurrentRenderProgram()->CommitUniforms();
+		GL_CommitProgUniforms( GL_GetCurrentRenderProgram() );
 
 		// RB: 64 bit fixes, changed GLuint to GLintptr
-		if( backEnd.glState.currentIndexBuffer != ( GLintptr )ibo || !r_useStateCaching.GetBool() )
+		if( backEnd.glState.currentIndexBuffer != ( GLintptr )ibo )
 		{
 			glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, ibo );
 			backEnd.glState.currentIndexBuffer = ( GLintptr )ibo;
 		}
 
-		if( ( backEnd.glState.vertexLayout != vertexLayout ) || ( backEnd.glState.currentVertexBuffer != ( GLintptr )vbo ) || !r_useStateCaching.GetBool() )
+		if( ( backEnd.glState.vertexLayout != vertexLayout ) || ( backEnd.glState.currentVertexBuffer != ( GLintptr )vbo ) )
 		{
 			backEnd.glState.currentVertexBuffer = ( GLintptr )vbo;
 
-			if( glConfig.ARB_vertex_attrib_binding && r_useVertexAttribFormat.GetBool() ) 
+			if( 0 )//glConfig.ARB_vertex_attrib_binding && r_useVertexAttribFormat.GetBool() )
 			{
 				const GLintptr baseOffset = 0;
 				const GLuint bindingIndex = 0;
@@ -255,7 +258,7 @@ void RB_StencilShadowPass( const drawSurf_t* const drawSurfs, const viewLight_t*
 
 	// cleanup the shadow specific rendering state
 
-	GL_Cull( CT_FRONT_SIDED );
+	//GL_Cull( CT_FRONT_SIDED );
 
 	// reset depth bounds
 	if( r_useShadowDepthBounds.GetBool() )
@@ -291,31 +294,32 @@ void RB_StencilSelectLight( const viewLight_t* const vLight )
 	// clear stencil buffer to 0 (not drawable)
 	uint64 glStateMinusStencil = GL_GetCurrentStateMinusStencil();
 	GL_State( glStateMinusStencil | GLS_STENCIL_FUNC_ALWAYS | GLS_STENCIL_MAKE_REF( STENCIL_SHADOW_TEST_VALUE ) | GLS_STENCIL_MAKE_MASK( STENCIL_SHADOW_MASK_VALUE ) );	// make sure stencil mask passes for the clear
-	GL_Clear( false, false, true, 0, 0.0f, 0.0f, 0.0f, 0.0f, false );	// clear to 0 for stencil select
+	GL_Clear( false, false, true, 0, 0.0f, 0.0f, 0.0f, 0.0f );	// clear to 0 for stencil select
 
 	GL_DepthBoundsTest( vLight->scissorRect.zmin, vLight->scissorRect.zmax );
 
-	GL_State( GLS_COLORMASK | GLS_ALPHAMASK | GLS_DEPTHMASK | GLS_DEPTHFUNC_LESS | GLS_STENCIL_FUNC_ALWAYS | GLS_STENCIL_MAKE_REF( STENCIL_SHADOW_TEST_VALUE ) | GLS_STENCIL_MAKE_MASK( STENCIL_SHADOW_MASK_VALUE ) );
-	GL_Cull( CT_TWO_SIDED );
+	GL_State( GLS_COLORMASK | GLS_ALPHAMASK | GLS_DEPTHMASK | GLS_DEPTHFUNC_LEQUAL |
+		GLS_STENCIL_FUNC_ALWAYS | GLS_STENCIL_MAKE_REF( STENCIL_SHADOW_TEST_VALUE ) | GLS_STENCIL_MAKE_MASK( STENCIL_SHADOW_MASK_VALUE ) |
+		GLS_TWOSIDED
+	);
 
-	renderProgManager.BindShader_Depth( false );
+	GL_SetRenderProgram( renderProgManager.prog_depth );
 
 	// set the matrix for deforming the 'zeroOneCubeModel' into the frustum to exactly cover the light volume
 	idRenderMatrix invProjectMVPMatrix;
 	idRenderMatrix::Multiply( backEnd.viewDef->GetMVPMatrix(), vLight->inverseBaseLightProject, invProjectMVPMatrix );
-	RB_SetMVP( invProjectMVPMatrix );
+	renderProgManager.SetMVPMatrixParms( invProjectMVPMatrix );
 
 	// two-sided stencil test
 	glStencilOpSeparate( GL_FRONT, GL_KEEP, GL_REPLACE, GL_ZERO );
 	glStencilOpSeparate( GL_BACK, GL_KEEP, GL_ZERO, GL_REPLACE );
 
-	GL_DrawIndexed( &backEnd.zeroOneCubeSurface );
+	GL_DrawZeroOneCube();
 
 	// reset stencil state
 
-	GL_Cull( CT_FRONT_SIDED );
-
-	renderProgManager.Unbind();
+	//GL_Cull( CT_FRONT_SIDED );
+	GL_ResetProgramState();
 
 	// unset the depthbounds
 	GL_DepthBoundsTest( 0.0f, 0.0f );

@@ -91,11 +91,11 @@ void idTrigger::DrawDebugInfo()
 				continue;
 			}
 			
-			gameRenderWorld->DebugBounds( colorOrange, ent->GetPhysics()->GetAbsBounds() );
+			gameRenderWorld->DebugBounds( idColor::orange.ToVec4(), ent->GetPhysics()->GetAbsBounds() );
 			if( viewTextBounds.IntersectsBounds( ent->GetPhysics()->GetAbsBounds() ) )
 			{
-				gameRenderWorld->DrawText( ent->name.c_str(), ent->GetPhysics()->GetAbsBounds().GetCenter(), 0.1f, colorWhite, axis, 1 );
-				gameRenderWorld->DrawText( ent->GetEntityDefName(), ent->GetPhysics()->GetAbsBounds().GetCenter() + up, 0.1f, colorWhite, axis, 1 );
+				gameRenderWorld->DrawText( ent->name.c_str(), ent->GetPhysics()->GetAbsBounds().GetCenter(), 0.1f, idColor::white.ToVec4(), axis, 1 );
+				gameRenderWorld->DrawText( ent->GetEntityDefName(), ent->GetPhysics()->GetAbsBounds().GetCenter() + up, 0.1f, idColor::white.ToVec4(), axis, 1 );
 				if( ent->IsType( idTrigger::Type ) )
 				{
 					func = static_cast<idTrigger*>( ent )->GetScriptFunction();
@@ -107,7 +107,7 @@ void idTrigger::DrawDebugInfo()
 				
 				if( func )
 				{
-					gameRenderWorld->DrawText( va( "call script '%s'", func->Name() ), ent->GetPhysics()->GetAbsBounds().GetCenter() - up, 0.1f, colorWhite, axis, 1 );
+					gameRenderWorld->DrawText( va( "call script '%s'", func->Name() ), ent->GetPhysics()->GetAbsBounds().GetCenter() - up, 0.1f, idColor::white.ToVec4(), axis, 1 );
 				}
 			}
 			
@@ -116,11 +116,11 @@ void idTrigger::DrawDebugInfo()
 				target = ent->targets[ i ].GetEntity();
 				if( target )
 				{
-					gameRenderWorld->DebugArrow( colorYellow, ent->GetPhysics()->GetAbsBounds().GetCenter(), target->GetPhysics()->GetOrigin(), 10, 0 );
-					gameRenderWorld->DebugBounds( colorGreen, box, target->GetPhysics()->GetOrigin() );
+					gameRenderWorld->DebugArrow( idColor::yellow.ToVec4(), ent->GetPhysics()->GetAbsBounds().GetCenter(), target->GetPhysics()->GetOrigin(), 10, 0 );
+					gameRenderWorld->DebugBounds( idColor::green.ToVec4(), box, target->GetPhysics()->GetOrigin() );
 					if( viewTextBounds.IntersectsBounds( target->GetPhysics()->GetAbsBounds() ) )
 					{
-						gameRenderWorld->DrawText( target->name.c_str(), target->GetPhysics()->GetAbsBounds().GetCenter(), 0.1f, colorWhite, axis, 1 );
+						gameRenderWorld->DrawText( target->name.c_str(), target->GetPhysics()->GetAbsBounds().GetCenter(), 0.1f, idColor::white.ToVec4(), axis, 1 );
 					}
 				}
 			}

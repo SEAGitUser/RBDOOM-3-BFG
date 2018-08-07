@@ -30,14 +30,52 @@ If you have questions concerning this license or the applicable additional terms
 #pragma hdrstop
 #include "precompiled.h"
 
+#include "gl_header.h"
+
 #include "../tr_local.h"
 
 idCVar r_useVertexAttribFormat( "r_useVertexAttribFormat", "0", CVAR_RENDERER | CVAR_BOOL, "use GL_ARB_vertex_attrib_binding extension" );
 
-static ID_INLINE GLuint GetGLObject( void * apiObject )
+float _minss( float a, float b )
 {
-#pragma warning( suppress: 4311 4302 )
-	return reinterpret_cast<GLuint>( apiObject );
+	// Branchless SSE min.
+	_mm_store_ss( &a, _mm_min_ss( _mm_set_ss( a ), _mm_set_ss( b ) ) );
+	return a;
+}
+float _maxss( float a, float b )
+{
+	// Branchless SSE max.
+	_mm_store_ss( &a, _mm_max_ss( _mm_set_ss( a ), _mm_set_ss( b ) ) );
+	return a;
+}
+float _clamp( float val, float minval, float maxval )
+{
+	// Branchless SSE clamp.
+	// return minss( maxss(val,minval), maxval );
+
+	_mm_store_ss( &val, _mm_min_ss( _mm_max_ss( _mm_set_ss( val ), _mm_set_ss( minval ) ), _mm_set_ss( maxval ) ) );
+	return val;
+}
+
+/*
+====================
+ GL_BeginRenderView
+====================
+*/
+void GL_BeginRenderView( const idRenderView * view )
+{
+	glGetIntegerv( GL_FRONT_FACE, &backEnd.glState.initial_facing );
+	glFrontFace( view->isMirror ? GL_CCW : GL_CW );
+	RENDERLOG_PRINT( "FrontFace( %s )\n", view->isMirror ? "CCW" : "CW" );
+}
+/*
+====================
+ GL_EndRenderView
+====================
+*/
+void GL_EndRenderView()
+{
+	glFrontFace( backEnd.glState.initial_facing );
 }
 
 /*
@@ -49,15 +87,15 @@ void GL_SelectTexture( int unit )
 {
 	if( backEnd.glState.currenttmu == unit )
 		return;
-	
+
 	if( unit < 0 || unit >= glConfig.maxTextureImageUnits )
 	{
 		common->Warning( "GL_SelectTexture: unit = %i", unit );
 		return;
 	}
-	
+
 	RENDERLOG_PRINT( "GL_SelectTexture( %i );\n", unit );
-	
+
 	backEnd.glState.currenttmu = unit;
 }
 /*
@@ -68,24 +106,6 @@ void GL_SelectTexture( int unit )
 int GL_GetCurrentTextureUnit()
 {
 	return backEnd.glState.currenttmu;
-}
-/*
-====================
- GL_ResetTexturesState
-====================
-*/
-void GL_ResetTexturesState()
-{
-	RENDERLOG_OPEN_BLOCK("GL_ResetTexturesState()");
-	/*for( int i = 0; i < MAX_MULTITEXTURE_UNITS - 1; i++ )
-	{
-		GL_SelectTexture( i );
-		renderImageManager->BindNull();
-	}*/
-	renderImageManager->UnbindAll();
-
-	GL_SelectTexture( 0 );
-	RENDERLOG_CLOSE_BLOCK();
 }
 static const GLenum t1 = GL_TEXTURE_2D_MULTISAMPLE_ARRAY;
 static const GLenum t2 = GL_TEXTURE_2D_MULTISAMPLE;
@@ -143,19 +163,16 @@ void GL_BindTexture( int unit, idImage *img )
 			{
 				glBindTexObject( target_2DMSArray, texUnit, GL_TEXTURE_2D_MULTISAMPLE_ARRAY, texnum );
 			}
-			else
-			{
+			else {
 				glBindTexObject( target_2DMS, texUnit, GL_TEXTURE_2D_MULTISAMPLE, texnum );
 			}
 		}
-		else
-		{
+		else {
 			if( img->GetOpts().IsArray() )
 			{
 				glBindTexObject( target_2DArray, texUnit, GL_TEXTURE_2D_ARRAY, texnum );
 			}
-			else
-			{
+			else {
 				glBindTexObject( target_2D, texUnit, GL_TEXTURE_2D, texnum );
 			}
 		}
@@ -166,8 +183,7 @@ void GL_BindTexture( int unit, idImage *img )
 		{
 			glBindTexObject( target_CubeMapArray, texUnit, GL_TEXTURE_CUBE_MAP_ARRAY, texnum );
 		}
-		else
-		{
+		else {
 			glBindTexObject( target_CubeMap, texUnit, GL_TEXTURE_CUBE_MAP, texnum );
 		}
 	}
@@ -175,6 +191,20 @@ void GL_BindTexture( int unit, idImage *img )
 	{
 		glBindTexObject( target_3D, texUnit, GL_TEXTURE_3D, texnum );
 	}
+
+	/*if( GLEW_ARB_direct_state_access )
+	{
+		glBindTextureUnit( texUnit, texnum );
+	}*/
+
+	/*if( GLEW_ARB_multi_bind )
+	{
+		GLuint textures[ MAX_MULTITEXTURE_UNITS ] = { GL_ZERO };
+		glBindTextures( 0, _countof( textures ), textures );
+
+		GLuint samplers[ MAX_MULTITEXTURE_UNITS ] = { GL_ZERO };
+		glBindSamplers( 0, _countof( samplers ), samplers );
+	}*/
 
 #if 0 //SEA: later ;)
 	const struct glTypeInfo_t {
@@ -209,69 +239,21 @@ void GL_BindTexture( int unit, idImage *img )
 }
 /*
 ====================
- GL_BindTexture
+GL_ResetTextureState
 ====================
 */
-void GL_BindTexture( int unit, idImage *img, idTextureSampler *sampler )
+void GL_ResetTextureState()
 {
-	GL_BindTexture( unit, img );
-
-	glBindSampler( unit, sampler->oglSamplerState );
-}
-
-/*
-====================
- GL_ResetProgramState
-====================
-*/
-void GL_ResetProgramState()
-{
-	renderProgManager.Unbind();
-	backEnd.glState.currentProgramObject = GL_NONE;
-}
-
-/*
-====================
- GL_Cull
-
-	This handles the flipping needed when the view being
-	rendered is a mirored view.
-====================
-*/
-void GL_Cull( int cullType )
-{
-	if( backEnd.glState.faceCulling == cullType )
+	RENDERLOG_OPEN_BLOCK( "GL_ResetTextureState()" );
+	/*for( int i = 0; i < MAX_MULTITEXTURE_UNITS - 1; i++ )
 	{
-		return;
-	}
-	
-	if( cullType == CT_TWO_SIDED )
-	{
-		glDisable( GL_CULL_FACE );
+	GL_SelectTexture( i );
+	renderImageManager->BindNull();
+	}*/
+	renderImageManager->UnbindAll();
 
-		RENDERLOG_PRINT( "GL_Cull( Disable )\n" );
-	}
-	else
-	{
-		if( backEnd.glState.faceCulling == CT_TWO_SIDED )
-		{
-			glEnable( GL_CULL_FACE );
-		}
-
-		if( cullType == CT_BACK_SIDED )
-		{
-			glCullFace( backEnd.viewDef->isMirror ? GL_FRONT : GL_BACK );
-
-			RENDERLOG_PRINT( "GL_Cull( %s )\n", backEnd.viewDef->isMirror ? "GL_FRONT" : "GL_BACK" );
-		}
-		else {
-			glCullFace( backEnd.viewDef->isMirror ? GL_BACK : GL_FRONT );
-
-			RENDERLOG_PRINT( "GL_Cull( %s )\n", backEnd.viewDef->isMirror ? "GL_BACK" : "GL_FRONT" );
-		}
-	}
-	
-	backEnd.glState.faceCulling = cullType;
+	GL_SelectTexture( 0 );
+	RENDERLOG_CLOSE_BLOCK();
 }
 
 /*
@@ -285,7 +267,6 @@ void GL_Scissor( int x /* left*/, int y /* bottom */, int w, int h, int scissorI
 
 	RENDERLOG_PRINT( "GL_Scissor( %i, %i, %i, %i )\n", x, y, w, h );
 }
-
 /*
 ====================
 GL_Viewport
@@ -307,12 +288,33 @@ void GL_PolygonOffset( float scale, float bias )
 {
 	backEnd.glState.polyOfsScale = scale;
 	backEnd.glState.polyOfsBias = bias;
+
 	if( backEnd.glState.glStateBits & GLS_POLYGON_OFFSET )
 	{
 		glPolygonOffset( scale, bias );
 
 		RENDERLOG_PRINT( "GL_PolygonOffset( scale %f, bias %f )\n", scale, bias );
 	}
+
+#if 0
+	if( GLEW_ARB_polygon_offset_clamp )
+	{
+		// This extension adds a new parameter to the polygon offset function
+		// that clamps the calculated offset to a minimum or maximum value.
+		// The clamping functionality is useful when polygons are nearly
+		// parallel to the view direction because their high slopes can result
+		// in arbitrarily large polygon offsets.In the particular case of
+		// shadow mapping, the lack of clamping can produce the appearance of
+		// unwanted holes when the shadow casting polygons are offset beyond
+		// the shadow receiving polygons, and this problem can be alleviated by
+		// enforcing a maximum offset value.
+		glPolygonOffsetClamp( float factor, float units, float clamp );
+	}
+	else
+	{
+		GL_PolygonOffset
+	}
+#endif
 }
 
 /*
@@ -323,18 +325,15 @@ GL_DepthBoundsTest
 void GL_DepthBoundsTest( const float zmin, const float zmax )
 {
 	if( !glConfig.depthBoundsTestAvailable || zmin > zmax )
-	{
 		return;
-	}
-	
+
 	if( zmin == 0.0f && zmax == 0.0f )
 	{
 		glDisable( GL_DEPTH_BOUNDS_TEST_EXT );
 
 		RENDERLOG_PRINT( "GL_DepthBoundsTest( Disable )\n" );
 	}
-	else
-	{
+	else {
 		glEnable( GL_DEPTH_BOUNDS_TEST_EXT );
 		glDepthBoundsEXT( zmin, zmax );
 
@@ -350,7 +349,6 @@ GL_StartDepthPass
 void GL_StartDepthPass( const idScreenRect& rect )
 {
 }
-
 /*
 ========================
 GL_FinishDepthPass
@@ -359,7 +357,6 @@ GL_FinishDepthPass
 void GL_FinishDepthPass()
 {
 }
-
 /*
 ========================
 GL_GetDepthPassRect
@@ -370,71 +367,18 @@ void GL_GetDepthPassRect( idScreenRect& rect )
 	rect.Clear();
 }
 
-/*
-====================
-GL_Color
-====================
-*/
-/*
-void GL_Color( float* color )
-{
-	if( color == NULL )
-	{
-		return;
-	}
-	GL_Color( color[0], color[1], color[2], color[3] );
-}
-*/
 
-// RB begin
-void GL_Color( const idVec3& color )
-{
-	GL_Color( color[0], color[1], color[2], 1.0f );
-}
 
-void GL_Color( const idVec4& color )
-{
-	GL_Color( color[0], color[1], color[2], color[3] );
-}
-// RB end
-
-/*
-====================
-GL_Color
-====================
-*/
-void GL_Color( float r, float g, float b )
-{
-	GL_Color( r, g, b, 1.0f );
-}
-
-/*
-====================
-GL_Color
-====================
-*/
-void GL_Color( float r, float g, float b, float a )
-{
-	//ALIGN16( float parm[4] );
-	//parm[0] = idMath::ClampFloat( 0.0f, 1.0f, r );
-	//parm[1] = idMath::ClampFloat( 0.0f, 1.0f, g );
-	//parm[2] = idMath::ClampFloat( 0.0f, 1.0f, b );
-	//parm[3] = idMath::ClampFloat( 0.0f, 1.0f, a );
-	//renderProgManager.SetRenderParm( RENDERPARM_COLOR, parm );
-
-	auto & parm = renderProgManager.GetRenderParm( RENDERPARM_COLOR );
-	parm[ 0 ] = idMath::ClampFloat( 0.0f, 1.0f, r );
-	parm[ 1 ] = idMath::ClampFloat( 0.0f, 1.0f, g );
-	parm[ 2 ] = idMath::ClampFloat( 0.0f, 1.0f, b );
-	parm[ 3 ] = idMath::ClampFloat( 0.0f, 1.0f, a );
-}
 
 /*
 ========================
 GL_Clear
+  The pixel ownership test, the scissor test, dithering, and the buffer writemasks affect the operation of glClear.
+  The scissor box bounds the cleared region. Alpha function, blend function, logical operation, stenciling,
+  texture mapping, and depth-buffering are ignored by glClear.
 ========================
 */
-void GL_Clear( bool color, bool depth, bool stencil, byte stencilValue, float r, float g, float b, float a, bool clearHDR )
+void GL_Clear( bool color, bool depth, bool stencil, byte stencilValue, float r, float g, float b, float a )
 {
 	int clearFlags = 0;
 	if( color )
@@ -455,22 +399,10 @@ void GL_Clear( bool color, bool depth, bool stencil, byte stencilValue, float r,
 		RENDERLOG_PRINT( "GL_Clear( stencil %i )\n", stencilValue );
 	}
 	glClear( clearFlags );
-	
-	// RB begin
-	if( r_useHDR.GetBool() && clearHDR && renderDestManager.renderDestBaseHDR != NULL )
-	{
-		GL_SetRenderDestination( renderDestManager.renderDestBaseHDR );
-		
-		glClear( clearFlags );
-		RENDERLOG_PRINT( "---- GL_Clear( same values )\n" );
-		
-		if( GL_IsNativeFramebufferActive() )
-		{
-			GL_SetNativeRenderDestination();
-		}
-	}
-	// RB end
 }
+//
+// The same per-fragment and masking operations defined for glClear are applied.
+//
 void GL_ClearDepth( const float value )
 {
 	const GLfloat depthClearValue[ 1 ] = { value };
@@ -486,11 +418,12 @@ void GL_ClearDepthStencil( const float depthValue, const int stencilValue )
 }
 void GL_ClearColor( const float r, const float g, const float b, const float a, const int iColorBuffer )
 {
-	const GLfloat colorClearValue[ 4 ] = { r,  g,  b,  a };
+	GLfloat colorClearValue[ 4 ] = { r,  g,  b,  a };
 	glClearBufferfv( GL_COLOR, /*GL_DRAW_BUFFER0 +*/ iColorBuffer, colorClearValue );
-	
-	RENDERLOG_PRINT( "GL_ClearColor( target:%i, %f,%f,%f,%f )\n", iColorBuffer, colorClearValue[0], colorClearValue[1], colorClearValue[2], colorClearValue[3] );
+
+	RENDERLOG_PRINT( "GL_ClearColor( target:%i, %f,%f,%f,%f )\n", iColorBuffer, r, g, b, a );
 }
+
 
 /*
 ========================
@@ -499,6 +432,7 @@ void GL_ClearColor( const float r, const float g, const float b, const float a, 
 */
 void GL_SetRenderDestination( const idRenderDestination * dest )
 {
+	assert( dest != nullptr );
 	const GLuint fbo = GetGLObject( dest->GetAPIObject() );
 
 	if( backEnd.glState.currentFramebufferObject != fbo )
@@ -513,6 +447,20 @@ void GL_SetRenderDestination( const idRenderDestination * dest )
 }
 /*
 ========================
+GL_ResetRenderDestination
+========================
+*/
+void GL_ResetRenderDestination()
+{
+	glBindFramebuffer( GL_FRAMEBUFFER, GL_NONE );
+
+	backEnd.glState.currentFramebufferObject = GL_NONE;
+	backEnd.glState.currentRenderDestination = nullptr;
+
+	RENDERLOG_PRINT( "GL_ResetRenderDestination()\n" );
+}
+/*
+========================
  GL_SetNativeRenderDestination
 ========================
 */
@@ -520,24 +468,23 @@ void GL_SetNativeRenderDestination()
 {
 	if( backEnd.glState.currentFramebufferObject != GL_NONE )
 	{
-		glBindFramebuffer( GL_FRAMEBUFFER, GL_NONE );
+		GL_ResetRenderDestination();
 
-		backEnd.glState.currentFramebufferObject = GL_NONE;
-		backEnd.glState.currentRenderDestination = nullptr;
+		glDrawBuffer( GL_BACK );
+		glReadBuffer( GL_BACK );
 
 		RENDERLOG_PRINT( "GL_SetNativeRenderDestination()\n" );
 	}
 }
 /*
 ========================
- GetCurrentRenderDestination
+ GL_GetCurrentRenderDestination
 ========================
 */
-const idRenderDestination * GetCurrentRenderDestination()
+const idRenderDestination * GL_GetCurrentRenderDestination()
 {
 	return backEnd.glState.currentRenderDestination;
 }
-
 /*
 ========================
  GL_IsNativeFramebufferActive
@@ -564,8 +511,8 @@ bool GL_IsBound( const idRenderDestination * dest )
 ========================
 */
 void GL_BlitRenderBuffer(
-	const idRenderDestination * src, const idScreenRect & srcRect,
-	const idRenderDestination * dst, const idScreenRect & dstRect,
+	const idRenderDestination * src, int src_x, int src_y, int src_w, int src_h,
+	const idRenderDestination * dst, int dst_x, int dst_y, int dst_w, int dst_h,
 	bool color, bool linearFiltering )
 {
 	const GLuint srcFBO = src ? GetGLObject( src->GetAPIObject() ) : GL_ZERO;
@@ -574,8 +521,8 @@ void GL_BlitRenderBuffer(
 	if( GLEW_ARB_direct_state_access )
 	{
 		glBlitNamedFramebuffer( srcFBO, dstFBO,
-			srcRect.x1, srcRect.y1, srcRect.x2, srcRect.y2,
-			dstRect.x1, dstRect.y1, dstRect.x2, dstRect.y2,
+			src_x, src_y, src_w, src_h,
+			dst_x, dst_y, dst_w, dst_h,
 			color ? GL_COLOR_BUFFER_BIT : GL_DEPTH_BUFFER_BIT,
 			linearFiltering ? GL_LINEAR : GL_NEAREST );
 	}
@@ -583,45 +530,43 @@ void GL_BlitRenderBuffer(
 		glBindFramebuffer( GL_READ_FRAMEBUFFER, srcFBO );
 		glBindFramebuffer( GL_DRAW_FRAMEBUFFER, dstFBO );
 
-		backEnd.glState.currentFramebufferObject = MAX_UNSIGNED_TYPE( GLuint );
-
 		glBlitFramebuffer(
-			srcRect.x1, srcRect.y1, srcRect.x2, srcRect.y2,
-			dstRect.x1, dstRect.y1, dstRect.x2, dstRect.y2,
+			src_x, src_y, src_w, src_h,
+			dst_x, dst_y, dst_w, dst_h,
 			color ? GL_COLOR_BUFFER_BIT : GL_DEPTH_BUFFER_BIT,
 			linearFiltering ? GL_LINEAR : GL_NEAREST );
+
+		GL_ResetRenderDestination();
 	}
 
 	RENDERLOG_OPEN_BLOCK("GL_Blit");
-	RENDERLOG_PRINT( "src: %s, %u, rect:%i,%i,%i,%i\n", src ? src->GetName() : "NATIVE", srcFBO, srcRect.x1, srcRect.y1, srcRect.x2, srcRect.y2 );
-	RENDERLOG_PRINT( "dst: %s, %u, rect:%i,%i,%i,%i\n", dst ? dst->GetName() : "NATIVE", dstFBO, dstRect.x1, dstRect.y1, dstRect.x2, dstRect.y2 );
+	RENDERLOG_PRINT( "src: %s, %u, rect:%i,%i,%i,%i\n", src ? src->GetName() : "NATIVE", srcFBO, src_x, src_y, src_w, src_h );
+	RENDERLOG_PRINT( "dst: %s, %u, rect:%i,%i,%i,%i\n", dst ? dst->GetName() : "NATIVE", dstFBO, dst_x, dst_y, dst_w, dst_h );
 	RENDERLOG_CLOSE_BLOCK();
 }
 
 /*
 ====================
- idImage::CopyFramebuffer	depricated!
+ idImage::CopyFramebuffer
 ====================
 */
 void GL_CopyCurrentColorToTexture( idImage * img, int x, int y, int imageWidth, int imageHeight )
 {
-	release_assert( img != nullptr );
-	release_assert( img->GetOpts().textureType == TT_2D );
-	release_assert( !img->GetOpts().IsMultisampled() );
-	release_assert( !img->GetOpts().IsArray() );
+	assert( img != nullptr );
+	assert( img->GetOpts().textureType == TT_2D );
+	assert( !img->GetOpts().IsMultisampled() );
+	assert( !img->GetOpts().IsArray() );
 
-#if !defined( USE_GLES3 )
-	if( GL_IsNativeFramebufferActive() )
-	{
-		glReadBuffer( GL_BACK );
-	}
-#endif
-#if 0
-	if( GLEW_NV_copy_image && !GL_IsNativeFramebufferActive() )
+	// NO operations on native backbuffer!
+
+	const idImage const * srcImg = GL_GetCurrentRenderDestination()->GetColorImage();
+	const bool bFormatMatch = ( srcImg->GetOpts().format == img->GetOpts().format );
+
+	if( GLEW_NV_copy_image && bFormatMatch )
 	{
 		img->Resize( imageWidth, imageHeight, 1 );
 
-		const GLuint srcName = GetGLObject( GetCurrentRenderDestination()->GetColorImage()->GetAPIObject() );
+		const GLuint srcName = GetGLObject( srcImg->GetAPIObject() );
 		const GLuint dstName = GetGLObject( img->GetAPIObject() );
 
 		glCopyImageSubDataNV(
@@ -630,19 +575,12 @@ void GL_CopyCurrentColorToTexture( idImage * img, int x, int y, int imageWidth, 
 			imageWidth, imageHeight, 1 );
 
 		GL_CheckErrors();
-
-		backEnd.pc.c_copyFrameBuffer++;
-
-		RENDERLOG_PRINT( "GL_CopyCurrentColorToTextureNV( dst: %s %ix%i, %i,%i,%i,%i )\n",
-			img->GetName(), img->GetUploadWidth(), img->GetUploadHeight(), x, y, imageWidth, imageHeight );
-
-		return;
 	}
-	else if( GLEW_ARB_copy_image && !GL_IsNativeFramebufferActive() )
+	else if( GLEW_ARB_copy_image && bFormatMatch )
 	{
 		img->Resize( imageWidth, imageHeight, 1 );
 
-		const GLuint srcName = GetGLObject( GetCurrentRenderDestination()->GetColorImage()->GetAPIObject() );
+		const GLuint srcName = GetGLObject( srcImg->GetAPIObject() );
 		const GLuint dstName = GetGLObject( img->GetAPIObject() );
 
 		glCopyImageSubData(
@@ -651,72 +589,43 @@ void GL_CopyCurrentColorToTexture( idImage * img, int x, int y, int imageWidth, 
 			imageWidth, imageHeight, 1 );
 
 		GL_CheckErrors();
-
-		backEnd.pc.c_copyFrameBuffer++;
-
-		RENDERLOG_PRINT( "GL_CopyCurrentColorToTextureARB( dst: %s %ix%i, %i,%i,%i,%i )\n",
-			img->GetName(), img->GetUploadWidth(), img->GetUploadHeight(), x, y, imageWidth, imageHeight );
-
-		return;
-	}
-#endif
-
-	///glTextureObject_t tex;
-	///tex.DeriveTargetInfo( this );
-	GLuint texnum = GetGLObject( img->GetAPIObject() );
-	glBindTexture( GL_TEXTURE_2D, texnum );
-
-	img->Resize( imageWidth, imageHeight, 1 );
-
-	if( r_useHDR.GetBool() && GL_IsBound( renderDestManager.renderDestBaseHDR ) )
-	{
-		//if( backEnd.glState.currentFramebuffer != NULL && backEnd.glState.currentFramebuffer->IsMultiSampled() )
-
-	#if defined( USE_HDR_MSAA )
-		if( globalFramebuffers.hdrFBO->IsMultiSampled() )
-		{
-			glBindFramebuffer( GL_READ_FRAMEBUFFER, globalFramebuffers.hdrFBO->GetFramebuffer() );
-			glBindFramebuffer( GL_DRAW_FRAMEBUFFER, globalFramebuffers.hdrNonMSAAFBO->GetFramebuffer() );
-			glBlitFramebuffer( 0, 0, glConfig.nativeScreenWidth, glConfig.nativeScreenHeight,
-				0, 0, glConfig.nativeScreenWidth, glConfig.nativeScreenHeight,
-				GL_COLOR_BUFFER_BIT, GL_LINEAR );
-
-			globalFramebuffers.hdrNonMSAAFBO->Bind();
-
-			glCopyTexImage2D( tex.target, 0, GL_RGBA16F, x, y, imageWidth, imageHeight, 0 );
-
-			globalFramebuffers.hdrFBO->Bind();
-		}
-		else
-		#endif
-		{
-			if( GLEW_ARB_texture_storage ) {
-				glCopyTexSubImage2D( GL_TEXTURE_2D, 0, 0, 0, x, y, imageWidth, imageHeight );
-			} else {
-				glCopyTexImage2D( GL_TEXTURE_2D, 0, GL_RGBA16F, x, y, imageWidth, imageHeight, 0 );
-			}
-		}
 	}
 	else {
+		///const GLuint srcFBO = GetGLObject( GL_GetCurrentRenderDestination()->GetAPIObject() );
+		///const GLuint dstFBO = GetGLObject( renderDestManager.renderDestCopyCurrentRender->GetAPIObject() );
+		///
+		///glBindFramebuffer( GL_READ_FRAMEBUFFER, srcFBO );
+		///
+		///glBindFramebuffer( GL_DRAW_FRAMEBUFFER, dstFBO );
+		///glFramebufferTexture( GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GetGLObject( img->GetAPIObject() ), 0 );
+		///
+		///glBlitFramebuffer(
+		///	x, y, imageWidth, imageHeight,
+		///	0, 0, imageWidth, imageHeight,
+		///	GL_COLOR_BUFFER_BIT, GL_NEAREST );
+
+		///glTextureObject_t tex;
+		///tex.DeriveTargetInfo( this );
+		///GLuint texnum = GetGLObject( img->GetAPIObject() );
+		///glBindTexture( GL_TEXTURE_2D, texnum );
+		GL_BindTexture( 0, img );
+
 		if( GLEW_ARB_texture_storage )
 		{
+			assert( bFormatMatch == true );
+			img->Resize( imageWidth, imageHeight, 1 );
+			// FBO ?
+
 			glCopyTexSubImage2D( GL_TEXTURE_2D, 0, 0, 0, x, y, imageWidth, imageHeight );
 		}
 		else {
-			glCopyTexImage2D( GL_TEXTURE_2D, 0, GL_RGBA8, x, y, imageWidth, imageHeight, 0 );
+			// gl will allocate memory for this new texture
+			glCopyTexImage2D( GL_TEXTURE_2D, 0,
+								r_useHDR.GetBool() ? GL_RGBA16F : GL_RGBA8,
+								x, y, imageWidth, imageHeight, 0 );
 		}
+		GL_CheckErrors();
 	}
-
-	GL_CheckErrors();
-
-	// these shouldn't be necessary if the image was initialized properly
-	glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
-	glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
-
-	glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE );
-	glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE );
-
-	GL_CheckErrors();
 
 	backEnd.pc.c_copyFrameBuffer++;
 
@@ -724,6 +633,7 @@ void GL_CopyCurrentColorToTexture( idImage * img, int x, int y, int imageWidth, 
 		img->GetName(), img->GetUploadWidth(), img->GetUploadHeight(), x, y, imageWidth, imageHeight );
 }
 
+#if 0
 /*
 ====================
  idImage::CopyDepthbuffer	depricated!
@@ -731,10 +641,10 @@ void GL_CopyCurrentColorToTexture( idImage * img, int x, int y, int imageWidth, 
 */
 void GL_CopyCurrentDepthToTexture( idImage *img, int x, int y, int newImageWidth, int newImageHeight )
 {
-	release_assert( img != nullptr );
-	release_assert( img->GetOpts().textureType == TT_2D );
-	release_assert( !img->GetOpts().IsMultisampled() );
-	release_assert( !img->GetOpts().IsArray() );
+	assert( img != nullptr );
+	assert( img->GetOpts().textureType == TT_2D );
+	assert( !img->GetOpts().IsMultisampled() );
+	assert( !img->GetOpts().IsArray() );
 	///glTextureObject_t tex;
 	///tex.DeriveTargetInfo( this );
 
@@ -746,8 +656,7 @@ void GL_CopyCurrentDepthToTexture( idImage *img, int x, int y, int newImageWidth
 		{
 			glCopyTexSubImage2D( GL_TEXTURE_2D, 0, 0, 0, x, y, newImageWidth, newImageHeight );
 		}
-		else
-		{
+		else {
 			glCopyTexImage2D( GL_TEXTURE_2D, 0, GL_DEPTH_STENCIL, x, y, newImageWidth, newImageHeight, 0 );
 		}
 	}
@@ -761,21 +670,18 @@ void GL_CopyCurrentDepthToTexture( idImage *img, int x, int y, int newImageWidth
 			{
 				glCopyTextureSubImage2DEXT( texnum, GL_TEXTURE_2D, 0, 0, 0, x, y, newImageWidth, newImageHeight );
 			}
-			else
-			{
+			else {
 				glCopyTextureImage2DEXT( texnum, GL_TEXTURE_2D, 0, GL_DEPTH_STENCIL, x, y, newImageWidth, newImageHeight, 0 );
 			}
 		}
-		else
-		{
+		else {
 			glBindTexture( GL_TEXTURE_2D, texnum );
 
 			if( GLEW_ARB_texture_storage )
 			{
 				glCopyTexSubImage2D( GL_TEXTURE_2D, 0, 0, 0, x, y, newImageWidth, newImageHeight );
 			}
-			else
-			{
+			else {
 				glCopyTexImage2D( GL_TEXTURE_2D, 0, GL_DEPTH_STENCIL, x, y, newImageWidth, newImageHeight, 0 );
 			}
 		}
@@ -785,19 +691,18 @@ void GL_CopyCurrentDepthToTexture( idImage *img, int x, int y, int newImageWidth
 
 	backEnd.pc.c_copyFrameBuffer++;
 
-	RENDERLOG_PRINT("GL_CopyCurrentDepthToTexture( dst: %s %ix%i, %i,%i,%i,%i )\n", 
+	RENDERLOG_PRINT("GL_CopyCurrentDepthToTexture( dst: %s %ix%i, %i,%i,%i,%i )\n",
 		img->GetName(), img->GetUploadWidth(), img->GetUploadHeight(), x, y, newImageWidth, newImageHeight );
 }
+#endif
 
 /*
-========================
- GL_DisableRasterizer
-========================
+=====================================================================================================
+
+										RENDER STATE
+
+=====================================================================================================
 */
-void GL_DisableRasterizer()
-{
-	glEnable( GL_RASTERIZER_DISCARD );
-}
 
 /*
 ========================
@@ -809,58 +714,66 @@ void GL_DisableRasterizer()
 */
 void GL_SetDefaultState()
 {
-	RENDERLOG_PRINT( "--- GL_SetDefaultState ---\n" );
+	RENDERLOG_PRINT( "GL_SetDefaultState()\n" );
+
+	// make sure our GL state vector is set correctly
+	memset( &backEnd.glState, 0, sizeof( backEnd.glState ) );
+
+	GL_SetRenderDestination( renderDestManager.renderDestBaseLDR );
+
+	GL_State( GLS_DEFAULT, true );
 
 	//glClipControl( GL_LOWER_LEFT, GL_NEGATIVE_ONE_TO_ONE );
 	//glClipControl( GL_LOWER_LEFT, GL_ZERO_TO_ONE );
-	
+
 	glClearDepth( 1.0f );
-	
-	// make sure our GL state vector is set correctly
-	memset( &backEnd.glState, 0, sizeof( backEnd.glState ) );
-	GL_State( 0, true );
-	
-	backEnd.glState.currentFramebufferObject = MAX_UNSIGNED_TYPE( GLuint );
-	backEnd.glState.currentRenderDestination = nullptr;
-	GL_SetNativeRenderDestination();
-	
+
 	// These are changed by GL_Cull
-	glCullFace( GL_FRONT_AND_BACK );
-	glEnable( GL_CULL_FACE );
-	
+	//glCullFace( GL_FRONT_AND_BACK );
+	//glEnable( GL_CULL_FACE );
+
 	// These are changed by GL_State
-	glColorMask( GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE );
-	glBlendFunc( GL_ONE, GL_ZERO );
-	glDepthMask( GL_TRUE );
-	glDepthFunc( GL_LESS );
-	glDisable( GL_STENCIL_TEST );
-	glDisable( GL_POLYGON_OFFSET_FILL );
-	glDisable( GL_POLYGON_OFFSET_LINE );
-	glPolygonMode( GL_FRONT_AND_BACK, GL_FILL );
+	//glColorMask( GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE );
+	//glBlendFunc( GL_ONE, GL_ZERO );
+	//glDepthMask( GL_TRUE );
+	//glDepthFunc( GL_LESS );
+	//glDisable( GL_STENCIL_TEST );
+	//glDisable( GL_POLYGON_OFFSET_FILL );
+	//glDisable( GL_POLYGON_OFFSET_LINE );
+	//glPolygonMode( GL_FRONT_AND_BACK, GL_FILL );
 
 	//glEnable( GL_SAMPLE_COVERAGE );
 	//glEnable( GL_SAMPLE_MASK );
 	//glEnable( GL_TEXTURE_CUBE_MAP_SEAMLESS );
 	//glFrontFace( GL_CCW );
-	//glBlendEquation( GL_FUNC_ADD );
+	glBlendEquation( GL_FUNC_ADD );
 	//glDisable( GL_SAMPLE_ALPHA_TO_COVERAGE );
 	//glSampleMaski( 0, 0xffffffff );
-	
+
 	// These should never be changed
-	glEnable( GL_DEPTH_TEST );
-	glEnable( GL_BLEND );
+	//glEnable( GL_DEPTH_TEST );
+	//glEnable( GL_BLEND );
 	glEnable( GL_SCISSOR_TEST );
-	glDrawBuffer( GL_BACK );
-	glReadBuffer( GL_BACK );
-	
-	if( r_useScissor.GetBool() )
+	//glDrawBuffer( GL_BACK );
+	//glReadBuffer( GL_BACK );
+
+	//GL_Scissor( 0, 0, renderSystem->GetWidth(), renderSystem->GetHeight() );
+
+	GL_ResetProgramState();
+	GL_ResetTextureState();
+
+	/*for( uint32 i = 0; i < MAX_MULTITEXTURE_UNITS-1; i++ )
 	{
-		glScissor( 0, 0, renderSystem->GetWidth(), renderSystem->GetHeight() );
-	}
-	
-	// RB: don't keep renderprogs that were enabled during level load
-	renderProgManager.Unbind();
-	// RB end
+		int oldTMU = backEnd.glState.currenttmu;
+		for( int i = 0; i < MAX_PROG_TEXTURE_PARMS; ++i )
+		{
+			glBindSampler( i, GL_NONE );
+			glBindMultiTextureEXT( GL_TEXTURE0 + i, GL_TEXTURE_2D, GL_NONE );
+
+			backEnd.glState.currenttmu = i;
+		}
+		backEnd.glState.currenttmu = oldTMU;
+	}*/
 }
 
 /*
@@ -873,8 +786,8 @@ This routine is responsible for setting the most commonly changed state
 void GL_State( uint64 stateBits, bool forceGlState )
 {
 	uint64 diff = stateBits ^ backEnd.glState.glStateBits;
-	
-	if( !r_useStateCaching.GetBool() || forceGlState )
+
+	if( forceGlState )
 	{
 		// make sure everything is set all the time, so we
 		// can see if our delta checking is screwing up
@@ -884,113 +797,103 @@ void GL_State( uint64 stateBits, bool forceGlState )
 	{
 		return;
 	}
-	
+
 	//
-	// check depthFunc bits
+	// Check depthFunc bits:
 	//
 	if( diff & GLS_DEPTHFUNC_BITS )
 	{
 		switch( stateBits & GLS_DEPTHFUNC_BITS )
 		{
-			case GLS_DEPTHFUNC_EQUAL:
-				glDepthFunc( GL_EQUAL );
-				break;
-			case GLS_DEPTHFUNC_ALWAYS:
-				glDepthFunc( GL_ALWAYS );
-				break;
-			case GLS_DEPTHFUNC_LESS:
-				glDepthFunc( GL_LEQUAL );
-				break;
-			case GLS_DEPTHFUNC_GREATER:
-				glDepthFunc( GL_GEQUAL );
+			case GLS_DEPTHFUNC_LEQUAL:   glDepthFunc( GL_LEQUAL );	break;
+			case GLS_DEPTHFUNC_ALWAYS:   glDepthFunc( GL_ALWAYS );	break;
+			case GLS_DEPTHFUNC_GEQUAL:   glDepthFunc( GL_GEQUAL );	break;
+			case GLS_DEPTHFUNC_EQUAL:    glDepthFunc( GL_EQUAL );	break;
+			case GLS_DEPTHFUNC_NOTEQUAL: glDepthFunc( GL_NOTEQUAL ); break;
+			case GLS_DEPTHFUNC_GREATER:  glDepthFunc( GL_GREATER ); break;
+			case GLS_DEPTHFUNC_LESS:	 glDepthFunc( GL_LESS );	break;
+			case GLS_DEPTHFUNC_NEVER:	 glDepthFunc( GL_NEVER );	break;
+			default:
+				assert( !"GL_State: invalid depthfunc state bits\n" );
 				break;
 		}
 	}
-	
+	if( diff & GLS_DISABLE_DEPTHTEST ) //SEA
+	{
+		if( stateBits & GLS_DISABLE_DEPTHTEST )
+		{
+			glDisable( GL_DEPTH_TEST );
+		}
+		else {
+			glEnable( GL_DEPTH_TEST );
+		}
+	}
+
 	//
-	// check blend bits
+	// Check blend bits:
 	//
+	/*if( diff & GLS_BLENDOP_BITS )		//SEA: swf has some issue with main menu :(
+	{
+	switch( stateBits & GLS_BLENDOP_BITS )
+	{
+	case GLS_BLENDOP_ADD:		glBlendEquation( GL_FUNC_ADD );					break;
+	case GLS_BLENDOP_SUB:		glBlendEquation( GL_FUNC_SUBTRACT );			break;
+	case GLS_BLENDOP_MIN:		glBlendEquation( GL_MIN );						break;
+	case GLS_BLENDOP_MAX:		glBlendEquation( GL_MAX );						break;
+	case GLS_BLENDOP_INVSUB:	glBlendEquation( GL_FUNC_REVERSE_SUBTRACT );	break;
+	default:
+	assert( !"GL_State: invalid blendOp state bits\n" );
+	break;
+	}
+	}*/
 	if( diff & ( GLS_SRCBLEND_BITS | GLS_DSTBLEND_BITS ) )
 	{
 		GLenum srcFactor = GL_ONE;
 		GLenum dstFactor = GL_ZERO;
-		
+
 		switch( stateBits & GLS_SRCBLEND_BITS )
 		{
-			case GLS_SRCBLEND_ZERO:
-				srcFactor = GL_ZERO;
-				break;
-			case GLS_SRCBLEND_ONE:
-				srcFactor = GL_ONE;
-				break;
-			case GLS_SRCBLEND_DST_COLOR:
-				srcFactor = GL_DST_COLOR;
-				break;
-			case GLS_SRCBLEND_ONE_MINUS_DST_COLOR:
-				srcFactor = GL_ONE_MINUS_DST_COLOR;
-				break;
-			case GLS_SRCBLEND_SRC_ALPHA:
-				srcFactor = GL_SRC_ALPHA;
-				break;
-			case GLS_SRCBLEND_ONE_MINUS_SRC_ALPHA:
-				srcFactor = GL_ONE_MINUS_SRC_ALPHA;
-				break;
-			case GLS_SRCBLEND_DST_ALPHA:
-				srcFactor = GL_DST_ALPHA;
-				break;
-			case GLS_SRCBLEND_ONE_MINUS_DST_ALPHA:
-				srcFactor = GL_ONE_MINUS_DST_ALPHA;
-				break;
+			case GLS_SRCBLEND_ZERO:					srcFactor = GL_ZERO;				break;
+			case GLS_SRCBLEND_ONE:					srcFactor = GL_ONE;					break;
+			case GLS_SRCBLEND_DST_COLOR:			srcFactor = GL_DST_COLOR;			break;
+			case GLS_SRCBLEND_ONE_MINUS_DST_COLOR:	srcFactor = GL_ONE_MINUS_DST_COLOR; break;
+			case GLS_SRCBLEND_SRC_ALPHA:			srcFactor = GL_SRC_ALPHA;			break;
+			case GLS_SRCBLEND_ONE_MINUS_SRC_ALPHA:	srcFactor = GL_ONE_MINUS_SRC_ALPHA; break;
+			case GLS_SRCBLEND_DST_ALPHA:			srcFactor = GL_DST_ALPHA;			break;
+			case GLS_SRCBLEND_ONE_MINUS_DST_ALPHA:	srcFactor = GL_ONE_MINUS_DST_ALPHA; break;
 			default:
 				assert( !"GL_State: invalid src blend state bits\n" );
 				break;
 		}
-		
+
 		switch( stateBits & GLS_DSTBLEND_BITS )
 		{
-			case GLS_DSTBLEND_ZERO:
-				dstFactor = GL_ZERO;
-				break;
-			case GLS_DSTBLEND_ONE:
-				dstFactor = GL_ONE;
-				break;
-			case GLS_DSTBLEND_SRC_COLOR:
-				dstFactor = GL_SRC_COLOR;
-				break;
-			case GLS_DSTBLEND_ONE_MINUS_SRC_COLOR:
-				dstFactor = GL_ONE_MINUS_SRC_COLOR;
-				break;
-			case GLS_DSTBLEND_SRC_ALPHA:
-				dstFactor = GL_SRC_ALPHA;
-				break;
-			case GLS_DSTBLEND_ONE_MINUS_SRC_ALPHA:
-				dstFactor = GL_ONE_MINUS_SRC_ALPHA;
-				break;
-			case GLS_DSTBLEND_DST_ALPHA:
-				dstFactor = GL_DST_ALPHA;
-				break;
-			case GLS_DSTBLEND_ONE_MINUS_DST_ALPHA:
-				dstFactor = GL_ONE_MINUS_DST_ALPHA;
-				break;
+			case GLS_DSTBLEND_ZERO:					dstFactor = GL_ZERO;				break;
+			case GLS_DSTBLEND_ONE:					dstFactor = GL_ONE;					break;
+			case GLS_DSTBLEND_SRC_COLOR:			dstFactor = GL_SRC_COLOR;			break;
+			case GLS_DSTBLEND_ONE_MINUS_SRC_COLOR:	dstFactor = GL_ONE_MINUS_SRC_COLOR; break;
+			case GLS_DSTBLEND_SRC_ALPHA:			dstFactor = GL_SRC_ALPHA;			break;
+			case GLS_DSTBLEND_ONE_MINUS_SRC_ALPHA:	dstFactor = GL_ONE_MINUS_SRC_ALPHA; break;
+			case GLS_DSTBLEND_DST_ALPHA:			dstFactor = GL_DST_ALPHA;			break;
+			case GLS_DSTBLEND_ONE_MINUS_DST_ALPHA:	dstFactor = GL_ONE_MINUS_DST_ALPHA; break;
 			default:
 				assert( !"GL_State: invalid dst blend state bits\n" );
 				break;
 		}
-		
+
 		// Only actually update GL's blend func if blending is enabled.
 		if( srcFactor == GL_ONE && dstFactor == GL_ZERO )
 		{
 			glDisable( GL_BLEND );
 		}
-		else
-		{
+		else {
 			glEnable( GL_BLEND );
 			glBlendFunc( srcFactor, dstFactor );
 		}
 	}
-	
+
 	//
-	// check depthmask
+	// Check depthmask:
 	//
 	if( diff & GLS_DEPTHMASK )
 	{
@@ -998,14 +901,26 @@ void GL_State( uint64 stateBits, bool forceGlState )
 		{
 			glDepthMask( GL_FALSE );
 		}
-		else
-		{
+		else {
 			glDepthMask( GL_TRUE );
 		}
 	}
 
 	//
-	// check stencil mask
+	// Check stencil mask:
+	//
+	if( diff & GLS_STENCILMASK )  //SEA
+	{
+		if( stateBits & GLS_STENCILMASK )
+		{
+			glStencilMask( 0x00u );
+		}
+		else {
+			glStencilMask( 0xFFu );
+		}
+	}
+	//
+	// Check stencil mask:
 	//
 	// glStencilMask( 0x00 ); // effectively disables stencil writing.
 	// glStencilMask( 0xFF ); // write stencil
@@ -1019,56 +934,85 @@ void GL_State( uint64 stateBits, bool forceGlState )
 
 		Disables the test
 		Disables writing stencil / depth values
-		So, if for some reason, you ever wanted to write a constant depth or stencil value and you assumed 
+		So, if for some reason, you ever wanted to write a constant depth or stencil value and you assumed
 		that disabling the test would accomplish that -- it won't. Use GL_ALWAYS for the test function instead of disabling the test if that is your intention.
 	*/
-	
+
 	//
-	// check colormask
+	// Check colormask:
 	//
 	if( diff & ( GLS_REDMASK | GLS_GREENMASK | GLS_BLUEMASK | GLS_ALPHAMASK ) )
 	{
-		GLboolean r = ( stateBits & GLS_REDMASK ) ? GL_FALSE : GL_TRUE;
-		GLboolean g = ( stateBits & GLS_GREENMASK ) ? GL_FALSE : GL_TRUE;
-		GLboolean b = ( stateBits & GLS_BLUEMASK ) ? GL_FALSE : GL_TRUE;
-		GLboolean a = ( stateBits & GLS_ALPHAMASK ) ? GL_FALSE : GL_TRUE;
+		GLboolean r = ( stateBits & GLS_REDMASK )? GL_FALSE : GL_TRUE;
+		GLboolean g = ( stateBits & GLS_GREENMASK )? GL_FALSE : GL_TRUE;
+		GLboolean b = ( stateBits & GLS_BLUEMASK )? GL_FALSE : GL_TRUE;
+		GLboolean a = ( stateBits & GLS_ALPHAMASK )? GL_FALSE : GL_TRUE;
 		glColorMask( r, g, b, a );
 	}
-	
+
 	//
-	// fill/line mode
+	// Fill/Line mode:
 	//
 	if( diff & GLS_POLYMODE_LINE )
 	{
-		if( stateBits & GLS_POLYMODE_LINE )
-		{
-			glPolygonMode( GL_FRONT_AND_BACK, GL_LINE );
-		}
-		else
-		{
-			glPolygonMode( GL_FRONT_AND_BACK, GL_FILL );
-		}
+		glPolygonMode( GL_FRONT_AND_BACK, ( stateBits & GLS_POLYMODE_LINE )? GL_LINE : GL_FILL );
 	}
-	
 	//
-	// polygon offset
+	// Polygon offset:
 	//
 	if( diff & GLS_POLYGON_OFFSET )
 	{
 		if( stateBits & GLS_POLYGON_OFFSET )
 		{
 			glPolygonOffset( backEnd.glState.polyOfsScale, backEnd.glState.polyOfsBias );
-			glEnable( GL_POLYGON_OFFSET_FILL );
-			glEnable( GL_POLYGON_OFFSET_LINE );
+
+			//glEnable( GL_POLYGON_OFFSET_FILL );
+			//glEnable( GL_POLYGON_OFFSET_LINE );
+
+			if( stateBits & GLS_POLYMODE_LINE )
+			{
+				glDisable( GL_POLYGON_OFFSET_FILL );
+				glEnable( GL_POLYGON_OFFSET_LINE );
+			}
+			else {
+				glEnable( GL_POLYGON_OFFSET_FILL );
+				glDisable( GL_POLYGON_OFFSET_LINE );
+			}
 		}
-		else
-		{
+		else {
 			glDisable( GL_POLYGON_OFFSET_FILL );
 			glDisable( GL_POLYGON_OFFSET_LINE );
 		}
 	}
-	
-#if !defined( USE_CORE_PROFILE )
+	//
+	// Face culling:
+	// This handles the flipping needed when the view being rendered is a mirored view.
+	//
+	if( diff & ( GLS_BACKSIDED | GLS_TWOSIDED ) )
+	{
+		/*/*/if( stateBits & GLS_TWOSIDED )
+		{
+			glDisable( GL_CULL_FACE );
+			RENDERLOG_PRINT( "GL_Cull( Disable )\n" );
+		}
+		else if( stateBits & GLS_BACKSIDED )
+		{
+			glEnable( GL_CULL_FACE );
+			//glCullFace( backEnd.viewDef->isMirror ? GL_FRONT : GL_BACK );
+			//RENDERLOG_PRINT( "GL_Cull( %s )\n", backEnd.viewDef->isMirror ? "GL_FRONT" : "GL_BACK" );
+			glCullFace( GL_FRONT );
+			RENDERLOG_PRINT( "GL_Cull( GL_FRONT )\n" );
+		}
+		else {
+			glEnable( GL_CULL_FACE );
+			//glCullFace( backEnd.viewDef->isMirror ? GL_BACK : GL_FRONT );
+			//RENDERLOG_PRINT( "GL_Cull( %s )\n", backEnd.viewDef->isMirror ? "GL_BACK" : "GL_FRONT" );
+			glCullFace( GL_BACK );
+			RENDERLOG_PRINT( "GL_Cull( GL_BACK )\n" );
+		}
+	}
+
+/*#if !defined( USE_CORE_PROFILE )
 	//
 	// alpha test
 	//
@@ -1077,7 +1021,7 @@ void GL_State( uint64 stateBits, bool forceGlState )
 		if( ( stateBits & GLS_ALPHATEST_FUNC_BITS ) != 0 )
 		{
 			glEnable( GL_ALPHA_TEST );
-			
+
 			GLenum func = GL_ALWAYS;
 			switch( stateBits & GLS_ALPHATEST_FUNC_BITS )
 			{
@@ -1101,10 +1045,10 @@ void GL_State( uint64 stateBits, bool forceGlState )
 			glDisable( GL_ALPHA_TEST );
 		}
 	}
-#endif
-	
+#endif*/
+
 	//
-	// stencil
+	// Stencil mode:
 	//
 	if( diff & ( GLS_STENCIL_FUNC_BITS | GLS_STENCIL_OP_BITS ) )
 	{
@@ -1112,8 +1056,7 @@ void GL_State( uint64 stateBits, bool forceGlState )
 		{
 			glEnable( GL_STENCIL_TEST );
 		}
-		else
-		{
+		else {
 			glDisable( GL_STENCIL_TEST );
 		}
 	}
@@ -1122,33 +1065,17 @@ void GL_State( uint64 stateBits, bool forceGlState )
 		GLuint ref = GLuint( ( stateBits & GLS_STENCIL_FUNC_REF_BITS ) >> GLS_STENCIL_FUNC_REF_SHIFT );
 		GLuint mask = GLuint( ( stateBits & GLS_STENCIL_FUNC_MASK_BITS ) >> GLS_STENCIL_FUNC_MASK_SHIFT );
 		GLenum func = 0;
-		
+
 		switch( stateBits & GLS_STENCIL_FUNC_BITS )
 		{
-			case GLS_STENCIL_FUNC_NEVER:
-				func = GL_NEVER;
-				break;
-			case GLS_STENCIL_FUNC_LESS:
-				func = GL_LESS;
-				break;
-			case GLS_STENCIL_FUNC_EQUAL:
-				func = GL_EQUAL;
-				break;
-			case GLS_STENCIL_FUNC_LEQUAL:
-				func = GL_LEQUAL;
-				break;
-			case GLS_STENCIL_FUNC_GREATER:
-				func = GL_GREATER;
-				break;
-			case GLS_STENCIL_FUNC_NOTEQUAL:
-				func = GL_NOTEQUAL;
-				break;
-			case GLS_STENCIL_FUNC_GEQUAL:
-				func = GL_GEQUAL;
-				break;
-			case GLS_STENCIL_FUNC_ALWAYS:
-				func = GL_ALWAYS;
-				break;
+			case GLS_STENCIL_FUNC_NEVER:	func = GL_NEVER; break;
+			case GLS_STENCIL_FUNC_LESS:		func = GL_LESS; break;
+			case GLS_STENCIL_FUNC_EQUAL:	func = GL_EQUAL; break;
+			case GLS_STENCIL_FUNC_LEQUAL:	func = GL_LEQUAL; break;
+			case GLS_STENCIL_FUNC_GREATER:	func = GL_GREATER; break;
+			case GLS_STENCIL_FUNC_NOTEQUAL: func = GL_NOTEQUAL; break;
+			case GLS_STENCIL_FUNC_GEQUAL:	func = GL_GEQUAL; break;
+			case GLS_STENCIL_FUNC_ALWAYS:	func = GL_ALWAYS; break;
 		}
 		glStencilFunc( func, ref, mask );
 	}
@@ -1156,92 +1083,44 @@ void GL_State( uint64 stateBits, bool forceGlState )
 	{
 		GLenum sFail = 0;
 		GLenum zFail = 0;
-		GLenum pass = 0;
-		
+		GLenum zPass = 0;
+
 		switch( stateBits & GLS_STENCIL_OP_FAIL_BITS )
 		{
-			case GLS_STENCIL_OP_FAIL_KEEP:
-				sFail = GL_KEEP;
-				break;
-			case GLS_STENCIL_OP_FAIL_ZERO:
-				sFail = GL_ZERO;
-				break;
-			case GLS_STENCIL_OP_FAIL_REPLACE:
-				sFail = GL_REPLACE;
-				break;
-			case GLS_STENCIL_OP_FAIL_INCR:
-				sFail = GL_INCR;
-				break;
-			case GLS_STENCIL_OP_FAIL_DECR:
-				sFail = GL_DECR;
-				break;
-			case GLS_STENCIL_OP_FAIL_INVERT:
-				sFail = GL_INVERT;
-				break;
-			case GLS_STENCIL_OP_FAIL_INCR_WRAP:
-				sFail = GL_INCR_WRAP;
-				break;
-			case GLS_STENCIL_OP_FAIL_DECR_WRAP:
-				sFail = GL_DECR_WRAP;
-				break;
+			case GLS_STENCIL_OP_FAIL_KEEP:		sFail = GL_KEEP; break;
+			case GLS_STENCIL_OP_FAIL_ZERO:		sFail = GL_ZERO; break;
+			case GLS_STENCIL_OP_FAIL_REPLACE:	sFail = GL_REPLACE; break;
+			case GLS_STENCIL_OP_FAIL_INCR:		sFail = GL_INCR; break;
+			case GLS_STENCIL_OP_FAIL_DECR:		sFail = GL_DECR; break;
+			case GLS_STENCIL_OP_FAIL_INVERT:	sFail = GL_INVERT; break;
+			case GLS_STENCIL_OP_FAIL_INCR_WRAP: sFail = GL_INCR_WRAP; break;
+			case GLS_STENCIL_OP_FAIL_DECR_WRAP: sFail = GL_DECR_WRAP; break;
 		}
 		switch( stateBits & GLS_STENCIL_OP_ZFAIL_BITS )
 		{
-			case GLS_STENCIL_OP_ZFAIL_KEEP:
-				zFail = GL_KEEP;
-				break;
-			case GLS_STENCIL_OP_ZFAIL_ZERO:
-				zFail = GL_ZERO;
-				break;
-			case GLS_STENCIL_OP_ZFAIL_REPLACE:
-				zFail = GL_REPLACE;
-				break;
-			case GLS_STENCIL_OP_ZFAIL_INCR:
-				zFail = GL_INCR;
-				break;
-			case GLS_STENCIL_OP_ZFAIL_DECR:
-				zFail = GL_DECR;
-				break;
-			case GLS_STENCIL_OP_ZFAIL_INVERT:
-				zFail = GL_INVERT;
-				break;
-			case GLS_STENCIL_OP_ZFAIL_INCR_WRAP:
-				zFail = GL_INCR_WRAP;
-				break;
-			case GLS_STENCIL_OP_ZFAIL_DECR_WRAP:
-				zFail = GL_DECR_WRAP;
-				break;
+			case GLS_STENCIL_OP_ZFAIL_KEEP:		 zFail = GL_KEEP; break;
+			case GLS_STENCIL_OP_ZFAIL_ZERO:		 zFail = GL_ZERO; break;
+			case GLS_STENCIL_OP_ZFAIL_REPLACE:	 zFail = GL_REPLACE; break;
+			case GLS_STENCIL_OP_ZFAIL_INCR:		 zFail = GL_INCR; break;
+			case GLS_STENCIL_OP_ZFAIL_DECR:		 zFail = GL_DECR; break;
+			case GLS_STENCIL_OP_ZFAIL_INVERT:	 zFail = GL_INVERT; break;
+			case GLS_STENCIL_OP_ZFAIL_INCR_WRAP: zFail = GL_INCR_WRAP; break;
+			case GLS_STENCIL_OP_ZFAIL_DECR_WRAP: zFail = GL_DECR_WRAP; break;
 		}
 		switch( stateBits & GLS_STENCIL_OP_PASS_BITS )
 		{
-			case GLS_STENCIL_OP_PASS_KEEP:
-				pass = GL_KEEP;
-				break;
-			case GLS_STENCIL_OP_PASS_ZERO:
-				pass = GL_ZERO;
-				break;
-			case GLS_STENCIL_OP_PASS_REPLACE:
-				pass = GL_REPLACE;
-				break;
-			case GLS_STENCIL_OP_PASS_INCR:
-				pass = GL_INCR;
-				break;
-			case GLS_STENCIL_OP_PASS_DECR:
-				pass = GL_DECR;
-				break;
-			case GLS_STENCIL_OP_PASS_INVERT:
-				pass = GL_INVERT;
-				break;
-			case GLS_STENCIL_OP_PASS_INCR_WRAP:
-				pass = GL_INCR_WRAP;
-				break;
-			case GLS_STENCIL_OP_PASS_DECR_WRAP:
-				pass = GL_DECR_WRAP;
-				break;
+			case GLS_STENCIL_OP_PASS_KEEP:		zPass = GL_KEEP; break;
+			case GLS_STENCIL_OP_PASS_ZERO:		zPass = GL_ZERO; break;
+			case GLS_STENCIL_OP_PASS_REPLACE:	zPass = GL_REPLACE; break;
+			case GLS_STENCIL_OP_PASS_INCR:		zPass = GL_INCR; break;
+			case GLS_STENCIL_OP_PASS_DECR:		zPass = GL_DECR; break;
+			case GLS_STENCIL_OP_PASS_INVERT:	zPass = GL_INVERT; break;
+			case GLS_STENCIL_OP_PASS_INCR_WRAP: zPass = GL_INCR_WRAP; break;
+			case GLS_STENCIL_OP_PASS_DECR_WRAP: zPass = GL_DECR_WRAP; break;
 		}
-		glStencilOp( sFail, zFail, pass );
+		glStencilOp( sFail, zFail, zPass );
 	}
-	
+
 	backEnd.glState.glStateBits = stateBits;
 }
 
@@ -1265,6 +1144,152 @@ uint64 GL_GetCurrentStateMinusStencil()
 	return GL_GetCurrentState() & ~( GLS_STENCIL_OP_BITS | GLS_STENCIL_FUNC_BITS | GLS_STENCIL_FUNC_REF_BITS | GLS_STENCIL_FUNC_MASK_BITS );
 }
 
+/*
+========================
+GL_DisableRasterizer
+========================
+*/
+void GL_DisableRasterizer()
+{
+	glEnable( GL_RASTERIZER_DISCARD );
+	RENDERLOG_PRINT( "GL_DisableRasterizer()\n" );
+}
+
+/*
+=====================================================================================================
+
+											PROGRAM
+
+=====================================================================================================
+*/
+
+/*
+========================
+ GL_SetRenderProgram
+========================
+*/
+void GL_SetRenderProgram( const idDeclRenderProg * prog )
+{
+	if( backEnd.glState.currentRenderProg != prog )
+	{
+		auto glslprog = ( const glslProgram_t * ) prog->GetAPIObject();
+		glUseProgram( glslprog->programObject );
+
+		backEnd.glState.currentRenderProg = prog;
+		backEnd.glState.currentProgramObject = glslprog->programObject;
+
+		RENDERLOG_PRINT( "GL_SetRenderProgram( %s ) %s\n", prog->GetName(), prog->HasHardwareSkinning() ? ( prog->HasOptionalSkinning() ? "opt_skinned" : "skinned" ) : "" );
+	}
+}
+/*
+========================
+ GL_GetCurrentRenderProgram
+========================
+*/
+const idDeclRenderProg * GL_GetCurrentRenderProgram()
+{
+	return backEnd.glState.currentRenderProg;
+}
+/*
+========================
+ GL_ResetProgramState
+========================
+*/
+void GL_ResetProgramState()
+{
+	glUseProgram( GL_NONE );
+
+	backEnd.glState.currentProgramObject = GL_NONE;
+	backEnd.glState.currentRenderProg = nullptr;
+
+	RENDERLOG_PRINT("GL_ResetProgramState()\n");
+}
+
+/*
+===========================================
+ GL_CommitUniforms
+===========================================
+*/
+void GL_CommitProgUniforms( const idDeclRenderProg * decl )
+{
+	///const char * SHT[ SHT_MAX ] = { "VS", "TCS", "TES", "GS", "FS" };
+	auto const prog = ( const glslProgram_t * ) decl->GetAPIObject();
+
+	/*{
+	auto & parms = GetSmpParms();
+	for( int i = 0; i < parms.Num(); ++i )
+	{
+	GLuint sampler;
+	glBindSampler( i, sampler );
+	}
+	}*/
+	{
+		auto & parms = decl->GetTexParms();
+		for( int i = 0; i < parms.Num(); ++i )
+		{
+			GL_BindTexture( i, parms[ i ]->GetImage() );
+		}
+	}
+
+	if( r_useProgUBO.GetBool() && decl->GetVecParms().Num() )
+	{
+		const auto & ubo = backEnd.progParmsUniformBuffer; //GetParmsUBO();
+		const GLuint bo = GetGLObject( ubo.GetAPIObject() );
+		const GLuint bindIndex = BINDING_PROG_PARMS_UBO;
+
+		idRenderVector localVectors[ 128 ];
+		auto & parms = decl->GetVecParms();
+		for( int i = 0; i < parms.Num(); ++i )
+		{
+		#if defined( USE_INTRINSICS )
+			_mm_store_ps( localVectors[ i ].ToFloatPtr(), _mm_load_ps( parms[ i ]->GetVecPtr() ) );
+		#else
+			localVectors[ i ] = parms[ i ]->GetVec4();
+		#endif
+		}
+		const int updateSize = parms.Num() * sizeof( idRenderVector );
+		ubo.Update( updateSize, localVectors->ToFloatPtr() );
+
+		//ubo.Bind( bindIndex, ubo.GetOffset(), updateSize );
+		///glBindBufferBase( GL_UNIFORM_BUFFER, bindIndex, bo );
+
+		RENDERLOG_PRINT( "UBO( binding:%u, count:%i, size:%i, offset:%i, bsize:%i )\n", bindIndex, parms.Num(), updateSize, ubo.GetOffset(), ubo.GetSize() );
+	}
+	else // Uniform Arrays
+	{
+		if( prog->parmBlockIndex != -1 )
+		{
+			idRenderVector localVectors[ 128 ];
+
+			auto & parms = decl->GetVecParms();
+			for( int i = 0; i < parms.Num(); ++i )
+			{
+				const float * v = parms[ i ]->GetVecPtr();
+			#if defined( USE_INTRINSICS )
+				_mm_store_ps( localVectors[ i ].ToFloatPtr(), _mm_load_ps( v ) );
+			#else
+				localVectors[ i ] = parms[ i ]->GetVec4();
+			#endif
+				RENDERLOG_PRINT( "_rp.%s = { %f, %f, %f, %f }\n", parms[ i ]->GetName(), v[ 0 ], v[ 1 ], v[ 2 ], v[ 3 ] );
+			}
+			glUniform4fv( prog->parmBlockIndex, parms.Num(), localVectors->ToFloatPtr() );
+
+			//RENDERLOG_PRINT( "Uniforms( Binding:%i, Count:%i )\n", prog->parmBlockIndex, parms.Num() );
+		}
+	}
+}
+
+/*
+=====================================================================================================
+
+											VAO
+
+=====================================================================================================
+*/
+/*
+========================
+========================
+*/
 void GL_SetVertexMask( vertexMask_t vertexMask )
 {
 	vertexMask.HasFlag( VERTEX_MASK_POSITION )? glEnableVertexAttribArray( PC_ATTRIB_INDEX_POSITION ) : glDisableVertexAttribArray( PC_ATTRIB_INDEX_POSITION );
@@ -1325,7 +1350,7 @@ void GL_SetVertexMask( vertexMask_t vertexMask )
 */
 void GL_SetVertexLayout( vertexLayoutType_t vertexLayout )
 {
-	if( glConfig.ARB_vertex_attrib_binding && r_useVertexAttribFormat.GetBool() )
+	if( 0 )//glConfig.ARB_vertex_attrib_binding && r_useVertexAttribFormat.GetBool() )
 	{
 		if( vertexLayout == LAYOUT_DRAW_VERT_FULL )
 		{
@@ -1390,7 +1415,7 @@ void GL_SetVertexLayout( vertexLayoutType_t vertexLayout )
 
 			glVertexAttribFormat( PC_ATTRIB_INDEX_POSITION, 4, GL_FLOAT, GL_FALSE, SHADOWVERT_XYZW_OFFSET );
 		}
-	} 
+	}
 	else {
 		switch( vertexLayout )
 		{
@@ -1469,7 +1494,7 @@ void GL_SetVertexLayout( vertexLayoutType_t vertexLayout )
 
 				glVertexAttribPointer( PC_ATTRIB_INDEX_POSITION, 4, GL_FLOAT, GL_FALSE, sizeof( idShadowVert ), idShadowVert::xyzwOffset );
 
-				RENDERLOG_PRINT("GL_SetVertexLayout( LAYOUT_DRAW_SHADOW_VERT )\n");
+				RENDERLOG_PRINT( "GL_SetVertexLayout( LAYOUT_DRAW_SHADOW_VERT )\n" );
 			} break;
 
 			default:{
@@ -1485,7 +1510,7 @@ void GL_SetVertexLayout( vertexLayoutType_t vertexLayout )
 */
 static void GL_SetIndexBuffer( GLuint ibo )
 {
-	if( backEnd.glState.currentIndexBuffer != ( GLintptr )ibo || !r_useStateCaching.GetBool() )
+	if( backEnd.glState.currentIndexBuffer != ( GLintptr )ibo )
 	{
 		glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, ibo );
 		backEnd.glState.currentIndexBuffer = ibo;
@@ -1497,9 +1522,16 @@ static void GL_SetIndexBuffer( GLuint ibo )
 */
 static void GL_SetVertexArray( GLuint vbo, vertexLayoutType_t vertexLayout )
 {
-	if( ( backEnd.glState.vertexLayout != vertexLayout ) || ( backEnd.glState.currentVertexBuffer != ( GLintptr )vbo ) || !r_useStateCaching.GetBool() )
+	if( backEnd.glState.currentVAO != glConfig.global_vao )
 	{
-		if( glConfig.ARB_vertex_attrib_binding && r_useVertexAttribFormat.GetBool() )
+		glBindVertexArray( glConfig.global_vao );
+		backEnd.glState.currentVAO = glConfig.global_vao;
+	}
+
+	if( ( backEnd.glState.vertexLayout != vertexLayout ) || ( backEnd.glState.currentVertexBuffer != ( GLintptr )vbo ) )
+	{
+		backEnd.glState.currentVertexBuffer = ( GLintptr )vbo;
+		if( 0 )//glConfig.ARB_vertex_attrib_binding && r_useVertexAttribFormat.GetBool() )
 		{
 			const GLintptr baseOffset = 0;
 			const GLuint bindingIndex = 0;
@@ -1508,10 +1540,50 @@ static void GL_SetVertexArray( GLuint vbo, vertexLayoutType_t vertexLayout )
 		else {
 			glBindBuffer( GL_ARRAY_BUFFER, vbo );
 		}
-		backEnd.glState.currentVertexBuffer = ( GLintptr )vbo;
 
-		GL_SetVertexLayout( vertexLayout );
+		// -----------------------------------------
+
 		backEnd.glState.vertexLayout = vertexLayout;
+		GL_SetVertexLayout( vertexLayout );
+	}
+}
+
+void GL_SetAttributeMask( idBitFlags<int> vertMask )
+{
+	if( vertMask.HasFlag( VERTEX_MASK_POSITION ) ) {
+		glEnableVertexAttribArray( PC_ATTRIB_INDEX_POSITION );
+	} else {
+		glDisableVertexAttribArray( PC_ATTRIB_INDEX_POSITION );
+	}
+
+	if( vertMask.HasFlag( VERTEX_MASK_ST ) ) {
+		glEnableVertexAttribArray( PC_ATTRIB_INDEX_ST );
+	} else {
+		glDisableVertexAttribArray( PC_ATTRIB_INDEX_ST );
+	}
+
+	if( vertMask.HasFlag( VERTEX_MASK_NORMAL ) ) {
+		glEnableVertexAttribArray( PC_ATTRIB_INDEX_NORMAL );
+	} else {
+		glDisableVertexAttribArray( PC_ATTRIB_INDEX_NORMAL );
+	}
+
+	if( vertMask.HasFlag( VERTEX_MASK_TANGENT ) ) {
+		glEnableVertexAttribArray( PC_ATTRIB_INDEX_TANGENT );
+	} else {
+		glDisableVertexAttribArray( PC_ATTRIB_INDEX_TANGENT );
+	}
+
+	if( vertMask.HasFlag( VERTEX_MASK_COLOR ) ) {
+		glEnableVertexAttribArray( PC_ATTRIB_INDEX_COLOR );
+	} else {
+		glDisableVertexAttribArray( PC_ATTRIB_INDEX_COLOR );
+	}
+
+	if( vertMask.HasFlag( VERTEX_MASK_COLOR2 ) ) {
+		glEnableVertexAttribArray( PC_ATTRIB_INDEX_COLOR2 );
+	} else {
+		glDisableVertexAttribArray( PC_ATTRIB_INDEX_COLOR2 );
 	}
 }
 
@@ -1525,6 +1597,7 @@ void GL_DrawIndexed( const drawSurf_t* surf, vertexLayoutType_t vertexLayout, in
 	// get vertex buffer --------------------------------
 
 	idVertexBuffer vertexBuffer;
+	assert( surf->vertexCache != 0 );
 	vertexCache.GetVertexBuffer( surf->vertexCache, vertexBuffer );
 	const GLint vertOffset = vertexBuffer.GetOffset();
 	const GLuint vbo = GetGLObject( vertexBuffer.GetAPIObject() );
@@ -1532,13 +1605,14 @@ void GL_DrawIndexed( const drawSurf_t* surf, vertexLayoutType_t vertexLayout, in
 	// get index buffer --------------------------------
 
 	idIndexBuffer indexBuffer;
+	assert( surf->indexCache != 0 );
 	vertexCache.GetIndexBuffer( surf->indexCache, indexBuffer );
 	const GLintptr indexOffset = indexBuffer.GetOffset();
 	const GLuint ibo = GetGLObject( indexBuffer.GetAPIObject() );
 
 	// get joint buffer --------------------------------
 
-	if( surf->jointCache )
+	/*if( surf->HasSkinning() )
 	{
 		// DG: this happens all the time in the erebus1 map with blendlight.vfp,
 		// so don't call assert (through verify) here until it's fixed (if fixable)
@@ -1546,41 +1620,56 @@ void GL_DrawIndexed( const drawSurf_t* surf, vertexLayoutType_t vertexLayout, in
 
 		// FIXME: fix this properly if possible?
 		// RB: yes but it would require an additional blend light skinned shader
-		//if( !verify( renderProgManager.ShaderUsesJoints() ) )
-		if( !renderProgManager.ShaderUsesJoints() )
+		//if( !verify( GL_GetCurrentRenderProgram()->HasHardwareSkinning() ) )
+		if( !GL_GetCurrentRenderProgram()->HasHardwareSkinning() )
 			// DG end
 		{
 			return;
 		}
 	}
 	else {
-		if( !verify( !renderProgManager.ShaderUsesJoints() || renderProgManager.ShaderHasOptionalSkinning() ) )
+		if( !verify( !GL_GetCurrentRenderProgram()->HasHardwareSkinning() || GL_GetCurrentRenderProgram()->HasOptionalSkinning() ) )
 		{
 			return;
 		}
-	}
+	}*/
 
-	if( surf->jointCache )
+	if( GL_GetCurrentRenderProgram()->HasOptionalSkinning() )
 	{
+		assert( GL_GetCurrentRenderProgram()->HasHardwareSkinning() != false );
+
+	#if USE_INTRINSICS
+		_mm_store_ps( renderProgManager.GetRenderParm( RENDERPARM_ENABLE_SKINNING )->GetVecPtr(), surf->HasSkinning() ? idMath::SIMD_SP_one : _mm_setzero_ps() );
+	#else
+		renderProgManager.GetRenderParm( RENDERPARM_ENABLE_SKINNING )->GetVec4().Fill( surf->HasSkinning() ? 1.0 : 0.0 );
+	#endif
+	}
+	if( surf->HasSkinning() )
+	{
+		assert( GL_GetCurrentRenderProgram()->HasHardwareSkinning() != false );
+
 		idJointBuffer jointBuffer;
 		if( !vertexCache.GetJointBuffer( surf->jointCache, jointBuffer ) )
 		{
 			idLib::Warning( "GL_DrawIndexed, jointBuffer == NULL" );
 			return;
 		}
+
 		assert( ( jointBuffer.GetOffset() & ( glConfig.uniformBufferOffsetAlignment - 1 ) ) == 0 );
 
-		// RB: 64 bit fixes, changed GLuint to GLintptr
 		const GLintptr ubo = GetGLObject( jointBuffer.GetAPIObject() );
-		// RB end
 
 		glBindBufferRange( GL_UNIFORM_BUFFER, BINDING_MATRICES_UBO, ubo, jointBuffer.GetOffset(), jointBuffer.GetNumJoints() * sizeof( idJointMat ) );
 	}
 
-	renderProgManager.GetCurrentRenderProgram()->CommitUniforms();
+	GL_CommitProgUniforms( GL_GetCurrentRenderProgram() );
 
-	GL_SetIndexBuffer( ibo );
 	GL_SetVertexArray( vbo, vertexLayout );
+	GL_SetIndexBuffer( ibo );
+
+	//SEA: wtf?
+	//release_assert( NULL != ( triIndex_t* )indexOffset );
+	//release_assert( NULL != ( vertOffset / sizeof( idDrawVert )) );
 
 	const GLsizei primcount = globalInstanceCount;
 	glDrawElementsInstancedBaseVertex( GL_TRIANGLES,
@@ -1593,8 +1682,9 @@ void GL_DrawIndexed( const drawSurf_t* surf, vertexLayoutType_t vertexLayout, in
 	backEnd.pc.c_drawElements++;
 	backEnd.pc.c_drawIndexes += surf->numIndexes;
 
-	RENDERLOG_PRINT( "GL_DrawIndexed( VBO %u:%i, IBO %u:%i, numIndexes:%i )\n", vbo, vertOffset, ibo, indexOffset, surf->numIndexes );
+	RENDERLOG_PRINT( ">>>>> GL_DrawIndexed( VBO:%u offset:%i, IBO:%u offset:%i count:%i )\n", vbo, vertOffset, ibo, indexOffset, surf->numIndexes );
 }
+
 /*
 ============================================================
  GL_DrawZeroOneCube
@@ -1602,9 +1692,9 @@ void GL_DrawIndexed( const drawSurf_t* surf, vertexLayoutType_t vertexLayout, in
 */
 void GL_DrawZeroOneCube( vertexLayoutType_t vertexLayout, int instanceCount )
 {
-	const drawSurf_t* const surf = &backEnd.zeroOneCubeSurface;
+	const auto * const surf = &backEnd.zeroOneCubeSurface;
 
-	renderProgManager.GetCurrentRenderProgram()->CommitUniforms();
+	GL_CommitProgUniforms( GL_GetCurrentRenderProgram() );
 
 	// get vertex buffer --------------------------------
 
@@ -1620,8 +1710,8 @@ void GL_DrawZeroOneCube( vertexLayoutType_t vertexLayout, int instanceCount )
 	const GLintptr indexOffset = indexBuffer.GetOffset();
 	const GLuint ibo = GetGLObject( indexBuffer.GetAPIObject() );
 
-	GL_SetIndexBuffer( ibo );
 	GL_SetVertexArray( vbo, vertexLayout );
+	GL_SetIndexBuffer( ibo );
 
 	glDrawElementsInstancedBaseVertex( GL_TRIANGLES,
 		r_singleTriangle.GetBool() ? 3 : surf->numIndexes,
@@ -1633,7 +1723,7 @@ void GL_DrawZeroOneCube( vertexLayoutType_t vertexLayout, int instanceCount )
 	backEnd.pc.c_drawElements++;
 	backEnd.pc.c_drawIndexes += surf->numIndexes;
 
-	RENDERLOG_PRINT( "GL_DrawZeroOneCube( VBO %u:%i, IBO %u:%i, numIndexes:%i )\n", vbo, vertOffset, ibo, indexOffset, surf->numIndexes );
+	RENDERLOG_PRINT( ">>>>> GL_DrawZeroOneCube( VBO %u:%i, IBO %u:%i, numIndexes:%i )\n", vbo, vertOffset, ibo, indexOffset, surf->numIndexes );
 }
 /*
 ============================================================
@@ -1642,9 +1732,9 @@ void GL_DrawZeroOneCube( vertexLayoutType_t vertexLayout, int instanceCount )
 */
 void GL_DrawUnitSquare( vertexLayoutType_t vertexLayout, int instanceCount )
 {
-	const drawSurf_t* const surf = &backEnd.unitSquareSurface;
+	const auto * const surf = &backEnd.unitSquareSurface;
 
-	renderProgManager.GetCurrentRenderProgram()->CommitUniforms();
+	GL_CommitProgUniforms( GL_GetCurrentRenderProgram() );
 
 	// get vertex buffer --------------------------------
 
@@ -1660,8 +1750,8 @@ void GL_DrawUnitSquare( vertexLayoutType_t vertexLayout, int instanceCount )
 	const GLintptr indexOffset = indexBuffer.GetOffset();
 	const GLuint ibo = GetGLObject( indexBuffer.GetAPIObject() );
 
-	GL_SetIndexBuffer( ibo );
 	GL_SetVertexArray( vbo, vertexLayout );
+	GL_SetIndexBuffer( ibo );
 
 	glDrawElementsInstancedBaseVertex( GL_TRIANGLES,
 		r_singleTriangle.GetBool() ? 3 : surf->numIndexes,
@@ -1673,5 +1763,205 @@ void GL_DrawUnitSquare( vertexLayoutType_t vertexLayout, int instanceCount )
 	backEnd.pc.c_drawElements++;
 	backEnd.pc.c_drawIndexes += surf->numIndexes;
 
-	RENDERLOG_PRINT( "GL_DrawUnitSquare( VBO %u:%i, IBO %u:%i, numIndexes:%i )\n", vbo, vertOffset, ibo, indexOffset, surf->numIndexes );
+	RENDERLOG_PRINT( ">>>>> GL_DrawUnitSquare( VBO %u:%i, IBO %u:%i, numIndexes:%i )\n", vbo, vertOffset, ibo, indexOffset, surf->numIndexes );
+}
+
+/*
+============================================================
+ GL_DrawUnitSquareAuto
+============================================================
+*/
+void GL_DrawZeroOneCubeAuto()
+{
+	GL_CommitProgUniforms( GL_GetCurrentRenderProgram() );
+
+	if( backEnd.glState.currentVAO != glConfig.empty_vao )
+	{
+		glBindVertexArray( glConfig.empty_vao );
+		backEnd.glState.currentVAO = glConfig.empty_vao;
+
+		backEnd.glState.vertexLayout = LAYOUT_UNKNOWN;
+		backEnd.glState.currentVertexBuffer = 0;
+		backEnd.glState.currentIndexBuffer = 0;
+	}
+
+	glDrawArrays( GL_TRIANGLE_STRIP, 0, 14 );
+
+	RENDERLOG_PRINT( ">>>>> GL_DrawScreenTriangleAuto()\n" );
+}
+/*
+============================================================
+ GL_DrawScreenTriangleAuto
+============================================================
+*/
+void GL_DrawScreenTriangleAuto()
+{
+	GL_CommitProgUniforms( GL_GetCurrentRenderProgram() );
+
+	if( backEnd.glState.currentVAO != glConfig.empty_vao )
+	{
+		glBindVertexArray( glConfig.empty_vao );
+		backEnd.glState.currentVAO = glConfig.empty_vao;
+
+		backEnd.glState.vertexLayout = LAYOUT_UNKNOWN;
+		backEnd.glState.currentVertexBuffer = 0;
+		backEnd.glState.currentIndexBuffer = 0;
+	}
+
+	glDrawArrays( GL_TRIANGLES, 0, 3 );
+
+	RENDERLOG_PRINT( ">>>>> GL_DrawScreenTriangleAuto()\n" );
+}
+
+
+
+
+/*
+========================================
+ Flush the command buffer
+========================================
+*/
+void GL_Flush()
+{
+	glFlush();
+}
+
+
+/*
+========================================
+ Inserts a timing mark for the start of the GPU frame.
+========================================
+*/
+void GL_StartFrame( int frame )
+{
+	if( !glConfig.timerQueryAvailable )
+		return;
+
+	if( glConfig.timerQueryId == GL_NONE )
+	{
+		glGenQueries( 1, &glConfig.timerQueryId );
+	}
+	glBeginQuery( GL_TIME_ELAPSED_EXT, glConfig.timerQueryId );
+}
+/*
+========================================
+ Inserts a timing mark for the end of the GPU frame.
+========================================
+*/
+void GL_EndFrame()
+{
+	if( !glConfig.timerQueryAvailable )
+		return;
+
+	glEndQuery( GL_TIME_ELAPSED_EXT );
+
+	glFlush();
+}
+/*
+========================================
+ Read back the start and end timer queries from the previous frame
+========================================
+*/
+void GL_GetLastFrameTime( uint64& endGPUTimeMicroSec )
+{
+	endGPUTimeMicroSec = 0ull;
+
+	if( !glConfig.timerQueryAvailable )
+		return;
+
+	GLuint64EXT drawingTimeNanoseconds = 0;
+	if( glConfig.timerQueryId != GL_NONE )
+	{
+		glGetQueryObjectui64vEXT( glConfig.timerQueryId, GL_QUERY_RESULT, &drawingTimeNanoseconds );
+	}
+
+	endGPUTimeMicroSec = drawingTimeNanoseconds / 1000ull;
+}
+
+
+
+
+idCVar r_showSwapBuffers( "r_showSwapBuffers", "0", CVAR_BOOL, "Show timings from GL_BlockingSwapBuffers" );
+idCVar r_syncEveryFrame( "r_syncEveryFrame", "1", CVAR_BOOL, "Don't let the GPU buffer execution past swapbuffers" );
+
+static int		swapIndex;		// 0 or 1 into renderSync
+static GLsync	renderSync[ 2 ];
+
+/*
+========================================
+ GL_BlockingSwapBuffers
+	We want to exit this with the GPU idle, right at vsync
+========================================
+*/
+void GL_BlockingSwapBuffers()
+{
+	RENDERLOG_PRINT( "***************** GL_BlockingSwapBuffers *****************\n\n\n" );
+
+	const int beforeFinish = sys->Milliseconds();
+
+	if( !glConfig.syncAvailable )
+	{
+		glFinish();
+	}
+
+	const int beforeSwap = sys->Milliseconds();
+	if( r_showSwapBuffers.GetBool() && beforeSwap - beforeFinish > 1 )
+	{
+		common->Printf( "%i msec to glFinish\n", beforeSwap - beforeFinish );
+	}
+
+	extern void GLimp_SwapBuffers();
+	GLimp_SwapBuffers();
+
+	const int beforeFence = sys->Milliseconds();
+	if( r_showSwapBuffers.GetBool() && beforeFence - beforeSwap > 1 )
+	{
+		common->Printf( "%i msec to swapBuffers\n", beforeFence - beforeSwap );
+	}
+
+	if( glConfig.syncAvailable )
+	{
+		swapIndex ^= 1;
+
+		if( glIsSync( renderSync[ swapIndex ] ) )
+		{
+			glDeleteSync( renderSync[ swapIndex ] );
+		}
+		// draw something tiny to ensure the sync is after the swap
+		const int start = sys->Milliseconds();
+		glScissor( 0, 0, 1, 1 );
+		glEnable( GL_SCISSOR_TEST );
+		glClear( GL_COLOR_BUFFER_BIT );
+		renderSync[ swapIndex ] = glFenceSync( GL_SYNC_GPU_COMMANDS_COMPLETE, 0 );
+		const int end = sys->Milliseconds();
+		if( r_showSwapBuffers.GetBool() && end - start > 1 )
+		{
+			common->Printf( "%i msec to start fence\n", end - start );
+		}
+
+		GLsync syncToWaitOn = ( r_syncEveryFrame.GetBool() ) ? renderSync[ swapIndex ] : renderSync[ !swapIndex ];
+		if( glIsSync( syncToWaitOn ) )
+		{
+			for( GLenum r = GL_TIMEOUT_EXPIRED; r == GL_TIMEOUT_EXPIRED; )
+			{
+				r = glClientWaitSync( syncToWaitOn, GL_SYNC_FLUSH_COMMANDS_BIT, 1000 * 1000 );
+			}
+		}
+	}
+
+	const int afterFence = sys->Milliseconds();
+	if( r_showSwapBuffers.GetBool() && afterFence - beforeFence > 1 )
+	{
+		common->Printf( "%i msec to wait on fence\n", afterFence - beforeFence );
+	}
+
+	const int64 exitBlockTime = sys->Microseconds();
+
+	static int64 prevBlockTime;
+	if( r_showSwapBuffers.GetBool() && prevBlockTime )
+	{
+		const int delta = ( int )( exitBlockTime - prevBlockTime );
+		common->Printf( "blockToBlock: %i\n", delta );
+	}
+	prevBlockTime = exitBlockTime;
 }

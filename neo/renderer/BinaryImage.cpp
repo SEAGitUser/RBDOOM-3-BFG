@@ -44,7 +44,7 @@ If you have questions concerning this license or the applicable additional terms
 #include "Color/ColorSpace.h"
 
 idCVar image_highQualityCompression( "image_highQualityCompression", "0", CVAR_BOOL, "Use high quality (slow) compression" );
-idCVar r_useHighQualitySky( "r_useHighQualitySky", "0", CVAR_BOOL | CVAR_ARCHIVE, "Use high quality skyboxes" );
+idCVar r_useHighQualitySky( "r_useHighQualitySky", "1", CVAR_BOOL | CVAR_ARCHIVE, "Use high quality skyboxes" );
 
 /*
 ========================
@@ -59,12 +59,12 @@ void idBinaryImage::Load2DFromMemory( int width, int height, const byte* pic_con
 	fileData.width = width;
 	fileData.height = height;
 	fileData.numLevels = numLevels;
-	
+
 	commonLocal.LoadPacifierBinarizeInfo( va( "(%d x %d)", width, height ) );
-	
-	byte* pic = ( byte* )Mem_Alloc( width * height * 4, TAG_TEMP );
+
+	byte* pic = ( byte* ) Mem_Alloc( width * height * 4, TAG_TEMP );
 	memcpy( pic, pic_const, width * height * 4 );
-	
+
 	if( colorFormat == CFM_YCOCG_DXT5 )
 	{
 		// convert the image data to YCoCg and use the YCoCgDXT5 compressor
@@ -77,9 +77,9 @@ void idBinaryImage::Load2DFromMemory( int width, int height, const byte* pic_con
 		{
 			for( int i = 0; i < width * height; i++ )
 			{
-				pic[i * 4 + 3] = pic[i * 4 + 0];
-				pic[i * 4 + 0] = 0;
-				pic[i * 4 + 2] = 0;
+				pic[ i * 4 + 3 ] = pic[ i * 4 + 0 ];
+				pic[ i * 4 + 0 ] = 0;
+				pic[ i * 4 + 2 ] = 0;
 			}
 		}
 	}
@@ -87,22 +87,24 @@ void idBinaryImage::Load2DFromMemory( int width, int height, const byte* pic_con
 	{
 		for( int i = 0; i < width * height; i++ )
 		{
-			pic[i * 4 + 1] = pic[i * 4 + 3];
-			pic[i * 4 + 0] = 0;
-			pic[i * 4 + 2] = 0;
-			pic[i * 4 + 3] = 0;
+			pic[ i * 4 + 1 ] = pic[ i * 4 + 3 ];
+			pic[ i * 4 + 0 ] = 0;
+			pic[ i * 4 + 2 ] = 0;
+			pic[ i * 4 + 3 ] = 0;
 		}
 	}
-	
+
 	int	scaledWidth = width;
 	int scaledHeight = height;
 	images.SetNum( numLevels );
+
+	//for( int layer = 0; layer < layers; layer++ )
 	for( int level = 0; level < images.Num(); level++ )
 	{
-		idBinaryImageData& img = images[ level ];
-		
+		idBinaryImageData & img = images[ level ];
+
 		commonLocal.LoadPacifierBinarizeMiplevel( level + 1, numLevels );
-		
+
 		// Images that are going to be DXT compressed and aren't multiples of 4 need to be
 		// padded out before compressing.
 		byte* dxtPic = pic;
@@ -114,25 +116,24 @@ void idBinaryImage::Load2DFromMemory( int width, int height, const byte* pic_con
 			{
 				dxtWidth = ( scaledWidth + 3 ) & ~3;
 				dxtHeight = ( scaledHeight + 3 ) & ~3;
-				dxtPic = ( byte* )Mem_ClearedAlloc( dxtWidth * 4 * dxtHeight, TAG_IMAGE );
+				dxtPic = ( byte* ) Mem_ClearedAlloc( dxtWidth * 4 * dxtHeight, TAG_IMAGE );
 				for( int i = 0; i < scaledHeight; i++ )
 				{
 					memcpy( dxtPic + i * dxtWidth * 4, pic + i * scaledWidth * 4, scaledWidth * 4 );
 				}
 			}
-			else
-			{
+			else {
 				dxtPic = pic;
 				dxtWidth = scaledWidth;
 				dxtHeight = scaledHeight;
 			}
 		}
-		
+
 		img.level = level;
 		img.destZ = 0;
 		img.width = scaledWidth;
 		img.height = scaledHeight;
-		
+
 		// compress data or convert floats as necessary
 		if( textureFormat == FMT_DXT1 )
 		{
@@ -141,13 +142,12 @@ void idBinaryImage::Load2DFromMemory( int width, int height, const byte* pic_con
 			if( image_highQualityCompression.GetBool() )
 			{
 				commonLocal.LoadPacifierBinarizeInfo( va( "(%d x %d) - DXT1HQ", width, height ) );
-				
+
 				dxt.CompressImageDXT1HQ( dxtPic, img.data, dxtWidth, dxtHeight );
 			}
-			else
-			{
+			else {
 				commonLocal.LoadPacifierBinarizeInfo( va( "(%d x %d) - DXT1Fast", width, height ) );
-				
+
 				dxt.CompressImageDXT1Fast( dxtPic, img.data, dxtWidth, dxtHeight );
 			}
 		}
@@ -160,13 +160,12 @@ void idBinaryImage::Load2DFromMemory( int width, int height, const byte* pic_con
 				if( image_highQualityCompression.GetBool() )
 				{
 					commonLocal.LoadPacifierBinarizeInfo( va( "(%d x %d) - NormalMapDXT5HQ", width, height ) );
-					
+
 					dxt.CompressNormalMapDXT5HQ( dxtPic, img.data, dxtWidth, dxtHeight );
 				}
-				else
-				{
+				else {
 					commonLocal.LoadPacifierBinarizeInfo( va( "(%d x %d) - NormalMapDXT5Fast", width, height ) );
-					
+
 					dxt.CompressNormalMapDXT5Fast( dxtPic, img.data, dxtWidth, dxtHeight );
 				}
 			}
@@ -175,29 +174,26 @@ void idBinaryImage::Load2DFromMemory( int width, int height, const byte* pic_con
 				if( image_highQualityCompression.GetBool() )
 				{
 					commonLocal.LoadPacifierBinarizeInfo( va( "(%d x %d) - YCoCgDXT5HQ", width, height ) );
-					
+
 					dxt.CompressYCoCgDXT5HQ( dxtPic, img.data, dxtWidth, dxtHeight );
 				}
-				else
-				{
+				else {
 					commonLocal.LoadPacifierBinarizeInfo( va( "(%d x %d) - YCoCgDXT5Fast", width, height ) );
-					
+
 					dxt.CompressYCoCgDXT5Fast( dxtPic, img.data, dxtWidth, dxtHeight );
 				}
 			}
-			else
-			{
+			else {
 				fileData.colorFormat = colorFormat = CFM_DEFAULT;
 				if( image_highQualityCompression.GetBool() )
 				{
 					commonLocal.LoadPacifierBinarizeInfo( va( "(%d x %d) - DXT5HQ", width, height ) );
-					
+
 					dxt.CompressImageDXT5HQ( dxtPic, img.data, dxtWidth, dxtHeight );
 				}
-				else
-				{
+				else {
 					commonLocal.LoadPacifierBinarizeInfo( va( "(%d x %d) - DXT5Fast", width, height ) );
-					
+
 					dxt.CompressImageDXT5Fast( dxtPic, img.data, dxtWidth, dxtHeight );
 				}
 			}
@@ -249,31 +245,31 @@ void idBinaryImage::Load2DFromMemory( int width, int height, const byte* pic_con
 				img.data[ i ] = pic[ i ];
 			}
 		}
-		
+
 		// if we had to pad to quads, free the padded version
 		if( pic != dxtPic )
 		{
 			Mem_Free( dxtPic );
 			dxtPic = NULL;
 		}
-		
+
 		// downsample for the next level
 		byte* shrunk = NULL;
 		if( gammaMips )
 		{
 			shrunk = R_MipMapWithGamma( pic, scaledWidth, scaledHeight );
 		}
-		else
-		{
+		else {
 			shrunk = R_MipMap( pic, scaledWidth, scaledHeight );
 		}
+
 		Mem_Free( pic );
 		pic = shrunk;
-		
+
 		scaledWidth = idMath::Max( 1, scaledWidth >> 1 );
 		scaledHeight = idMath::Max( 1, scaledHeight >> 1 );
 	}
-	
+
 	Mem_Free( pic );
 }
 
@@ -285,22 +281,22 @@ DXT Compression requres a complete 4x4 block, even if the GPU will only be sampl
 a subset of it, so pad to 4x4 with replicated texels to maximize compression.
 ========================
 */
-static void PadImageTo4x4( const byte* src, int width, int height, byte dest[64] )
+static void PadImageTo4x4( const byte* src, int width, int height, byte dest[ 64 ] )
 {
 	// we probably will need to support this for non-square images, but I'll address
 	// that when needed
 	assert( width <= 4 && height <= 4 );
 	assert( width > 0 && height > 0 );
-	
-	for( int y = 0 ; y < 4 ; y++ )
+
+	for( int y = 0; y < 4; y++ )
 	{
 		int	sy = y % height;
-		for( int x = 0 ; x < 4 ; x++ )
+		for( int x = 0; x < 4; x++ )
 		{
 			int	sx = x % width;
-			for( int c = 0 ; c < 4 ; c++ )
+			for( int c = 0; c < 4; c++ )
 			{
-				dest[( y * 4 + x ) * 4 + c] = src[( sy * width + sx ) * 4 + c];
+				dest[ ( y * 4 + x ) * 4 + c ] = src[ ( sy * width + sx ) * 4 + c ];
 			}
 		}
 	}
@@ -311,34 +307,35 @@ static void PadImageTo4x4( const byte* src, int width, int height, byte dest[64]
 idBinaryImage::LoadCubeFromMemory
 ========================
 */
-void idBinaryImage::LoadCubeFromMemory( int width, const byte* pics[6], int numLevels, textureFormat_t& textureFormat, bool gammaMips )
+void idBinaryImage::LoadCubeFromMemory( int width, const byte* pics[ 6 ], int numLevels, textureFormat_t& textureFormat, bool gammaMips )
 {
 	commonLocal.LoadPacifierBinarizeInfo( va( "cube (%d)", width ) );
-	
+
 	fileData.textureType = TT_CUBIC;
 	fileData.format = textureFormat;
 	fileData.colorFormat = CFM_DEFAULT;
 	fileData.height = fileData.width = width;
 	fileData.numLevels = numLevels;
-	
+
 	images.SetNum( fileData.numLevels * 6 );
-	
+
+	//for( int layer = 0; layer < layers; layer++ )
 	for( int side = 0; side < 6; side++ )
 	{
-		const byte* orig = pics[side];
+		const byte* orig = pics[ side ];
 		const byte* pic = orig;
 		int	scaledWidth = fileData.width;
-		
+
 		for( int level = 0; level < fileData.numLevels; level++ )
 		{
 			// compress data or convert floats as necessary
-			idBinaryImageData& img = images[ level * 6 + side ];
-			
+			idBinaryImageData & img = images[ level * 6 + side ];
+
 			commonLocal.LoadPacifierBinarizeMiplevel( level, fileData.numLevels );
-			
+
 			// handle padding blocks less than 4x4 for the DXT compressors
-			ALIGN16( byte padBlock[64] );
-			int		padSize;
+			ALIGN16( byte padBlock[ 64 ] );
+			int	padSize;
 			const byte* padSrc;
 			if( scaledWidth < 4 && ( textureFormat == FMT_DXT1 || textureFormat == FMT_DXT5 ) )
 			{
@@ -346,12 +343,11 @@ void idBinaryImage::LoadCubeFromMemory( int width, const byte* pics[6], int numL
 				padSize = 4;
 				padSrc = padBlock;
 			}
-			else
-			{
+			else {
 				padSize = scaledWidth;
 				padSrc = pic;
 			}
-			
+
 			img.level = level;
 			img.destZ = side;
 			img.width = padSize;
@@ -368,36 +364,34 @@ void idBinaryImage::LoadCubeFromMemory( int width, const byte* pics[6], int numL
 				idDxtEncoder dxt;
 				dxt.CompressImageDXT5Fast( padSrc, img.data, padSize, padSize );
 			}
-			else
-			{
+			else {
 				fileData.format = textureFormat = FMT_RGBA8;
 				img.Alloc( padSize * padSize * 4 );
 				memcpy( img.data, pic, img.dataSize );
 			}
-			
+
 			// downsample for the next level
 			byte* shrunk = NULL;
 			if( gammaMips )
 			{
 				shrunk = R_MipMapWithGamma( pic, scaledWidth, scaledWidth );
 			}
-			else
-			{
+			else {
 				shrunk = R_MipMap( pic, scaledWidth, scaledWidth );
 			}
 			if( pic != orig )
 			{
-				Mem_Free( ( void* )pic );
+				Mem_Free( ( void* ) pic );
 				pic = NULL;
 			}
 			pic = shrunk;
-			
+
 			scaledWidth = idMath::Max( 1, scaledWidth >> 1 );
 		}
 		if( pic != orig )
 		{
 			// free the down sampled version
-			Mem_Free( ( void* )pic );
+			Mem_Free( ( void* ) pic );
 			pic = NULL;
 		}
 	}
@@ -422,7 +416,7 @@ ID_TIME_T idBinaryImage::WriteGeneratedFile( ID_TIME_T sourceFileTime )
 #if 1
 	fileData.headerMagic = BIMAGE_MAGIC;
 	fileData.sourceFileTime = sourceFileTime;
-	
+
 	file->WriteBig( fileData.sourceFileTime );
 	file->WriteBig( fileData.headerMagic );
 	file->WriteBig( fileData.textureType );
@@ -435,19 +429,15 @@ ID_TIME_T idBinaryImage::WriteGeneratedFile( ID_TIME_T sourceFileTime )
 	fileData.sourceFileTime = sourceFileTime;
 	fileData.headerMagic = BIMAGE_MAGIC2;
 
-	///file->WriteBig( fileData.sourceFileTime );
-	///file->WriteBig( fileData.headerMagic );
-	///file->WriteBig( fileData.width );
-	///file->WriteBig( fileData.height );
-	///file->WriteBig( fileData.depth );
-	///file->WriteBig( fileData.lodBias );
-	///file->WriteBig( fileData.numLevels );
-	///file->WriteBig( fileData.textureType );
-	///file->WriteBig( fileData.cubeFilter );
-	///file->WriteBig( fileData.format );
-	///file->WriteBig( fileData.colorFormat );
-	///file->WriteBig( fileData.filter );
-	///file->WriteBig( fileData.repeat );
+	file->WriteBig( fileData.sourceFileTime );
+	file->WriteBig( fileData.headerMagic );
+	file->WriteBig( fileData.textureType );
+	file->WriteBig( fileData.format );
+	file->WriteBig( fileData.colorFormat );
+	file->WriteBig( fileData.width );
+	file->WriteBig( fileData.height );
+	file->WriteBig( fileData.depth );
+	file->WriteBig( fileData.numLevels );
 
 	file->Write( &fileData, sizeof( fileData ) );
 #endif
@@ -494,8 +484,7 @@ idBinaryImage::LoadFromGeneratedFile
 Load the preprocessed image from the generated folder.
 ==========================
 */
-bool idBinaryImage::LoadFromGeneratedFile( idFile* bFile, ID_TIME_T sourceTimeStamp )
-{
+bool idBinaryImage::LoadFromGeneratedFile( idFile* bFile, ID_TIME_T sourceTimeStamp ) {
 #if 0
 	struct entry_t {
 		ID_TIME_T sourceFileTime;
@@ -523,6 +512,7 @@ bool idBinaryImage::LoadFromGeneratedFile( idFile* bFile, ID_TIME_T sourceTimeSt
 		bFile->ReadBig( fileData.colorFormat );
 		bFile->ReadBig( fileData.width );
 		bFile->ReadBig( fileData.height );
+		bFile->ReadBig( fileData.depth );
 		bFile->ReadBig( fileData.numLevels );
 	}
 	else
@@ -543,7 +533,7 @@ bool idBinaryImage::LoadFromGeneratedFile( idFile* bFile, ID_TIME_T sourceTimeSt
 	swap.Big( fileData.width );
 	swap.Big( fileData.height );
 	swap.Big( fileData.numLevels );
-	
+
 	if( BIMAGE_MAGIC != fileData.headerMagic )
 	{
 		return false;
@@ -563,22 +553,22 @@ bool idBinaryImage::LoadFromGeneratedFile( idFile* bFile, ID_TIME_T sourceTimeSt
 	}
 
 #endif
-	
+
 	// RB: source might be from .resources, so we ignore the time stamp and assume a release build
 	if( !fileSystem->InProductionMode() && ( sourceTimeStamp != FILE_NOT_FOUND_TIMESTAMP ) && ( sourceTimeStamp != 0 ) && ( sourceTimeStamp != fileData.sourceFileTime ) )
 	{
 		return false;
 	}
 	// RB end
-	
+
 	int numImages = fileData.numLevels;
 	if( fileData.textureType == TT_CUBIC )
 	{
 		numImages *= 6;
 	}
-	
+
 	images.SetNum( numImages );
-	
+
 	for( int i = 0; i < numImages; ++i )
 	{
 		idBinaryImageData& img = images[ i ];
@@ -598,19 +588,19 @@ bool idBinaryImage::LoadFromGeneratedFile( idFile* bFile, ID_TIME_T sourceTimeSt
 		// DXT images need to be padded to 4x4 block sizes, but the original image
 		// sizes are still retained, so the stored data size may be larger than
 		// just the multiplication of dimensions
-		assert( img.dataSize >= img.width * img.height * BitsForFormat( ( textureFormat_t )fileData.format ) / 8 );
+		assert( img.dataSize >= img.width * img.height * BitsForFormat( ( textureFormat_t ) fileData.format ) / 8 );
 		img.Alloc( img.dataSize );
 		if( img.data == NULL )
 		{
 			return false;
 		}
-		
+
 		if( bFile->Read( img.data, img.dataSize ) <= 0 )
 		{
 			return false;
 		}
 	}
-	
+
 	return true;
 }
 
@@ -636,4 +626,3 @@ void idBinaryImage::GetGeneratedFileName( idStr& gfn, const char* name )
 	gfn.Replace( ")", "" );
 	gfn.Replace( " ", "" );
 }
-

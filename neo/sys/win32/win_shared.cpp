@@ -72,8 +72,8 @@ Sys_Milliseconds
 */
 int32 idSysLocal::Milliseconds() const
 {
-	static DWORD sys_timeBase = timeGetTime();
-	return timeGetTime() - sys_timeBase;
+	static DWORD sys_timeBase = ::timeGetTime();
+	return ::timeGetTime() - sys_timeBase;
 }
 
 /*
@@ -87,25 +87,25 @@ uint64 idSysLocal::Microseconds() const
 	
 	if( ticksPerMicrosecondTimes1024 == 0 )
 	{
-		ticksPerMicrosecondTimes1024 = ( ( uint64 )Sys_ClockTicksPerSecond() << 10 ) / 1000000;
+		ticksPerMicrosecondTimes1024 = ( ( uint64 )ClockTicksPerSecond() << 10 ) / 1000000;
 		assert( ticksPerMicrosecondTimes1024 > 0 );
 	}
 	
-	return ( ( uint64 )( ( int64 )Sys_GetClockTicks() << 10 ) ) / ticksPerMicrosecondTimes1024;
+	return ( ( uint64 )( ( int64 )GetClockTicks() << 10 ) ) / ticksPerMicrosecondTimes1024;
 }
 
 /*
 ================
 Sys_GetDriveFreeSpace
-returns in megabytes
+	returns in megabytes
 ================
 */
-int Sys_GetDriveFreeSpace( const char* path )
+size_t idSysLocal::GetDriveFreeSpace( const char* path ) const
 {
 	DWORDLONG lpFreeBytesAvailable;
 	DWORDLONG lpTotalNumberOfBytes;
 	DWORDLONG lpTotalNumberOfFreeBytes;
-	int ret = 26;
+	size_t ret = 26;
 	//FIXME: see why this is failing on some machines
 	if( ::GetDiskFreeSpaceEx( path, ( PULARGE_INTEGER )&lpFreeBytesAvailable, ( PULARGE_INTEGER )&lpTotalNumberOfBytes, ( PULARGE_INTEGER )&lpTotalNumberOfFreeBytes ) )
 	{
@@ -119,12 +119,12 @@ int Sys_GetDriveFreeSpace( const char* path )
 Sys_GetDriveFreeSpaceInBytes
 ========================
 */
-int64 Sys_GetDriveFreeSpaceInBytes( const char* path )
+size_t idSysLocal::GetDriveFreeSpaceInBytes( const char* path ) const
 {
 	DWORDLONG lpFreeBytesAvailable;
 	DWORDLONG lpTotalNumberOfBytes;
 	DWORDLONG lpTotalNumberOfFreeBytes;
-	int64 ret = 1;
+	size_t ret = 1;
 	//FIXME: see why this is failing on some machines
 	if( ::GetDiskFreeSpaceEx( path, ( PULARGE_INTEGER )&lpFreeBytesAvailable, ( PULARGE_INTEGER )&lpTotalNumberOfBytes, ( PULARGE_INTEGER )&lpTotalNumberOfFreeBytes ) )
 	{
@@ -141,13 +141,13 @@ Sys_GetCurrentMemoryStatus
 	all values are in kB except the memoryload
 ================
 */
-void Sys_GetCurrentMemoryStatus( sysMemoryStats_t& stats )
+void idSysLocal::GetCurrentMemoryStatus( sysMemoryStats_t& stats ) const
 {
 	MEMORYSTATUSEX statex = {};
 	unsigned __int64 work;
 	
 	statex.dwLength = sizeof( statex );
-	GlobalMemoryStatusEx( &statex );
+	::GlobalMemoryStatusEx( &statex );
 	
 	memset( &stats, 0, sizeof( stats ) );
 	
@@ -180,9 +180,9 @@ void Sys_GetCurrentMemoryStatus( sysMemoryStats_t& stats )
 Sys_LockMemory
 ================
 */
-bool Sys_LockMemory( void* ptr, int bytes )
+bool idSysLocal::LockMemory( void* ptr, int bytes ) const
 {
-	return ( VirtualLock( ptr, ( SIZE_T )bytes ) != FALSE );
+	return( VirtualLock( ptr, ( SIZE_T )bytes ) != FALSE );
 }
 
 /*
@@ -190,9 +190,9 @@ bool Sys_LockMemory( void* ptr, int bytes )
 Sys_UnlockMemory
 ================
 */
-bool Sys_UnlockMemory( void* ptr, int bytes )
+bool idSysLocal::UnlockMemory( void* ptr, int bytes ) const
 {
-	return ( VirtualUnlock( ptr, ( SIZE_T )bytes ) != FALSE );
+	return( VirtualUnlock( ptr, ( SIZE_T )bytes ) != FALSE );
 }
 
 /*
@@ -200,7 +200,7 @@ bool Sys_UnlockMemory( void* ptr, int bytes )
 Sys_SetPhysicalWorkMemory
 ================
 */
-void Sys_SetPhysicalWorkMemory( int minBytes, int maxBytes )
+void idSysLocal::SetPhysicalWorkMemory( int minBytes, int maxBytes ) const
 {
 	::SetProcessWorkingSetSize( GetCurrentProcess(), minBytes, maxBytes );
 }
@@ -216,7 +216,7 @@ char* Sys_GetCurrentUser()
 	size_t size = sizeof( s_userName );
 	const char * defaultName = "player";
 		
-	if( !GetUserName( s_userName, ( LPDWORD )&size ) )
+	if( !::GetUserName( s_userName, ( LPDWORD )&size ) )
 	{
 		idStr::Copy( s_userName, defaultName );
 	}

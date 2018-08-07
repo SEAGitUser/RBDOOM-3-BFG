@@ -543,13 +543,13 @@ idMoveable::GetRenderModelMaterial
 */
 const idMaterial* idMoveable::GetRenderModelMaterial() const
 {
-	if( renderEntity.customShader )
+	if( renderEntity.customMaterial )
 	{
-		return renderEntity.customShader;
+		return renderEntity.customMaterial;
 	}
 	if( renderEntity.hModel && renderEntity.hModel->NumSurfaces() )
 	{
-		return renderEntity.hModel->Surface( 0 )->shader;
+		return renderEntity.hModel->Surface( 0 )->GetMaterial();
 	}
 	return NULL;
 }

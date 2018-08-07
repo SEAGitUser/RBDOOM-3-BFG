@@ -152,7 +152,7 @@ public:
 		return false;
 	};
 	
-	void					SetName( idStr n )
+	void					SetName( const idStr & n )
 	{
 		name = n;
 	};

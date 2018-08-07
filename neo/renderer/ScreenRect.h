@@ -40,10 +40,10 @@ public:
 	short GetWidth() const { return x2 - x1 + 1; }
 	short GetHeight() const { return y2 - y1 + 1; }
 	int	GetArea() const { return ( x2 - x1 + 1 ) * ( y2 - y1 + 1 ); }
-	
+
 	// expand by one pixel each way to fix roundoffs
 	void Expand() { x1--; y1--; x2++; y2++; }
-	
+
 	// adds a point
 	void AddPoint( float x, float y )
 	{
@@ -55,7 +55,7 @@ public:
 		if( iy < y1 ) y1 = iy;
 		if( iy > y2 ) y2 = iy;
 	}
-	
+
 	void Intersect( const idRect& rect )
 	{
 		if( rect.x1 > x1 ) x1 = rect.x1;
@@ -95,7 +95,7 @@ public:
 	short		y1;
 	short		x2;
 	short		y2;
-	
+
 	// for depth bounds test
 	float       zmin;
 	float		zmax;
@@ -109,26 +109,26 @@ public:
 		this->x2 = idMath::ClampShort( x2 );
 		this->y2 = idMath::ClampShort( y2 );
 	}
-	
+
 	// clear to backwards values
-	void Clear()
+	ID_INLINE void Clear()
 	{
 		x1 = y1 = 32000;
 		x2 = y2 = -32000;
 		zmin = 0.0f;
 		zmax = 1.0f;
 	}
-	bool IsEmpty() const { return ( x1 > x2 || y1 > y2 ); }
-	short GetWidth() const { return x2 - x1 + 1; }
-	short GetHeight() const { return y2 - y1 + 1; }
-	int	GetArea() const { return ( x2 - x1 + 1 ) * ( y2 - y1 + 1 ); }
-	bool IsValid() const { return( GetWidth() > 0 && GetHeight() > 0 ); }
-	
+	ID_INLINE bool IsEmpty() const { return ( x1 > x2 || y1 > y2 ); }
+	ID_INLINE short GetWidth( int border = 1 ) const { return x2 - x1 + border; }
+	ID_INLINE short GetHeight( int border = 1 ) const { return y2 - y1 + border; }
+	ID_INLINE int GetArea( int border = 1 ) const { return ( x2 - x1 + border ) * ( y2 - y1 + border ); }
+	ID_INLINE bool IsValid() const { return( GetWidth() > 0 && GetHeight() > 0 ); }
+
 	// expand by one pixel each way to fix roundoffs
-	void Expand() { x1--; y1--; x2++; y2++; }
-	
+	ID_INLINE void Expand() { x1--; y1--; x2++; y2++; }
+
 	// adds a point
-	void AddPoint( float x, float y )
+	ID_INLINE void AddPoint( float x, float y )
 	{
 		int	ix = idMath::Ftoi( x );
 		int iy = idMath::Ftoi( y );
@@ -138,8 +138,8 @@ public:
 		if( iy < y1 ) y1 = iy;
 		if( iy > y2 ) y2 = iy;
 	}
-	
-	void Intersect( const idScreenRect& rect )
+
+	ID_INLINE void Intersect( const idScreenRect& rect )
 	{
 		if( rect.x1 > x1 ) x1 = rect.x1;
 		if( rect.x2 < x2 ) x2 = rect.x2;
@@ -147,7 +147,7 @@ public:
 		if( rect.y2 < y2 ) y2 = rect.y2;
 	}
 
-	void Union( const idScreenRect& rect )
+	ID_INLINE void Union( const idScreenRect& rect )
 	{
 		if( rect.x1 < x1 ) x1 = rect.x1;
 		if( rect.x2 > x2 ) x2 = rect.x2;
@@ -155,7 +155,7 @@ public:
 		if( rect.y2 > y2 ) y2 = rect.y2;
 	}
 
-	bool Equals( const idScreenRect& rect ) const
+	ID_INLINE bool Equals( const idScreenRect& rect ) const
 	{
 		return ( x1 == rect.x1 && x2 == rect.x2 && y1 == rect.y1 && y2 == rect.y2 );
 	}

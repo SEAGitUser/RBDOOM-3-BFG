@@ -31,8 +31,7 @@ If you have questions concerning this license or the applicable additional terms
 // simple rectangle
 //
 extern void RotateVector( idVec3& v, idVec3 origin, float a, float c, float s );
-class idRectangle
-{
+class idRectangle {
 public:
 	float x;    // horiz position
 	float y;    // vert position
@@ -78,7 +77,7 @@ public:
 	{
 		x = y = w = h = 0.0;
 	};
-	
+
 	void ClipAgainst( idRectangle r, bool sizeOnly )
 	{
 		if( !sizeOnly )
@@ -103,26 +102,16 @@ public:
 			h = ( r.y + r.h ) - y;
 		}
 	}
-	
-	
-	
+
 	void Rotate( float a, idRectangle& out )
 	{
-		idVec3 p1, p2, p3, p4, p5;
-		float c, s;
-		idVec3 center;
-		center.Set( ( x + w ) / 2.0, ( y + h ) / 2.0, 0 );
-		p1.Set( x, y, 0 );
-		p2.Set( Right(), y, 0 );
-		p4.Set( x, Bottom(), 0 );
-		if( a )
-		{
-			s = sin( DEG2RAD( a ) );
-			c = cos( DEG2RAD( a ) );
-		}
-		else
-		{
-			s = c = 0;
+		idVec3 center( ( x + w ) / 2.0, ( y + h ) / 2.0, 0.0 );
+		idVec3 p1( x, y, 0 );
+		idVec3 p2( Right(), y, 0.0 );
+		idVec3 p4( x, Bottom(), 0.0 );
+		float c = 0.0, s = 0.0;
+		if( a ) {
+			idMath::SinCos( DEG2RAD( a ), s, c );
 		}
 		RotateVector( p1, center, a, c, s );
 		RotateVector( p2, center, a, c, s );
@@ -132,7 +121,7 @@ public:
 		out.w = ( p2 - p1 ).Length();
 		out.h = ( p4 - p1 ).Length();
 	}
-	
+
 	idRectangle& operator+=( const idRectangle& a );
 	idRectangle& operator-=( const idRectangle& a );
 	idRectangle& operator/=( const idRectangle& a );
@@ -143,14 +132,12 @@ public:
 	float& 	operator[]( const int index );
 	char* String() const;
 	const idVec4& ToVec4() const;
-	
 };
 
 ID_INLINE const idVec4& idRectangle::ToVec4() const
 {
-	return *reinterpret_cast<const idVec4*>( &x );
+	return *reinterpret_cast< const idVec4* >( &x );
 }
-
 
 ID_INLINE idRectangle& idRectangle::operator+=( const idRectangle& a )
 {
@@ -158,7 +145,7 @@ ID_INLINE idRectangle& idRectangle::operator+=( const idRectangle& a )
 	y += a.y;
 	w += a.w;
 	h += a.h;
-	
+
 	return *this;
 }
 
@@ -168,7 +155,7 @@ ID_INLINE idRectangle& idRectangle::operator/=( const idRectangle& a )
 	y /= a.y;
 	w /= a.w;
 	h /= a.h;
-	
+
 	return *this;
 }
 
@@ -179,7 +166,7 @@ ID_INLINE idRectangle& idRectangle::operator/=( const float a )
 	y *= inva;
 	w *= inva;
 	h *= inva;
-	
+
 	return *this;
 }
 
@@ -189,7 +176,7 @@ ID_INLINE idRectangle& idRectangle::operator-=( const idRectangle& a )
 	y -= a.y;
 	w -= a.w;
 	h -= a.h;
-	
+
 	return *this;
 }
 
@@ -199,10 +186,9 @@ ID_INLINE idRectangle& idRectangle::operator*=( const float a )
 	y *= a;
 	w *= a;
 	h *= a;
-	
+
 	return *this;
 }
-
 
 ID_INLINE idRectangle& idRectangle::operator=( const idVec4 v )
 {
@@ -223,52 +209,50 @@ ID_INLINE float& idRectangle::operator[]( int index )
 	return ( &x )[ index ];
 }
 
-class idRegion
-{
+class idRegion {
 public:
-	idRegion() { };
-	
+	idRegion() {};
+
 	void Empty()
 	{
 		rects.Clear();
 	}
-	
+
 	bool Contains( float xt, float yt )
 	{
 		int c = rects.Num();
 		for( int i = 0; i < c; i++ )
 		{
-			if( rects[i].Contains( xt, yt ) )
+			if( rects[ i ].Contains( xt, yt ) )
 			{
 				return true;
 			}
 		}
 		return false;
 	}
-	
+
 	void AddRect( float x, float y, float w, float h )
 	{
 		rects.Append( idRectangle( x, y, w, h ) );
 	}
-	
+
 	int GetRectCount()
 	{
 		return rects.Num();
 	}
-	
+
 	idRectangle* GetRect( int index )
 	{
 		if( index >= 0 && index < rects.Num() )
 		{
-			return &rects[index];
+			return &rects[ index ];
 		}
 		return NULL;
 	}
-	
+
 protected:
 
 	idList<idRectangle, TAG_OLD_UI> rects;
 };
-
 
 #endif

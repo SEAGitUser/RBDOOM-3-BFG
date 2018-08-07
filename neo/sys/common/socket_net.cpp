@@ -862,7 +862,6 @@ Sys_InitNetworking
 */
 void Sys_InitNetworking()
 {
-
 	bool foundloopback = false;
 	
 #if defined(_WIN32) // DG: add win32 stuff here for socket networking code unification..
