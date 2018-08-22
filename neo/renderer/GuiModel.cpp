@@ -207,11 +207,10 @@ void idRenderModelGui::EmitToView( idRenderView * view, const idRenderMatrix & m
 	EmitSurfaces( view, modelMatrix, modelViewMatrix, depthHack, false /* stereoDepthSort */, true /* link as entity */ );
 }
 
-// DG: move function declaration here (=> out of EmitFullScreen() method) because it confused clang
-// (and possibly other compilers that just didn't complain and silently made it a float variable
-// initialized to something, probably 0.0f)
-float GetScreenSeparationForGuis();
-// DG end
+extern idCVar stereoRender_interOccularCentimeters;
+extern idCVar stereoRender_convergence;
+extern idCVar stereoRender_screenSeparation;	// screen units from center to eyes
+extern idCVar stereoRender_swapEyes;
 
 /*
 ================
@@ -243,16 +242,20 @@ void idRenderModelGui::EmitFullScreen()
 	bool stereoEnabled = ( renderSystem->GetStereo3DMode() != STEREO3D_OFF );
 	if( stereoEnabled )
 	{
-		const float screenSeparation = GetScreenSeparationForGuis();
+		const stereoDistances_t dists = renderSystem->CaclulateStereoDistances(
+											stereoRender_interOccularCentimeters.GetFloat(),
+											renderSystem->GetPhysicalScreenWidthInCentimeters(),
+											stereoRender_convergence.GetFloat(),
+											80.0f /* fov */ );
 
 		// this will be negated on the alternate eyes, both rendered each frame
-		viewDef->parms.stereoScreenSeparation = screenSeparation;
+		viewDef->parms.stereoScreenSeparation = dists.screenSeparation;
 
 		extern idCVar stereoRender_swapEyes;
 		viewDef->parms.viewEyeBuffer = 0;	// render to both buffers
 		if( stereoRender_swapEyes.GetBool() )
 		{
-			viewDef->parms.stereoScreenSeparation = -screenSeparation;
+			viewDef->parms.stereoScreenSeparation = -dists.screenSeparation;
 		}
 	}
 

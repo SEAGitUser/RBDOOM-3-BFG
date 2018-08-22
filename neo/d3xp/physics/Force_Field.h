@@ -51,9 +51,7 @@ enum forceFieldApplyType
 	FORCEFIELD_APPLY_IMPULSE
 };
 
-class idForce_Field : public idForce
-{
-
+class idForce_Field : public idForce {
 public:
 	CLASS_PROTOTYPE( idForce_Field );
 	

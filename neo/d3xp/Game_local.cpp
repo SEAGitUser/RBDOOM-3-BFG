@@ -1802,9 +1802,7 @@ avoid the fast pre-cache check associated with each entityDef
 */
 void idGameLocal::CacheDictionaryMedia( const idDict* dict )
 {
-	const idKeyValue* kv;
-
-	kv = dict->MatchPrefix( "model" );
+	auto kv = dict->MatchPrefix( "model" );
 	while( kv )
 	{
 		if( kv->GetValue().Length() )
@@ -1844,9 +1842,9 @@ void idGameLocal::CacheDictionaryMedia( const idDict* dict )
 	{
 		if( kv->GetValue().Length() )
 		{
-			if( !idStr::Icmp( kv->GetKey(), "gui_noninteractive" )
-					|| !idStr::Icmpn( kv->GetKey(), "gui_parm", 8 )
-					|| !idStr::Icmp( kv->GetKey(), "gui_inventory" ) )
+			if( !idStr::Icmp( kv->GetKey(), "gui_noninteractive" ) ||
+				!idStr::Icmpn( kv->GetKey(), "gui_parm", 8 ) ||
+				!idStr::Icmp( kv->GetKey(), "gui_inventory" ) )
 			{
 				// unfortunate flag names, they aren't actually a gui
 			}
@@ -3476,8 +3474,7 @@ idAAS* idGameLocal::GetAAS( const char* name ) const
 			{
 				return NULL;
 			}
-			else
-			{
+			else {
 				return aasList[ i ];
 			}
 		}
@@ -3492,9 +3489,7 @@ idGameLocal::SetAASAreaState
 */
 void idGameLocal::SetAASAreaState( const idBounds& bounds, const int areaContents, bool closed )
 {
-	int i;
-
-	for( i = 0; i < aasList.Num(); i++ )
+	for( int i = 0; i < aasList.Num(); ++i )
 	{
 		aasList[ i ]->SetAreaState( bounds, areaContents, closed );
 	}
@@ -3507,7 +3502,6 @@ idGameLocal::AddAASObstacle
 */
 aasHandle_t idGameLocal::AddAASObstacle( const idBounds& bounds )
 {
-	int i;
 	aasHandle_t obstacle;
 	aasHandle_t check;
 
@@ -3517,7 +3511,7 @@ aasHandle_t idGameLocal::AddAASObstacle( const idBounds& bounds )
 	}
 
 	obstacle = aasList[ 0 ]->AddObstacle( bounds );
-	for( i = 1; i < aasList.Num(); i++ )
+	for( int i = 1; i < aasList.Num(); i++ )
 	{
 		check = aasList[ i ]->AddObstacle( bounds );
 		assert( check == obstacle );
@@ -3533,9 +3527,7 @@ idGameLocal::RemoveAASObstacle
 */
 void idGameLocal::RemoveAASObstacle( const aasHandle_t handle )
 {
-	int i;
-
-	for( i = 0; i < aasList.Num(); i++ )
+	for( int i = 0; i < aasList.Num(); ++i )
 	{
 		aasList[ i ]->RemoveObstacle( handle );
 	}
@@ -3548,9 +3540,7 @@ idGameLocal::RemoveAllAASObstacles
 */
 void idGameLocal::RemoveAllAASObstacles()
 {
-	int i;
-
-	for( i = 0; i < aasList.Num(); i++ )
+	for( int i = 0; i < aasList.Num(); ++i )
 	{
 		aasList[ i ]->RemoveAllObstacles();
 	}
@@ -3582,7 +3572,6 @@ bool idGameLocal::CheatsOk( bool requirePlayer )
 	}
 
 	Printf( "You must be alive to use this command.\n" );
-
 	return false;
 }
 
@@ -3693,20 +3682,17 @@ idEntity* idGameLocal::SpawnEntityType( const idTypeInfo& classdef, const idDict
 		Error( "Attempted to spawn non-entity class '%s'", classdef.classname );
 	}
 
-	try
-	{
+	try {
 		if( args )
 		{
 			spawnArgs = *args;
 		}
-		else
-		{
+		else {
 			spawnArgs.Clear();
 		}
 		obj = classdef.CreateInstance();
 		obj->CallSpawn();
 	}
-
 	catch( idAllocError& )
 	{
 		obj = NULL;
@@ -3780,7 +3766,6 @@ bool idGameLocal::SpawnEntityDef( const idDict& args, idEntity** ent, bool setDe
 	spawnArgs.GetString( "spawnclass", NULL, &spawn );
 	if( spawn )
 	{
-
 		cls = idClass::GetClass( spawn );
 		if( !cls )
 		{
@@ -3850,7 +3835,7 @@ idGameLocal::FindEntityDefDict
 */
 const idDict* idGameLocal::FindEntityDefDict( const char* name, bool makeDefault ) const
 {
-	const idDeclEntityDef* decl = FindEntityDef( name, makeDefault );
+	auto decl = FindEntityDef( name, makeDefault );
 	return decl ? &decl->dict : NULL;
 }
 
@@ -3861,7 +3846,6 @@ idGameLocal::InhibitEntitySpawn
 */
 bool idGameLocal::InhibitEntitySpawn( idDict& spawnArgs )
 {
-
 	bool result = false;
 
 	if( common->IsMultiplayer() )
@@ -3968,7 +3952,6 @@ void idGameLocal::SpawnMapEntities()
 	{
 		common->UpdateLevelLoadPacifier();
 
-
 		mapEnt = mapFile->GetEntity( i );
 		args = mapEnt->epairs;
 
@@ -4010,10 +3993,8 @@ idGameLocal::RemoveEntityFromHash
 */
 bool idGameLocal::RemoveEntityFromHash( const char* name, idEntity* ent )
 {
-	int hash, i;
-
-	hash = entityHash.GenerateKey( name, true );
-	for( i = entityHash.First( hash ); i != -1; i = entityHash.Next( i ) )
+	int hash = entityHash.GenerateKey( name, true );
+	for( int i = entityHash.First( hash ); i != -1; i = entityHash.Next( i ) )
 	{
 		if( entities[i] && entities[i] == ent && entities[i]->name.Icmp( name ) == 0 )
 		{
@@ -4031,22 +4012,16 @@ idGameLocal::GetTargets
 */
 int idGameLocal::GetTargets( const idDict& args, idList< idEntityPtr<idEntity> >& list, const char* ref ) const
 {
-	int i, num, refLength;
-	const idKeyValue* arg;
-	idEntity* ent;
-
 	list.Clear();
 
-	refLength = strlen( ref );
-	num = args.GetNumKeyVals();
-	for( i = 0; i < num; i++ )
+	int refLength = idStr::Length( ref );
+	int num = args.GetNumKeyVals();
+	for( int i = 0; i < num; i++ )
 	{
-
-		arg = args.GetKeyVal( i );
+		auto arg = args.GetKeyVal( i );
 		if( arg->GetKey().Icmpn( ref, refLength ) == 0 )
 		{
-
-			ent = FindEntity( arg->GetValue() );
+			auto ent = FindEntity( arg->GetValue() );
 			if( ent )
 			{
 				idEntityPtr<idEntity>& entityPtr = list.Alloc();
@@ -4090,9 +4065,7 @@ Argument completion for entity names
 */
 void idGameLocal::ArgCompletion_EntityName( const idCmdArgs& args, void( *callback )( const char* s ) )
 {
-	int i;
-
-	for( i = 0; i < gameLocal.num_entities; i++ )
+	for( int i = 0; i < gameLocal.num_entities; i++ )
 	{
 		if( gameLocal.entities[ i ] )
 		{
@@ -4227,21 +4200,18 @@ If catch_teleport, this only marks teleport players for death on exit
 */
 void idGameLocal::KillBox( idEntity* ent, bool catch_teleport )
 {
-	int			i;
-	int			num;
 	idEntity* 	hit;
 	idClipModel* cm;
 	idClipModel* clipModels[ MAX_GENTITIES ];
-	idPhysics*	phys;
 
-	phys = ent->GetPhysics();
+	auto phys = ent->GetPhysics();
 	if( !phys->GetNumClipModels() )
 	{
 		return;
 	}
 
-	num = clip.ClipModelsTouchingBounds( phys->GetAbsBounds(), phys->GetClipMask(), clipModels, MAX_GENTITIES );
-	for( i = 0; i < num; i++ )
+	int num = clip.ClipModelsTouchingBounds( phys->GetAbsBounds(), phys->GetClipMask(), clipModels, MAX_GENTITIES );
+	for( int i = 0; i < num; i++ )
 	{
 		cm = clipModels[ i ];
 
@@ -4291,7 +4261,7 @@ void idGameLocal::KillBox( idEntity* ent, bool catch_teleport )
 idGameLocal::RequirementMet
 ================
 */
-bool idGameLocal::RequirementMet( idEntity* activator, const idStr& requires, int removeItem )
+bool idGameLocal::RequirementMet( idEntity* activator, const idStr& requires, int removeItem ) const
 {
 	if( requires.Length() )
 	{
@@ -4307,10 +4277,7 @@ bool idGameLocal::RequirementMet( idEntity* activator, const idStr& requires, in
 				}
 				return true;
 			}
-			else
-			{
-				return false;
-			}
+			return false;
 		}
 	}
 
@@ -4554,7 +4521,6 @@ void idGameLocal::RadiusPush( const idVec3& origin, const float radius, const fl
 	// apply impact to all the clip models through their associated physics objects
 	for( i = 0; i < numListedClipModels; i++ )
 	{
-
 		clipModel = clipModelList[i];
 
 		// never push render models
@@ -4737,8 +4703,7 @@ void idGameLocal::BloodSplat( const idVec3& origin, const idVec3& dir, float siz
 	idVec3 verts[] = {	idVec3( 0.0f, +halfSize, +halfSize ),
 						idVec3( 0.0f, +halfSize, -halfSize ),
 						idVec3( 0.0f, -halfSize, -halfSize ),
-						idVec3( 0.0f, -halfSize, +halfSize )
-					 };
+						idVec3( 0.0f, -halfSize, +halfSize ) };
 	idTraceModel trm;
 	idClipModel mdl;
 	trace_t results;
@@ -4938,15 +4903,13 @@ Now that everything has been spawned, associate areas with location entities
 */
 void idGameLocal::SpreadLocations()
 {
-	idEntity* ent;
-
 	// allocate the area table
 	int	numAreas = gameRenderWorld->NumAreas();
 	locationEntities = new( TAG_GAME ) idLocationEntity *[ numAreas ];
 	memset( locationEntities, 0, numAreas * sizeof( *locationEntities ) );
 
 	// for each location entity, make pointers from every area it touches
-	for( ent = spawnedEntities.Next(); ent != NULL; ent = ent->spawnNode.Next() )
+	for( auto ent = spawnedEntities.Next(); ent != NULL; ent = ent->spawnNode.Next() )
 	{
 		if( !ent->IsType( idLocationEntity::Type ) )
 		{
@@ -5045,10 +5008,7 @@ int idGameLocal::sortSpawnPoints( const void* ptr1, const void* ptr2 )
 	{
 		return -1;
 	}
-	else
-	{
-		return 0;
-	}
+	return 0;
 }
 
 /*
@@ -5281,8 +5241,8 @@ idEntity* idGameLocal::SelectInitialSpawnPoint( idPlayer* player )
 				for( j = 0; j < MAX_CLIENTS; j++ )
 				{
 					if( !entities[ j ] || !entities[ j ]->IsType( idPlayer::Type )
-							|| entities[ j ] == player
-							|| static_cast< idPlayer* >( entities[ j ] )->spectating )
+						|| entities[ j ] == player
+						|| static_cast< idPlayer* >( entities[ j ] )->spectating )
 					{
 						continue;
 					}
@@ -5314,8 +5274,8 @@ idEntity* idGameLocal::SelectInitialSpawnPoint( idPlayer* player )
 			for( j = 0; j < MAX_CLIENTS; j++ )
 			{
 				if( !entities[ j ] || !entities[ j ]->IsType( idPlayer::Type )
-						|| entities[ j ] == player
-						|| static_cast< idPlayer* >( entities[ j ] )->spectating )
+					|| entities[ j ] == player
+					|| static_cast< idPlayer* >( entities[ j ] )->spectating )
 				{
 					continue;
 				}

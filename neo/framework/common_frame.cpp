@@ -250,7 +250,7 @@ void idCommonLocal::Draw()
 
 	if( loadGUI != NULL )
 	{
-		loadGUI->Render( renderSystem, sys->Milliseconds() );
+		loadGUI->Render( sys->Milliseconds() );
 	}
 	// RB begin
 #if defined(USE_DOOMCLASSIC)

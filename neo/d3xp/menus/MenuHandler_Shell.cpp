@@ -264,7 +264,7 @@ void idMenuHandler_Shell::Update()
 
 	if( introGui != NULL && introGui->IsActive() )
 	{
-		introGui->Render( renderSystem, sys->Milliseconds() );
+		introGui->Render( sys->Milliseconds() );
 	}
 
 	if( continueWaitForEnumerate )
@@ -374,7 +374,7 @@ bool idMenuHandler_Shell::HandleGuiEvent( const idSysEvent* sev )
 						{
 							class idSWFScriptFunction_RebindKey : public idSWFScriptFunction_RefCounted {
 							public:
-								idSWFScriptFunction_RebindKey( idMenuScreen_Shell_Bindings* _menu, gameDialogMessages_t _msg, 
+								idSWFScriptFunction_RebindKey( idMenuScreen_Shell_Bindings* _menu, gameDialogMessages_t _msg,
 									bool _accept, idMenuHandler_Shell* _mgr, int _key, const char* _bind )
 								{
 									menu = _menu;
@@ -407,7 +407,7 @@ bool idMenuHandler_Shell::HandleGuiEvent( const idSysEvent* sev )
 								const char* bind;
 							};
 
-							common->Dialog().AddDialog( GDM_BINDING_ALREDY_SET, DIALOG_ACCEPT_CANCEL, 
+							common->Dialog().AddDialog( GDM_BINDING_ALREDY_SET, DIALOG_ACCEPT_CANCEL,
 								new idSWFScriptFunction_RebindKey( bindScreen, GDM_BINDING_ALREDY_SET, true, this, sev->GetKey(), waitBind ),
 								new idSWFScriptFunction_RebindKey( bindScreen, GDM_BINDING_ALREDY_SET, false, this, sev->GetKey(), waitBind ), false );
 						}
@@ -1402,7 +1402,7 @@ void idMenuHandler_Shell::ShowDoomIntro()
 		introGui->Activate( true );
 
 		int numTextFields = NUM_DOOM_INTRO_LINES;
-		idStr textEntries[ NUM_DOOM_INTRO_LINES ] = { 
+		idStr textEntries[ NUM_DOOM_INTRO_LINES ] = {
 			va( "%s %s", idLocalization::GetString( "#str_04052" ), idLocalization::GetString( "#str_04053" ) ),
 			va( "%s %s", idLocalization::GetString( "#str_04054" ), idLocalization::GetString( "#str_04055" ) ),
 			idLocalization::GetString( "#str_03012" ),

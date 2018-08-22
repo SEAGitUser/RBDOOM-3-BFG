@@ -1185,12 +1185,11 @@ void idExplodingBarrel::AddLight( const char* name, bool burn )
 	}
 	light.Clear();
 	light.axis.Identity();
-	light.lightRadius.x = spawnArgs.GetFloat( "light_radius" );
-	light.lightRadius.y = light.lightRadius.z = light.lightRadius.x;
+	light.lightRadius.Set( spawnArgs.GetFloat( "light_radius" ) );
 	light.origin = physicsObj.GetOrigin();
 	light.origin.z += 128;
 	light.pointLight = true;
-	light.shader = declManager->FindMaterial( name );
+	light.material = declManager->FindMaterial( name );
 	light.SetColorParm( 2.0f, 2.0f, 2.0f, 2.0f );
 	lightDefHandle = gameRenderWorld->AddLightDef( &light );
 	lightTime = gameLocal.GetServerGameTimeMs();

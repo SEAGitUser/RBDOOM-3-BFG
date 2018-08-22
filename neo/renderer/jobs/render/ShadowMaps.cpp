@@ -57,6 +57,27 @@
 	DOOM has specific optimizations like caching the static portion of a depth map, computing then only the
 	dynamic meshes projection and compositing the results.
 
+	r_shadowOcclusionMinRadius Lights with radius greater than this value will use occlusion culling for shadow buffer rendering. (set before loading map)
+	skip CPU culling of shadow casting models. (1=Light bound+Light MVP, 2=Main view MVP, 4=Shadow MVP)     r_skipShadowModelCPUCulling
+	skip occlusion culling of shadow casting models r_skipShadowModelOcclusionCulling
+	skip CPU MVP culling of shadow casting surfaces r_skipShadowSurfaceCPUCulling
+	skip occlusion culling of shadow casting surfaces       r_skipShadowSurfaceOcclusionCulling
+
+	Distance at which to start culling detail geometry  6144        r_detailDistance
+
+	skip CPU MVP culling of world nodes     r_skipNodeCPUCulling
+	skip GPU occlusion testing of world nodes       r_skipNodeGPUCulling
+	skip CPU MVP culling of world areas     r_skipAreaCPUCulling
+	skip GPU occlusion testing of world areas       r_skipAreaGPUCulling
+	skip CPU MVP culling of models  r_skipModelCPUCulling
+	skip GPU occlusion testing of models    r_skipModelGPUCulling
+	skip CPU MVP culling of lights  r_skipLightCPUCulling
+	skip GPU occlusion testing of lights. Note: This is forced enabled in slowmap mode.     r_skipLightGPUCulling
+	skip CPU MVP culling of model surfaces  r_skipSurfaceCPUCulling
+	allow models to be removed at distance  r_skipModelRangeCulling
+	allow lights to be removed at distance  r_skipLightRangeCulling
+
+	0 = Disabled, 1 = FXAA, 2 = SMAA, 3 = TAA (1TX), 4 = FXAA (1TX), 5 = SMAA (1TX), 6 = TSSAA (8TX), 7 = TSSAA (2X_8TX), 8 = TSSAA (4X_8TX), 9 = TSSAA (8X_8TX) 10 = MSAA (2X), 11 = MSAA (4X), 12 = MSAA (8X). Enables Anti-Aliasing modes
 
 ==============================================================================================
 */

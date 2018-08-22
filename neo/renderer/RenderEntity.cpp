@@ -43,8 +43,9 @@ idRenderEntityLocal::idRenderEntityLocal()
 	dynamicModel			= NULL;
 	dynamicModelFrameCount	= 0;
 	cachedDynamicModel		= NULL;
-	localReferenceBounds	= bounds_zero;
-	globalReferenceBounds	= bounds_zero;
+	localReferenceBounds.Zero();
+	globalReferenceBounds.Zero();
+	//modelRenderMatrix.Identity();
 	viewCount				= 0;
 	viewModel				= NULL;
 	decals					= NULL;
@@ -132,18 +133,18 @@ void idRenderEntityLocal::FreeDerivedData( bool keepDecals, bool keepCachedDynam
 	{
 		this->firstInteraction->UnlinkAndFree();
 	}
-	this->dynamicModelFrameCount = 0;
 
 	// clear the dynamic model if present
 	if( this->dynamicModel )
 	{
 		this->dynamicModel = NULL;
 	}
+	this->dynamicModelFrameCount = 0;
 
 	if( !keepDecals )
 	{
-		this->FreeDecals();
-		this->FreeOverlay();
+		FreeDecals();
+		FreeOverlay();
 	}
 
 	if( !keepCachedDynamicModel )
@@ -301,6 +302,7 @@ bool idRenderEntityLocal::IssueCallback()
 	else {
 		update = this->parms.callback( &this->parms, NULL );
 	}
+
 	tr.pc.c_entityDefCallbacks++;
 
 	if( this->parms.hModel == NULL )
@@ -356,15 +358,15 @@ idRenderModel* idRenderEntityLocal::EmitDynamicModel()
 
 	idRenderModel* model = this->parms.hModel;
 
-	if( model == NULL )
+	if( !model )
 	{
 		common->Error( "R_EntityDefDynamicModel: NULL model" );
-		return NULL;
+		return nullptr;
 	}
 
 	if( model->IsDynamicModel() == DM_STATIC )
 	{
-		this->dynamicModel = NULL;
+		this->dynamicModel = nullptr;
 		this->dynamicModelFrameCount = 0;
 		return model;
 	}
@@ -376,7 +378,7 @@ idRenderModel* idRenderEntityLocal::EmitDynamicModel()
 	}
 
 	// if we don't have a snapshot of the dynamic model, generate it now
-	if( this->dynamicModel == NULL )
+	if( !this->dynamicModel )
 	{
 		SCOPED_PROFILE_EVENT( "InstantiateDynamicModel" );
 
@@ -407,7 +409,7 @@ idRenderModel* idRenderEntityLocal::EmitDynamicModel()
 	{
 		idVec3 ndc;
 
-		idVec4 eye, clip;
+		idRenderVector eye, clip;
 		idRenderMatrix::TransformModelToClip( this->parms.origin, tr.viewDef->GetViewMatrix(), tr.viewDef->GetProjectionMatrix(), eye, clip );
 		idRenderMatrix::TransformClipToDevice( clip, ndc );
 
@@ -447,10 +449,10 @@ void idRenderEntityLocal::ReadFromDemoFile( class idDemoFile* f )
 	f->ReadInt( ent.bodyId );
 	f->ReadVec3( ent.bounds[ 0 ] );
 	f->ReadVec3( ent.bounds[ 1 ] );
-	f->ReadInt( ent.suppressSurfaceInViewID );
-	f->ReadInt( ent.suppressShadowInViewID );
-	f->ReadInt( ent.suppressShadowInLightID );
-	f->ReadInt( ent.allowSurfaceInViewID );
+	f->ReadInt( i ); ent.suppressSurfaceInViewID = i; assert( i < MAX_TYPE( int16 ) );
+	f->ReadInt( i ); ent.suppressShadowInViewID = i; assert( i < MAX_TYPE( int16 ) );
+	f->ReadInt( i ); ent.suppressShadowInLightID = i; assert( i < MAX_TYPE( int16 ) );
+	f->ReadInt( i ); ent.allowSurfaceInViewID = i; assert( i < MAX_TYPE( int16 ) );
 	f->ReadVec3( ent.origin );
 	f->ReadMat3( ent.axis );
 	for( i = 0; i < MAX_ENTITY_SHADER_PARMS; i++ )
@@ -554,10 +556,10 @@ void idRenderEntityLocal::WriteToDemoFile( class idDemoFile* f ) const
 	f->WriteInt( parms.bodyId );
 	f->WriteVec3( parms.bounds[ 0 ] );
 	f->WriteVec3( parms.bounds[ 1 ] );
-	f->WriteInt( parms.suppressSurfaceInViewID );
-	f->WriteInt( parms.suppressShadowInViewID );
-	f->WriteInt( parms.suppressShadowInLightID );
-	f->WriteInt( parms.allowSurfaceInViewID );
+	f->WriteInt( (int)parms.suppressSurfaceInViewID );
+	f->WriteInt( (int)parms.suppressShadowInViewID );
+	f->WriteInt( (int)parms.suppressShadowInLightID );
+	f->WriteInt( (int)parms.allowSurfaceInViewID );
 	f->WriteVec3( parms.origin );
 	f->WriteMat3( parms.axis );
 	for( int i = 0; i < MAX_ENTITY_SHADER_PARMS; i++ )
@@ -637,7 +639,7 @@ idRenderLightLocal::idRenderLightLocal()
 	archived				= false;
 	lightShader				= NULL;
 	falloffImage			= NULL;
-	globalLightOrigin		= vec3_zero;
+	globalLightOrigin.Zero();
 	viewCount				= 0;
 	viewLight				= NULL;
 	references				= NULL;
@@ -828,10 +830,10 @@ void idRenderLightLocal::DeriveData()
 		}
 	}*/
 
-	// decide which light shader we are going to use
-	if( light->parms.shader != NULL )
+	// decide which light material we are going to use
+	if( light->parms.material != NULL )
 	{
-		light->lightShader = light->parms.shader;
+		light->lightShader = light->parms.material;
 	}
 	else if( light->lightShader == NULL )
 	{
@@ -935,8 +937,7 @@ void idRenderLightLocal::DeriveData()
 		}
 		light->globalLightOrigin = light->parms.origin + dir * 100000.0f;
 	}
-	else
-	{
+	else {
 		light->globalLightOrigin = light->parms.origin + light->parms.axis * light->parms.lightCenter;
 	}
 	{

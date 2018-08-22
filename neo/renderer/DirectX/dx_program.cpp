@@ -65,7 +65,7 @@ ID3DBlob * DXCompileShader( const char shaderName[], const char shaderSrcBytes[]
 	ID3DBlob * blob = nullptr;
 	ID3DBlob * msgs = nullptr;
 
-	auto res = ::D3DCompile( shaderSrcBytes, strlen( shaderSrcBytes ), shaderName, nullptr, nullptr, 
+	auto res = ::D3DCompile( shaderSrcBytes, strlen( shaderSrcBytes ), shaderName, nullptr, nullptr,
 					 shaderEntry[ sht ], shaderProfile[ profile ][ sht ], flags1, 0, &blob, &msgs );
 
 	if( SUCCEEDED( res ) )
@@ -120,7 +120,7 @@ ID3DBlob * DXCompileShader( const char shaderName[], const char shaderSrcBytes[]
 			idLib::Warning( "D3DCompile error:\n%s", message );
 		}
 		else // Unknown reason for error.
-		{		
+		{
 			idLib::Warning( "D3DCompile error: %s", WinErrStr( res ) );
 		}
 	}
@@ -139,7 +139,7 @@ static DXDeviceChild * DXCreateShader( DXDevice * device, shaderType_e sht, ID3D
 		case SHT_VERTEX:
 		{
 			DXVertexShader * pVertexShader = nullptr;
-			auto res = device->CreateVertexShader( blob->GetBufferPointer(), blob->GetBufferSize(), nullptr, &pVertexShader ); 						
+			auto res = device->CreateVertexShader( blob->GetBufferPointer(), blob->GetBufferSize(), nullptr, &pVertexShader );
 			if( FAILED( res ) ) {
 				blob->Release();
 				common->Error( "Failed CreateVertexShader( %s ): %s", name, WinErrStr( res ) );
@@ -232,7 +232,7 @@ dxProgramObject_t * DX_CreateProgram()
 		}
 
 		dxProg.shaders[ i ] = DXCreateShader( device, ( shaderType_e )i, blob, shaderNames[ i ] );
-		
+
 		SAFE_RELEASE( blob );
 	}
 

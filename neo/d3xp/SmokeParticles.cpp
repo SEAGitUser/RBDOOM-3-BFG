@@ -76,10 +76,7 @@ void idSmokeParticles::Init()
 	renderEntity.Clear();
 	renderEntity.bounds.Clear();
 	renderEntity.axis.Identity();
-	renderEntity.shaderParms[ SHADERPARM_RED ] = 1.0f;
-	renderEntity.shaderParms[ SHADERPARM_GREEN ] = 1.0f;
-	renderEntity.shaderParms[ SHADERPARM_BLUE ] = 1.0f;
-	renderEntity.shaderParms[ SHADERPARM_ALPHA ] = 1.0f;
+	renderEntity.SetColorParm( 1.0f, 1.0f, 1.0f, 1.0f );
 
 	renderEntity.hModel = renderModelManager->AllocModel();
 	renderEntity.hModel->InitEmpty( smokeParticle_SnapshotName );
@@ -118,6 +115,7 @@ void idSmokeParticles::Shutdown()
 		renderModelManager->FreeModel( renderEntity.hModel );
 		renderEntity.hModel = NULL;
 	}
+
 	initialized = false;
 }
 
@@ -394,8 +392,7 @@ bool idSmokeParticles::UpdateRenderEntity( renderEntityParms_t* renderEntity, co
 				{
 					last->next = smoke->next;
 				}
-				else
-				{
+				else {
 					active->smokes = smoke->next;
 				}
 
@@ -434,17 +431,16 @@ bool idSmokeParticles::UpdateRenderEntity( renderEntityParms_t* renderEntity, co
 			{
 				// remove this from the activeStages list
 				activeStages.RemoveIndex( activeStageNum );
-				activeStageNum--;
+				--activeStageNum;
 			}
 		}
-		else
-		{
+		else {
 			// build the index list
 			idTriangles::CreateIndexesForQuads( tri->numVerts, tri->indexes, tri->numIndexes );
 
 			modelSurface_t	surf;
 			surf.geometry = tri;
-			surf.shader = stage->material;
+			surf.material = stage->material;
 			surf.id = 0;
 
 			renderEntity->hModel->AddSurface( surf );

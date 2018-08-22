@@ -167,6 +167,22 @@ void RB_SMAA( const idRenderView * );
 
 
 /*
+
+struct drawSurf_t {
+	int							sort;
+	bool						isWorld;
+	bool						skipDetailTriangles;
+	float						depthKey;
+	int							model;
+	int							modelSurface;
+	const idMaterial *			material;
+	const idDeclRenderProg *	prog;
+};
+struct renderPassSurfaces_t {
+	drawSurf_t *	firstSurface;
+	drawSurf_t *	lastSurface;
+};
+
 template< typename T >
 class idPresentablePtr {
 	// operator=

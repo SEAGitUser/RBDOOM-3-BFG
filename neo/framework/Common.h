@@ -165,7 +165,6 @@ struct MemInfo_t
 
 struct mpMap_t
 {
-
 	void operator=( const mpMap_t& src )
 	{
 		mapFile = src.mapFile;
@@ -191,8 +190,7 @@ enum currentGame_t
 #endif
 // RB end
 
-class idCommon
-{
+class idCommon {
 public:
 	virtual						~idCommon() {}
 

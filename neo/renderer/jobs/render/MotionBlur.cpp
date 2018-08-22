@@ -87,12 +87,13 @@ void RB_MotionBlur()
 	const int mvpIndex = ( backEnd.viewDef->GetStereoEye() == 1 )? 1 : 0;
 
 	// derive the matrix to go from current pixels to previous frame pixels
-	idRenderMatrix motionMatrix;
-	idRenderMatrix::Multiply( backEnd.prevMVP[ mvpIndex ], backEnd.viewDef->GetInverseVPMatrix(), motionMatrix );
+	idRenderMatrix::Multiply( backEnd.prevMVP[ mvpIndex ], backEnd.viewDef->GetInverseVPMatrix(),
+		renderProgManager.GetRenderParm( RENDERPARM_MVPMATRIX_X )->GetVec4(),
+		renderProgManager.GetRenderParm( RENDERPARM_MVPMATRIX_Y )->GetVec4(),
+		renderProgManager.GetRenderParm( RENDERPARM_MVPMATRIX_Z )->GetVec4(),
+		renderProgManager.GetRenderParm( RENDERPARM_MVPMATRIX_W )->GetVec4() );
 
 	backEnd.prevMVP[ mvpIndex ] = backEnd.viewDef->GetMVPMatrix();
-
-	renderProgManager.SetMVPMatrixParms( motionMatrix );
 
 	GL_State( GLS_DISABLE_DEPTHTEST | GLS_TWOSIDED );
 

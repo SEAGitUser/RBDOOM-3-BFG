@@ -30,7 +30,7 @@ public:
 
 	int							numIndexes;				// for shadows, this has both front and rear end caps and silhouette planes
 	triIndex_t* 				indexes;				// indexes, allocated with special allocator
-//private:	
+//private:
 	triIndex_t* 				silIndexes;				// indexes changed to be the first vertex with same XYZ, ignoring normal and texcoords
 
 	int							numMirroredVerts;		// this many verts at the end of the vert list are tangent mirrors
@@ -43,7 +43,7 @@ public:
 	silEdge_t* 					silEdges;				// silhouette edges
 
 	dominantTri_t* 				dominantTris;			// [numVerts] for deformed surface fast tangent calculation
-														//public:	
+														//public:
 	int							numShadowIndexesNoFrontCaps;	// shadow volumes with front caps omitted
 	int							numShadowIndexesNoCaps;			// shadow volumes with the front and rear caps omitted
 
@@ -90,6 +90,8 @@ public:
 
 	static idTriangles *		AllocStatic();
 	static void					FreeStatic( idTriangles* );
+
+	// This only duplicates the indexes and verts, not any of the derived data.
 	static idTriangles *		CopyStatic( const idTriangles* source );
 
 	// Read the contents of idTriangles from the given file
@@ -100,6 +102,8 @@ public:
 	// Only deals with vertexes and indexes, not silhouettes, planes, etc.
 	// Does NOT perform a cleanup triangles, so there may be duplicated verts in the result.
 	static idTriangles * 		MergeSurfaceList( const idTriangles** surfaces, int numSurfaces );
+	// Only deals with vertexes and indexes, not silhouettes, planes, etc.
+	// Does NOT perform a cleanup triangles, so there may be duplicated verts in the result.
 	static idTriangles * 		MergeTriangles( const idTriangles* tri1, const idTriangles* tri2 );
 
 	void						AllocStaticVerts( int numVerts );
@@ -127,6 +131,7 @@ public:
 	void						RangeCheckIndexes() const;
 	void						CreateVertexNormals();		// also called by dmap
 	void						CleanupTriangles( bool createNormals, bool identifySilEdges, bool useUnsmoothedTangents );
+	// This should be called before CleanupTriangles().
 	void						ReverseTriangles();
 
 	// If the deformed verts have significant enough texture coordinate changes to reverse the texture
@@ -148,6 +153,16 @@ public:
 	void						CreateStaticBuffers();
 
 	void						AddCubeFace( const idVec3& v1, const idVec3& v2, const idVec3& v3, const idVec3& v4 );
+
+	//Note: for non skinned geometry
+	ID_INLINE float				GetTriangleArea( int tri ) const
+	{
+		assert( staticModelWithJoints == NULL );
+		return idWinding::TriangleArea(
+			GetIVertex( tri + 0 ).GetPosition(),
+			GetIVertex( tri + 1 ).GetPosition(),
+			GetIVertex( tri + 2 ).GetPosition() );
+	};
 
 	// Generate vertexes and indexes for a polytope, and optionally returns the polygon windings.
 	// The positive sides of the planes will be visible.

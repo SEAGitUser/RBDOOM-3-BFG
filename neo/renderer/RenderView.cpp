@@ -525,7 +525,7 @@ void idRenderView::DeriveData()
 */
 void idRenderView::GlobalToNormalizedDeviceCoordinates( const idVec3& global, idVec3& ndc ) const
 {
-	idVec4 view, clip;
+	idRenderVector view, clip;
 	idRenderMatrix::TransformModelToClip( global, GetViewMatrix(), GetProjectionMatrix(), view, clip );
 	idRenderMatrix::TransformClipToDevice( clip, ndc );
 }
@@ -628,15 +628,13 @@ bool idRenderView::PreciseCullSurface( const drawSurf_t * const drawSurf, idBoun
 	// get an exact bounds of the triangles for scissor cropping
 	ndcBounds.Clear();
 
-	// RB: added check wether GPU skinning is available at all
-	const idJointMat* joints = ( tri->staticModelWithJoints != NULL && r_useGPUSkinning.GetBool() && glConfig.gpuSkinningAvailable ) ? tri->staticModelWithJoints->jointsInverted : NULL;
-	// RB end
+	const idJointMat* joints = ( tri->staticModelWithJoints != NULL )? tri->staticModelWithJoints->jointsInverted : NULL;
 
 	for( int i = 0; i < tri->numVerts; i++ )
 	{
 		const idVec3 vXYZ = idDrawVert::GetSkinnedDrawVertPosition( tri->GetVertex( i ), joints );
 
-		idVec4 eye, clip;
+		idRenderVector eye, clip;
 		idRenderMatrix::TransformModelToClip( vXYZ, drawSurf->space->modelViewMatrix, this->GetProjectionMatrix(), eye, clip );
 
 		unsigned int pointFlags = 0;

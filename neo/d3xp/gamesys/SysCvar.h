@@ -44,6 +44,9 @@ extern idCVar	g_bloodEffects;
 extern idCVar	g_projectileLights;
 extern idCVar	g_muzzleFlash;
 
+extern idCVar	g_projectileLightMaxLod;
+extern idCVar	g_muzzleFlashLightMaxLod;
+
 extern idCVar	g_disasm;
 extern idCVar	g_debugBounds;
 extern idCVar	g_debugAnim;

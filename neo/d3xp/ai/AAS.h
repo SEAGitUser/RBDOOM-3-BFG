@@ -37,39 +37,37 @@ If you have questions concerning this license or the applicable additional terms
 ===============================================================================
 */
 
-enum
-{
+enum {
 	PATHTYPE_WALK,
 	PATHTYPE_WALKOFFLEDGE,
 	PATHTYPE_BARRIERJUMP,
 	PATHTYPE_JUMP
 };
 
-typedef struct aasPath_s
+struct aasPath_t
 {
 	int							type;			// path type
 	idVec3						moveGoal;		// point the AI should move towards
 	int							moveAreaNum;	// number of the area the AI should move towards
 	idVec3						secondaryGoal;	// secondary move goal for complex navigation
-	const idReachability* 		reachability;	// reachability used for navigation
-} aasPath_t;
+	const idReachability * 		reachability;	// reachability used for navigation
+};
 
 
-typedef struct aasGoal_s
+struct aasGoal_t
 {
 	int							areaNum;		// area the goal is in
 	idVec3						origin;			// position of goal
-} aasGoal_t;
+};
 
 
-typedef struct aasObstacle_s
+struct aasObstacle_t
 {
 	idBounds					absBounds;		// absolute bounds of obstacle
 	idBounds					expAbsBounds;	// expanded absolute bounds of obstacle
-} aasObstacle_t;
+};
 
-class idAASCallback
-{
+class idAASCallback {
 public:
 	virtual						~idAASCallback() {};
 	virtual	bool				TestArea( const class idAAS* aas, int areaNum ) = 0;
@@ -77,8 +75,7 @@ public:
 
 typedef int aasHandle_t;
 
-class idAAS
-{
+class idAAS {
 public:
 	static idAAS* 				Alloc();
 	virtual						~idAAS() = 0;

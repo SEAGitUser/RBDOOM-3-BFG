@@ -341,8 +341,7 @@ int RB_DrawTransMaterialPasses( const drawSurf_t* const* const drawSurfs, const 
 								const float guiStereoScreenOffset, const int stereoEye )
 {
 	// only obey skipAmbient if we are rendering a 3d view
-	if( !backEnd.viewDef->Is2DView() && r_skipAmbient.GetBool() )
-	{
+	if( !backEnd.viewDef->Is2DView() && r_skipAmbient.GetBool() ) {
 		return numDrawSurfs;
 	}
 
@@ -372,34 +371,29 @@ int RB_DrawTransMaterialPasses( const drawSurf_t* const* const drawSurfs, const 
 		auto const surf = drawSurfs[ i ];
 		auto const material = surf->material;
 
+		if( !material->HasAmbient() ) {
+			continue;
+		}
+		if( material->IsPortalSky() ) {
+			continue;
+		}
+		if( material->SuppressInSubview() ) {
+			continue;
+		}
+		// we need to draw the post process shaders after we have drawn the fog lights
+		if( material->GetSort() >= SS_POST_PROCESS && !backEnd.currentRenderCopied ) {
+			break;
+		}
+
 		// some deforms may disable themselves by setting numIndexes = 0
 		if( surf->numIndexes == 0 ) {
 			continue;
 		}
-
-		if( backEnd.viewDef->isXraySubview && surf->space->entityDef )
-		{
+		if( backEnd.viewDef->isXraySubview && surf->space->entityDef ) {
 			if( surf->space->entityDef->GetParms().xrayIndex != 2 )
 			{ //SEA: calling entityDef here is very bad !!!
 				continue;
 			}
-		}
-
-		if( !material->HasAmbient() ) {
-			continue;
-		}
-
-		if( material->IsPortalSky() ) {
-			continue;
-		}
-
-		if( material->SuppressInSubview() ) {
-			continue;
-		}
-
-		// we need to draw the post process shaders after we have drawn the fog lights
-		if( material->GetSort() >= SS_POST_PROCESS && !backEnd.currentRenderCopied ) {
-			break;
 		}
 
 		// if we are rendering a 3D view and the surface's eye index doesn't match
@@ -691,7 +685,9 @@ int RB_DrawTransMaterialPasses( const drawSurf_t* const* const drawSurfs, const 
 			RB_PrepareStageTexturing( pStage, surf );
 
 			// draw it ------------
+			//
 			GL_DrawIndexed( surf ); //SEA: img?
+			//
 			// --------------------
 
 			RB_FinishStageTexturing( pStage, surf );
@@ -728,7 +724,7 @@ int RB_DrawTransMaterialPasses( const drawSurf_t* const* const drawSurfs, const 
 
 
 
-
+#if 0
 void DrawSyrface( const drawSurf_t * const drawSurf, const float guiStereoScreenOffset, float & currentGuiStereoOffset )
 {
 	auto const material = drawSurf->material;
@@ -967,8 +963,8 @@ void DrawSyrface( const drawSurf_t * const drawSurf, const float guiStereoScreen
 				const int * parms = material->GetTexGenRegisters();
 
 				const float wobbleDegrees = materialRegisters[ parms[ 0 ] ] * ( idMath::PI / 180.0f );
-				const float wobbleSpeed = materialRegisters[ parms[ 1 ] ] * ( 2.0f * idMath::PI / 60.0f );
-				const float rotateSpeed = materialRegisters[ parms[ 2 ] ] * ( 2.0f * idMath::PI / 60.0f );
+				const float wobbleSpeed   = materialRegisters[ parms[ 1 ] ] * ( 2.0f * idMath::PI / 60.0f );
+				const float rotateSpeed   = materialRegisters[ parms[ 2 ] ] * ( 2.0f * idMath::PI / 60.0f );
 
 				idVec3 axis[ 3 ];
 				{
@@ -1015,7 +1011,9 @@ void DrawSyrface( const drawSurf_t * const drawSurf, const float guiStereoScreen
 				transform[ 2 * 4 + 2 ] = axis[ 2 ][ 2 ];
 				transform[ 2 * 4 + 3 ] = 0.0f;
 
-				renderProgManager.SetRenderParms( RENDERPARM_WOBBLESKY_X, transform, 3 );
+				renderProgManager.SetRenderParm( RENDERPARM_WOBBLESKY_X, transform + 0 * 4 );
+				renderProgManager.SetRenderParm( RENDERPARM_WOBBLESKY_Y, transform + 1 * 4 );
+				renderProgManager.SetRenderParm( RENDERPARM_WOBBLESKY_Z, transform + 2 * 4 );
 
 				renderProgManager.SetRenderParm( RENDERPARM_CUBEMAP, stage->texture.image );
 
@@ -1069,7 +1067,9 @@ void DrawSyrface( const drawSurf_t * const drawSurf, const float guiStereoScreen
 			GL_State( stageGLState );
 
 			// ----------------------------------------
+
 			GL_DrawIndexed( drawSurf );
+
 			// ----------------------------------------
 
 			if( stage->texture.cinematic )
@@ -1103,3 +1103,4 @@ void DrawSyrface( const drawSurf_t * const drawSurf, const float guiStereoScreen
 		RENDERLOG_CLOSE_BLOCK();
 	}
 }
+#endif

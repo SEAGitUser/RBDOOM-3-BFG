@@ -37,16 +37,6 @@ extern idCVar in_useJoystick;
 // bypass rendersystem to directly work on guiModel
 extern idRenderModelGui* tr_guiModel;
 
-//idVec4 idDeviceContext::idColor::purple.ToVec4();
-//idVec4 idDeviceContext::idColor::orange.ToVec4();
-//idVec4 idDeviceContext::idColor::yellow.ToVec4();
-//idVec4 idDeviceContext::idColor::green.ToVec4();
-//idVec4 idDeviceContext::idColor::blue.ToVec4();
-//idVec4 idDeviceContext::idColor::red.ToVec4();
-//idVec4 idDeviceContext::idColor::black.ToVec4();
-//idVec4 idDeviceContext::idColor::white.ToVec4();
-//idVec4 idDeviceContext::colorNone;
-
 void idDeviceContext::Init()
 {
 	xScale = 1.0f;
@@ -56,15 +46,6 @@ void idDeviceContext::Init()
 	whiteImage = declManager->FindMaterial( "guis/assets/white.tga" );
 	whiteImage->SetSort( SS_GUI );
 	activeFont = renderSystem->RegisterFont( "" );
-	//idColor::purple.ToVec4() = idVec4( 1, 0, 1, 1 );
-	//idColor::orange.ToVec4() = idVec4( 1, 1, 0, 1 );
-	//idColor::yellow.ToVec4() = idVec4( 0, 1, 1, 1 );
-	//idColor::green.ToVec4() = idVec4( 0, 1, 0, 1 );
-	//idColor::blue.ToVec4() = idVec4( 0, 0, 1, 1 );
-	//idColor::red.ToVec4() = idVec4( 1, 0, 0, 1 );
-	//idColor::white.ToVec4() = idVec4( 1, 1, 1, 1 );
-	//idColor::black.ToVec4() = idVec4( 0, 0, 0, 1 );
-	//colorNone = idVec4( 0, 0, 0, 0 );
 	cursorImages[ CURSOR_ARROW ] = declManager->FindMaterial( "ui/assets/guicursor_arrow.tga" );
 	cursorImages[ CURSOR_HAND ] = declManager->FindMaterial( "ui/assets/guicursor_hand.tga" );
 	cursorImages[ CURSOR_HAND_JOY1 ] = declManager->FindMaterial( "ui/assets/guicursor_hand_cross.tga" );
@@ -142,12 +123,12 @@ void idDeviceContext::PopClipRect()
 	}
 }
 
-void idDeviceContext::PushClipRect( idRectangle r )
+void idDeviceContext::PushClipRect( const idRectangle & r )
 {
 	clipRects.Append( r );
 }
 
-bool idDeviceContext::ClippedCoords( float* x, float* y, float* w, float* h, float* s1, float* t1, float* s2, float* t2 )
+bool idDeviceContext::ClippedCoords( float* x, float* y, float* w, float* h, float* s1, float* t1, float* s2, float* t2 ) const
 {
 	if( enableClipping == false || clipRects.Num() == 0 )
 	{
@@ -745,7 +726,7 @@ const idMaterial* idDeviceContext::GetScrollBarImage( int index )
 }
 
 // this only supports left aligned text
-idRegion* idDeviceContext::GetTextRegion( const char* text, float textScale, idRectangle rectDraw, float xStart, float yStart )
+idRegion* idDeviceContext::GetTextRegion( const char* text, float textScale, const idRectangle & rectDraw, float xStart, float yStart )
 {
 	return NULL;
 }
@@ -762,7 +743,7 @@ void idDeviceContext::DrawEditCursor( float x, float y, float scale )
 	PaintChar( x, y, glyphInfo );
 }
 
-int idDeviceContext::DrawText( const char* text, float textScale, int textAlign, const idColor & color, idRectangle rectDraw, bool wrap, int cursor, bool calcOnly, idList<int>* breaks, int limit )
+int idDeviceContext::DrawText( const char* text, float textScale, int textAlign, const idColor & color, const idRectangle & rectDraw, bool wrap, int cursor, bool calcOnly, idList<int>* breaks, int limit )
 {
 	int	count = 0;
 	int	charIndex = 0;
@@ -1033,24 +1014,24 @@ void idDeviceContextOptimized::PopClipRect()
 
 static const idRectangle baseScreenRect( 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT );
 
-void idDeviceContextOptimized::PushClipRect( idRectangle r )
+void idDeviceContextOptimized::PushClipRect( const idRectangle & r )
 {
-	const idRectangle& prev = ( clipRects.Num() == 0 ) ? baseScreenRect : clipRects[ clipRects.Num() - 1 ];
+	const auto & prev = ( clipRects.Num() == 0 )? baseScreenRect : clipRects[ clipRects.Num() - 1 ];
 
 	// instead of storing the rect, store the intersection of the rect
 	// with the previous rect, so ClippedCoords() only has to test against one rect
-	idRectangle intersection = prev;
+	auto intersection = prev;
 	intersection.ClipAgainst( r, false );
 	clipRects.Append( intersection );
 
-	const idRectangle& clipRect = clipRects[ clipRects.Num() - 1 ];
+	const auto & clipRect = clipRects[ clipRects.Num() - 1 ];
 	clipX1 = clipRect.x;
 	clipY1 = clipRect.y;
 	clipX2 = clipRect.x + clipRect.w;
 	clipY2 = clipRect.y + clipRect.h;
 }
 
-bool idDeviceContextOptimized::ClippedCoords( float* x, float* y, float* w, float* h, float* s1, float* t1, float* s2, float* t2 )
+bool idDeviceContextOptimized::ClippedCoords( float* x, float* y, float* w, float* h, float* s1, float* t1, float* s2, float* t2 ) const
 {
 	const float ox = *x;
 	const float oy = *y;

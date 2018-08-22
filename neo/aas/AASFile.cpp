@@ -104,7 +104,7 @@ bool Reachability_Special_Write( idFile* fp, idReachability_Special* reach )
 {
 	int i;
 	const idKeyValue* keyValue;
-	
+
 	fp->WriteFloatString( "\n\t\t{\n" );
 	for( i = 0; i < reach->dict.GetNumKeyVals(); i++ )
 	{
@@ -112,7 +112,7 @@ bool Reachability_Special_Write( idFile* fp, idReachability_Special* reach )
 		fp->WriteFloatString( "\t\t\t\"%s\" \"%s\"\n", keyValue->GetKey().c_str(), keyValue->GetValue().c_str() );
 	}
 	fp->WriteFloatString( "\t\t}\n" );
-	
+
 	return true;
 }
 
@@ -124,7 +124,7 @@ Reachability_Special_Read
 bool Reachability_Special_Read( idLexer& src, idReachability_Special* reach )
 {
 	idToken key, value;
-	
+
 	src.ExpectTokenString( "{" );
 	while( src.ReadToken( &key ) )
 	{
@@ -247,9 +247,9 @@ bool idAASSettings::ParseBBoxes( idLexer& src )
 {
 	idToken token;
 	idBounds bounds;
-	
+
 	numBoundingBoxes = 0;
-	
+
 	if( !src.ExpectTokenString( "{" ) )
 	{
 		return false;
@@ -267,7 +267,7 @@ bool idAASSettings::ParseBBoxes( idLexer& src )
 			return false;
 		}
 		src.Parse1DMatrix( 3, bounds[1].ToFloatPtr() );
-		
+
 		boundingBoxes[numBoundingBoxes++] = bounds;
 	}
 	return false;
@@ -281,12 +281,12 @@ idAASSettings::FromParser
 bool idAASSettings::FromParser( idLexer& src )
 {
 	idToken token;
-	
+
 	if( !src.ExpectTokenString( "{" ) )
 	{
 		return false;
 	}
-	
+
 	// parse the file
 	while( 1 )
 	{
@@ -294,12 +294,12 @@ bool idAASSettings::FromParser( idLexer& src )
 		{
 			break;
 		}
-		
+
 		if( token == "}" )
 		{
 			break;
 		}
-		
+
 		if( token == "bboxes" )
 		{
 			if( !ParseBBoxes( src ) )
@@ -423,12 +423,12 @@ bool idAASSettings::FromParser( idLexer& src )
 			src.Error( "invalid token '%s'", token.c_str() );
 		}
 	}
-	
+
 	if( numBoundingBoxes <= 0 )
 	{
 		src.Error( "no valid bounding box" );
 	}
-	
+
 	return true;
 }
 
@@ -441,27 +441,27 @@ bool idAASSettings::FromFile( const idStr& fileName )
 {
 	idLexer src( LEXFL_ALLOWPATHNAMES | LEXFL_NOSTRINGESCAPECHARS | LEXFL_NOSTRINGCONCAT );
 	idStr name = fileName;
-	
+
 	common->Printf( "loading %s\n", name.c_str() );
-	
+
 	if( !src.LoadFile( name ) )
 	{
 		common->Error( "WARNING: couldn't load %s\n", name.c_str() );
 		return false;
 	}
-	
+
 	if( !src.ExpectTokenString( "settings" ) )
 	{
 		common->Error( "%s is not a settings file", name.c_str() );
 		return false;
 	}
-	
+
 	if( !FromParser( src ) )
 	{
 		common->Error( "failed to parse %s", name.c_str() );
 		return false;
 	}
-	
+
 	return true;
 }
 
@@ -473,7 +473,7 @@ idAASSettings::FromDict
 bool idAASSettings::FromDict( const char* name, const idDict* dict )
 {
 	idBounds bounds;
-	
+
 	if( !dict->GetVector( "mins", "0 0 0", bounds[ 0 ] ) )
 	{
 		common->Error( "Missing 'mins' in entityDef '%s'", name );
@@ -482,40 +482,40 @@ bool idAASSettings::FromDict( const char* name, const idDict* dict )
 	{
 		common->Error( "Missing 'maxs' in entityDef '%s'", name );
 	}
-	
+
 	numBoundingBoxes = 1;
 	boundingBoxes[0] = bounds;
-	
+
 	if( !dict->GetBool( "usePatches", "0", usePatches ) )
 	{
 		common->Error( "Missing 'usePatches' in entityDef '%s'", name );
 	}
-	
+
 	if( !dict->GetBool( "writeBrushMap", "0", writeBrushMap ) )
 	{
 		common->Error( "Missing 'writeBrushMap' in entityDef '%s'", name );
 	}
-	
+
 	if( !dict->GetBool( "playerFlood", "0", playerFlood ) )
 	{
 		common->Error( "Missing 'playerFlood' in entityDef '%s'", name );
 	}
-	
+
 	if( !dict->GetBool( "allowSwimReachabilities", "0", allowSwimReachabilities ) )
 	{
 		common->Error( "Missing 'allowSwimReachabilities' in entityDef '%s'", name );
 	}
-	
+
 	if( !dict->GetBool( "allowFlyReachabilities", "0", allowFlyReachabilities ) )
 	{
 		common->Error( "Missing 'allowFlyReachabilities' in entityDef '%s'", name );
 	}
-	
+
 	if( !dict->GetString( "fileExtension", "", fileExtension ) )
 	{
 		common->Error( "Missing 'fileExtension' in entityDef '%s'", name );
 	}
-	
+
 	if( !dict->GetVector( "gravity", "0 0 -1066", gravity ) )
 	{
 		common->Error( "Missing 'gravity' in entityDef '%s'", name );
@@ -523,52 +523,52 @@ bool idAASSettings::FromDict( const char* name, const idDict* dict )
 	gravityDir = gravity;
 	gravityValue = gravityDir.Normalize();
 	invGravityDir = -gravityDir;
-	
+
 	if( !dict->GetFloat( "maxStepHeight", "0", maxStepHeight ) )
 	{
 		common->Error( "Missing 'maxStepHeight' in entityDef '%s'", name );
 	}
-	
+
 	if( !dict->GetFloat( "maxBarrierHeight", "0", maxBarrierHeight ) )
 	{
 		common->Error( "Missing 'maxBarrierHeight' in entityDef '%s'", name );
 	}
-	
+
 	if( !dict->GetFloat( "maxWaterJumpHeight", "0", maxWaterJumpHeight ) )
 	{
 		common->Error( "Missing 'maxWaterJumpHeight' in entityDef '%s'", name );
 	}
-	
+
 	if( !dict->GetFloat( "maxFallHeight", "0", maxFallHeight ) )
 	{
 		common->Error( "Missing 'maxFallHeight' in entityDef '%s'", name );
 	}
-	
+
 	if( !dict->GetFloat( "minFloorCos", "0", minFloorCos ) )
 	{
 		common->Error( "Missing 'minFloorCos' in entityDef '%s'", name );
 	}
-	
+
 	if( !dict->GetInt( "tt_barrierJump", "0", tt_barrierJump ) )
 	{
 		common->Error( "Missing 'tt_barrierJump' in entityDef '%s'", name );
 	}
-	
+
 	if( !dict->GetInt( "tt_startCrouching", "0", tt_startCrouching ) )
 	{
 		common->Error( "Missing 'tt_startCrouching' in entityDef '%s'", name );
 	}
-	
+
 	if( !dict->GetInt( "tt_waterJump", "0", tt_waterJump ) )
 	{
 		common->Error( "Missing 'tt_waterJump' in entityDef '%s'", name );
 	}
-	
+
 	if( !dict->GetInt( "tt_startWalkOffLedge", "0", tt_startWalkOffLedge ) )
 	{
 		common->Error( "Missing 'tt_startWalkOffLedge' in entityDef '%s'", name );
 	}
-	
+
 	return true;
 }
 
@@ -581,7 +581,7 @@ idAASSettings::WriteToFile
 bool idAASSettings::WriteToFile( idFile* fp ) const
 {
 	int i;
-	
+
 	fp->WriteFloatString( "{\n" );
 	fp->WriteFloatString( "\tbboxes\n\t{\n" );
 	for( i = 0; i < numBoundingBoxes; i++ )
@@ -617,9 +617,7 @@ idAASSettings::ValidForBounds
 */
 bool idAASSettings::ValidForBounds( const idBounds& bounds ) const
 {
-	int i;
-	
-	for( i = 0; i < 3; i++ )
+	for( int i = 0; i < 3; i++ )
 	{
 		if( bounds[0][i] < boundingBoxes[0][0][i] )
 		{
@@ -643,7 +641,7 @@ bool idAASSettings::ValidEntity( const char* classname ) const
 	idStr			use_aas;
 	idVec3			size;
 	idBounds		bounds;
-	
+
 	if( playerFlood )
 	{
 		if( !strcmp( classname, "info_player_start" ) || !strcmp( classname , "info_player_deathmatch" ) || !strcmp( classname, "func_teleporter" ) )
@@ -651,8 +649,8 @@ bool idAASSettings::ValidEntity( const char* classname ) const
 			return true;
 		}
 	}
-	
-	const idDeclEntityDef* decl = static_cast<const idDeclEntityDef*>( declManager->FindType( DECL_ENTITYDEF, classname, false ) );
+
+	auto decl = declManager->FindType( DECL_ENTITYDEF, classname, false )->Cast<idDeclEntityDef>();
 	if( ( decl != NULL ) && decl->dict.GetString( "use_aas", NULL, use_aas ) && !fileExtension.Icmp( use_aas ) )
 	{
 		if( decl->dict.GetVector( "mins", NULL, bounds[0] ) )
@@ -664,15 +662,15 @@ bool idAASSettings::ValidEntity( const char* classname ) const
 			bounds[ 0 ].Set( size.x * -0.5f, size.y * -0.5f, 0.0f );
 			bounds[ 1 ].Set( size.x * 0.5f, size.y * 0.5f, size.z );
 		}
-		
+
 		if( !ValidForBounds( bounds ) )
 		{
 			common->Error( "%s cannot use %s\n", classname, fileExtension.c_str() );
 		}
-		
+
 		return true;
 	}
-	
+
 	return false;
 }
 
@@ -720,7 +718,7 @@ idAASFileLocal::~idAASFileLocal()
 {
 	int i;
 	idReachability* reach, *next;
-	
+
 	for( i = 0; i < areas.Num(); i++ )
 	{
 		for( reach = areas[i].reach; reach; reach = next )
@@ -761,27 +759,27 @@ bool idAASFileLocal::Write( const idStr& fileName, unsigned int mapFileCRC )
 	int i, num;
 	idFile* aasFile;
 	idReachability* reach;
-	
+
 	common->Printf( "[Write AAS]\n" );
 	common->Printf( "writing %s\n", fileName.c_str() );
-	
+
 	name = fileName;
 	crc = mapFileCRC;
-	
+
 	aasFile = fileSystem->OpenFileWrite( fileName, "fs_basepath" );
 	if( !aasFile )
 	{
 		common->Error( "Error opening %s", fileName.c_str() );
 		return false;
 	}
-	
+
 	aasFile->WriteFloatString( "%s \"%s\"\n\n", AAS_FILEID, AAS_FILEVERSION );
 	aasFile->WriteFloatString( "%u\n\n", mapFileCRC );
-	
+
 	// write out the settings
 	aasFile->WriteFloatString( "settings\n" );
 	settings.WriteToFile( aasFile );
-	
+
 	// write out planes
 	aasFile->WriteFloatString( "planes %d {\n", planeList.Num() );
 	for( i = 0; i < planeList.Num(); i++ )
@@ -790,7 +788,7 @@ bool idAASFileLocal::Write( const idStr& fileName, unsigned int mapFileCRC )
 								   planeList[i].Normal().x, planeList[i].Normal().y, planeList[i].Normal().z, planeList[i].Dist() );
 	}
 	aasFile->WriteFloatString( "}\n" );
-	
+
 	// write out vertices
 	aasFile->WriteFloatString( "vertices %d {\n", vertices.Num() );
 	for( i = 0; i < vertices.Num(); i++ )
@@ -798,7 +796,7 @@ bool idAASFileLocal::Write( const idStr& fileName, unsigned int mapFileCRC )
 		aasFile->WriteFloatString( "\t%d ( %f %f %f )\n", i, vertices[i].x, vertices[i].y, vertices[i].z );
 	}
 	aasFile->WriteFloatString( "}\n" );
-	
+
 	// write out edges
 	aasFile->WriteFloatString( "edges %d {\n", edges.Num() );
 	for( i = 0; i < edges.Num(); i++ )
@@ -806,7 +804,7 @@ bool idAASFileLocal::Write( const idStr& fileName, unsigned int mapFileCRC )
 		aasFile->WriteFloatString( "\t%d ( %d %d )\n", i, edges[i].vertexNum[0], edges[i].vertexNum[1] );
 	}
 	aasFile->WriteFloatString( "}\n" );
-	
+
 	// write out edgeIndex
 	aasFile->WriteFloatString( "edgeIndex %d {\n", edgeIndex.Num() );
 	for( i = 0; i < edgeIndex.Num(); i++ )
@@ -814,7 +812,7 @@ bool idAASFileLocal::Write( const idStr& fileName, unsigned int mapFileCRC )
 		aasFile->WriteFloatString( "\t%d ( %d )\n", i, edgeIndex[i] );
 	}
 	aasFile->WriteFloatString( "}\n" );
-	
+
 	// write out faces
 	aasFile->WriteFloatString( "faces %d {\n", faces.Num() );
 	for( i = 0; i < faces.Num(); i++ )
@@ -823,7 +821,7 @@ bool idAASFileLocal::Write( const idStr& fileName, unsigned int mapFileCRC )
 								   faces[i].areas[0], faces[i].areas[1], faces[i].firstEdge, faces[i].numEdges );
 	}
 	aasFile->WriteFloatString( "}\n" );
-	
+
 	// write out faceIndex
 	aasFile->WriteFloatString( "faceIndex %d {\n", faceIndex.Num() );
 	for( i = 0; i < faceIndex.Num(); i++ )
@@ -831,7 +829,7 @@ bool idAASFileLocal::Write( const idStr& fileName, unsigned int mapFileCRC )
 		aasFile->WriteFloatString( "\t%d ( %d )\n", i, faceIndex[i] );
 	}
 	aasFile->WriteFloatString( "}\n" );
-	
+
 	// write out areas
 	aasFile->WriteFloatString( "areas %d {\n", areas.Num() );
 	for( i = 0; i < areas.Num(); i++ )
@@ -856,7 +854,7 @@ bool idAASFileLocal::Write( const idStr& fileName, unsigned int mapFileCRC )
 		aasFile->WriteFloatString( "\t}\n" );
 	}
 	aasFile->WriteFloatString( "}\n" );
-	
+
 	// write out nodes
 	aasFile->WriteFloatString( "nodes %d {\n", nodes.Num() );
 	for( i = 0; i < nodes.Num(); i++ )
@@ -864,7 +862,7 @@ bool idAASFileLocal::Write( const idStr& fileName, unsigned int mapFileCRC )
 		aasFile->WriteFloatString( "\t%d ( %d %d %d )\n", i, nodes[i].planeNum, nodes[i].children[0], nodes[i].children[1] );
 	}
 	aasFile->WriteFloatString( "}\n" );
-	
+
 	// write out portals
 	aasFile->WriteFloatString( "portals %d {\n", portals.Num() );
 	for( i = 0; i < portals.Num(); i++ )
@@ -873,7 +871,7 @@ bool idAASFileLocal::Write( const idStr& fileName, unsigned int mapFileCRC )
 								   portals[i].clusters[1], portals[i].clusterAreaNum[0], portals[i].clusterAreaNum[1] );
 	}
 	aasFile->WriteFloatString( "}\n" );
-	
+
 	// write out portalIndex
 	aasFile->WriteFloatString( "portalIndex %d {\n", portalIndex.Num() );
 	for( i = 0; i < portalIndex.Num(); i++ )
@@ -881,7 +879,7 @@ bool idAASFileLocal::Write( const idStr& fileName, unsigned int mapFileCRC )
 		aasFile->WriteFloatString( "\t%d ( %d )\n", i, portalIndex[i] );
 	}
 	aasFile->WriteFloatString( "}\n" );
-	
+
 	// write out clusters
 	aasFile->WriteFloatString( "clusters %d {\n", clusters.Num() );
 	for( i = 0; i < clusters.Num(); i++ )
@@ -890,12 +888,12 @@ bool idAASFileLocal::Write( const idStr& fileName, unsigned int mapFileCRC )
 								   clusters[i].firstPortal, clusters[i].numPortals );
 	}
 	aasFile->WriteFloatString( "}\n" );
-	
+
 	// close file
 	fileSystem->CloseFile( aasFile );
-	
+
 	common->Printf( "done.\n" );
-	
+
 	return true;
 }
 
@@ -908,7 +906,7 @@ bool idAASFileLocal::ParseIndex( idLexer& src, idList<aasIndex_t>& indexes )
 {
 	int numIndexes, i;
 	aasIndex_t index;
-	
+
 	numIndexes = src.ParseInt();
 	indexes.Resize( numIndexes );
 	if( !src.ExpectTokenString( "{" ) )
@@ -940,7 +938,7 @@ bool idAASFileLocal::ParsePlanes( idLexer& src )
 	int numPlanes, i;
 	idPlane plane;
 	idVec4 vec;
-	
+
 	numPlanes = src.ParseInt();
 	planeList.Resize( numPlanes );
 	if( !src.ExpectTokenString( "{" ) )
@@ -974,7 +972,7 @@ bool idAASFileLocal::ParseVertices( idLexer& src )
 {
 	int numVertices, i;
 	idVec3 vec;
-	
+
 	numVertices = src.ParseInt();
 	vertices.Resize( numVertices );
 	if( !src.ExpectTokenString( "{" ) )
@@ -1006,7 +1004,7 @@ bool idAASFileLocal::ParseEdges( idLexer& src )
 {
 	int numEdges, i;
 	aasEdge_t edge;
-	
+
 	numEdges = src.ParseInt();
 	edges.Resize( numEdges );
 	if( !src.ExpectTokenString( "{" ) )
@@ -1038,7 +1036,7 @@ bool idAASFileLocal::ParseFaces( idLexer& src )
 {
 	int numFaces, i;
 	aasFace_t face;
-	
+
 	numFaces = src.ParseInt();
 	faces.Resize( numFaces );
 	if( !src.ExpectTokenString( "{" ) )
@@ -1076,9 +1074,9 @@ bool idAASFileLocal::ParseReachabilities( idLexer& src, int areaNum )
 	aasArea_t* area;
 	idReachability reach, *newReach;
 	idReachability_Special* special;
-	
+
 	area = &areas[areaNum];
-	
+
 	num = src.ParseInt();
 	src.ExpectTokenString( "{" );
 	area->reach = NULL;
@@ -1115,7 +1113,7 @@ void idAASFileLocal::LinkReversedReachability()
 {
 	int i;
 	idReachability* reach;
-	
+
 	// link reversed reachabilities
 	for( i = 0; i < areas.Num(); i++ )
 	{
@@ -1136,7 +1134,7 @@ bool idAASFileLocal::ParseAreas( idLexer& src )
 {
 	int numAreas, i;
 	aasArea_t area;
-	
+
 	numAreas = src.ParseInt();
 	areas.Resize( numAreas );
 	if( !src.ExpectTokenString( "{" ) )
@@ -1161,9 +1159,9 @@ bool idAASFileLocal::ParseAreas( idLexer& src )
 	{
 		return false;
 	}
-	
+
 	LinkReversedReachability();
-	
+
 	return true;
 }
 
@@ -1176,7 +1174,7 @@ bool idAASFileLocal::ParseNodes( idLexer& src )
 {
 	int numNodes, i;
 	aasNode_t node;
-	
+
 	numNodes = src.ParseInt();
 	nodes.Resize( numNodes );
 	if( !src.ExpectTokenString( "{" ) )
@@ -1209,7 +1207,7 @@ bool idAASFileLocal::ParsePortals( idLexer& src )
 {
 	int numPortals, i;
 	aasPortal_t portal;
-	
+
 	numPortals = src.ParseInt();
 	portals.Resize( numPortals );
 	if( !src.ExpectTokenString( "{" ) )
@@ -1244,7 +1242,7 @@ bool idAASFileLocal::ParseClusters( idLexer& src )
 {
 	int numClusters, i;
 	aasCluster_t cluster;
-	
+
 	numClusters = src.ParseInt();
 	clusters.Resize( numClusters );
 	if( !src.ExpectTokenString( "{" ) )
@@ -1277,7 +1275,7 @@ idAASFileLocal::FinishAreas
 void idAASFileLocal::FinishAreas()
 {
 	int i;
-	
+
 	for( i = 0; i < areas.Num(); i++ )
 	{
 		areas[i].center = AreaReachableGoal( i );
@@ -1296,46 +1294,46 @@ bool idAASFileLocal::Load( const idStr& fileName, unsigned int mapFileCRC )
 	idToken token;
 	int depth;
 	unsigned int c;
-	
+
 	name = fileName;
 	crc = mapFileCRC;
-	
+
 	common->Printf( "[Load AAS]\n" );
 	common->Printf( "loading %s\n", name.c_str() );
-	
+
 	if( !src.LoadFile( name ) )
 	{
 		return false;
 	}
-	
+
 	if( !src.ExpectTokenString( AAS_FILEID ) )
 	{
 		common->Warning( "Not an AAS file: '%s'", name.c_str() );
 		return false;
 	}
-	
+
 	if( !src.ReadToken( &token ) || token != AAS_FILEVERSION )
 	{
 		common->Warning( "AAS file '%s' has version %s instead of %s", name.c_str(), token.c_str(), AAS_FILEVERSION );
 		return false;
 	}
-	
+
 	if( !src.ExpectTokenType( TT_NUMBER, TT_INTEGER, token ) )
 	{
 		common->Warning( "AAS file '%s' has no map file CRC", name.c_str() );
 		return false;
 	}
-	
+
 	c = token.GetUnsignedIntValue();
 	if( mapFileCRC && c != mapFileCRC )
 	{
 		common->Warning( "AAS file '%s' is out of date", name.c_str() );
 		return false;
 	}
-	
+
 	// clear the file in memory
 	Clear();
-	
+
 	// parse the file
 	while( 1 )
 	{
@@ -1343,7 +1341,7 @@ bool idAASFileLocal::Load( const idStr& fileName, unsigned int mapFileCRC )
 		{
 			break;
 		}
-		
+
 		if( token == "settings" )
 		{
 			if( !settings.FromParser( src ) )
@@ -1434,19 +1432,19 @@ bool idAASFileLocal::Load( const idStr& fileName, unsigned int mapFileCRC )
 			return false;
 		}
 	}
-	
+
 	FinishAreas();
-	
+
 	depth = MaxTreeDepth();
 	if( depth > MAX_AAS_TREE_DEPTH )
 	{
 		src.Error( "idAASFileLocal::Load: tree depth = %d", depth );
 	}
-	
+
 	common->UpdateLevelLoadPacifier();
-	
+
 	common->Printf( "done.\n" );
-	
+
 	return true;
 }
 
@@ -1469,7 +1467,7 @@ size_t idAASFileLocal::MemorySize() const
 	size += portalIndex.Size();
 	size += clusters.Size();
 	size += sizeof( idReachability_Walk ) * NumReachabilities();
-	
+
 	return size;
 }
 
@@ -1495,7 +1493,7 @@ int idAASFileLocal::NumReachabilities() const
 {
 	int i, num;
 	idReachability* reach;
-	
+
 	num = 0;
 	for( i = 0; i < areas.Num(); i++ )
 	{
@@ -1515,7 +1513,7 @@ idAASFileLocal::ReportRoutingEfficiency
 void idAASFileLocal::ReportRoutingEfficiency() const
 {
 	int numReachableAreas, total, i, n;
-	
+
 	numReachableAreas = 0;
 	total = 0;
 	for( i = 0; i < clusters.Num(); i++ )
@@ -1525,7 +1523,7 @@ void idAASFileLocal::ReportRoutingEfficiency() const
 		total += n * n;
 	}
 	total += numReachableAreas * portals.Num();
-	
+
 	common->Printf( "%6d reachable areas\n", numReachableAreas );
 	common->Printf( "%6d reachabilities\n", NumReachabilities() );
 	common->Printf( "%6d KB max routing cache\n", ( total * 3 ) >> 10 );
@@ -1540,7 +1538,7 @@ void idAASFileLocal::DeleteReachabilities()
 {
 	int i;
 	idReachability* reach, *nextReach;
-	
+
 	for( i = 0; i < areas.Num(); i++ )
 	{
 		for( reach = areas[i].reach; reach; reach = nextReach )
@@ -1562,15 +1560,15 @@ void idAASFileLocal::DeleteClusters()
 {
 	aasPortal_t portal;
 	aasCluster_t cluster;
-	
+
 	portals.Clear();
 	portalIndex.Clear();
 	clusters.Clear();
-	
+
 	// first portal is a dummy
 	memset( &portal, 0, sizeof( portal ) );
 	portals.Append( portal );
-	
+
 	// first cluster is a dummy
 	memset( &cluster, 0, sizeof( cluster ) );
 	clusters.Append( cluster );

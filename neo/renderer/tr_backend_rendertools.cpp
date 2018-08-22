@@ -67,14 +67,14 @@ extern void RB_ResetViewportAndScissorToDefaultCamera( const idRenderView * cons
 
 #define MAX_DEBUG_LINES			16384
 
-typedef struct debugLine_s
+struct debugLine_t
 {
-	idVec4		rgb;
 	idVec3		start;
 	idVec3		end;
+	uint32		color;
 	int			lifeTime;
 	bool		depthTest;
-} debugLine_t;
+};
 
 debugLine_t		rb_debugLines[ MAX_DEBUG_LINES ];
 int				rb_numDebugLines = 0;
@@ -82,17 +82,17 @@ int				rb_debugLineTime = 0;
 
 #define MAX_DEBUG_TEXT			512
 
-typedef struct debugText_s
+struct debugText_t
 {
 	idStr		text;
 	idVec3		origin;
 	float		scale;
-	idVec4		color;
+	uint32		color;
 	idMat3		viewAxis;
 	int			align;
 	int			lifeTime;
 	bool		depthTest;
-} debugText_t;
+};
 
 debugText_t		rb_debugText[ MAX_DEBUG_TEXT ];
 int				rb_numDebugText = 0;
@@ -100,13 +100,13 @@ int				rb_debugTextTime = 0;
 
 #define MAX_DEBUG_POLYGONS		8192
 
-typedef struct debugPolygon_s
+struct debugPolygon_t
 {
-	idVec4		rgb;
 	idWinding	winding;
+	uint32		color;
 	int			lifeTime;
 	bool		depthTest;
-} debugPolygon_t;
+};
 
 debugPolygon_t	rb_debugPolygons[ MAX_DEBUG_POLYGONS ];
 int				rb_numDebugPolygons = 0;
@@ -119,13 +119,24 @@ static void RB_DrawText( const char* text, const idVec3& origin, float scale, co
 RB_DrawBounds
 ================
 */
-void RB_DrawBounds( const idBounds& bounds )
+static void RB_DrawBounds( const idBounds& bounds, const idRenderMatrix & modelRenderMatrix ) // local bounds
 {
 	if( bounds.IsCleared() )
-	{
 		return;
-	}
+#if 1
+	// calculate the matrix that transforms the unit cube to exactly cover the model in world space
+	idRenderMatrix inverseBaseModelProject;
+	idRenderMatrix::OffsetScaleForBounds( modelRenderMatrix, bounds, inverseBaseModelProject );
 
+	// set the matrix for deforming the 'zeroOneCubeModel' into the frustum to exactly cover the light volume
+	idRenderMatrix::Multiply( backEnd.viewDef->GetMVPMatrix(), inverseBaseModelProject,
+							  renderProgManager.GetRenderParm( RENDERPARM_MVPMATRIX_X )->GetVec4(),
+							  renderProgManager.GetRenderParm( RENDERPARM_MVPMATRIX_Y )->GetVec4(),
+							  renderProgManager.GetRenderParm( RENDERPARM_MVPMATRIX_Z )->GetVec4(),
+							  renderProgManager.GetRenderParm( RENDERPARM_MVPMATRIX_W )->GetVec4() );
+	GL_DrawZeroOneCube();
+
+#else
 	glBegin( GL_LINE_LOOP );
 		glVertex3f( bounds[0][0], bounds[0][1], bounds[0][2] );
 		glVertex3f( bounds[0][0], bounds[1][1], bounds[0][2] );
@@ -152,6 +163,7 @@ void RB_DrawBounds( const idBounds& bounds )
 		glVertex3f( bounds[1][0], bounds[1][1], bounds[0][2] );
 		glVertex3f( bounds[1][0], bounds[1][1], bounds[1][2] );
 	glEnd();
+#endif
 }
 
 
@@ -524,10 +536,10 @@ static void RB_ShowDepthBuffer()
 #if 0
 	for( i = 0; i < renderSystem->GetWidth() * renderSystem->GetHeight(); i++ )
 	{
-		( ( byte* )depthReadback )[i * 4] =
-			( ( byte* )depthReadback )[i * 4 + 1] =
-				( ( byte* )depthReadback )[i * 4 + 2] = 255 * ( ( float* )depthReadback )[i];
-		( ( byte* )depthReadback )[i * 4 + 3] = 1;
+		( ( byte* ) depthReadback )[ i * 4 + 0 ] =
+		( ( byte* ) depthReadback )[ i * 4 + 1 ] =
+		( ( byte* ) depthReadback )[ i * 4 + 2 ] = 255 * ( ( float* ) depthReadback )[ i ];
+		( ( byte* ) depthReadback )[ i * 4 + 3 ] = 1;
 	}
 #endif
 	glDrawPixels( renderSystem->GetWidth(), renderSystem->GetHeight(), GL_RGBA , GL_UNSIGNED_BYTE, depthReadback.Ptr() );
@@ -701,7 +713,7 @@ static void RB_RenderDrawSurfListWithFunction( const drawSurf_t * const * drawSu
 		{
 			backEnd.currentSpace = drawSurf->space;
 
-			renderProgManager.SetMVPMatrixParms( drawSurf->space->mvp );
+			renderProgManager.SetSurfaceSpaceMatrices( drawSurf );
 		}
 	#else
 
@@ -829,9 +841,9 @@ static void RB_ShowSilhouette()
 
 				for( int j = 0; j < tri->numIndexes; j += 3 )
 				{
-					int i1 = tri->indexes[j + 0];
-					int i2 = tri->indexes[j + 1];
-					int i3 = tri->indexes[j + 2];
+					const GLint i1 = tri->indexes[ j + 0 ];
+					const GLint i2 = tri->indexes[ j + 1 ];
+					const GLint i3 = tri->indexes[ j + 2 ];
 
 					if( ( i1 & 1 ) + ( i2 & 1 ) + ( i3 & 1 ) == 1 )
 					{
@@ -847,8 +859,8 @@ static void RB_ShowSilhouette()
 						}
 					}
 				}
-				glEnd();
 
+				glEnd();
 			}
 		}
 	}
@@ -924,13 +936,9 @@ static idStr surfModelName, surfMatName;
 static idVec3 surfPoint;
 static bool surfTraced = false;
 
-
+// Do tracing at a safe time to avoid threading issues.
 void idRenderSystemLocal::OnFrame()
 {
-	// Do tracing at a safe time to avoid threading issues.
-	modelTrace_t mt;
-	idVec3 start, end;
-
 	surfTraced = false;
 
 	if( !r_showSurfaceInfo.GetBool() )
@@ -944,8 +952,10 @@ void idRenderSystemLocal::OnFrame()
 	}
 
 	// start far enough away that we don't hit the player model
-	start = tr.primaryView->GetOrigin() + tr.primaryView->GetAxis()[0] * 32.0f;
-	end = start + tr.primaryView->GetAxis()[0] * 1000.0f;
+	idVec3 start = tr.primaryView->GetOrigin() + tr.primaryView->GetAxis()[0] * 32.0f;
+	idVec3 end = start + tr.primaryView->GetAxis()[0] * 1000.0f;
+
+	modelTrace_t mt;
 	if( !tr.primaryWorld->Trace( mt, start, end, 0.0f, false ) )
 	{
 		return;
@@ -961,9 +971,7 @@ void idRenderSystemLocal::OnFrame()
 static void RB_ShowSurfaceInfo( const drawSurf_t * const * drawSurfs, int numDrawSurfs )
 {
 	if( !r_showSurfaceInfo.GetBool() || !surfTraced )
-	{
 		return;
-	}
 
 	backEnd.ClearCurrentSpace();
 	GL_ResetTextureState();
@@ -986,14 +994,33 @@ static void RB_ShowSurfaceInfo( const drawSurf_t * const * drawSurfs, int numDra
 	GL_PolygonOffset( scale, bias );
 	GL_State( GLS_DEPTHFUNC_ALWAYS | GLS_POLYMODE_LINE | GLS_POLYGON_OFFSET );
 
-	// idVec3	trans[3];
-	// float	matrix[16];
-
+	// idVec3 trans[3];
+	// float matrix[16];
 	// transform the object verts into global space
 	// R_AxisToModelMatrix( mt.entity->axis, mt.entity->origin, matrix );
 
-	tr.primaryWorld->DrawText( surfModelName, surfPoint + tr.primaryView->GetAxis()[2] * 12, 0.35f, idColor::red.ToVec4(), tr.primaryView->GetAxis() );
+	tr.primaryWorld->DrawText( surfModelName, surfPoint + tr.primaryView->GetAxis()[2] * 12.0f, 0.35f, idColor::red.ToVec4(), tr.primaryView->GetAxis() );
 	tr.primaryWorld->DrawText( surfMatName, surfPoint,  0.35f, idColor::blue.ToVec4(), tr.primaryView->GetAxis() );
+}
+
+static void RB_ShowSurfaceInfo2( const drawSurf_t * const * drawSurfs, int numDrawSurfs )
+{
+	if( !r_showSurfaceInfo.GetBool() )
+		return;
+
+	modelTrace_t mt;
+
+	// start far enough away that we don't hit the player model
+	idVec3 start = tr.primaryView->GetOrigin() + tr.primaryView->GetAxis()[ 0 ] * 16.0f;
+	idVec3 end = start + tr.primaryView->GetAxis()[ 0 ] * 1000.0f;
+	if( tr.primaryWorld->Trace( mt, start, end, 0.0f, false ) )
+	{
+		GL_PolygonOffset( -1, -2 );
+		GL_State( GLS_DEPTHFUNC_ALWAYS | GLS_POLYMODE_LINE | GLS_POLYGON_OFFSET );
+
+		tr.primaryWorld->DrawText( mt.entity->hModel->Name(), mt.point + tr.primaryView->GetAxis()[ 2 ] * 12.0f, 0.35f, idColor::red.ToVec4(), tr.primaryView->GetAxis() );
+		tr.primaryWorld->DrawText( mt.material->GetName(), mt.point, 0.35f, idColor::blue.ToVec4(), tr.primaryView->GetAxis() );
+	}
 }
 
 /*
@@ -1006,9 +1033,7 @@ Debugging tool
 static void RB_ShowViewEntitys( viewModel_t* vModels )
 {
 	if( r_showViewEntitys.GetInteger() > 0 )
-	{
 		return;
-	}
 
 	if( r_showViewEntitys.GetInteger() >= 2 )
 	{
@@ -1031,7 +1056,7 @@ static void RB_ShowViewEntitys( viewModel_t* vModels )
 
 	GL_SetRenderProgram( renderProgManager.prog_color );
 
-	renderProgManager.SetColorParm( 1, 1, 1 );
+	renderProgManager.SetColorParm( 1.0f, 1.0f, 1.0f );
 
 	GL_State( GLS_DEPTHFUNC_ALWAYS | GLS_POLYMODE_LINE | GLS_TWOSIDED );
 
@@ -1058,13 +1083,14 @@ static void RB_ShowViewEntitys( viewModel_t* vModels )
 			color.Set( 0, 0, 1, 1 );
 		}
 		renderProgManager.SetColorParm( color[0], color[1], color[2] );
-		RB_DrawBounds( edef->localReferenceBounds );
+
+		RB_DrawBounds( edef->localReferenceBounds, vModel->modelMatrix );
 
 		// transform the upper bounds corner into global space
 		if( r_showViewEntitys.GetInteger() >= 2 )
 		{
 			idVec3 corner;
-			vModel->modelMatrix.TransformPoint( edef->localReferenceBounds[ 1 ], corner );
+			vModel->modelMatrix.TransformPoint( edef->localReferenceBounds.GetMaxs(), corner );
 
 			tr.primaryWorld->DrawText(
 				va( "%i:%s", edef->GetIndex(), edef->GetModel()->Name() ),
@@ -1083,10 +1109,10 @@ static void RB_ShowViewEntitys( viewModel_t* vModels )
 			{
 				continue;	// particles won't instantiate without a current view
 			}
-			idBounds b = model->Bounds( &vModel->entityDef->GetParms() );
-			if( b != vModel->entityDef->localReferenceBounds )
+			idBounds b = model->Bounds( &edef->GetParms() );
+			if( b != edef->localReferenceBounds )
 			{
-				RB_DrawBounds( b );
+				RB_DrawBounds( b, vModel->modelMatrix );
 			}
 		}
 	}
@@ -1146,16 +1172,13 @@ static void RB_ShowTexturePolarity( const drawSurf_t * const * drawSurfs, int nu
 
 			float area = d0[3] * d1[4] - d0[4] * d1[3];
 
-			if( idMath::Fabs( area ) < 0.0001f )
-			{
+			if( idMath::Fabs( area ) < 0.0001f ) {
 				renderProgManager.SetColorParm( 0, 0, 1, 0.5 );
 			}
-			else if( area < 0 )
-			{
+			else if( area < 0 ) {
 				renderProgManager.SetColorParm( 1, 0, 0, 0.5 );
 			}
-			else
-			{
+			else {
 				renderProgManager.SetColorParm( 0, 1, 0, 0.5 );
 			}
 			glVertex3fv( a.GetPosition().ToFloatPtr() );
@@ -1206,16 +1229,17 @@ static void RB_ShowUnsmoothedTangents( const drawSurf_t * const * drawSurfs, int
 			continue;
 		}
 
+		//glVertexPointer( 3, GL_FLOAT, sizeof( idDrawVert ), ( const void* ) tri->verts );
 		glBegin( GL_TRIANGLES );
 		for( int j = 0; j < tri->numIndexes; j += 3 )
 		{
-			auto & a = tri->GetIVertex( j + 0 );
-			auto & b = tri->GetIVertex( j + 1 );
-			auto & c = tri->GetIVertex( j + 2 );
+			//glArrayElement( j + 0 );
+			//glArrayElement( j + 1 );
+			//glArrayElement( j + 2 );
 
-			glVertex3fv( a.GetPosition().ToFloatPtr() );
-			glVertex3fv( b.GetPosition().ToFloatPtr() );
-			glVertex3fv( c.GetPosition().ToFloatPtr() );
+			glVertex3fv( tri->GetIVertex( j + 0 ).GetPosition().ToFloatPtr() );
+			glVertex3fv( tri->GetIVertex( j + 1 ).GetPosition().ToFloatPtr() );
+			glVertex3fv( tri->GetIVertex( j + 2 ).GetPosition().ToFloatPtr() );
 		}
 		glEnd();
 	}
@@ -1952,8 +1976,7 @@ static void RB_ShowShadowMapLODs()
 			{
 				c = idColor::cyan.ToVec4();
 			}
-			else
-			{
+			else {
 				c = idColor::mdGrey.ToVec4();
 			}
 
@@ -2005,6 +2028,8 @@ static void RB_ShowPortals()
 
 	GL_SetRenderProgram( renderProgManager.prog_color );
 	GL_State( GLS_DEPTHFUNC_ALWAYS );
+
+	GL_CommitProgUniforms( renderProgManager.prog_color );
 
 	( ( idRenderWorldLocal* )backEnd.viewDef->renderWorld )->ShowPortals();
 }
@@ -2066,9 +2091,9 @@ void RB_AddDebugText( const char* text, const idVec3& origin, float scale, const
 		debugText->text			= text;
 		debugText->origin		= origin;
 		debugText->scale		= scale;
-		debugText->color		= color;
 		debugText->viewAxis		= viewAxis;
 		debugText->align		= align;
+		debugText->color		= idColor::PackColor( color );
 		debugText->lifeTime		= rb_debugTextTime + lifetime;
 		debugText->depthTest	= depthTest;
 	}
@@ -2083,7 +2108,7 @@ RB_DrawTextLength
 */
 float RB_DrawTextLength( const char* text, float scale, int len )
 {
-	int i, num, index, charIndex;
+	int num, index, charIndex;
 	float spacing, textLen = 0.0f;
 
 	if( text && *text )
@@ -2092,7 +2117,7 @@ float RB_DrawTextLength( const char* text, float scale, int len )
 		{
 			len = idStr::Length( text );
 		}
-		for( i = 0; i < len; i++ )
+		for( int i = 0; i < len; i++ )
 		{
 			charIndex = text[i] - 32;
 			if( charIndex < 0 || charIndex > NUM_SIMPLEX_CHARS )
@@ -2107,13 +2132,13 @@ float RB_DrawTextLength( const char* text, float scale, int len )
 			{
 				if( simplex[charIndex][index] < 0 )
 				{
-					index++;
+					++index;
 					continue;
 				}
 				index += 2;
 				if( simplex[charIndex][index] < 0 )
 				{
-					index++;
+					++index;
 					continue;
 				}
 			}
@@ -2140,7 +2165,7 @@ static void RB_DrawText( const char* text, const idVec3& origin, float scale, co
 	GL_CommitProgUniforms( GL_GetCurrentRenderProgram() );
 	// RB end
 
-	int i, j, len, num, index, charIndex, line;
+	int j, num, index, charIndex, line;
 	float textLen = 1.0f, spacing = 1.0f;
 	idVec3 org, p1, p2;
 
@@ -2152,15 +2177,13 @@ static void RB_DrawText( const char* text, const idVec3& origin, float scale, co
 		{
 			line = 1;
 		}
-		else
-		{
+		else {
 			line = 0;
 		}
 
-		len = idStr::Length( text );
-		for( i = 0; i < len; i++ )
+		int len = idStr::Length( text );
+		for( int i = 0; i < len; i++ )
 		{
-
 			if( i == 0 || text[i] == '\n' )
 			{
 				org = origin - viewAxis[2] * ( line * 36.0f * scale );
@@ -2174,25 +2197,21 @@ static void RB_DrawText( const char* text, const idVec3& origin, float scale, co
 							break;
 						}
 					}
-					if( align == 2 )
+					if( align == 2 ) // right
 					{
-						// right
 						org += viewAxis[1] * textLen;
 					}
-					else
-					{
-						// center
+					else { // center
 						org += viewAxis[1] * ( textLen * 0.5f );
 					}
 				}
-				line++;
+				++line;
 			}
 
 			charIndex = text[i] - 32;
 			if( charIndex < 0 || charIndex > NUM_SIMPLEX_CHARS )
-			{
 				continue;
-			}
+
 			num = simplex[charIndex][0] * 2;
 			spacing = simplex[charIndex][1];
 			index = 2;
@@ -2201,17 +2220,17 @@ static void RB_DrawText( const char* text, const idVec3& origin, float scale, co
 			{
 				if( simplex[charIndex][index] < 0 )
 				{
-					index++;
+					++index;
 					continue;
 				}
-				p1 = org + scale * simplex[charIndex][index] * -viewAxis[1] + scale * simplex[charIndex][index + 1] * viewAxis[2];
+				p1 = org + scale * ( float )simplex[charIndex][index] * -viewAxis[1] + scale * ( float )simplex[charIndex][index + 1] * viewAxis[2];
 				index += 2;
 				if( simplex[charIndex][index] < 0 )
 				{
-					index++;
+					++index;
 					continue;
 				}
-				p2 = org + scale * simplex[charIndex][index] * -viewAxis[1] + scale * simplex[charIndex][index + 1] * viewAxis[2];
+				p2 = org + scale * ( float )simplex[charIndex][index] * -viewAxis[1] + scale * ( float )simplex[charIndex][index + 1] * viewAxis[2];
 
 				glVertex3fv( p1.ToFloatPtr() );
 				glVertex3fv( p2.ToFloatPtr() );
@@ -2230,21 +2249,19 @@ RB_ShowDebugText
 */
 void RB_ShowDebugText()
 {
-	int			i;
-	int			width;
-	debugText_t*	text;
-
 	if( !rb_numDebugText )
 	{
 		return;
 	}
+
+	RENDERLOG_SCOPED_BLOCK( "RB_ShowDebugText" );
 
 	// all lines are expressed in world coordinates
 	RB_SimpleWorldSetup();
 
 	GL_ResetTextureState();
 
-	width = r_debugLineWidth.GetInteger();
+	int width = r_debugLineWidth.GetInteger();
 	if( width < 1 )
 	{
 		width = 1;
@@ -2257,22 +2274,24 @@ void RB_ShowDebugText()
 	// draw lines
 	glLineWidth( width );
 
-
 	if( !r_debugLineDepthTest.GetBool() )
 	{
 		GL_State( GLS_POLYMODE_LINE | GLS_DEPTHFUNC_ALWAYS );
 	}
-	else
-	{
+	else {
 		GL_State( GLS_POLYMODE_LINE );
 	}
 
+	debugText_t* text = nullptr;
+
 	text = rb_debugText;
-	for( i = 0; i < rb_numDebugText; i++, text++ )
+	for( int i = 0; i < rb_numDebugText; i++, text++ )
 	{
 		if( !text->depthTest )
 		{
-			RB_DrawText( text->text, text->origin, text->scale, text->color, text->viewAxis, text->align );
+			idVec4 color;
+			idColor::UnpackColor( text->color, color );
+			RB_DrawText( text->text, text->origin, text->scale, color, text->viewAxis, text->align );
 		}
 	}
 
@@ -2282,15 +2301,17 @@ void RB_ShowDebugText()
 	}
 
 	text = rb_debugText;
-	for( i = 0; i < rb_numDebugText; i++, text++ )
+	for( int i = 0; i < rb_numDebugText; i++, text++ )
 	{
 		if( text->depthTest )
 		{
-			RB_DrawText( text->text, text->origin, text->scale, text->color, text->viewAxis, text->align );
+			idVec4 color;
+			idColor::UnpackColor( text->color, color );
+			RB_DrawText( text->text, text->origin, text->scale, color, text->viewAxis, text->align );
 		}
 	}
 
-	glLineWidth( 1 );
+	glLineWidth( 1.0f );
 }
 
 /*
@@ -2300,10 +2321,6 @@ RB_ClearDebugLines
 */
 void RB_ClearDebugLines( int time )
 {
-	int			i;
-	int			num;
-	debugLine_t*	line;
-
 	rb_debugLineTime = time;
 
 	if( !time )
@@ -2313,9 +2330,9 @@ void RB_ClearDebugLines( int time )
 	}
 
 	// copy any lines that still need to be drawn
-	num	= 0;
-	line = rb_debugLines;
-	for( i = 0; i < rb_numDebugLines; i++, line++ )
+	int num	= 0;
+	auto line = rb_debugLines;
+	for( int i = 0; i < rb_numDebugLines; i++, line++ )
 	{
 		if( line->lifeTime > time )
 		{
@@ -2336,15 +2353,13 @@ RB_AddDebugLine
 */
 void RB_AddDebugLine( const idVec4& color, const idVec3& start, const idVec3& end, const int lifeTime, const bool depthTest )
 {
-	debugLine_t* line;
-
 	if( rb_numDebugLines < MAX_DEBUG_LINES )
 	{
-		line = &rb_debugLines[ rb_numDebugLines++ ];
-		line->rgb		= color;
+		auto line = &rb_debugLines[ rb_numDebugLines++ ];
 		line->start		= start;
 		line->end		= end;
 		line->depthTest = depthTest;
+		line->color		= idColor::PackColor( color );
 		line->lifeTime	= rb_debugLineTime + lifeTime;
 	}
 }
@@ -2356,14 +2371,12 @@ RB_ShowDebugLines
 */
 static void RB_ShowDebugLines()
 {
-	int			i;
-	int			width;
-	debugLine_t*	line;
-
 	if( !rb_numDebugLines )
 	{
 		return;
 	}
+
+	RENDERLOG_SCOPED_BLOCK( "RB_ShowDebugLines" );
 
 	// all lines are expressed in world coordinates
 	RB_SimpleWorldSetup();
@@ -2375,7 +2388,7 @@ static void RB_ShowDebugLines()
 
 	GL_ResetTextureState();
 
-	width = r_debugLineWidth.GetInteger();
+	int width = r_debugLineWidth.GetInteger();
 	if( width < 1 )
 	{
 		width = 1;
@@ -2399,12 +2412,16 @@ static void RB_ShowDebugLines()
 
 	glBegin( GL_LINES );
 
+	debugLine_t* line = nullptr;
+
 	line = rb_debugLines;
-	for( i = 0; i < rb_numDebugLines; i++, line++ )
+	for( int i = 0; i < rb_numDebugLines; i++, line++ )
 	{
 		if( !line->depthTest )
 		{
-			glColor3fv( line->rgb.ToFloatPtr() );
+			idVec4 color;
+			idColor::UnpackColor( line->color, color );
+			glColor4fv( color.ToFloatPtr() );
 			glVertex3fv( line->start.ToFloatPtr() );
 			glVertex3fv( line->end.ToFloatPtr() );
 		}
@@ -2419,11 +2436,13 @@ static void RB_ShowDebugLines()
 	glBegin( GL_LINES );
 
 	line = rb_debugLines;
-	for( i = 0; i < rb_numDebugLines; i++, line++ )
+	for( int i = 0; i < rb_numDebugLines; i++, line++ )
 	{
 		if( line->depthTest )
 		{
-			glColor4fv( line->rgb.ToFloatPtr() );
+			idVec4 color;
+			idColor::UnpackColor( line->color, color );
+			glColor4fv( color.ToFloatPtr() );
 			glVertex3fv( line->start.ToFloatPtr() );
 			glVertex3fv( line->end.ToFloatPtr() );
 		}
@@ -2442,10 +2461,6 @@ RB_ClearDebugPolygons
 */
 void RB_ClearDebugPolygons( int time )
 {
-	int				i;
-	int				num;
-	debugPolygon_t*	poly;
-
 	rb_debugPolygonTime = time;
 
 	if( !time )
@@ -2455,10 +2470,10 @@ void RB_ClearDebugPolygons( int time )
 	}
 
 	// copy any polygons that still need to be drawn
-	num	= 0;
+	int num	= 0;
 
-	poly = rb_debugPolygons;
-	for( i = 0; i < rb_numDebugPolygons; i++, poly++ )
+	auto poly = rb_debugPolygons;
+	for( int i = 0; i < rb_numDebugPolygons; i++, poly++ )
 	{
 		if( poly->lifeTime > time )
 		{
@@ -2479,15 +2494,13 @@ RB_AddDebugPolygon
 */
 void RB_AddDebugPolygon( const idVec4& color, const idWinding& winding, const int lifeTime, const bool depthTest )
 {
-	debugPolygon_t* poly;
-
 	if( rb_numDebugPolygons < MAX_DEBUG_POLYGONS )
 	{
-		poly = &rb_debugPolygons[ rb_numDebugPolygons++ ];
-		poly->rgb		= color;
+		auto poly = &rb_debugPolygons[ rb_numDebugPolygons++ ];
 		poly->winding	= winding;
-		poly->depthTest = depthTest;
+		poly->color = idColor::PackColor( color );
 		poly->lifeTime	= rb_debugPolygonTime + lifeTime;
+		poly->depthTest = depthTest;
 	}
 }
 
@@ -2498,13 +2511,12 @@ RB_ShowDebugPolygons
 */
 static void RB_ShowDebugPolygons()
 {
-	int				i, j;
-	debugPolygon_t*	poly;
-
 	if( !rb_numDebugPolygons )
 	{
 		return;
 	}
+
+	RENDERLOG_SCOPED_BLOCK( "RB_ShowDebugPolygons" );
 
 	// all lines are expressed in world coordinates
 	RB_SimpleWorldSetup();
@@ -2521,22 +2533,23 @@ static void RB_ShowDebugPolygons()
 		GL_State( GLS_POLYGON_OFFSET | GLS_SRCBLEND_SRC_ALPHA | GLS_DSTBLEND_ONE_MINUS_SRC_ALPHA | GLS_DEPTHMASK );
 		GL_PolygonOffset( -1, -2 );
 	}
-	else
-	{
+	else {
 		GL_State( GLS_POLYGON_OFFSET | GLS_POLYMODE_LINE );
 		GL_PolygonOffset( -1, -2 );
 	}
 
-	poly = rb_debugPolygons;
-	for( i = 0; i < rb_numDebugPolygons; i++, poly++ )
+	auto poly = rb_debugPolygons;
+	for( int i = 0; i < rb_numDebugPolygons; i++, poly++ )
 	{
 //		if ( !poly->depthTest ) {
 
-		glColor4fv( poly->rgb.ToFloatPtr() );
+		idVec4 color;
+		idColor::UnpackColor( poly->color, color );
+		glColor4fv( color.ToFloatPtr() );
 
 		glBegin( GL_POLYGON );
 
-		for( j = 0; j < poly->winding.GetNumPoints(); ++j )
+		for( int j = 0; j < poly->winding.GetNumPoints(); ++j )
 		{
 			glVertex3fv( poly->winding[j].ToFloatPtr() );
 		}
@@ -2551,8 +2564,7 @@ static void RB_ShowDebugPolygons()
 	{
 		glDisable( GL_POLYGON_OFFSET_FILL );
 	}
-	else
-	{
+	else {
 		glDisable( GL_POLYGON_OFFSET_LINE );
 	}
 
@@ -2605,6 +2617,8 @@ static void RB_ShowLines()
 		return;
 	}
 
+	RENDERLOG_SCOPED_BLOCK( "RB_ShowLines" );
+
 	glEnable( GL_SCISSOR_TEST );
 	if( backEnd.viewDef->GetStereoEye() == 0 )
 	{
@@ -2614,8 +2628,7 @@ static void RB_ShowLines()
 	{
 		glClearColor( 0, 1, 0, 1 );
 	}
-	else
-	{
+	else {
 		glClearColor( 0, 0, 1, 1 );
 	}
 
@@ -2628,8 +2641,7 @@ static void RB_ShowLines()
 			glClear( GL_COLOR_BUFFER_BIT );
 		}
 	}
-	else
-	{
+	else {
 		for( int i = start ; i < tr.GetWidth() ; i += 2 )
 		{
 			glScissor( i, 0, 1, tr.GetHeight() );
@@ -2695,8 +2707,7 @@ static void RB_TestGamma()
 					{
 						dither = c * 64;
 					}
-					else
-					{
+					else {
 						dither = c * 64 + 63;
 					}
 					for( comp = 0; comp < 3; comp++ )
@@ -2943,12 +2954,12 @@ static void RB_ShowShadowMaps()
 	GL_State( GLS_DEPTHFUNC_ALWAYS | GLS_SRCBLEND_ONE | GLS_DSTBLEND_ZERO );
 
 	// Set Parms
-	ALIGN16( float texS[4] ) = { 1.0f, 0.0f, 0.0f, 0.0f };
-	ALIGN16( float texT[4] ) = { 0.0f, 1.0f, 0.0f, 0.0f };
+	idRenderVector texS( 1.0f, 0.0f, 0.0f, 0.0f );
+	idRenderVector texT( 0.0f, 1.0f, 0.0f, 0.0f );
 	renderProgManager.SetRenderParm( RENDERPARM_TEXTUREMATRIX_S, texS );
 	renderProgManager.SetRenderParm( RENDERPARM_TEXTUREMATRIX_T, texT );
 
-	ALIGN16( float texGenEnabled[4] ) = { 0, 0, 0, 0 };
+	idRenderVector texGenEnabled( 0.0f );
 	renderProgManager.SetRenderParm( RENDERPARM_TEXGEN_0_ENABLED, texGenEnabled );
 
 	for( int i = 0; i < ( r_shadowMapSplits.GetInteger() + 1 ); i++ )
@@ -2977,10 +2988,11 @@ static void RB_ShowShadowMaps()
 
 		idRenderMatrix ortho;
 		idRenderMatrix::CreateOrthogonalProjection( screenWidth, screenHeight, 0.0, 1.0, ortho, true );
-
-		idRenderMatrix finalOrtho;
-		idRenderMatrix::Multiply( ortho, scale, finalOrtho );
-		renderProgManager.SetMVPMatrixParms( finalOrtho );
+		idRenderMatrix::Multiply( ortho, scale,
+			renderProgManager.GetRenderParm( RENDERPARM_MVPMATRIX_X )->GetVec4(),
+			renderProgManager.GetRenderParm( RENDERPARM_MVPMATRIX_Y )->GetVec4(),
+			renderProgManager.GetRenderParm( RENDERPARM_MVPMATRIX_Z )->GetVec4(),
+			renderProgManager.GetRenderParm( RENDERPARM_MVPMATRIX_W )->GetVec4() );
 
 		// rpScreenCorrectionFactor
 		auto & screenCorrectionParm = renderProgManager.GetRenderParm( RENDERPARM_SCREENCORRECTIONFACTOR )->GetVec4();
@@ -3103,7 +3115,8 @@ static void RB_ShowTrace( const drawSurf_t* const* drawSurfs, int numDrawSurfs )
 	// check and draw the surfaces
 	renderProgManager.SetRenderParm( RENDERPARM_MAP, renderImageManager->whiteImage );
 
-	// find how many are ambient
+	idVec3 localStart, localEnd;
+
 	for( int i = 0; i < numDrawSurfs; ++i )
 	{
 		auto const surf = drawSurfs[ i ];
@@ -3112,8 +3125,6 @@ static void RB_ShowTrace( const drawSurf_t* const* drawSurfs, int numDrawSurfs )
 		if( !tri || !tri->verts )
 			continue;
 
-		idVec3 localStart, localEnd;
-
 		// transform the points into local space
 		surf->space->modelMatrix.InverseTransformPoint( start, localStart );
 		surf->space->modelMatrix.InverseTransformPoint( end, localEnd );
@@ -3121,34 +3132,40 @@ static void RB_ShowTrace( const drawSurf_t* const* drawSurfs, int numDrawSurfs )
 		// check the bounding box
 		if( tri->GetBounds().Expand( radius ).LineIntersection( localStart, localEnd ) )
 		{
-			///glLoadTransposeMatrixf( surf->space->modelViewMatrix.Ptr() );
+			GL_SetRenderProgram( surf->HasSkinning() ? renderProgManager.prog_texture_color_skinned : renderProgManager.prog_texture_color );
 			RB_SimpleSurfaceSetup( surf );
 
-			// highlight the surface
+			//
+			// Highlight the surface
+			//
+
 			GL_State( GLS_SRCBLEND_SRC_ALPHA | GLS_DSTBLEND_ONE_MINUS_SRC_ALPHA );
 
-			renderProgManager.SetColorParm( 1, 0, 0, 0.25 );
+			renderProgManager.SetColorParm( 1.0, 0.0, 0.0, 0.25 );
 			GL_DrawIndexed( surf );
 
-			// draw the bounding box
+			//
+			// Draw the bounding box
+			//
+
 			GL_State( GLS_DEPTHFUNC_ALWAYS );
 
-			renderProgManager.SetColorParm( 1, 1, 1, 1 );
-			RB_DrawBounds( tri->GetBounds() );
+			renderProgManager.SetColorParm( 1.0, 1.0, 1.0, 1.0 );
+			RB_DrawBounds( tri->GetBounds(), surf->space->modelMatrix );
 
-			if( radius != 0.0f )
+			/*if( radius != 0.0f )
 			{
 				// draw the expanded triangles
 				renderProgManager.SetColorParm( 0.5f, 0.5f, 1.0f, 1.0f );
 				DrawExpandedTriangles( tri, radius, localStart );
-			}
+			}*/
 
 			// check the exact surfaces
 			auto hit = tri->LocalTrace( localStart, localEnd, radius );
 			if( hit.fraction < 1.0 )
 			{
-				renderProgManager.SetColorParm( 1, 1, 1, 1 );
-				RB_DrawBounds( idBounds( hit.point ).Expand( 1 ) );
+				renderProgManager.SetColorParm( 1.0, 1.0, 1.0, 1.0 );
+				RB_DrawBounds( idBounds( hit.point ).Expand( 1 ), surf->space->modelMatrix );
 			}
 		}
 	}

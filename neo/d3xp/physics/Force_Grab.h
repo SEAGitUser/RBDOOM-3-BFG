@@ -38,9 +38,7 @@ If you have questions concerning this license or the applicable additional terms
 ===============================================================================
 */
 
-class idForce_Grab : public idForce
-{
-
+class idForce_Grab : public idForce {
 public:
 	CLASS_PROTOTYPE( idForce_Grab );
 	

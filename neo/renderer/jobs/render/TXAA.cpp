@@ -67,8 +67,7 @@ static void RB_TXAA( renderPassTXAAParms_t * parms )
 	if( !parms->bInitialized )
 		return;
 
-	NvTxaaResolveParametersGL resolveParameters;
-	memset( &resolveParameters, 0, sizeof( resolveParameters ) );
+	NvTxaaResolveParametersGL resolveParameters = {};
 	resolveParameters.txaaContext = &parms->txaaCtx;
 	resolveParameters.resolveTarget = ( GLuint ) parms->imgResolveTarget->GetAPIObject();
 	resolveParameters.msaaSource = ( GLuint )parms->imgViewColorMS->GetAPIObject();;
@@ -81,8 +80,7 @@ static void RB_TXAA( renderPassTXAAParms_t * parms )
 
 	resolveParameters.debug = nullptr; //&m_debug;
 
-	NvTxaaMotionGL motion;
-	memset( &motion, 0, sizeof( motion ) );
+	NvTxaaMotionGL motion = {};
 	motion.motionVectors = ( GLuint )parms->imgVelocity->GetAPIObject();
 
 	if( NV_TXAA_STATUS_OK != GFSDK_TXAA_GL_ResolveFromMotionVectors( &resolveParameters, &motion ) )

@@ -51,15 +51,15 @@ If you have questions concerning this license or the applicable additional terms
 ===============================================================================
 */
 
-typedef struct singleSmoke_s {
-	struct singleSmoke_s* 		next;
+struct singleSmoke_t {
+	singleSmoke_t * 			next;
 	int							privateStartTime;	// start time for this particular particle
 	int							index;				// particle index in system, 0 <= index < stage->totalParticles
 	idRandom					random;
 	idVec3						origin;
 	idMat3						axis;
 	int							timeGroup;
-} singleSmoke_t;
+};
 
 struct activeSmokeStage_t {
 	const idParticleStage* 		stage;
@@ -77,7 +77,6 @@ public:
 	// spits out a particle, returning false if the system will not emit any more particles in the future
 	bool						EmitSmoke( const idDeclParticle* smoke, const int startTime, const float diversity,
 										   const idVec3& origin, const idMat3& axis, int timeGroup /*_D3XP*/ );
-
 	// free old smokes
 	void						FreeSmokes();
 

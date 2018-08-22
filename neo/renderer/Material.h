@@ -50,7 +50,7 @@ struct decalInfo_t {
 	int		stayTime;		// msec for no change
 	int		fadeTime;		// msec to fade vertex colors over
 	float	start[ 4 ];		// vertex color at spawn (possibly out of 0.0 - 1.0 range, will clamp after calc)
-	float	end[ 4 ];			// vertex color at fade-out (possibly out of 0.0 - 1.0 range, will clamp after calc)
+	float	end[ 4 ];		// vertex color at fade-out (possibly out of 0.0 - 1.0 range, will clamp after calc)
 };
 
 enum deform_t {
@@ -351,44 +351,44 @@ const int MAX_GLOBAL_SHADER_PARMS = 12;	// ? this looks like it should only be 8
 
 // material flags
 enum materialFlags_t {
-	MF_DEFAULTED = BIT( 0 ),
-	MF_POLYGONOFFSET = BIT( 1 ),
-	MF_NOSHADOWS = BIT( 2 ),
-	MF_FORCESHADOWS = BIT( 3 ),
-	MF_NOSELFSHADOW = BIT( 4 ),
-	MF_NOPORTALFOG = BIT( 5 ),	 // this fog volume won't ever consider a portal fogged out
-	MF_EDITOR_VISIBLE = BIT( 6 ),	 // in use (visible) per editor
+	MF_DEFAULTED		= BIT( 0 ),
+	MF_POLYGONOFFSET	= BIT( 1 ),
+	MF_NOSHADOWS		= BIT( 2 ),
+	MF_FORCESHADOWS		= BIT( 3 ),
+	MF_NOSELFSHADOW		= BIT( 4 ),
+	MF_NOPORTALFOG		= BIT( 5 ),	 // this fog volume won't ever consider a portal fogged out
+	MF_EDITOR_VISIBLE	= BIT( 6 ),	 // in use (visible) per editor
 	// motorsep 11-23-2014; material LOD keys that define what LOD iteration the surface falls into
-	MF_LOD1_SHIFT = 7,
-	MF_LOD1 = BIT( 7 ),	 // motorsep 11-24-2014; material flag for LOD1 iteration
-	MF_LOD2 = BIT( 8 ),	 // motorsep 11-24-2014; material flag for LOD2 iteration
-	MF_LOD3 = BIT( 9 ),	 // motorsep 11-24-2014; material flag for LOD3 iteration
-	MF_LOD4 = BIT( 10 ), // motorsep 11-24-2014; material flag for LOD4 iteration
-	MF_LOD_PERSISTENT = BIT( 11 )	 // motorsep 11-24-2014; material flag for persistent LOD iteration
+	MF_LOD1_SHIFT		= 7,
+	MF_LOD1				= BIT( 7 ),	 // motorsep 11-24-2014; material flag for LOD1 iteration
+	MF_LOD2				= BIT( 8 ),	 // motorsep 11-24-2014; material flag for LOD2 iteration
+	MF_LOD3				= BIT( 9 ),	 // motorsep 11-24-2014; material flag for LOD3 iteration
+	MF_LOD4				= BIT( 10 ), // motorsep 11-24-2014; material flag for LOD4 iteration
+	MF_LOD_PERSISTENT	= BIT( 11 )	 // motorsep 11-24-2014; material flag for persistent LOD iteration
 };
 
 // contents flags, NOTE: make sure to keep the defines in doom_defs.script up to date with these!
 enum contentsFlags_t {
-	CONTENTS_SOLID = BIT( 0 ),	// an eye is never valid in a solid
-	CONTENTS_OPAQUE = BIT( 1 ),	// blocks visibility (for ai)
-	CONTENTS_WATER = BIT( 2 ),	// used for water
-	CONTENTS_PLAYERCLIP = BIT( 3 ),	// solid to players
-	CONTENTS_MONSTERCLIP = BIT( 4 ),	// solid to monsters
-	CONTENTS_MOVEABLECLIP = BIT( 5 ),	// solid to moveable entities
-	CONTENTS_IKCLIP = BIT( 6 ),	// solid to IK
-	CONTENTS_BLOOD = BIT( 7 ),	// used to detect blood decals
-	CONTENTS_BODY = BIT( 8 ),	// used for actors
-	CONTENTS_PROJECTILE = BIT( 9 ),	// used for projectiles
-	CONTENTS_CORPSE = BIT( 10 ),	// used for dead bodies
-	CONTENTS_RENDERMODEL = BIT( 11 ),	// used for render models for collision detection
-	CONTENTS_TRIGGER = BIT( 12 ),	// used for triggers
-	CONTENTS_AAS_SOLID = BIT( 13 ),	// solid for AAS
-	CONTENTS_AAS_OBSTACLE = BIT( 14 ),	// used to compile an obstacle into AAS that can be enabled/disabled
+	CONTENTS_SOLID				= BIT( 0 ),	// an eye is never valid in a solid
+	CONTENTS_OPAQUE				= BIT( 1 ),	// blocks visibility (for ai)
+	CONTENTS_WATER				= BIT( 2 ),	// used for water
+	CONTENTS_PLAYERCLIP			= BIT( 3 ),	// solid to players
+	CONTENTS_MONSTERCLIP		= BIT( 4 ),	// solid to monsters
+	CONTENTS_MOVEABLECLIP		= BIT( 5 ),	// solid to moveable entities
+	CONTENTS_IKCLIP				= BIT( 6 ),	// solid to IK
+	CONTENTS_BLOOD				= BIT( 7 ),	// used to detect blood decals
+	CONTENTS_BODY				= BIT( 8 ),	// used for actors
+	CONTENTS_PROJECTILE			= BIT( 9 ),	// used for projectiles
+	CONTENTS_CORPSE				= BIT( 10 ),	// used for dead bodies
+	CONTENTS_RENDERMODEL		= BIT( 11 ),	// used for render models for collision detection
+	CONTENTS_TRIGGER			= BIT( 12 ),	// used for triggers
+	CONTENTS_AAS_SOLID			= BIT( 13 ),	// solid for AAS
+	CONTENTS_AAS_OBSTACLE		= BIT( 14 ),	// used to compile an obstacle into AAS that can be enabled/disabled
 	CONTENTS_FLASHLIGHT_TRIGGER = BIT( 15 ),	// used for triggers that are activated by the flashlight
 
 	// contents used by utils
-	CONTENTS_AREAPORTAL = BIT( 20 ),	// portal separating renderer areas
-	CONTENTS_NOCSG = BIT( 21 ),	// don't cut this brush with CSG operations in the editor
+	CONTENTS_AREAPORTAL			= BIT( 20 ),	// portal separating renderer areas
+	CONTENTS_NOCSG				= BIT( 21 ),	// don't cut this brush with CSG operations in the editor
 
 	CONTENTS_REMOVE_UTIL = ~( CONTENTS_AREAPORTAL | CONTENTS_NOCSG )
 };
@@ -418,21 +418,21 @@ enum surfTypes_t {
 
 // surface flags
 enum surfaceFlags_t {
-	SURF_TYPE_BIT0 = BIT( 0 ),	// encodes the material type (metal, flesh, concrete, etc.)
-	SURF_TYPE_BIT1 = BIT( 1 ),	// "
-	SURF_TYPE_BIT2 = BIT( 2 ),	// "
-	SURF_TYPE_BIT3 = BIT( 3 ),	// "
-	SURF_TYPE_MASK = ( 1 << NUM_SURFACE_BITS ) - 1,
+	SURF_TYPE_BIT0		= BIT( 0 ),	// encodes the material type (metal, flesh, concrete, etc.)
+	SURF_TYPE_BIT1		= BIT( 1 ),	// "
+	SURF_TYPE_BIT2		= BIT( 2 ),	// "
+	SURF_TYPE_BIT3		= BIT( 3 ),	// "
+	SURF_TYPE_MASK		= ( 1 << NUM_SURFACE_BITS ) - 1,
 
-	SURF_NODAMAGE = BIT( 4 ),	// never give falling damage
-	SURF_SLICK = BIT( 5 ),	// effects game physics
-	SURF_COLLISION = BIT( 6 ),	// collision surface
-	SURF_LADDER = BIT( 7 ),	// player can climb up this surface
-	SURF_NOIMPACT = BIT( 8 ),	// don't make missile explosions
-	SURF_NOSTEPS = BIT( 9 ),	// no footstep sounds
-	SURF_DISCRETE = BIT( 10 ),	// not clipped or merged by utilities
-	SURF_NOFRAGMENT = BIT( 11 ),	// dmap won't cut surface at each bsp boundary
-	SURF_NULLNORMAL = BIT( 12 )	// renderbump will draw this surface as 0x80 0x80 0x80, which
+	SURF_NODAMAGE		= BIT( 4 ),	// never give falling damage
+	SURF_SLICK			= BIT( 5 ),	// effects game physics
+	SURF_COLLISION		= BIT( 6 ),	// collision surface
+	SURF_LADDER			= BIT( 7 ),	// player can climb up this surface
+	SURF_NOIMPACT		= BIT( 8 ),	// don't make missile explosions
+	SURF_NOSTEPS		= BIT( 9 ),	// no footstep sounds
+	SURF_DISCRETE		= BIT( 10 ), // not clipped or merged by utilities
+	SURF_NOFRAGMENT		= BIT( 11 ), // dmap won't cut surface at each bsp boundary
+	SURF_NULLNORMAL		= BIT( 12 )	// renderbump will draw this surface as 0x80 0x80 0x80, which
 									// won't collect light from any angle
 };
 
@@ -459,9 +459,8 @@ public:
 	bool				Save( const char* fileName = NULL );
 
 	// returns the internal image name for stage 0, which can be used
-	// for the renderer CaptureRenderToImage() call
-	// I'm not really sure why this needs to be virtual...
-	virtual const char * ImageName() const;
+	// for the renderer CaptureRenderToImage() call.
+	const char *		ImageName() const;
 
 	void				ReloadImages( bool force ) const;
 
@@ -636,7 +635,7 @@ public:
 	ID_INLINE const surfTypes_t	GetSurfaceType() const { return static_cast< surfTypes_t >( surfaceFlags & SURF_TYPE_MASK ); }
 
 	// get material description
-	ID_INLINE const char * GetDescription() const { return desc; }
+	ID_INLINE const char * GetDescription() const { return desc.c_str(); }
 
 	// get sort order
 	ID_INLINE const float GetSort() const { return sort; }
@@ -649,7 +648,7 @@ public:
 	ID_INLINE void		SetSort( float s ) const { sort = s; };
 
 	// DFRM_NONE, DFRM_SPRITE, etc
-	ID_INLINE deform_t	Deform() const { return deform; }
+	ID_INLINE deform_t	GetDeformType() const { return deform; }
 
 	// flare size, expansion size, etc
 	ID_INLINE const int	GetDeformRegister( int index ) const { return deformRegisters[ index ]; }
@@ -713,8 +712,8 @@ public:
 	// can be in different time groups.
 	void				EvaluateRegisters(
 		float * 		registers,
-		const float		localShaderParms[ MAX_ENTITY_SHADER_PARMS ],
-		const float		globalShaderParms[ MAX_GLOBAL_SHADER_PARMS ],
+		const float		localShaderParms[],
+		const float		globalShaderParms[],
 		const float		floatTime,
 		class idSoundEmitter* ) const;
 

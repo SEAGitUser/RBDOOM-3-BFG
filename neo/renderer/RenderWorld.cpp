@@ -379,20 +379,20 @@ void idRenderWorldLocal::UpdateLightDef( qhandle_t lightHandle, const renderLigh
 	{
 		// if the shape of the light stays the same, we don't need to dump
 		// any of our derived data, because shader parms are calculated every frame
-		if( rlight->axis == light->parms.axis &&
-			rlight->end == light->parms.end &&
-			rlight->lightCenter == light->parms.lightCenter &&
-			rlight->lightRadius == light->parms.lightRadius &&
-			rlight->noShadows == light->parms.noShadows &&
-			rlight->origin == light->parms.origin &&
-			rlight->parallel == light->parms.parallel &&
-			rlight->pointLight == light->parms.pointLight &&
-			rlight->right == light->parms.right &&
-			rlight->start == light->parms.start &&
-			rlight->target == light->parms.target &&
-			rlight->up == light->parms.up &&
-			rlight->shader == light->lightShader &&
-			rlight->prelightModel == light->parms.prelightModel )
+		if( rlight->axis			== light->parms.axis &&
+			rlight->end				== light->parms.end &&
+			rlight->lightCenter		== light->parms.lightCenter &&
+			rlight->lightRadius		== light->parms.lightRadius &&
+			rlight->noShadows		== light->parms.noShadows &&
+			rlight->origin			== light->parms.origin &&
+			rlight->parallel		== light->parms.parallel &&
+			rlight->pointLight		== light->parms.pointLight &&
+			rlight->right			== light->parms.right &&
+			rlight->start			== light->parms.start &&
+			rlight->target			== light->parms.target &&
+			rlight->up				== light->parms.up &&
+			rlight->material		== light->lightShader &&
+			rlight->prelightModel	== light->parms.prelightModel )
 		{
 			justUpdate = true;
 		}
@@ -422,7 +422,7 @@ void idRenderWorldLocal::UpdateLightDef( qhandle_t lightHandle, const renderLigh
 
 	// new for BFG edition: force noShadows on spectrum lights so teleport spawns
 	// don't cause such a slowdown.  Hell writing shouldn't be shadowed anyway...
-	if( light->parms.shader && light->parms.shader->Spectrum() )
+	if( light->parms.material && light->parms.material->Spectrum() )
 	{
 		light->parms.noShadows = true;
 	}
@@ -501,7 +501,7 @@ idRenderWorldLocal::ProjectDecalOntoWorld
 ================
 */
 void idRenderWorldLocal::ProjectDecalOntoWorld( const idFixedWinding& winding, const idVec3& projectionOrigin,
-				const bool parallel, const float fadeDepth, const idMaterial* material, const int startTime )
+												const bool parallel, const float fadeDepth, const idMaterial* material, const int startTime )
 {
 	decalProjectionParms_t globalParms;
 	if( !idRenderModelDecal::CreateProjectionParms( globalParms, winding, projectionOrigin, parallel, fadeDepth, material, startTime ) )
@@ -512,7 +512,7 @@ void idRenderWorldLocal::ProjectDecalOntoWorld( const idFixedWinding& winding, c
 	int numAreas = BoundsInAreas( globalParms.projectionBounds, areas, 10 );
 
 	// check all areas for models
-	for( int i = 0; i < numAreas; i++ )
+	for( int i = 0; i < numAreas; ++i )
 	{
 		const auto * const area = &portalAreas[ areas[i] ];
 
@@ -753,7 +753,7 @@ idRenderWorldLocal::RenderScene
 */
 void idRenderWorldLocal::RenderScene( const renderViewParms_t* renderViewParms )
 {
-	if( !R_IsInitialized() )
+	if( !tr.IsRenderDeviceRunning() )
 		return;
 
 	// skip front end rendering work, which will result
@@ -1164,7 +1164,7 @@ bool idRenderWorldLocal::ModelTrace( modelTrace_t& trace, qhandle_t entityHandle
 	{
 		auto surf = model->Surface( i );
 
-		auto material = R_RemapShaderBySkin( surf->shader, def->parms.customSkin, def->parms.customMaterial );
+		auto material = R_RemapShaderBySkin( surf->GetMaterial(), def->parms.customSkin, def->parms.customMaterial );
 
 		if( material->GetSurfaceFlags() & SURF_COLLISION )
 		{
@@ -1357,7 +1357,7 @@ bool idRenderWorldLocal::Trace( modelTrace_t& trace, const idVec3& start, const 
 			}
 		}
 	}
-	return ( trace.fraction < 1.0f );
+	return( trace.fraction < 1.0f );
 }
 
 /*
@@ -1646,8 +1646,7 @@ to prevent double checking areas.
 We might alternatively choose to do this with an area flow.
 ==================
 */
-void idRenderWorldLocal::PushFrustumIntoTree_r( idRenderEntityLocal* def, idRenderLightLocal* light,
-	const frustumCorners_t& corners, int nodeNum )
+void idRenderWorldLocal::PushFrustumIntoTree_r( idRenderEntityLocal* def, idRenderLightLocal* light, const idRenderMatrix::frustumCorners_t& corners, int nodeNum )
 {
 	if( nodeNum < 0 )
 	{
@@ -1688,9 +1687,9 @@ void idRenderWorldLocal::PushFrustumIntoTree_r( idRenderEntityLocal* def, idRend
 	}
 
 	// exact check all the corners against the node plane
-	frustumCull_t cull = idRenderMatrix::CullFrustumCornersToPlane( corners, node->plane );
+	auto cull = idRenderMatrix::CullFrustumCornersToPlane( corners, node->plane );
 
-	if( cull != FRUSTUM_CULL_BACK )
+	if( cull != idRenderMatrix::FRUSTUM_CULL_BACK )
 	{
 		nodeNum = node->children[0];
 		if( nodeNum != 0 )  	// 0 = solid
@@ -1699,7 +1698,7 @@ void idRenderWorldLocal::PushFrustumIntoTree_r( idRenderEntityLocal* def, idRend
 		}
 	}
 
-	if( cull != FRUSTUM_CULL_FRONT )
+	if( cull != idRenderMatrix::FRUSTUM_CULL_FRONT )
 	{
 		nodeNum = node->children[1];
 		if( nodeNum != 0 )  	// 0 = solid
@@ -1720,7 +1719,7 @@ void idRenderWorldLocal::PushFrustumIntoTree( idRenderEntityLocal* def, idRender
 		return;
 
 	// calculate the corners of the frustum in word space
-	ALIGNTYPE16 frustumCorners_t corners;
+	idRenderMatrix::frustumCorners_t corners;
 	idRenderMatrix::GetFrustumCorners( corners, frustumTransform, frustumBounds );
 
 	PushFrustumIntoTree_r( def, light, corners, 0 );
@@ -1796,24 +1795,24 @@ bool R_GlobalShaderOverride( const idMaterial** shader )
 R_RemapShaderBySkin
 ===============
 */
-const idMaterial* R_RemapShaderBySkin( const idMaterial* shader, const idDeclSkin* skin, const idMaterial* customMaterial )
+const idMaterial* R_RemapShaderBySkin( const idMaterial* material, const idDeclSkin* skin, const idMaterial* customMaterial )
 {
-	if( !shader )
+	if( !material )
 	{
 		return NULL;
 	}
 
 	// never remap surfaces that were originally nodraw, like collision hulls
-	if( !shader->IsDrawn() )
+	if( !material->IsDrawn() )
 	{
-		return shader;
+		return material;
 	}
 
 	if( customMaterial )
 	{
 		// this is sort of a hack, but cause deformed surfaces to map to empty surfaces,
 		// so the item highlight overlay doesn't highlight the autosprite surface
-		if( shader->Deform() )
+		if( material->GetDeformType() )
 		{
 			return NULL;
 		}
@@ -1822,8 +1821,8 @@ const idMaterial* R_RemapShaderBySkin( const idMaterial* shader, const idDeclSki
 
 	if( !skin )
 	{
-		return const_cast<idMaterial*>( shader );
+		return const_cast<idMaterial*>( material );
 	}
 
-	return skin->RemapShaderBySkin( shader );
+	return skin->RemapShaderBySkin( material );
 }

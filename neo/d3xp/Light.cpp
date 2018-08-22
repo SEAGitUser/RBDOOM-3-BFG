@@ -79,10 +79,6 @@ which should be used by dmap and the editor
 */
 void idGameEdit::ParseSpawnArgsToRenderLight( const idDict* args, renderLightParms_t* renderLight )
 {
-	bool	gotTarget, gotUp, gotRight;
-	const char*	texture;
-	idVec3	color;
-
 	renderLight->Clear();
 
 	if( !args->GetVector( "light_origin", "", renderLight->origin ) )
@@ -90,9 +86,9 @@ void idGameEdit::ParseSpawnArgsToRenderLight( const idDict* args, renderLightPar
 		args->GetVector( "origin", "", renderLight->origin );
 	}
 
-	gotTarget = args->GetVector( "light_target", "", renderLight->target );
-	gotUp = args->GetVector( "light_up", "", renderLight->up );
-	gotRight = args->GetVector( "light_right", "", renderLight->right );
+	bool gotTarget = args->GetVector( "light_target", "", renderLight->target );
+	bool gotUp = args->GetVector( "light_up", "", renderLight->up );
+	bool gotRight = args->GetVector( "light_right", "", renderLight->right );
 	args->GetVector( "light_start", "0 0 0", renderLight->start );
 	if( !args->GetVector( "light_end", "", renderLight->end ) )
 	{
@@ -102,8 +98,7 @@ void idGameEdit::ParseSpawnArgsToRenderLight( const idDict* args, renderLightPar
 	// we should have all of the target/right/up or none of them
 	if( ( gotTarget || gotUp || gotRight ) != ( gotTarget && gotUp && gotRight ) )
 	{
-		gameLocal.Printf( "Light at (%f,%f,%f) has bad target info\n",
-						  renderLight->origin[0], renderLight->origin[1], renderLight->origin[2] );
+		gameLocal.Printf( "Light at (%f,%f,%f) has bad target info\n", renderLight->origin[0], renderLight->origin[1], renderLight->origin[2] );
 		return;
 	}
 
@@ -118,7 +113,6 @@ void idGameEdit::ParseSpawnArgsToRenderLight( const idDict* args, renderLightPar
 		if( !args->GetVector( "light_radius", "300 300 300", renderLight->lightRadius ) )
 		{
 			float radius;
-
 			args->GetFloat( "light", "300", radius );
 			renderLight->lightRadius[0] = renderLight->lightRadius[1] = renderLight->lightRadius[2] = radius;
 		}
@@ -147,6 +141,7 @@ void idGameEdit::ParseSpawnArgsToRenderLight( const idDict* args, renderLightPar
 	renderLight->axis = mat;
 
 	// check for other attributes
+	idVec3	color;
 	args->GetVector( "_color", "1 1 1", color );
 	renderLight->shaderParms[ SHADERPARM_RED ]	 = color[0];
 	renderLight->shaderParms[ SHADERPARM_GREEN ] = color[1];
@@ -165,9 +160,10 @@ void idGameEdit::ParseSpawnArgsToRenderLight( const idDict* args, renderLightPar
 	args->GetBool( "nospecular", "0", renderLight->noSpecular );
 	args->GetBool( "parallel", "0", renderLight->parallel );
 
+	const char*	texture;
 	args->GetString( "texture", "lights/squarelight1", &texture );
 	// allow this to be NULL
-	renderLight->shader = declManager->FindMaterial( texture, false );
+	renderLight->material = declManager->FindMaterial( texture, false );
 }
 
 /*
@@ -373,7 +369,7 @@ void idLight::Spawn()
 
 	// also put the light texture on the model, so light flares
 	// can get the current intensity of the light
-	renderEntity.referenceMaterial = renderLight.shader;
+	renderEntity.referenceMaterial = renderLight.material;
 
 	lightDefHandle = -1;		// no static version yet
 
@@ -555,10 +551,10 @@ void idLight::SetColor( const idVec3& color )
 idLight::SetShader
 ================
 */
-void idLight::SetShader( const char* shadername )
+void idLight::SetShader( const char* material_name )
 {
 	// allow this to be NULL
-	renderLight.shader = declManager->FindMaterial( shadername, false );
+	renderLight.material = declManager->FindMaterial( material_name, false );
 	PresentLightDefChange();
 }
 
@@ -841,8 +837,7 @@ void idLight::Present()
 		renderLight.referenceSound = lightParent->GetSoundEmitter();
 		renderEntity.referenceSound = lightParent->GetSoundEmitter();
 	}
-	else
-	{
+	else {
 		renderLight.referenceSound = refSound.referenceSound;
 		renderEntity.referenceSound = refSound.referenceSound;
 	}

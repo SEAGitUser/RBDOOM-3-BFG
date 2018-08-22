@@ -52,11 +52,11 @@ idRenderModelLiquid::idRenderModelLiquid()
 	drop_height = 4;
 	drop_radius = 4;
 	drop_delay	= 1000;
-	shader		= declManager->FindMaterial( NULL );
+	material	= declManager->FindMaterial( NULL );
 	update_tics	= 33;  // ~30 hz
 	time		= 0;
 	seed		= 0;
-	
+
 	random.SetSeed( 0 );
 }
 
@@ -74,15 +74,15 @@ modelSurface_t idRenderModelLiquid::GenerateSurface( float lerp )
 		auto pos = vert->GetPosition();
 		vert->SetPosition( pos.x, pos.y, page1[ i ] * lerp + page2[ i ] * inv_lerp );
 	}
-	
+
 	tr.pc.c_deformedSurfaces++;
 	tr.pc.c_deformedVerts += deformInfo->numOutputVerts;
 	tr.pc.c_deformedIndexes += deformInfo->numIndexes;
-	
+
 	auto tri = idTriangles::AllocStatic();
-	
+
 	// note that some of the data is references, and should not be freed
-	tri->referencedIndexes = true;	
+	tri->referencedIndexes = true;
 	tri->numIndexes = deformInfo->numIndexes;
 	tri->indexes = deformInfo->indexes;
 
@@ -93,26 +93,27 @@ modelSurface_t idRenderModelLiquid::GenerateSurface( float lerp )
 	tri->dupVerts = deformInfo->dupVerts;
 	tri->numSilEdges = deformInfo->numSilEdges;
 	tri->silEdges = deformInfo->silEdges;
-	
+
 	tri->numVerts = deformInfo->numOutputVerts;
 	tri->AllocStaticVerts( tri->numVerts );
 	assert( tri->verts != NULL );
 
 	SIMDProcessor->Memcpy( tri->verts, verts.Ptr(), deformInfo->numSourceVerts * sizeof( tri->verts[0] ) );
-	
+
 	// replicate the mirror seam vertexes
 	int base = deformInfo->numOutputVerts - deformInfo->numMirroredVerts;
 	for( int i = 0; i < deformInfo->numMirroredVerts; ++i )
 	{
 		tri->verts[ base + i ] = tri->verts[ deformInfo->mirroredVerts[ i ] ];
 	}
-	
+
 	tri->DeriveBounds();
-	
+
 	modelSurface_t surf;
+	surf.id = 0;
 	surf.geometry = tri;
-	surf.shader	= shader;
-	
+	surf.material = material;
+
 	return surf;
 }
 
@@ -125,7 +126,7 @@ void idRenderModelLiquid::WaterDrop( int x, int y, float* page )
 {
 	int	radsquare = drop_radius * drop_radius;
 	float invlength = 1.0f / ( float )radsquare;
-	
+
 	if( x < 0 )
 	{
 		x = 1 + drop_radius + random.RandomInt( verts_x - 2 * drop_radius - 1 );
@@ -134,12 +135,12 @@ void idRenderModelLiquid::WaterDrop( int x, int y, float* page )
 	{
 		y = 1 + drop_radius + random.RandomInt( verts_y - 2 * drop_radius - 1 );
 	}
-	
+
 	int left = -drop_radius;
 	int right = drop_radius;
 	int top = -drop_radius;
 	int bottom = drop_radius;
-	
+
 	// Perform edge clipping...
 	if( x - drop_radius < 1 )
 	{
@@ -157,7 +158,7 @@ void idRenderModelLiquid::WaterDrop( int x, int y, float* page )
 	{
 		bottom -= ( y + drop_radius - verts_y + 1 );
 	}
-	
+
 	for( int cy = top; cy < bottom; ++cy )
 	{
 		for( int cx = left; cx < right; ++cx )
@@ -183,15 +184,15 @@ void idRenderModelLiquid::IntersectBounds( const idBounds& bounds, float displac
 	int right	= ( int )( bounds[ 1 ].x / scale_x );
 	int top		= ( int )( bounds[ 0 ].y / scale_y );
 	int bottom	= ( int )( bounds[ 1 ].y / scale_y );
-	
+
 	float down	= bounds[ 0 ].z;
 	float up	= bounds[ 1 ].z;
-	
+
 	if( ( right < 1 ) || ( left >= verts_x ) || ( bottom < 1 ) || ( top >= verts_x ) )
 	{
 		return;
 	}
-	
+
 	// Perform edge clipping...
 	if( left < 1 )
 	{
@@ -209,7 +210,7 @@ void idRenderModelLiquid::IntersectBounds( const idBounds& bounds, float displac
 	{
 		bottom = verts_y - 1;
 	}
-	
+
 	for( int cy = top; cy < bottom; ++cy )
 	{
 		for( int cx = left; cx < right; ++cx )
@@ -234,11 +235,11 @@ void idRenderModelLiquid::Update()
 	float*	p2;
 	float*	p1;
 	float	value;
-	
+
 	time += update_tics;
-	
+
 	SwapValues( page1, page2 );
-	
+
 	if( time > nextDropTime )
 	{
 		WaterDrop( -1, -1, page2 );
@@ -248,10 +249,10 @@ void idRenderModelLiquid::Update()
 	{
 		nextDropTime = time + drop_delay;
 	}
-	
+
 	p1 = page1;
 	p2 = page2;
-	
+
 	switch( liquid_type )
 	{
 		case 0 :
@@ -272,12 +273,12 @@ void idRenderModelLiquid::Update()
 						  p2[ x + verts_x + 1 ] +
 						  p2[ x ] ) * ( 2.0f / 9.0f ) -
 						p1[ x ];
-						
+
 					p1[ x ] = value * density;
 				}
 			}
 			break;
-			
+
 		case 1 :
 			for( y = 1; y < verts_y - 1; ++y )
 			{
@@ -295,12 +296,12 @@ void idRenderModelLiquid::Update()
 						  p2[ x + verts_x - 1 ] +
 						  p2[ x + verts_x + 1 ] ) * 0.25f -
 						p1[ x ];
-						
+
 					p1[ x ] = value * density;
 				}
 			}
 			break;
-			
+
 		case 2 :
 			for( y = 1; y < verts_y - 1; y++ )
 			{
@@ -318,7 +319,7 @@ void idRenderModelLiquid::Update()
 						  p2[ x + verts_x - 1 ] +
 						  p2[ x + verts_x + 1 ] +
 						  p2[ x ] ) * ( 1.0f / 9.0f );
-						  
+
 					p1[ x ] = value * density;
 				}
 			}
@@ -334,19 +335,19 @@ idRenderModelLiquid::Reset
 void idRenderModelLiquid::Reset()
 {
 	int	i, x, y;
-	
+
 	if( pages.Num() < 2 * verts_x * verts_y )
 	{
 		return;
 	}
-	
+
 	nextDropTime = 0;
 	time = 0;
 	random.SetSeed( seed );
-	
+
 	page1 = pages.Ptr();
 	page2 = page1 + verts_x * verts_y;
-	
+
 	for( i = 0, y = 0; y < verts_y; ++y )
 	{
 		for( x = 0; x < verts_x; ++x, ++i )
@@ -373,18 +374,18 @@ void idRenderModelLiquid::InitFromFile( const char* fileName )
 	idList<int>		tris;
 	float			size_x, size_y;
 	float			rate;
-	
+
 	name = fileName;
-	
+
 	if( !parser.LoadFile( fileName ) )
 	{
 		MakeDefaultModel();
 		return;
 	}
-	
+
 	size_x = scale_x * verts_x;
 	size_y = scale_y * verts_y;
-	
+
 	while( parser.ReadToken( &token ) )
 	{
 		if( !token.Icmp( "seed" ) )
@@ -448,7 +449,7 @@ void idRenderModelLiquid::InitFromFile( const char* fileName )
 		else if( !token.Icmp( "shader" ) )
 		{
 			parser.ReadToken( &token );
-			shader = declManager->FindMaterial( token );
+			material = declManager->FindMaterial( token );
 		}
 		else if( !token.Icmp( "update_rate" ) )
 		{
@@ -468,14 +469,14 @@ void idRenderModelLiquid::InitFromFile( const char* fileName )
 			return;
 		}
 	}
-	
+
 	scale_x = size_x / ( verts_x - 1 );
 	scale_y = size_y / ( verts_y - 1 );
-	
+
 	pages.SetNum( 2 * verts_x * verts_y );
 	page1 = pages.Ptr();
 	page2 = page1 + verts_x * verts_y;
-	
+
 	verts.SetNum( verts_x * verts_y );
 	for( i = 0, y = 0; y < verts_y; y++ )
 	{
@@ -488,7 +489,7 @@ void idRenderModelLiquid::InitFromFile( const char* fileName )
 			verts[ i ].SetTexCoord( ( float ) x / ( float )( verts_x - 1 ), ( float ) - y / ( float )( verts_y - 1 ) );
 		}
 	}
-	
+
 	tris.SetNum( ( verts_x - 1 ) * ( verts_y - 1 ) * 6 );
 	for( i = 0, y = 0; y < verts_y - 1; y++ )
 	{
@@ -497,24 +498,24 @@ void idRenderModelLiquid::InitFromFile( const char* fileName )
 			tris[ i + 0 ] = y * verts_x + x;
 			tris[ i + 1 ] = y * verts_x + x - 1;
 			tris[ i + 2 ] = ( y + 1 ) * verts_x + x - 1;
-			
+
 			tris[ i + 3 ] = ( y + 1 ) * verts_x + x - 1;
 			tris[ i + 4 ] = ( y + 1 ) * verts_x + x;
 			tris[ i + 5 ] = y * verts_x + x;
 		}
 	}
-	
+
 	// build the information that will be common to all animations of this mesh:
 	// sil edge connectivity and normal / tangent generation information
 	deformInfo = idTriangles::BuildDeformInfo( verts.Num(), verts.Ptr(), tris.Num(), tris.Ptr(), true );
-	
+
 	bounds.Clear();
 	bounds.AddPoint( idVec3( 0.0f, 0.0f, drop_height * -10.0f ) );
 	bounds.AddPoint( idVec3( ( verts_x - 1 ) * scale_x, ( verts_y - 1 ) * scale_y, drop_height * 10.0f ) );
-	
+
 	// set the timestamp for reloadmodels
 	fileSystem->ReadFile( name, NULL, &timeStamp );
-	
+
 	Reset();
 }
 
@@ -530,12 +531,12 @@ idRenderModel* idRenderModelLiquid::InstantiateDynamicModel( const struct render
 		delete cachedModel;
 		cachedModel = NULL;
 	}
-	
+
 	if( !deformInfo )
 	{
 		return NULL;
 	}
-	
+
 	int	t = ( view )? view->GetGameTimeMS() : 0;
 
 	// update the liquid model
@@ -544,24 +545,24 @@ idRenderModel* idRenderModelLiquid::InstantiateDynamicModel( const struct render
 	{
 		// don't let time accumalate when skipping frames
 		time += update_tics * ( frames - LIQUID_MAX_SKIP_FRAMES );
-		
+
 		frames = LIQUID_MAX_SKIP_FRAMES;
 	}
-	
+
 	while( frames > 0 )
 	{
 		Update();
 		frames--;
 	}
-	
+
 	// create the surface
 	float lerp = ( float )( t - time ) / ( float )update_tics;
 	modelSurface_t surf = GenerateSurface( lerp );
-	
+
 	auto staticModel = new( TAG_MODEL ) idRenderModelStatic;
 	staticModel->AddSurface( surf );
 	staticModel->bounds = surf.geometry->GetBounds();
-	
+
 	return staticModel;
 }
 

@@ -86,7 +86,7 @@ bool idAASLocal::Init( const idStr& mapName, unsigned int mapFileCRC )
 	else
 	{
 		Shutdown();
-		
+
 		file = AASFileManager->LoadAAS( mapName, mapFileCRC );
 		if( !file )
 		{
@@ -169,7 +169,6 @@ int idAASLocal::PointReachableAreaNum( const idVec3& origin, const idBounds& sea
 	{
 		return 0;
 	}
-	
 	return file->PointReachableAreaNum( origin, searchBounds, areaFlags, TFL_INVALID );
 }
 
@@ -184,7 +183,6 @@ int idAASLocal::BoundsReachableAreaNum( const idBounds& bounds, const int areaFl
 	{
 		return 0;
 	}
-	
 	return file->BoundsReachableAreaNum( bounds, areaFlags, TFL_INVALID );
 }
 
@@ -288,7 +286,7 @@ void idAASLocal::GetEdgeVertexNumbers( int edgeNum, int verts[2] ) const
 		verts[0] = verts[1] = 0;
 		return;
 	}
-	const int* v = file->GetEdge( abs( edgeNum ) ).vertexNum;
+	const int* v = file->GetEdge( idMath::Abs( edgeNum ) ).vertexNum;
 	verts[0] = v[INT32_SIGNBITSET( edgeNum )];
 	verts[1] = v[INT32_SIGNBITNOTSET( edgeNum )];
 }
@@ -306,7 +304,7 @@ void idAASLocal::GetEdge( int edgeNum, idVec3& start, idVec3& end ) const
 		end.Zero();
 		return;
 	}
-	const int* v = file->GetEdge( abs( edgeNum ) ).vertexNum;
+	const int* v = file->GetEdge( idMath::Abs( edgeNum ) ).vertexNum;
 	start = file->GetVertex( v[INT32_SIGNBITSET( edgeNum )] );
 	end = file->GetVertex( v[INT32_SIGNBITNOTSET( edgeNum )] );
 }

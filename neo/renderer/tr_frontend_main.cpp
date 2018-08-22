@@ -120,8 +120,7 @@ static void R_SortDrawSurfs( idRenderView * renderView )
 			st_hi = j;
 			++level;
 		}
-		else
-		{
+		else {
 			for( ; i < j; --j )
 			{
 				register int64 m = i;
@@ -148,9 +147,9 @@ static void R_SortDrawSurfs( idRenderView * renderView )
 	drawSurf_t** newDrawSurfs = ( drawSurf_t** ) indices;
 	for( int i = 0; i < numDrawSurfs; ++i )
 	{
-		newDrawSurfs[i] = drawSurfs[numDrawSurfs - ( indices[i] & 0xFFFF )];
+		newDrawSurfs[ i ] = drawSurfs[ numDrawSurfs - ( indices[ i ] & 0xFFFF ) ];
 	}
-	memcpy( drawSurfs, newDrawSurfs, numDrawSurfs * sizeof( drawSurfs[0] ) );
+	memcpy( drawSurfs, newDrawSurfs, numDrawSurfs * sizeof( drawSurfs[ 0 ] ) );
 
 #else
 

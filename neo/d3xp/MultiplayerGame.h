@@ -63,7 +63,7 @@ enum flagStatus_t
 	FLAGSTATUS_NONE   = 3
 };
 
-typedef struct mpPlayerState_s
+struct mpPlayerState_t
 {
 	int				ping;			// player ping
 	int				fragCount;		// kills
@@ -71,7 +71,7 @@ typedef struct mpPlayerState_s
 	int				wins;			// wins
 	bool			scoreBoardUp;	// toggle based on player scoreboard button, used to activate de-activate the scoreboard gui
 	int				deaths;
-} mpPlayerState_t;
+};
 
 const int NUM_CHAT_NOTIFY	= 5;
 const int CHAT_FADE_TIME	= 400;
@@ -83,11 +83,11 @@ const int MP_PLAYER_MAXWINS	= 100;
 const int MP_PLAYER_MAXPING	= 999;
 const int MP_CTF_MAXPOINTS = 400;
 
-typedef struct mpChatLine_s
+struct mpChatLine_t
 {
 	idStr			line;
 	short			fade;			// starts high and decreases, line is removed once reached 0
-} mpChatLine_t;
+};
 
 enum snd_evt_t
 {
@@ -110,7 +110,6 @@ enum snd_evt_t
 
 class idMultiplayerGame {
 public:
-
 	idMultiplayerGame();
 	
 	void			Shutdown();

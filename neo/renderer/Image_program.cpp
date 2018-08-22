@@ -619,6 +619,9 @@ static bool R_ParseImageProgram_r( idLexer& src, byte** pic, int* width, int* he
 		// average RGB into alpha, then set RGB to white
 		if( pic )
 		{
+			//assert( ( *width * *height ) % 16 == 0 );    //SEA: total pixels count must be multiple of 16
+			//assert( r % 32 == 0 && g % 32 == 0 && b % 32 == 0 && rgba% == 0 ); // all pointers must to have 32-byte alignment
+
 			int c = *width * *height * 4;
 			for( int i = 0; i < c; i += 4 )
 			{

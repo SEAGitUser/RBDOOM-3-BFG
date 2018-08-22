@@ -42,7 +42,7 @@ If you have questions concerning this license or the applicable additional terms
 ===================================================================================
 */
 
-typedef struct parametricPState_s
+struct parametricPState_t
 {
 	int										time;					// physics time
 	int										atRest;					// set when simulation is suspended
@@ -58,11 +58,9 @@ typedef struct parametricPState_s
 	idCurve_Spline<idVec3>* 				spline;					// spline based description of the position over time
 	idInterpolateAccelDecelLinear<float>	splineInterpolate;		// position along the spline over time
 	bool									useSplineAngles;		// set the orientation using the spline
-} parametricPState_t;
+};
 
-class idPhysics_Parametric : public idPhysics_Base
-{
-
+class idPhysics_Parametric : public idPhysics_Base {
 public:
 	CLASS_PROTOTYPE( idPhysics_Parametric );
 	

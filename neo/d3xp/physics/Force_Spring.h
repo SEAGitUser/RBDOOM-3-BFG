@@ -37,9 +37,7 @@ If you have questions concerning this license or the applicable additional terms
 ===============================================================================
 */
 
-class idForce_Spring : public idForce
-{
-
+class idForce_Spring : public idForce {
 public:
 	CLASS_PROTOTYPE( idForce_Spring );
 	

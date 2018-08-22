@@ -37,8 +37,7 @@ If you have questions concerning this license or the applicable additional terms
 ===============================================================================
 */
 
-enum
-{
+enum {
 	FX_LIGHT,
 	FX_PARTICLE,
 	FX_DECAL,
@@ -54,15 +53,15 @@ enum
 //
 // single fx structure
 //
-typedef struct
+struct idFXSingleAction
 {
 	int						type;
 	int						sibling;
-	
+
 	idStr					data;
 	idStr					name;
 	idStr					fire;
-	
+
 	float					delay;
 	float					duration;
 	float					restart;
@@ -77,11 +76,11 @@ typedef struct
 	float					rotate;
 	float					random1;
 	float					random2;
-	
+
 	idVec3					lightColor;
 	idVec3					offset;
 	idMat3					axis;
-	
+
 	bool					soundStarted;
 	bool					shakeStarted;
 	bool					shakeFalloff;
@@ -91,13 +90,12 @@ typedef struct
 	bool					noshadows;
 	bool					particleTrackVelocity;
 	bool					trackOrigin;
-} idFXSingleAction;
+};
 
 //
 // grouped fx structures
 //
-class idDeclFX : public idDecl
-{
+class idDeclFX : public idDecl {
 public:
 	virtual size_t			Size() const;
 	virtual const char* 	DefaultDefinition() const;
@@ -105,12 +103,12 @@ public:
 	virtual void			FreeData();
 	virtual void			Print() const;
 	virtual void			List() const;
-	
+
 	idList<idFXSingleAction, TAG_FX>events;
 	idStr					joint;
-	
+
 private:
-	void					ParseSingleFXAction( idLexer& src, idFXSingleAction& FXAction );
+	void					ParseSingleFXAction( idLexer& src, idFXSingleAction& );
 };
 
 #endif /* !__DECLFX_H__ */

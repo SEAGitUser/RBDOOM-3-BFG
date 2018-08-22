@@ -78,7 +78,7 @@ bool idRenderModelDecal::CreateProjectionParms( decalProjectionParms_t& parms, c
 {
 	if( winding.GetNumPoints() != NUM_DECAL_BOUNDING_PLANES - 2 )
 	{
-		common->Printf( "idRenderModelDecal::CreateProjectionInfo: winding must have %d points\n", NUM_DECAL_BOUNDING_PLANES - 2 );
+		common->Warning( "idRenderModelDecal::CreateProjectionInfo: winding must have %d points\n", NUM_DECAL_BOUNDING_PLANES - 2 );
 		return false;
 	}
 
@@ -102,8 +102,7 @@ bool idRenderModelDecal::CreateProjectionParms( decalProjectionParms_t& parms, c
 	{
 		parms.projectionBounds.ExpandSelf( depth );
 	}
-	else
-	{
+	else {
 		parms.projectionBounds.AddPoint( projectionOrigin );
 	}
 
@@ -118,8 +117,7 @@ bool idRenderModelDecal::CreateProjectionParms( decalProjectionParms_t& parms, c
 			parms.boundingPlanes[ i ].FitThroughPoint( winding[ i ].ToVec3() );
 		}
 	}
-	else
-	{
+	else {
 		for( int i = 0; i < winding.GetNumPoints(); i++ )
 		{
 			parms.boundingPlanes[ i ].FromPoints( projectionOrigin, winding[ i ].ToVec3(), winding[ ( i + 1 ) % winding.GetNumPoints() ].ToVec3() );
@@ -463,7 +461,7 @@ void idRenderModelDecal::CreateDecal( const idRenderModel* model, const decalPro
 	for( int surfNum = 0; surfNum < model->NumSurfaces(); surfNum++ )
 	{
 		const modelSurface_t* surf = model->Surface( surfNum );
-		if( surf->geometry != NULL && surf->shader != NULL )
+		if( surf->GetTriangles() != NULL && surf->GetMaterial() != NULL )
 		{
 			maxVerts = idMath::Max( maxVerts, surf->geometry->numVerts );
 		}
@@ -477,21 +475,21 @@ void idRenderModelDecal::CreateDecal( const idRenderModel* model, const decalPro
 		auto const surf = model->Surface( surfNum );
 
 		// if no geometry or no shader
-		if( surf->geometry == NULL || surf->shader == NULL )
+		if( !surf->GetTriangles() || !surf->GetMaterial() )
 		{
 			continue;
 		}
 
 		// decals and overlays use the same rules
-		if( !localParms.force && !surf->shader->AllowOverlays() )
+		if( !localParms.force && !surf->GetMaterial()->AllowOverlays() )
 		{
 			continue;
 		}
 
-		idTriangles* tri = surf->geometry;
+		const auto * const tri = surf->GetTriangles();
 
 		// if the triangle bounds do not overlap with the projection bounds
-		if( !localParms.projectionBounds.IntersectsBounds( tri->bounds ) )
+		if( !localParms.projectionBounds.IntersectsBounds( tri->GetBounds() ) )
 		{
 			continue;
 		}
@@ -547,8 +545,7 @@ void idRenderModelDecal::CreateDecal( const idRenderModel* model, const decalPro
 						fw[ j ].t = localParms.textureAxis[ 1 ].Distance( fw[ j ].ToVec3() );
 					}
 				}
-				else
-				{
+				else {
 					for( int j = 0; j < 3; j++ )
 					{
 						auto pos = verts[ j ]->GetPosition();
@@ -788,7 +785,7 @@ drawSurf_t* idRenderModelDecal::CreateDecalDrawSurf( const viewModel_t* space, u
 		return NULL;
 	}
 
-	const idMaterial* material = decalMaterials[ index ];
+	auto material = decalMaterials[ index ];
 
 	int maxVerts = 0;
 	int maxIndexes = 0;
@@ -807,7 +804,7 @@ drawSurf_t* idRenderModelDecal::CreateDecalDrawSurf( const viewModel_t* space, u
 		return NULL;
 	}
 
-	// create a new triangle surface in frame memory so it gets automatically disposed of
+	// Create a new triangle surface in frame memory so it gets automatically disposed of.
 	auto newTri = allocManager.FrameAlloc<idTriangles, FRAME_ALLOC_SURFACE_TRIANGLES, true>();
 
 	newTri->numVerts = maxVerts;
@@ -816,8 +813,8 @@ drawSurf_t* idRenderModelDecal::CreateDecalDrawSurf( const viewModel_t* space, u
 	newTri->vertexCache = vertexCache.AllocVertex( NULL, ALIGN( maxVerts * sizeof( idDrawVert ), VERTEX_CACHE_ALIGN ) );
 	newTri->indexCache = vertexCache.AllocIndex( NULL, ALIGN( maxIndexes * sizeof( triIndex_t ), INDEX_CACHE_ALIGN ) );
 
-	idDrawVert* mappedVerts = ( idDrawVert* ) vertexCache.MappedVertexBuffer( newTri->vertexCache );
-	triIndex_t* mappedIndexes = ( triIndex_t* ) vertexCache.MappedIndexBuffer( newTri->indexCache );
+	auto mappedVerts = ( idDrawVert* ) vertexCache.MappedVertexBuffer( newTri->vertexCache );
+	auto mappedIndexes = ( triIndex_t* ) vertexCache.MappedIndexBuffer( newTri->indexCache );
 
 	const decalInfo_t decalInfo = material->GetDecalInfo();
 	const int maxTime = decalInfo.stayTime + decalInfo.fadeTime;
@@ -825,7 +822,7 @@ drawSurf_t* idRenderModelDecal::CreateDecalDrawSurf( const viewModel_t* space, u
 
 	int numVerts = 0;
 	int numIndexes = 0;
-	for( unsigned int i = firstDecal; i < nextDecal; i++ )
+	for( unsigned int i = firstDecal; i < nextDecal; ++i )
 	{
 		const decal_t& decal = decals[ i & ( MAX_DECALS - 1 ) ];
 
@@ -833,7 +830,7 @@ drawSurf_t* idRenderModelDecal::CreateDecalDrawSurf( const viewModel_t* space, u
 		{
 			if( i == firstDecal )
 			{
-				firstDecal++;
+				++firstDecal;
 			}
 			continue;
 		}
@@ -846,15 +843,14 @@ drawSurf_t* idRenderModelDecal::CreateDecalDrawSurf( const viewModel_t* space, u
 		const int deltaTime = time - decal.startTime;
 		const int fadeTime = deltaTime - decalInfo.stayTime;
 		if( deltaTime > maxTime )
-		{
+{
 			continue;	// already completely faded away, but not yet removed
 		}
 
 		const float f = ( deltaTime > decalInfo.stayTime ) ? ( ( float ) fadeTime / decalInfo.fadeTime ) : 0.0f;
 
 		ALIGNTYPE16 float fadeColor[ 4 ];
-		for( int j = 0; j < 4; j++ )
-		{
+		for( int j = 0; j < 4; j++ ) {
 			fadeColor[ j ] = 255.0f * ( decalInfo.start[ j ] + ( decalInfo.end[ j ] - decalInfo.start[ j ] ) * f );
 		}
 

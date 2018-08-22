@@ -61,12 +61,14 @@ If you have questions concerning this license or the applicable additional terms
 	#ifdef _MSC_VER
 		#define ALIGN16( x )					__declspec(align(16)) x
 		#define ALIGNTYPE16						__declspec(align(16))
+		#define ALIGNTYPE32						__declspec(align(32))
 		#define ALIGNTYPE128					__declspec(align(128))
 	#else
 		// DG: mingw/GCC (and probably clang) support
 		#define ALIGN16( x )					x __attribute__ ((aligned (16)))
 		// FIXME: change ALIGNTYPE* ?
 		#define ALIGNTYPE16
+		#define ALIGNTYPE32
 		#define ALIGNTYPE128
 		// DG end
 	#endif

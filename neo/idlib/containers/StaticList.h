@@ -174,7 +174,7 @@ list to NULL.
 template<class type, int size>
 ID_INLINE void idStaticList<type, size>::DeleteContents( bool clear )
 {
-	for( int i = 0; i < num; i++ )
+	for( int i = 0; i < num; ++i )
 	{
 		delete list[ i ];
 		list[ i ] = NULL;
@@ -275,7 +275,7 @@ ID_INLINE void idStaticList<type, size>::SetNum( int newNum, const type& initVal
 	assert( newNum >= 0 );
 	newNum = idMath::Min( newNum, size );
 	assert( newNum <= size );
-	for( int i = num; i < newNum; i++ )
+	for( int i = num; i < newNum; ++i )
 	{
 		list[i] = initValue;
 	}
@@ -425,7 +425,7 @@ ID_INLINE int idStaticList<type, size>::Insert( type const& obj, int index )
 		list[ i ] = list[ i - 1 ];
 	}
 
-	num++;
+	++num;
 	list[ index ] = obj;
 	return index;
 }

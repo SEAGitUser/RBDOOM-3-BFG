@@ -45,9 +45,10 @@ const int ANIMCHANNEL_HEAD = 3;
 const int ANIMCHANNEL_EYELIDS = 4;
 
 // for converting from 24 frames per second to milliseconds
+#define ANIM_FRAMERATE 24
 ID_INLINE int FRAME2MS( int framenum )
 {
-	return ( framenum * 1000 ) / 24;
+	return idMath::FRAME2MS( framenum, ANIM_FRAMERATE );
 }
 
 class idRenderModel;
@@ -92,10 +93,10 @@ enum jointModTransform_t {
 
 struct jointMod_t {
 	jointHandle_t			jointnum;
-	idMat3					mat;
-	idVec3					pos;
 	jointModTransform_t		transform_pos;
 	jointModTransform_t		transform_axis;
+	idMat3					mat;
+	idVec3					pos;
 };
 
 #define	ANIM_BIT_TX			0
@@ -214,10 +215,7 @@ public:
 	void					Free();
 	bool					Reload();
 	size_t					Allocated() const;
-	size_t					Size() const
-	{
-		return sizeof( *this ) + Allocated();
-	};
+	size_t					Size() const { return sizeof( *this ) + Allocated(); };
 	bool					LoadAnim( const char* filename );
 	bool					LoadBinary( idFile* file, ID_TIME_T sourceTimeStamp );
 	void					WriteBinary( idFile* file, ID_TIME_T sourceTimeStamp );
@@ -254,12 +252,12 @@ public:
 class idAnim {
 private:
 	const class idDeclModelDef*	modelDef;
-	const idMD5Anim*				anims[ ANIM_MaxSyncedAnims ];
+	const idMD5Anim*			anims[ ANIM_MaxSyncedAnims ];
 	int							numAnims;
 	idStr						name;
 	idStr						realname;
-	idList<frameLookup_t, TAG_ANIM>		frameLookup;
-	idList<frameCommand_t, TAG_ANIM>		frameCommands;
+	idList<frameLookup_t, TAG_ANIM>	frameLookup;
+	idList<frameCommand_t, TAG_ANIM> frameCommands;
 	animFlags_t					flags;
 
 public:
@@ -502,7 +500,7 @@ public:
 	void						GetOrigin( int currentTime, idVec3& pos ) const;
 	bool						GetBounds( int currentTime, idBounds& bounds );
 
-	idAnimBlend*					CurrentAnim( int channelNum );
+	idAnimBlend*				CurrentAnim( int channelNum );
 	void						Clear( int channelNum, int currentTime, int cleartime );
 	void						SetFrame( int channelNum, int animnum, int frame, int currenttime, int blendtime );
 	void						CycleAnim( int channelNum, int animnum, int currenttime, int blendtime );

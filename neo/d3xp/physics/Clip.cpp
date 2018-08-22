@@ -202,10 +202,7 @@ idTraceModel* idClipModel::GetCachedTraceModel( int traceModelIndex )
 	{
 		return &traceModelCache[ realTraceModelIndex ]->trm;
 	}
-	else
-	{
-		return &traceModelCache_Unsaved[ realTraceModelIndex ]->trm;
-	}
+	return &traceModelCache_Unsaved[ realTraceModelIndex ]->trm;
 }
 
 /*
@@ -221,10 +218,7 @@ trmCache_t* idClipModel::GetTraceModelEntry( int traceModelIndex )
 	{
 		return traceModelCache[ realTraceModelIndex ];
 	}
-	else
-	{
-		return traceModelCache_Unsaved[ realTraceModelIndex ];
-	}
+	return traceModelCache_Unsaved[ realTraceModelIndex ];
 }
 
 /*
@@ -245,10 +239,8 @@ idClipModel::SaveTraceModels
 */
 void idClipModel::SaveTraceModels( idSaveGame* savefile )
 {
-	int i;
-
 	savefile->WriteInt( traceModelCache.Num() );
-	for( i = 0; i < traceModelCache.Num(); i++ )
+	for( int i = 0; i < traceModelCache.Num(); i++ )
 	{
 		trmCache_t* entry = traceModelCache[ i ];
 
@@ -317,11 +309,9 @@ bool idClipModel::LoadModel( const char* name )
 		collisionModelManager->GetModelContents( collisionModelHandle, contents );
 		return true;
 	}
-	else
-	{
-		bounds.Zero();
-		return false;
-	}
+
+	bounds.Zero();
+	return false;
 }
 
 /*
@@ -599,12 +589,9 @@ cmHandle_t idClipModel::Handle() const
 	{
 		return collisionModelManager->SetupTrmModel( *GetCachedTraceModel( traceModelIndex ), material );
 	}
-	else
-	{
-		// this happens in multiplayer on the combat models
-		gameLocal.Warning( "idClipModel::Handle: clip model %d on '%s' (%x) is not a collision or trace model", id, entity->name.c_str(), entity->entityNumber );
-		return 0;
-	}
+	// this happens in multiplayer on the combat models
+	gameLocal.Warning( "idClipModel::Handle: clip model %d on '%s' (%x) is not a collision or trace model", id, entity->name.c_str(), entity->entityNumber );
+	return 0;
 }
 
 /*
@@ -1358,8 +1345,7 @@ bool idClip::Translation( trace_t& results, const idVec3& start, const idVec3& e
 		else
 		{
 			idClip::numTranslations++;
-			collisionModelManager->Translation( &trace, start, end, trm, trmAxis, contentMask,
-				touch->Handle(), touch->origin, touch->axis );
+			collisionModelManager->Translation( &trace, start, end, trm, trmAxis, contentMask, touch->Handle(), touch->origin, touch->axis );
 		}
 
 		if( trace.fraction < results.fraction )

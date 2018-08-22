@@ -25,8 +25,9 @@ If you have questions concerning this license or the applicable additional terms
 
 ===========================================================================
 */
+
 const int NUM_SIMPLEX_CHARS = 95;
-const static int simplex[NUM_SIMPLEX_CHARS][112] =
+const static char simplex[NUM_SIMPLEX_CHARS][112] = //SEA: was int
 {
 	{
 		0, 16, /* Ascii 32 */

@@ -12,25 +12,36 @@ extern idCVar s_noSound;
 #include "tr_local.h"
 
 // Carl: ROQ files from original Doom 3
-const int DEFAULT_CIN_WIDTH = 512;
-const int DEFAULT_CIN_HEIGHT = 512;
-const int MAXSIZE = 8;
-const int MINSIZE = 4;
+const int DEFAULT_CIN_WIDTH		= 512;
+const int DEFAULT_CIN_HEIGHT	= 512;
+const int MAXSIZE				= 8;
+const int MINSIZE				= 4;
 
-const int ROQ_FILE = 0x1084;
-const int ROQ_QUAD = 0x1000;
-const int ROQ_QUAD_INFO = 0x1001;
-const int ROQ_CODEBOOK = 0x1002;
-const int ROQ_QUAD_VQ = 0x1011;
-const int ROQ_QUAD_JPEG = 0x1012;
-const int ROQ_QUAD_HANG = 0x1013;
-const int ROQ_PACKET = 0x1030;
-const int ZA_SOUND_MONO = 0x1020;
-const int ZA_SOUND_STEREO = 0x1021;
+const int ROQ_ID				= 0x1084;
+const int ROQ_QUAD				= 0x1000;
+const int ROQ_QUAD_INFO			= 0x1001;
+const int ROQ_QUAD_CODEBOOK		= 0x1002;
+const int ROQ_QUAD_VQ			= 0x1011;
+const int ROQ_QUAD_JPEG			= 0x1012;
+const int ROQ_QUAD_HANG			= 0x1013;
+const int ROQ_PACKET			= 0x1030;
+const int ROQ_SOUND_MONO_22		= 0x1020;
+const int ROQ_SOUND_STEREO_22	= 0x1021;
+const int ROQ_SOUND_MONO_48		= 0x1022;
+const int ROQ_SOUND_STEREO_48	= 0x1023;
 
-#define RoQ_CHUNK_PREAMBLE_SIZE 8
-#define RoQ_AUDIO_SAMPLE_RATE 22050
-#define RoQ_CHUNKS_TO_SCAN 30
+#define ROQ_CHUNK_HEADER_SIZE	8
+#define ROQ_CHUNK_MAX_DATA_SIZE	131072
+
+#define ROQ_DEFAULT_FRAMERATE	30
+
+#define ROQ_VQ_MOT				0x0000
+#define ROQ_VQ_FCC				0x4000
+#define ROQ_VQ_SLD				0x8000
+#define ROQ_VQ_CCC				0xC000
+
+#define ROQ_AUDIO_SAMPLE_RATE 22050
+#define ROQ_CHUNKS_TO_SCAN 30
 
 // temporary buffers used by all cinematics
 static int ROQ_YY_tab[ 256 ];
@@ -60,38 +71,43 @@ public:
 	bool                    IsPlaying() const;
 
 private:
-	idImage*				img;
+	struct chunkHeader_t {
+		uint16				id;
+		uint32				size;
+		uint16				args;
+	};
 
-	size_t					mcomp[ 256 ]; // RB: 64 bit fixes, changed long to int
-	byte** 					qStatus[ 2 ];
 	idStr					fileName;
+	idFile * 				iFile;
+
+	size_t					mcomp[ 256 ];
+	byte** 					qStatus[ 2 ];
 	int						CIN_WIDTH, CIN_HEIGHT;
-	idFile* 				iFile;
 	cinStatus_t				status;
 	int						tfps;
 	int						RoQPlayed;
-	int						ROQSize;
-	unsigned int			RoQFrameSize;
+	///int						ROQSize;
 	int						onQuad;
 	int						numQuads;
 	int						samplesPerLine;
-	unsigned int			roq_id;
 	int						screenDelta;
 	byte* 					buf;
-	int						samplesPerPixel;				// defaults to 2
+	int						samplesPerPixel;	// defaults to 2
 	unsigned int			xsize, ysize, maxsize, minsize;
 	int						normalBuffer0;
-	int						roq_flags;
 	int						roqF0;
 	int						roqF1;
 	int						t[ 2 ];
 	int						roqFPS;
 	int						drawX, drawY;
 
+	chunkHeader_t			m_chunkHeader;
+
 	int						animationLength;
 	int						startTime;
 	float					frameRate;
 
+	idImage *				img;
 	byte * 					imageData;
 
 	bool					looping;
@@ -115,7 +131,7 @@ private:
 	unsigned short			yuv_to_rgb( int y, int u, int v ) const;
 	unsigned int			yuv_to_rgb24( int y, int u, int v ) const;
 
-	void					decodeCodeBook( byte* input, unsigned short roq_flags );
+	void					decodeCodeBook( byte* input ) const;
 	void					recurseQuad( int startX, int startY, int quadSize, int xOff, int yOff );
 	void					setupQuad( int xOff, int yOff );
 	void					readQuadInfo( byte* qData );
@@ -158,7 +174,6 @@ idCinematicLocal::ShutdownCinematic
 */
 void ShutdownCinematicROQ()
 {
-	// Carl: Original Doom 3 RoQ files:
 	idMem::Free( file ); file = NULL;
 	idMem::Free( vq2 ); vq2 = NULL;
 	idMem::Free( vq4 ); vq4 = NULL;
@@ -250,7 +265,7 @@ bool idCinematicROQ::InitFromFile( const char* qpath, bool amilooping )
 	// Carl: The rest of this function is for original Doom 3 RoQ files:
 	common->DPrintf( "RoQ file found: '%s'\n", fileName.c_str() );
 
-	ROQSize = iFile->Length();
+	///ROQSize = iFile->Length();
 
 	looping = amilooping;
 
@@ -262,19 +277,19 @@ bool idCinematicROQ::InitFromFile( const char* qpath, bool amilooping )
 
 	iFile->Read( file, 16 );
 
-	unsigned short RoQID = ( unsigned short ) ( file[ 0 ] ) + ( unsigned short ) ( file[ 1 ] ) * 256;
+	uint16 RoQID = file[ 0 ] | ( file[ 1 ] << 8 );
 
 	frameRate = file[ 6 ];
 	if( frameRate == 32.0f ) {
 		frameRate = 1000.0f / 32.0f;
 	}
 
-	if( RoQID == ROQ_FILE )
+	if( RoQID == ROQ_ID )
 	{
 		RoQInit();
 		status = FMV_PLAY;
 		ImageForTime( 0 );
-		status = ( looping ) ? FMV_PLAY : FMV_IDLE;
+		status = ( looping )? FMV_PLAY : FMV_IDLE;
 		return true;
 	}
 
@@ -319,7 +334,7 @@ idCinematicROQ::GetStartTime
 */
 int idCinematicROQ::GetStartTime() const
 {
-	return -1;	//SEA: todo!
+	return startTime;
 }
 
 /*
@@ -339,7 +354,7 @@ idCinematicROQ::GetFrameRate
 */
 float idCinematicROQ::GetFrameRate() const
 {
-	return 30.0f;	//SEA: todo!  frameRate
+	return frameRate; // 30.0f;
 }
 
 /*
@@ -408,8 +423,8 @@ cinData_t idCinematicROQ::ImageForTime( int thisTime )
 		startTime = thisTime;
 	}
 
+	// Check if a new frame is needed
 	tfps = ( ( thisTime - startTime ) * frameRate ) / 1000;
-
 	if( tfps < 0 )
 	{
 		tfps = 0;
@@ -429,8 +444,7 @@ cinData_t idCinematicROQ::ImageForTime( int thisTime )
 			RoQInterrupt();
 		}
 	}
-	else
-	{
+	else {
 		while( ( tfps != numQuads && status == FMV_PLAY ) )
 		{
 			RoQInterrupt();
@@ -463,8 +477,7 @@ cinData_t idCinematicROQ::ImageForTime( int thisTime )
 			}
 			startTime = thisTime;
 		}
-		else
-		{
+		else {
 			status = FMV_IDLE;
 			RoQShutdown();
 		}
@@ -491,7 +504,7 @@ void idCinematicROQ::move8_32( byte* src, byte* dst, int spl ) const
 	int dspl = spl >> 2;
 
 #if USE_INTRINSICS
-
+  #if 0
 	__m128i	xmm[ 16 ];
 
 	xmm[ 0 ] = _mm_loadu_si128( ( const __m128i * )( dsrc + dspl * 0 + 0 ) );
@@ -527,7 +540,27 @@ void idCinematicROQ::move8_32( byte* src, byte* dst, int spl ) const
 	_mm_storeu_si128( ( __m128i * )( ddst + dspl * 6 + 4 ), xmm[ 13 ] );
 	_mm_storeu_si128( ( __m128i * )( ddst + dspl * 7 + 0 ), xmm[ 14 ] );
 	_mm_storeu_si128( ( __m128i * )( ddst + dspl * 7 + 4 ), xmm[ 15 ] );
+  #else
+	__m256i	xmm[ 8 ];
 
+	xmm[ 0 ] = _mm256_loadu_si256( ( const __m256i * )( dsrc + dspl * 0 ) );
+	xmm[ 1 ] = _mm256_loadu_si256( ( const __m256i * )( dsrc + dspl * 1 ) );
+	xmm[ 2 ] = _mm256_loadu_si256( ( const __m256i * )( dsrc + dspl * 2 ) );
+	xmm[ 3 ] = _mm256_loadu_si256( ( const __m256i * )( dsrc + dspl * 3 ) );
+	xmm[ 4 ] = _mm256_loadu_si256( ( const __m256i * )( dsrc + dspl * 4 ) );
+	xmm[ 5 ] = _mm256_loadu_si256( ( const __m256i * )( dsrc + dspl * 5 ) );
+	xmm[ 6 ] = _mm256_loadu_si256( ( const __m256i * )( dsrc + dspl * 6 ) );
+	xmm[ 7 ] = _mm256_loadu_si256( ( const __m256i * )( dsrc + dspl * 7 ) );
+
+	_mm256_storeu_si256( ( __m256i * )( ddst + dspl * 0 ), xmm[ 0 ] );
+	_mm256_storeu_si256( ( __m256i * )( ddst + dspl * 1 ), xmm[ 1 ] );
+	_mm256_storeu_si256( ( __m256i * )( ddst + dspl * 2 ), xmm[ 2 ] );
+	_mm256_storeu_si256( ( __m256i * )( ddst + dspl * 3 ), xmm[ 3 ] );
+	_mm256_storeu_si256( ( __m256i * )( ddst + dspl * 4 ), xmm[ 4 ] );
+	_mm256_storeu_si256( ( __m256i * )( ddst + dspl * 5 ), xmm[ 5 ] );
+	_mm256_storeu_si256( ( __m256i * )( ddst + dspl * 6 ), xmm[ 6 ] );
+	_mm256_storeu_si256( ( __m256i * )( ddst + dspl * 7 ), xmm[ 7 ] );
+  #endif
 #else
 
 	ddst[ 0 * dspl + 0 ] = dsrc[ 0 * dspl + 0 ];
@@ -665,19 +698,19 @@ void idCinematicROQ::blit8_32( byte* src, byte* dst, int spl ) const
 	int dspl = spl >> 2;
 
 #if USE_INTRINSICS
-#if 1
+  #if 0
 	__m128i	xmm[ 16 ];
 
-	xmm[ 0 ] = _mm_load_si128( ( const __m128i * )( dsrc + 0 ) );
-	xmm[ 1 ] = _mm_load_si128( ( const __m128i * )( dsrc + 4 ) );
-	xmm[ 2 ] = _mm_load_si128( ( const __m128i * )( dsrc + 8 ) );
-	xmm[ 3 ] = _mm_load_si128( ( const __m128i * )( dsrc + 12 ) );
-	xmm[ 4 ] = _mm_load_si128( ( const __m128i * )( dsrc + 16 ) );
-	xmm[ 5 ] = _mm_load_si128( ( const __m128i * )( dsrc + 20 ) );
-	xmm[ 6 ] = _mm_load_si128( ( const __m128i * )( dsrc + 24 ) );
-	xmm[ 7 ] = _mm_load_si128( ( const __m128i * )( dsrc + 28 ) );
-	xmm[ 8 ] = _mm_load_si128( ( const __m128i * )( dsrc + 32 ) );
-	xmm[ 9 ] = _mm_load_si128( ( const __m128i * )( dsrc + 36 ) );
+	xmm[  0 ] = _mm_load_si128( ( const __m128i * )( dsrc + 0 ) );
+	xmm[  1 ] = _mm_load_si128( ( const __m128i * )( dsrc + 4 ) );
+	xmm[  2 ] = _mm_load_si128( ( const __m128i * )( dsrc + 8 ) );
+	xmm[  3 ] = _mm_load_si128( ( const __m128i * )( dsrc + 12 ) );
+	xmm[  4 ] = _mm_load_si128( ( const __m128i * )( dsrc + 16 ) );
+	xmm[  5 ] = _mm_load_si128( ( const __m128i * )( dsrc + 20 ) );
+	xmm[  6 ] = _mm_load_si128( ( const __m128i * )( dsrc + 24 ) );
+	xmm[  7 ] = _mm_load_si128( ( const __m128i * )( dsrc + 28 ) );
+	xmm[  8 ] = _mm_load_si128( ( const __m128i * )( dsrc + 32 ) );
+	xmm[  9 ] = _mm_load_si128( ( const __m128i * )( dsrc + 36 ) );
 	xmm[ 10 ] = _mm_load_si128( ( const __m128i * )( dsrc + 40 ) );
 	xmm[ 11 ] = _mm_load_si128( ( const __m128i * )( dsrc + 44 ) );
 	xmm[ 12 ] = _mm_load_si128( ( const __m128i * )( dsrc + 48 ) );
@@ -701,27 +734,27 @@ void idCinematicROQ::blit8_32( byte* src, byte* dst, int spl ) const
 	_mm_store_si128( ( __m128i * )( ddst + dspl * 6 + 4 ), xmm[ 13 ] );
 	_mm_store_si128( ( __m128i * )( ddst + dspl * 7 + 0 ), xmm[ 14 ] );
 	_mm_store_si128( ( __m128i * )( ddst + dspl * 7 + 4 ), xmm[ 15 ] );
-#else
+  #else
 	__m256i	xmm[ 8 ];
 
-	xmm[ 0 ] = _mm256_load_si256( ( const __m256i * )( dsrc + 0 ) );
-	xmm[ 1 ] = _mm256_load_si256( ( const __m256i * )( dsrc + 8 ) );
-	xmm[ 2 ] = _mm256_load_si256( ( const __m256i * )( dsrc + 16 ) );
-	xmm[ 3 ] = _mm256_load_si256( ( const __m256i * )( dsrc + 24 ) );
-	xmm[ 4 ] = _mm256_load_si256( ( const __m256i * )( dsrc + 32 ) );
-	xmm[ 5 ] = _mm256_load_si256( ( const __m256i * )( dsrc + 40 ) );
-	xmm[ 6 ] = _mm256_load_si256( ( const __m256i * )( dsrc + 48 ) );
-	xmm[ 7 ] = _mm256_load_si256( ( const __m256i * )( dsrc + 56 ) );
+	xmm[ 0 ] = _mm256_loadu_si256( ( const __m256i * )( dsrc + 0 ) );
+	xmm[ 1 ] = _mm256_loadu_si256( ( const __m256i * )( dsrc + 8 ) );
+	xmm[ 2 ] = _mm256_loadu_si256( ( const __m256i * )( dsrc + 16 ) );
+	xmm[ 3 ] = _mm256_loadu_si256( ( const __m256i * )( dsrc + 24 ) );
+	xmm[ 4 ] = _mm256_loadu_si256( ( const __m256i * )( dsrc + 32 ) );
+	xmm[ 5 ] = _mm256_loadu_si256( ( const __m256i * )( dsrc + 40 ) );
+	xmm[ 6 ] = _mm256_loadu_si256( ( const __m256i * )( dsrc + 48 ) );
+	xmm[ 7 ] = _mm256_loadu_si256( ( const __m256i * )( dsrc + 56 ) );
 
-	_mm256_store_si256( ( __m256i * )( ddst + dspl * 0 + 0 ), xmm[ 0 ] );
-	_mm256_store_si256( ( __m256i * )( ddst + dspl * 1 + 0 ), xmm[ 1 ] );
-	_mm256_store_si256( ( __m256i * )( ddst + dspl * 2 + 0 ), xmm[ 2 ] );
-	_mm256_store_si256( ( __m256i * )( ddst + dspl * 3 + 0 ), xmm[ 3 ] );
-	_mm256_store_si256( ( __m256i * )( ddst + dspl * 4 + 0 ), xmm[ 4 ] );
-	_mm256_store_si256( ( __m256i * )( ddst + dspl * 5 + 0 ), xmm[ 5 ] );
-	_mm256_store_si256( ( __m256i * )( ddst + dspl * 6 + 0 ), xmm[ 6 ] );
-	_mm256_store_si256( ( __m256i * )( ddst + dspl * 7 + 0 ), xmm[ 7 ] );
-#endif
+	_mm256_storeu_si256( ( __m256i * )( ddst + dspl * 0 ), xmm[ 0 ] );
+	_mm256_storeu_si256( ( __m256i * )( ddst + dspl * 1 ), xmm[ 1 ] );
+	_mm256_storeu_si256( ( __m256i * )( ddst + dspl * 2 ), xmm[ 2 ] );
+	_mm256_storeu_si256( ( __m256i * )( ddst + dspl * 3 ), xmm[ 3 ] );
+	_mm256_storeu_si256( ( __m256i * )( ddst + dspl * 4 ), xmm[ 4 ] );
+	_mm256_storeu_si256( ( __m256i * )( ddst + dspl * 5 ), xmm[ 5 ] );
+	_mm256_storeu_si256( ( __m256i * )( ddst + dspl * 6 ), xmm[ 6 ] );
+	_mm256_storeu_si256( ( __m256i * )( ddst + dspl * 7 ), xmm[ 7 ] );
+  #endif
 #else
 
 	ddst[ 0 * dspl + 0 ] = dsrc[ 0 ];
@@ -811,7 +844,7 @@ void idCinematicROQ::blit4_32( byte* src, byte* dst, int spl ) const
 	int dspl = spl >> 2;
 
 #if USE_INTRINSICS
-#if 1
+  #if 1
 	__m128i xmm0 = _mm_load_si128( ( const __m128i * )( dsrc + 0 ) );
 	__m128i xmm1 = _mm_load_si128( ( const __m128i * )( dsrc + 4 ) );
 	__m128i xmm2 = _mm_load_si128( ( const __m128i * )( dsrc + 8 ) );
@@ -821,13 +854,13 @@ void idCinematicROQ::blit4_32( byte* src, byte* dst, int spl ) const
 	_mm_store_si128( ( __m128i * )( ddst + dspl * 1 ), xmm1 );
 	_mm_store_si128( ( __m128i * )( ddst + dspl * 2 ), xmm2 );
 	_mm_store_si128( ( __m128i * )( ddst + dspl * 3 ), xmm3 );
-#else
-	__m256i xmm0 = _mm256_load_si256( ( const __m256i * )( dsrc + 0 ) );
-	__m256i xmm2 = _mm256_load_si256( ( const __m256i * )( dsrc + 8 ) );
+  #else
+	__m256i xmm0 = _mm256_loadu_si256( ( const __m256i * )( dsrc + 0 ) );
+	__m256i xmm2 = _mm256_loadu_si256( ( const __m256i * )( dsrc + 8 ) );
 
-	_mm256_store_si256( ( __m256i * )( ddst + dspl * 0 ), xmm0 );
-	_mm256_store_si256( ( __m256i * )( ddst + dspl * 3 ), xmm2 );
-#endif
+	_mm256_storeu2_m128i( ( __m128i * )( ddst + dspl * 1 ), ( __m128i * )( ddst + dspl * 0 ), xmm0 );
+	_mm256_storeu2_m128i( ( __m128i * )( ddst + dspl * 3 ), ( __m128i * )( ddst + dspl * 2 ), xmm2 );
+  #endif
 #else
 
 	ddst[ 0 * dspl + 0 ] = dsrc[ 0 ];
@@ -889,9 +922,6 @@ idCinematicROQ::blitVQQuad32fs
 */
 void idCinematicROQ::blitVQQuad32fs( byte** status, unsigned char* data )
 {
-	unsigned short	code;
-	unsigned int	i;
-
 	unsigned short newd = 0;
 	unsigned short celdata = 0;
 	unsigned int index = 0;
@@ -900,51 +930,53 @@ void idCinematicROQ::blitVQQuad32fs( byte** status, unsigned char* data )
 		if( !newd )
 		{
 			newd = 7;
-			celdata = data[ 0 ] + data[ 1 ] * 256;
+			celdata = data[ 0 ] | ( data[ 1 ] << 8 );
 			data += 2;
 		}
-		else
-		{
+		else {
 			newd--;
 		}
 
-		code = ( unsigned short ) ( celdata & 0xc000 );
+		unsigned short code = ( unsigned short ) ( celdata & ROQ_VQ_CCC );
 		celdata <<= 2;
 
 		switch( code )
 		{
-			case 0x8000: // vq code
+			case ROQ_VQ_SLD: // vq code
 				blit8_32( ( byte* ) &vq8[ ( *data ) * 128 ], status[ index ], samplesPerLine );
 				data++;
 				index += 5;
 				break;
 
-			case 0xc000: // drop
+			case ROQ_VQ_CCC: // drop
 				index++; // skip 8x8
-				for( i = 0; i < 4; i++ )
+				for( int i = 0; i < 4; i++ ) // Subdivide the 8x8 pixel block into 4x4 pixel subblocks
 				{
 					if( !newd )
 					{
 						newd = 7;
-						celdata = data[ 0 ] + data[ 1 ] * 256;
+						celdata = data[ 0 ] | ( data[ 1 ] << 8 );
 						data += 2;
 					}
-					else
-					{
+					else {
 						newd--;
 					}
 
-					code = ( unsigned short ) ( celdata & 0xc000 );
+					code = ( unsigned short ) ( celdata & ROQ_VQ_CCC );
 					celdata <<= 2;
 
 					switch( code ) // code in top two bits of code
 					{
-						case 0x8000: // 4x4 vq code
+						case ROQ_VQ_MOT: //SEA: added
+							// Skip over block
+							break;
+
+						case ROQ_VQ_SLD: // 4x4 vq code
 							blit4_32( ( byte* ) &vq4[ ( *data ) * 32 ], status[ index ], samplesPerLine );
 							data++;
 							break;
 
-						case 0xc000: // 2x2 vq code
+						case ROQ_VQ_CCC: // 2x2 vq code
 							blit2_32( ( byte* ) &vq2[ ( *data ) * 8 ], status[ index ], samplesPerLine );
 							data++;
 							blit2_32( ( byte* ) &vq2[ ( *data ) * 8 ], status[ index ] + 8, samplesPerLine );
@@ -955,7 +987,7 @@ void idCinematicROQ::blitVQQuad32fs( byte** status, unsigned char* data )
 							data++;
 							break;
 
-						case 0x4000: // motion compensation
+						case ROQ_VQ_FCC: // motion compensation
 							move4_32( status[ index ] + mcomp[ ( *data ) ], status[ index ], samplesPerLine );
 							data++;
 							break;
@@ -964,13 +996,13 @@ void idCinematicROQ::blitVQQuad32fs( byte** status, unsigned char* data )
 				}
 				break;
 
-			case 0x4000: // motion compensation
+			case ROQ_VQ_FCC: // motion compensation
 				move8_32( status[ index ] + mcomp[ ( *data ) ], status[ index ], samplesPerLine );
 				data++;
 				index += 5;
 				break;
 
-			case 0x0000:
+			case ROQ_VQ_MOT:
 				index += 5;
 				break;
 		}
@@ -1067,25 +1099,25 @@ unsigned int idCinematicROQ::yuv_to_rgb24( int y, int u, int v ) const
 idCinematicROQ::decodeCodeBook
 ==============
 */
-void idCinematicROQ::decodeCodeBook( byte* input, unsigned short roq_flags )
+void idCinematicROQ::decodeCodeBook( byte* input ) const
 {
 	int	i, j, two, four;
 	unsigned short*	aptr, *bptr, *cptr, *dptr;
 	int	y0, y1, y2, y3, cr, cb;
 	unsigned int* iaptr, *ibptr, *icptr, *idptr;
 
-	if( !roq_flags )
+	if( !m_chunkHeader.args )
 	{
 		two = four = 256;
 	}
-	else
-	{
-		two = roq_flags >> 8;
+	else {
+		two = m_chunkHeader.args >> 8;
 		if( !two ) two = 256;
-		four = roq_flags & 0xff;
+		four = m_chunkHeader.args & 0xff;
 	}
 
-	four *= 2;
+	//four *= 2; // numQuadVecs
+	four <<= 1;
 
 	bptr = ( unsigned short* ) vq2;
 
@@ -1098,7 +1130,7 @@ void idCinematicROQ::decodeCodeBook( byte* input, unsigned short roq_flags )
 			//
 			if( samplesPerPixel == 2 )
 			{
-				for( i = 0; i < two; i++ )
+				for( i = 0; i < two; i++ ) // numQuadCels
 				{
 					y0 = ( int ) * input++;
 					y1 = ( int ) * input++;
@@ -1131,13 +1163,13 @@ void idCinematicROQ::decodeCodeBook( byte* input, unsigned short roq_flags )
 				ibptr = ( unsigned int* ) bptr;
 				for( i = 0; i < two; i++ )
 				{
-					y0 = ( int ) * input++;
-					y1 = ( int ) * input++;
-					y2 = ( int ) * input++;
-					y3 = ( int ) * input++;
+					y0 = ( int ) *input++;
+					y1 = ( int ) *input++;
+					y2 = ( int ) *input++;
+					y3 = ( int ) *input++;
 
-					cr = ( int ) * input++;
-					cb = ( int ) * input++;
+					cr = ( int ) *input++;
+					cb = ( int ) *input++;
 
 				#if USE_INTRINSICS
 
@@ -1147,49 +1179,19 @@ void idCinematicROQ::decodeCodeBook( byte* input, unsigned short roq_flags )
 					const __m128i VG = _mm_set1_epi32( ROQ_VG_tab[ cb ] );
 					const __m128i UB = _mm_set1_epi32( ROQ_UB_tab[ cr ] );
 
-					//int r0 = ( YY0 + ROQ_VR_tab[ cb ] ) >> 6;
-					//int r1 = ( YY1 + ROQ_VR_tab[ cb ] ) >> 6;
-					//int r2 = ( YY2 + ROQ_VR_tab[ cb ] ) >> 6;
-					//int r3 = ( YY3 + ROQ_VR_tab[ cb ] ) >> 6;
 					__m128i _rrrr = _mm_srai_epi32( _mm_add_epi32( YY, VR ), 6 );
-
-					//int g0 = ( YY0 + ROQ_UG_tab[ cr ] + ROQ_VG_tab[ cb ] ) >> 6;
-					//int g1 = ( YY1 + ROQ_UG_tab[ cr ] + ROQ_VG_tab[ cb ] ) >> 6;
-					//int g2 = ( YY2 + ROQ_UG_tab[ cr ] + ROQ_VG_tab[ cb ] ) >> 6;
-					//int g3 = ( YY3 + ROQ_UG_tab[ cr ] + ROQ_VG_tab[ cb ] ) >> 6;
 					__m128i _gggg = _mm_srai_epi32( _mm_add_epi32( YY, _mm_add_epi32( UG, VG ) ), 6 );
-
-					//int b0 = ( YY0 + ROQ_UB_tab[ cr ] ) >> 6;
-					//int b1 = ( YY1 + ROQ_UB_tab[ cr ] ) >> 6;
-					//int b2 = ( YY2 + ROQ_UB_tab[ cr ] ) >> 6;
-					//int b3 = ( YY3 + ROQ_UB_tab[ cr ] ) >> 6;
 					__m128i _bbbb = _mm_srai_epi32( _mm_add_epi32( YY, UB ), 6 );
 
-					//if( r < 0 ) r = 0;
-					//if( g < 0 ) g = 0;
-					//if( b < 0 ) b = 0;
-					//if( r > 255 ) r = 255;
-					//if( g > 255 ) g = 255;
-					//if( b > 255 ) b = 255;
-					//const __m128i _max = _mm_set1_epi32( 255 );
-					//const __m128i _min = _mm_set1_epi32( 0 );
-					//_rrrr = _mm_max_epi32( _min, _mm_min_epi32( _max, _rrrr ) );
-					//_gggg = _mm_max_epi32( _min, _mm_min_epi32( _max, _gggg ) );
-					//_bbbb = _mm_max_epi32( _min, _mm_min_epi32( _max, _bbbb ) );
-					//return LittleLong( ( r0 ) +( g0 << 8 ) + ( b0 << 16 ) );
-					//return LittleLong( ( r1 ) +( g1 << 8 ) + ( b1 << 16 ) );
-					//return LittleLong( ( r2 ) +( g2 << 8 ) + ( b2 << 16 ) );
-					//return LittleLong( ( r3 ) +( g3 << 8 ) + ( b3 << 16 ) );
+					__m128i t0 = _mm_packs_epi32( _rrrr, _gggg );					// rrrrgggg	 saturate to 16bit
+					__m128i t1 = _mm_packs_epi32( _bbbb, _mm_set1_epi32( 255 ) );	// bbbb0000	 saturate to 16bit
 
-					__m128i t0 = _mm_packs_epi32( _rrrr, _gggg );					// rrrrgggg	 saturate 16bit
-					__m128i t1 = _mm_packs_epi32( _bbbb, _mm_set1_epi32( 255 ) );	// bbbb0000	 saturate 16bit
+					__m128i t2 = _mm_unpacklo_epi16( t0, t1 );	// rbrbrbrb
+					__m128i t3 = _mm_unpackhi_epi16( t0, t1 );	// g0g0g0g0
+					__m128i t4 = _mm_unpacklo_epi16( t2, t3 );	// rgb0rgb0  01
+					__m128i t5 = _mm_unpackhi_epi16( t2, t3 );	// rgb0rgb0  23
 
-					__m128i t2 = _mm_unpacklo_epi16( t0, t1 );						// rbrbrbrb
-					__m128i t3 = _mm_unpackhi_epi16( t0, t1 );						// g0g0g0g0
-					__m128i t4 = _mm_unpacklo_epi16( t2, t3 );						// rgb0rgb0  01
-					__m128i t5 = _mm_unpackhi_epi16( t2, t3 );						// rgb0rgb0  23
-
-					_mm_store_si128( ( __m128i * )ibptr, _mm_packus_epi16( t4, t5 ) ); // rgb0_rgb0_rgb0_rgb0  8bit  saturate 0,255
+					_mm_store_si128( ( __m128i * )ibptr, _mm_packus_epi16( t4, t5 ) ); // rgb0_rgb0_rgb0_rgb0  saturate to 8bit
 
 					ibptr += 4;
 				#else
@@ -1204,45 +1206,75 @@ void idCinematicROQ::decodeCodeBook( byte* input, unsigned short roq_flags )
 				icptr = ( unsigned int* ) vq4;
 				idptr = ( unsigned int* ) vq8;
 
-				for( i = 0; i < four; i++ )
+				for( i = 0; i < four; ++i )
 				{
 					iaptr = ( unsigned int* ) vq2 + ( *input++ ) * 4;
 					ibptr = ( unsigned int* ) vq2 + ( *input++ ) * 4;
+
+				#if USE_INTRINSICS
+					const __m128i ia = _mm_load_si128( ( const __m128i * ) iaptr );	// a0a1a0a1
+					const __m128i ib = _mm_load_si128( ( const __m128i * ) ibptr );	// b0b1b0b1
+
+					__m128i ic0 = _mm_unpacklo_epi64( ia, ib );	// a0a1b0b1
+					__m128i ic1 = _mm_unpackhi_epi64( ia, ib );	// a0a1b0b1
+
+					__m128i t0 = _mm_unpacklo_epi32( ia, ia );	// +0 a0a0a1a1
+					__m128i t1 = _mm_unpacklo_epi32( ib, ib );	// +0 b0b0b1b1
+
+					__m128i t2 = _mm_unpackhi_epi32( ia, ia );	// +2 a0a0a1a1
+					__m128i t3 = _mm_unpackhi_epi32( ib, ib );	// +2 b0b0b1b1
+
+					_mm_store_si128( ( __m128i * )( icptr + 0 ), ic0 );
+					_mm_store_si128( ( __m128i * )( icptr + 4 ), ic1 );
+
+					_mm_store_si128( ( __m128i * )( idptr + 0  ), t0 );
+					_mm_store_si128( ( __m128i * )( idptr + 4  ), t1 );
+					_mm_store_si128( ( __m128i * )( idptr + 8  ), t0 );
+					_mm_store_si128( ( __m128i * )( idptr + 12 ), t1 );
+
+					_mm_store_si128( ( __m128i * )( idptr + 16 ), t2 );
+					_mm_store_si128( ( __m128i * )( idptr + 20 ), t3 );
+					_mm_store_si128( ( __m128i * )( idptr + 24 ), t2 );
+					_mm_store_si128( ( __m128i * )( idptr + 28 ), t3 );
+
+					icptr += 8; idptr += 32;
+				#else
 					for( j = 0; j < 2; j++ )
-						VQ2TO4( iaptr, ibptr, icptr, idptr );
-					/*{
-					*icptr++ = iaptr[ 0 ];
-					*idptr++ = iaptr[ 0 ];
-					*idptr++ = iaptr[ 0 ];
-					*icptr++ = iaptr[ 1 ];
-					*idptr++ = iaptr[ 1 ];
-					*idptr++ = iaptr[ 1 ];
+					//	VQ2TO4( iaptr, ibptr, icptr, idptr );
+					{
+						*icptr++ = iaptr[ 0 ];
+						*icptr++ = iaptr[ 1 ];
+						*icptr++ = ibptr[ 0 ];
+						*icptr++ = ibptr[ 1 ];
 
-					*icptr++ = ibptr[ 0 ];
-					*idptr++ = ibptr[ 0 ];
-					*idptr++ = ibptr[ 0 ];
-					*icptr++ = ibptr[ 1 ];
-					*idptr++ = ibptr[ 1 ];
-					*idptr++ = ibptr[ 1 ];
+						*idptr++ = iaptr[ 0 ];
+						*idptr++ = iaptr[ 0 ];
+						*idptr++ = iaptr[ 1 ];
+						*idptr++ = iaptr[ 1 ];
 
-					*idptr++ = iaptr[ 0 ];
-					*idptr++ = iaptr[ 0 ];
-					*idptr++ = iaptr[ 1 ];
-					*idptr++ = iaptr[ 1 ];
+						*idptr++ = ibptr[ 0 ];
+						*idptr++ = ibptr[ 0 ];
+						*idptr++ = ibptr[ 1 ];
+						*idptr++ = ibptr[ 1 ];
 
-					*idptr++ = ibptr[ 0 ];
-					*idptr++ = ibptr[ 0 ];
-					*idptr++ = ibptr[ 1 ];
-					*idptr++ = ibptr[ 1 ];
+						*idptr++ = iaptr[ 0 ];
+						*idptr++ = iaptr[ 0 ];
+						*idptr++ = iaptr[ 1 ];
+						*idptr++ = iaptr[ 1 ];
 
-					iaptr += 2;
-					ibptr += 2;
-					}*/
+						*idptr++ = ibptr[ 0 ];
+						*idptr++ = ibptr[ 0 ];
+						*idptr++ = ibptr[ 1 ];
+						*idptr++ = ibptr[ 1 ];
+
+						iaptr += 2;
+						ibptr += 2;
+					}
+				#endif
 				}
 			}
 		}
-		else
-		{
+		else {
 			//
 			// double height, smoothed
 			//
@@ -1321,8 +1353,7 @@ void idCinematicROQ::decodeCodeBook( byte* input, unsigned short roq_flags )
 			}
 		}
 	}
-	else
-	{
+	else {
 		//
 		// 1/4 screen
 		//
@@ -1358,14 +1389,55 @@ void idCinematicROQ::decodeCodeBook( byte* input, unsigned short roq_flags )
 			ibptr = ( unsigned int* ) bptr;
 			for( i = 0; i < two; i++ )
 			{
-				y0 = ( int ) * input; input += 2;
-				y2 = ( int ) * input; input += 2;
+				y0 = ( int ) *input; input += 2;
+				y2 = ( int ) *input; input += 2;
 
-				cr = ( int ) * input++;
-				cb = ( int ) * input++;
+				cr = ( int ) *input++;
+				cb = ( int ) *input++;
 
 				*ibptr++ = yuv_to_rgb24( y0, cr, cb );
 				*ibptr++ = yuv_to_rgb24( y2, cr, cb );
+			#if 0 //SEA: todo! is it worth it ?
+				int YY00 = ( int ) ( ROQ_YY_tab[ ( y0 ) ] );
+				int YY02 = ( int ) ( ROQ_YY_tab[ ( y2 ) ] );
+				int YY10 = ( int ) ( ROQ_YY_tab[ ( y0 ) ] );
+				int YY12 = ( int ) ( ROQ_YY_tab[ ( y2 ) ] );
+
+				int r00 = ( YY00 + ROQ_VR_tab[ cb ] ) >> 6;
+				int r02 = ( YY02 + ROQ_VR_tab[ cb ] ) >> 6;
+				int r10 = ( YY10 + ROQ_VR_tab[ cb ] ) >> 6;
+				int r12 = ( YY12 + ROQ_VR_tab[ cb ] ) >> 6;
+
+				int g00 = ( YY00 + ROQ_UG_tab[ cr ] + ROQ_VG_tab[ cb ] ) >> 6;
+				int g02 = ( YY02 + ROQ_UG_tab[ cr ] + ROQ_VG_tab[ cb ] ) >> 6;
+				int g10 = ( YY10 + ROQ_UG_tab[ cr ] + ROQ_VG_tab[ cb ] ) >> 6;
+				int g12 = ( YY12 + ROQ_UG_tab[ cr ] + ROQ_VG_tab[ cb ] ) >> 6;
+
+				int b00 = ( YY00 + ROQ_UB_tab[ cr ] ) >> 6;
+				int b02 = ( YY02 + ROQ_UB_tab[ cr ] ) >> 6;
+				int b10 = ( YY10 + ROQ_UB_tab[ cr ] ) >> 6;
+				int b12 = ( YY12 + ROQ_UB_tab[ cr ] ) >> 6;
+
+				const __m128i YY = _mm_set_epi32( YY12, YY10, YY02, YY00 );
+				const __m128i VR = _mm_set1_epi32( ROQ_VR_tab[ cb ] );
+				const __m128i UG = _mm_set1_epi32( ROQ_UG_tab[ cr ] );
+				const __m128i VG = _mm_set1_epi32( ROQ_VG_tab[ cb ] );
+				const __m128i UB = _mm_set1_epi32( ROQ_UB_tab[ cr ] );
+
+				__m128i _rrrr = _mm_srai_epi32( _mm_add_epi32( YY, VR ), 6 );
+				__m128i _gggg = _mm_srai_epi32( _mm_add_epi32( YY, _mm_add_epi32( UG, VG ) ), 6 );
+				__m128i _bbbb = _mm_srai_epi32( _mm_add_epi32( YY, UB ), 6 );
+
+				idMath::ClampInt( 0, 255, r00 ); idMath::ClampInt( 0, 255, g00 ); idMath::ClampInt( 0, 255, b00 );
+				idMath::ClampInt( 0, 255, r02 ); idMath::ClampInt( 0, 255, g02 ); idMath::ClampInt( 0, 255, b02 );
+				idMath::ClampInt( 0, 255, r10 ); idMath::ClampInt( 0, 255, g10 ); idMath::ClampInt( 0, 255, b10 );
+				idMath::ClampInt( 0, 255, r12 ); idMath::ClampInt( 0, 255, g12 ); idMath::ClampInt( 0, 255, b12 );
+
+				*ibptr++ = LittleLong( ( r00 ) | ( g00 << 8 ) | ( b00 << 16 ) | ( 255 << 24 ) );
+				*ibptr++ = LittleLong( ( r02 ) | ( g02 << 8 ) | ( b02 << 16 ) | ( 255 << 24 ) );
+				*ibptr++ = LittleLong( ( r10 ) | ( g10 << 8 ) | ( b10 << 16 ) | ( 255 << 24 ) );
+				*ibptr++ = LittleLong( ( r12 ) | ( g12 << 8 ) | ( b12 << 16 ) | ( 255 << 24 ) );
+			#endif
 			}
 
 			icptr = ( unsigned int* ) vq4;
@@ -1375,10 +1447,61 @@ void idCinematicROQ::decodeCodeBook( byte* input, unsigned short roq_flags )
 			{
 				iaptr = ( unsigned int* ) vq2 + ( *input++ ) * 2;
 				ibptr = ( unsigned int* ) vq2 + ( *input++ ) * 2;
+			#if USE_INTRINSICS
+				/*const __m128i iab = _mm_load_si128( ( const __m128i * ) iaptr );	// a0a1b0b1
+
+				_mm_store_si128( ( __m128i * )( icptr + 0 ), _mm_shuffle_epi32( iab, _MM_SHUFFLE( 0, 2, 1, 3 ) ) ); // a0b0a1b1 ?SHUFFLE
+
+				__m128i t0 = _mm_unpacklo_epi32( iab, iab );	// a0a0a1a1
+				__m128i t1 = _mm_unpackhi_epi32( iab, iab );	// b0b0b1b1
+
+				__m128i t2 = _mm_unpacklo_epi64( t0, t1 );		// a0a0b0b0
+				__m128i t3 = _mm_unpackhi_epi64( t0, t1 );		// a1a1b1b1
+
+				_mm_store_si128( ( __m128i * )( idptr +  0 ), t2 );
+				_mm_store_si128( ( __m128i * )( idptr +  4 ), t2 );
+				_mm_store_si128( ( __m128i * )( idptr +  8 ), t3 );
+				_mm_store_si128( ( __m128i * )( idptr + 12 ), t3 );*/
+
+				const __m128i ia = _mm_loadl_epi64( ( const __m128i * ) iaptr );	// a0a100
+				const __m128i ib = _mm_loadl_epi64( ( const __m128i * ) ibptr );	// b0b100
+
+				_mm_store_si128( ( __m128i * )( icptr + 0 ), _mm_unpacklo_epi64( ia, ib ) );  // a0b0a1b1
+
+				__m128i t0 = _mm_unpacklo_epi32( ia, ia );	// a0a0a1a1
+				__m128i t1 = _mm_unpacklo_epi32( ib, ib );	// b0b0b1b1
+
+				__m128i t2 = _mm_unpacklo_epi64( t0, t1 );	// a0a0b0b0
+				__m128i t3 = _mm_unpackhi_epi64( t0, t1 );	// a1a1b1b1
+
+				_mm_store_si128( ( __m128i * )( idptr +  0 ), t2 );
+				_mm_store_si128( ( __m128i * )( idptr +  4 ), t2 );
+				_mm_store_si128( ( __m128i * )( idptr +  8 ), t3 );
+				_mm_store_si128( ( __m128i * )( idptr + 12 ), t3 );
+
+				icptr += 4; idptr += 16;
+			#else
 				for( j = 0; j < 2; j++ )
 				{
-					VQ2TO2( iaptr, ibptr, icptr, idptr );
+					///VQ2TO2( iaptr, ibptr, icptr, idptr );
+
+					*icptr++ = *iaptr;
+					*icptr++ = *ibptr;
+
+					*idptr++ = *iaptr;
+					*idptr++ = *iaptr;
+					*idptr++ = *ibptr;
+					*idptr++ = *ibptr;
+
+					*idptr++ = *iaptr;
+					*idptr++ = *iaptr;
+					*idptr++ = *ibptr;
+					*idptr++ = *ibptr;
+
+					iaptr++;
+					ibptr++;
 				}
+			#endif
 			}
 		}
 	}
@@ -1460,10 +1583,10 @@ idCinematicROQ::readQuadInfo
 */
 void idCinematicROQ::readQuadInfo( byte* qData )
 {
-	xsize = qData[ 0 ] + qData[ 1 ] * 256;
-	ysize = qData[ 2 ] + qData[ 3 ] * 256;
-	maxsize = qData[ 4 ] + qData[ 5 ] * 256;
-	minsize = qData[ 6 ] + qData[ 7 ] * 256;
+	xsize   = qData[ 0 ] | ( qData[ 1 ] << 8 );
+	ysize   = qData[ 2 ] | ( qData[ 3 ] << 8 );
+	maxsize = qData[ 4 ] | ( qData[ 5 ] << 8 );
+	minsize = qData[ 6 ] | ( qData[ 7 ] << 8 );
 
 	CIN_HEIGHT = ysize;
 	CIN_WIDTH = xsize;
@@ -1471,8 +1594,7 @@ void idCinematicROQ::readQuadInfo( byte* qData )
 	samplesPerLine = CIN_WIDTH * samplesPerPixel;
 	screenDelta = CIN_HEIGHT * samplesPerLine;
 
-	if( !imageData )
-	{
+	if( !imageData ) {
 		imageData = ( byte* ) Mem_Alloc( CIN_WIDTH * CIN_HEIGHT * samplesPerPixel * 2, TAG_CINEMATIC );
 	}
 
@@ -1846,15 +1968,14 @@ idCinematicROQ::RoQInterrupt
 */
 void idCinematicROQ::RoQInterrupt()
 {
-	iFile->Read( file, RoQFrameSize + 8 );
-	if( RoQPlayed >= ROQSize )
+	iFile->Read( file, m_chunkHeader.size + ROQ_CHUNK_HEADER_SIZE );
+	if( RoQPlayed >= iFile->Length() )
 	{
 		if( looping )
 		{
 			RoQReset();
 		}
-		else
-		{
+		else {
 			status = FMV_EOF;
 		}
 		return;
@@ -1865,7 +1986,7 @@ void idCinematicROQ::RoQInterrupt()
 	// new frame is ready
 	//
 redump:
-	switch( roq_id )
+	switch( m_chunkHeader.id )
 	{
 		case ROQ_QUAD_VQ:
 			if( ( numQuads & 1 ) )
@@ -1875,8 +1996,7 @@ redump:
 				blitVQQuad32fs( qStatus[ 1 ], framedata );
 				buf = imageData + screenDelta;
 			}
-			else
-			{
+			else {
 				normalBuffer0 = t[ 0 ];
 				RoQPrepMcomp( roqF0, roqF1 );
 				blitVQQuad32fs( qStatus[ 0 ], framedata );
@@ -1890,38 +2010,41 @@ redump:
 			dirty = true;
 			break;
 
-		case ROQ_CODEBOOK:
-			decodeCodeBook( framedata, ( unsigned short ) roq_flags );
+		case ROQ_QUAD_CODEBOOK:
+			decodeCodeBook( framedata );
 			break;
 
-		case ZA_SOUND_MONO:
-			break;
-		case ZA_SOUND_STEREO:
+		case ROQ_SOUND_MONO_22:
+		case ROQ_SOUND_STEREO_22:
+		case ROQ_SOUND_MONO_48:
+		case ROQ_SOUND_STEREO_48:
 			break;
 
 		case ROQ_QUAD_INFO:
-			if( numQuads == -1 )
 			{
-				readQuadInfo( framedata );
-				setupQuad( 0, 0 );
+				if( numQuads == -1 )
+				{
+					readQuadInfo( framedata );
+					setupQuad( 0, 0 );
+				}
+				if( numQuads != 1 ) numQuads = 0;
 			}
-			if( numQuads != 1 ) numQuads = 0;
 			break;
 
 		case ROQ_PACKET:
-			inMemory = ( roq_flags != 0 );
-			RoQFrameSize = 0; // for header
+			inMemory = ( m_chunkHeader.args != 0 );
+			m_chunkHeader.size = 0; // for header
 			break;
 
 		case ROQ_QUAD_HANG:
-			RoQFrameSize = 0;
+			m_chunkHeader.size = 0;
 			break;
 
 		case ROQ_QUAD_JPEG:
 			if( !numQuads )
 			{
 				normalBuffer0 = t[ 0 ];
-				JPEGBlit( imageData, framedata, RoQFrameSize );
+				JPEGBlit( imageData, framedata, m_chunkHeader.size );
 				memcpy( imageData + screenDelta, imageData, samplesPerLine * ysize );
 				numQuads++;
 			}
@@ -1934,27 +2057,28 @@ redump:
 	//
 	// read in next frame data
 	//
-	if( RoQPlayed >= ROQSize )
+	if( RoQPlayed >= iFile->Length() )
 	{
 		if( looping )
 		{
 			RoQReset();
 		}
-		else
-		{
+		else {
 			status = FMV_EOF;
 		}
 		return;
 	}
 
-	framedata += RoQFrameSize;
-	roq_id		 = framedata[ 0 ] + framedata[ 1 ] * 256;
-	RoQFrameSize = framedata[ 2 ] + framedata[ 3 ] * 256 + framedata[ 4 ] * 65536;
-	roq_flags	 = framedata[ 6 ] + framedata[ 7 ] * 256;
+	framedata += m_chunkHeader.size;
+
+	m_chunkHeader.id   = framedata[ 0 ] | ( framedata[ 1 ] << 8 );
+	m_chunkHeader.size = framedata[ 2 ] | ( framedata[ 3 ] << 8 ) | ( framedata[ 4 ] << 16 ) | ( framedata[ 5 ] << 24 );
+	m_chunkHeader.args = framedata[ 6 ] | ( framedata[ 7 ] << 8 );
+
 	roqF0 = ( signed char ) framedata[ 7 ];
 	roqF1 = ( signed char ) framedata[ 6 ];
 
-	if( RoQFrameSize > 65536 || roq_id == ROQ_FILE )
+	if( m_chunkHeader.size > 65536 || m_chunkHeader.id == ROQ_ID )
 	{
 		common->DPrintf( "roq_size > 65536 || roq_id == ROQ_FILE\n" );
 		status = FMV_EOF;
@@ -1967,15 +2091,16 @@ redump:
 	if( inMemory && ( status != FMV_EOF ) )
 	{
 		inMemory = false;
-		framedata += 8;
+		framedata += ROQ_CHUNK_HEADER_SIZE;
 		goto redump;
 	}
 	//
 	// one more frame hits the dust
 	//
 	//	assert(RoQFrameSize <= 65536);
-	//	r = Sys_StreamedRead( file, RoQFrameSize+8, 1, iFile );
-	RoQPlayed += RoQFrameSize + 8;
+	//	r = Sys_StreamedRead( file, RoQFrameSize + ROQ_CHUNK_HEADER_SIZE, 1, iFile );
+
+	RoQPlayed += m_chunkHeader.size + ROQ_CHUNK_HEADER_SIZE;
 }
 
 /*
@@ -1988,15 +2113,17 @@ void idCinematicROQ::RoQInit()
 	RoQPlayed = 24;
 
 	// get frame rate
-	roqFPS = file[ 6 ] + file[ 7 ] * 256;
-
-	if( !roqFPS ) roqFPS = 30;
+	roqFPS = file[ 6 ] | ( file[ 7 ] << 8 );
+	if( !roqFPS )
+		roqFPS = ROQ_DEFAULT_FRAMERATE;
 
 	numQuads = -1;
 
-	roq_id = file[ 8 ] + file[ 9 ] * 256;
-	RoQFrameSize = file[ 10 ] + file[ 11 ] * 256 + file[ 12 ] * 65536;
-	roq_flags = file[ 14 ] + file[ 15 ] * 256;
+	auto data = &file[ 8 ];
+
+	m_chunkHeader.id   = data[ 0 ] | ( data[ 1 ] << 8 );
+	m_chunkHeader.size = data[ 2 ] | ( data[ 3 ] << 8 ) | ( data[ 4 ] << 16 ) | ( data[ 5 ] << 24 );
+	m_chunkHeader.args = data[ 6 ] | ( data[ 7 ] << 8 );
 }
 
 /*

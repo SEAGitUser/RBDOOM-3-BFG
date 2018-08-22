@@ -508,7 +508,6 @@ void idRenderProgManager::Init()
 		common->Printf( "TriVert[%i] = texX.%4.1f, texY.%4.1f\n", vertexID, Tex.x, Tex.y ); //  0 ... 2
 	}
 */
-
 #undef LOAD_PROG
 }
 

@@ -112,6 +112,7 @@ template<int x> struct compile_time_assert_test {};
 #endif
 
 #define assert_sizeof( type, size )						compile_time_assert( sizeof( type ) == size )
+#define assert_sizeof_4_byte_multiple( type )			compile_time_assert( ( sizeof( type ) &  3 ) == 0 )
 #define assert_sizeof_8_byte_multiple( type )			compile_time_assert( ( sizeof( type ) &  7 ) == 0 )
 #define assert_sizeof_16_byte_multiple( type )			compile_time_assert( ( sizeof( type ) & 15 ) == 0 )
 #define assert_offsetof( type, field, offset )			compile_time_assert( offsetof( type, field ) == offset )

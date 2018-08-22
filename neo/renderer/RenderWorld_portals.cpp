@@ -137,11 +137,11 @@ bool idRenderWorldLocal::CullEntityByPortals( const idRenderEntityLocal* entity,
 {
 	if( r_useEntityPortalCulling.GetInteger() == 1 )
 	{
-		frustumCorners_t corners;
+		idRenderMatrix::frustumCorners_t corners;
 		idRenderMatrix::GetFrustumCorners( corners, entity->inverseBaseModelProject, bounds_unitCube );
 		for( int i = 0; i < ps->numPortalPlanes; i++ )
 		{
-			if( idRenderMatrix::CullFrustumCornersToPlane( corners, ps->portalPlanes[ i ] ) == FRUSTUM_CULL_FRONT )
+			if( idRenderMatrix::CullFrustumCornersToPlane( corners, ps->portalPlanes[ i ] ) == idRenderMatrix::FRUSTUM_CULL_FRONT )
 			{
 				return true;
 			}
@@ -240,11 +240,13 @@ void idRenderWorldLocal::AddAreaViewEntities( int areaNum, const portalStack_t* 
 		// check for completely suppressing the model
 		if( !r_skipSuppress.GetBool() )
 		{
-			if( entity->parms.suppressSurfaceInViewID && entity->parms.suppressSurfaceInViewID == tr.viewDef->GetID() )
+			if( entity->parms.suppressSurfaceInViewID &&
+				entity->parms.suppressSurfaceInViewID == tr.viewDef->GetID() )
 			{
 				continue;
 			}
-			if( entity->parms.allowSurfaceInViewID && entity->parms.allowSurfaceInViewID != tr.viewDef->GetID() )
+			if( entity->parms.allowSurfaceInViewID &&
+				entity->parms.allowSurfaceInViewID != tr.viewDef->GetID() )
 			{
 				continue;
 			}
@@ -276,11 +278,11 @@ bool idRenderWorldLocal::CullLightByPortals( const idRenderLightLocal* light, co
 {
 	if( r_useLightPortalCulling.GetInteger() == 1 )
 	{
-		frustumCorners_t corners;
+		idRenderMatrix::frustumCorners_t corners;
 		idRenderMatrix::GetFrustumCorners( corners, light->inverseBaseLightProject, bounds_zeroOneCube );
 		for( int i = 0; i < ps->numPortalPlanes; i++ )
 		{
-			if( idRenderMatrix::CullFrustumCornersToPlane( corners, ps->portalPlanes[ i ] ) == FRUSTUM_CULL_FRONT )
+			if( idRenderMatrix::CullFrustumCornersToPlane( corners, ps->portalPlanes[ i ] ) == idRenderMatrix::FRUSTUM_CULL_FRONT )
 			{
 				return true;
 			}
@@ -469,8 +471,7 @@ void idRenderWorldLocal::FloodViewThroughArea_r( const idVec3& origin, int areaN
 	{
 		areaScreenRect[ areaNum ] = ps->rect;
 	}
-	else
-	{
+	else {
 		areaScreenRect[ areaNum ].Union( ps->rect );
 	}
 
@@ -723,8 +724,7 @@ void idRenderWorldLocal::FindViewLightsAndEntities() const
 		// debug tool to force no portal culling
 		tr.viewDef->areaNum = -1;
 	}
-	else
-	{
+	else {
 		tr.viewDef->areaNum = PointInArea( tr.viewDef->initialViewAreaOrigin );
 	}
 
@@ -965,8 +965,7 @@ qhandle_t idRenderWorldLocal::FindPortal( const idBounds& b ) const
 	idBounds wb;
 	for( int i = 0; i < numInterAreaPortals; i++ )
 	{
-		auto portal = &doublePortals[ i ];
-		auto w = portal->portals[ 0 ]->w;
+		auto w = doublePortals[ i ].portals[ 0 ]->w;
 
 		wb.Clear();
 		for( int j = 0; j < w->GetNumPoints(); j++ )
@@ -1113,33 +1112,24 @@ void idRenderWorldLocal::ShowPortals()
 	// flood out through portals, setting area viewCount
 	for( int i = 0; i < numPortalAreas; ++i )
 	{
-		auto area = &portalAreas[ i ];
-		if( area->viewCount != tr.GetViewCount() )
-		{
+		auto & area = portalAreas[ i ];
+		if( area.viewCount != tr.GetViewCount() )
 			continue;
-		}
 
-		for( auto p = area->portals; p; p = p->next )
+		for( auto p = area.portals; p; p = p->next )
 		{
 			auto w = p->w;
-			if( !w )
-			{
-				continue;
-			}
+			if( !w ) continue;
 
+			idColor color;
 			if( portalAreas[ p->intoArea ].viewCount != tr.GetViewCount() )
 			{
-				// red = can't see
-				renderProgManager.SetColorParm( 1, 0, 0 );
+				color = idColor::red; // can't see
 			}
-			else
-			{
-				// green = see through
-				renderProgManager.SetColorParm( 0, 1, 0 );
+			else {
+				color = idColor::green; // see through
 			}
-
-			//SEA: ???
-			//GL_GetCurrentRenderProgram()->CommitUniforms();
+			renderProgManager.SetColorParm( color.ToVec4() );
 
 			glBegin( GL_LINE_LOOP );
 			for( int j = 0; j < w->GetNumPoints(); j++ )
@@ -1147,6 +1137,7 @@ void idRenderWorldLocal::ShowPortals()
 				glVertex3fv( ( *w )[ j ].ToFloatPtr() );
 			}
 			glEnd();
+			//DebugWinding( color.ToVec4(), *w, vec3_origin, mat3_identity, tr.viewDef->GetGameTimeMS(), false ); //SEA: time?
 		}
 	}
 }

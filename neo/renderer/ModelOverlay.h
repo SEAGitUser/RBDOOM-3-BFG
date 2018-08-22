@@ -49,27 +49,24 @@ If you have questions concerning this license or the applicable additional terms
 ===============================================================================
 */
 
-static const int MAX_DEFERRED_OVERLAYS		= 4;
-static const int DEFFERED_OVERLAY_TIMEOUT	= 200;	// don't create a overlay if it wasn't visible within the first 200 milliseconds
-static const int MAX_OVERLAYS				= 8;
+static const int MAX_DEFERRED_OVERLAYS = 4;
+static const int DEFFERED_OVERLAY_TIMEOUT = 200;	// don't create a overlay if it wasn't visible within the first 200 milliseconds
+static const int MAX_OVERLAYS = 8;
 
 compile_time_assert( CONST_ISPOWEROFTWO( MAX_OVERLAYS ) );
 
-struct overlayProjectionParms_t
-{
-	idRenderPlane		localTextureAxis[2];
+struct overlayProjectionParms_t {
+	idRenderPlane		localTextureAxis[ 2 ];
 	const idMaterial* 	material;
 	int					startTime;
 };
 
-struct overlayVertex_t
-{
+struct overlayVertex_t {
 	int					vertexNum;
-	halfFloat_t			st[2];
+	halfFloat_t			st[ 2 ];
 };
 
-struct overlay_t
-{
+struct overlay_t {
 	int					surfaceNum;
 	int					surfaceId;
 	int					maxReferencedVertex;
@@ -81,39 +78,39 @@ struct overlay_t
 	mutable bool		writtenToDemo;
 };
 
-class idRenderModelOverlay
-{
+class idRenderModelOverlay {
 public:
 	idRenderModelOverlay();
 	~idRenderModelOverlay();
-	
+
 	void						ReUse();
-	
+
 	void						AddDeferredOverlay( const overlayProjectionParms_t& localParms );
 	void						CreateDeferredOverlays( const idRenderModel* model );
-	
+
 	unsigned int				GetNumOverlayDrawSurfs();
 	struct drawSurf_t* 			CreateOverlayDrawSurf( const struct viewModel_t* space, const idRenderModel* baseModel, unsigned int index );
-	
+
 	void						ReadFromDemoFile( class idDemoFile* f );
 	void						WriteToDemoFile( class idDemoFile* f ) const;
-	
+
 	int							index;
 	int							demoSerialWrite;
 	int							demoSerialCurrent;
+
 private:
-	overlay_t					overlays[MAX_OVERLAYS];
+	overlay_t					overlays[ MAX_OVERLAYS ];
 	unsigned int				firstOverlay;
 	unsigned int				nextOverlay;
-	
-	overlayProjectionParms_t	deferredOverlays[MAX_DEFERRED_OVERLAYS];
+
+	overlayProjectionParms_t	deferredOverlays[ MAX_DEFERRED_OVERLAYS ];
 	unsigned int				firstDeferredOverlay;
 	unsigned int				nextDeferredOverlay;
-	
-	const idMaterial* 			overlayMaterials[MAX_OVERLAYS];
+
+	const idMaterial* 			overlayMaterials[ MAX_OVERLAYS ];
 	unsigned int				numOverlayMaterials;
-	
-	void						CreateOverlay( const idRenderModel* model, const idPlane localTextureAxis[2], const idMaterial* material );
+
+	void						CreateOverlay( const idRenderModel* model, const idPlane localTextureAxis[ 2 ], const idMaterial* material );
 	void						FreeOverlay( overlay_t& overlay );
 };
 

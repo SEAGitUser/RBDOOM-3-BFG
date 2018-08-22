@@ -34,11 +34,11 @@ public:
 		return !IsValid();
 	}
 
-	bool IsValid() const { 
+	bool IsValid() const {
 		return value != INVALID_VALUE;
 	}
 
-	void Release() { 
+	void Release() {
 		value = INVALID_VALUE;
 	}
 
@@ -50,7 +50,7 @@ public:
 		return value;
 	}
 
-	valueType_t GetInvalidValue() const {
+	static valueType_t GetInvalidValue() {
 		return INVALID_VALUE;
 	}
 

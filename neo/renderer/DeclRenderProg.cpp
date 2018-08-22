@@ -3760,7 +3760,7 @@ bool idDeclRenderProg::ProgUsesParm( const idDeclRenderParm * parm ) const
 	return false;
 }
 
-
+#if 0
 struct IncludeEntry {
 	idStr   name;
 	idStr   filename;
@@ -3779,7 +3779,7 @@ void GL_RegisterInclude( idStr const & name, idStr const & filename, idStr const
 
 	glNamedStringARB( GL_SHADER_INCLUDE_ARB, name.Length(), name.c_str(), content.Length(), content.c_str() );
 }
-
+#endif
 
 /*
 ===========================================

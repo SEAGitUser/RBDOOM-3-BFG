@@ -352,17 +352,17 @@ void idEntityFx::ApplyFade( const idFXSingleAction& fxaction, idFXLocalAction& l
 		}
 		if( laction.modelDefHandle != -1 )
 		{
-			laction.renderEntity.shaderParms[ SHADERPARM_RED ] = ( fxaction.fadeInTime ) ? fadePct : 1.0f - fadePct;
+			laction.renderEntity.shaderParms[ SHADERPARM_RED ]   = ( fxaction.fadeInTime ) ? fadePct : 1.0f - fadePct;
 			laction.renderEntity.shaderParms[ SHADERPARM_GREEN ] = ( fxaction.fadeInTime ) ? fadePct : 1.0f - fadePct;
-			laction.renderEntity.shaderParms[ SHADERPARM_BLUE ] = ( fxaction.fadeInTime ) ? fadePct : 1.0f - fadePct;
+			laction.renderEntity.shaderParms[ SHADERPARM_BLUE ]  = ( fxaction.fadeInTime ) ? fadePct : 1.0f - fadePct;
 
 			gameRenderWorld->UpdateEntityDef( laction.modelDefHandle, &laction.renderEntity );
 		}
 		if( laction.lightDefHandle != -1 )
 		{
-			laction.renderLight.shaderParms[ SHADERPARM_RED ] = fxaction.lightColor.x * ( ( fxaction.fadeInTime ) ? fadePct : 1.0f - fadePct );
+			laction.renderLight.shaderParms[ SHADERPARM_RED ]   = fxaction.lightColor.x * ( ( fxaction.fadeInTime ) ? fadePct : 1.0f - fadePct );
 			laction.renderLight.shaderParms[ SHADERPARM_GREEN ] = fxaction.lightColor.y * ( ( fxaction.fadeInTime ) ? fadePct : 1.0f - fadePct );
-			laction.renderLight.shaderParms[ SHADERPARM_BLUE ] = fxaction.lightColor.z * ( ( fxaction.fadeInTime ) ? fadePct : 1.0f - fadePct );
+			laction.renderLight.shaderParms[ SHADERPARM_BLUE ]  = fxaction.lightColor.z * ( ( fxaction.fadeInTime ) ? fadePct : 1.0f - fadePct );
 
 			gameRenderWorld->UpdateLightDef( laction.lightDefHandle, &laction.renderLight );
 		}
@@ -472,7 +472,7 @@ void idEntityFx::Run( int time )
 						useAction->renderLight.lightRadius[ 0 ] = fxaction.lightRadius;
 						useAction->renderLight.lightRadius[ 1 ] = fxaction.lightRadius;
 						useAction->renderLight.lightRadius[ 2 ] = fxaction.lightRadius;
-						useAction->renderLight.shader = declManager->FindMaterial( fxaction.data, false );
+						useAction->renderLight.material = declManager->FindMaterial( fxaction.data, false );
 						useAction->renderLight.shaderParms[ SHADERPARM_RED ] = fxaction.lightColor.x;
 						useAction->renderLight.shaderParms[ SHADERPARM_GREEN ] = fxaction.lightColor.y;
 						useAction->renderLight.shaderParms[ SHADERPARM_BLUE ] = fxaction.lightColor.z;
@@ -615,8 +615,7 @@ void idEntityFx::Run( int time )
 					{
 						gameLocal.Warning( "projectile \'%s\' not found", fxaction.data.c_str() );
 					}
-					else
-					{
+					else {
 						gameLocal.SpawnEntityDef( *projectileDef, &ent, false );
 						if( ent && ent->IsType( idProjectile::Type ) )
 						{
@@ -651,8 +650,7 @@ void idEntityFx::Run( int time )
 					{
 						gameLocal.Warning( "shockwave \'%s\' not found", shockDefName.c_str() );
 					}
-					else
-					{
+					else {
 						gameLocal.SpawnEntityDef( *projectileDef, &ent );
 						ent->SetOrigin( GetPhysics()->GetOrigin() + fxaction.offset );
 						ent->PostEventMS( &EV_Remove, ent->spawnArgs.GetInt( "duration" ) );

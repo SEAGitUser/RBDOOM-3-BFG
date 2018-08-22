@@ -122,6 +122,9 @@ public:
 	ID_INLINE short GetWidth( int border = 1 ) const { return x2 - x1 + border; }
 	ID_INLINE short GetHeight( int border = 1 ) const { return y2 - y1 + border; }
 	ID_INLINE int GetArea( int border = 1 ) const { return ( x2 - x1 + border ) * ( y2 - y1 + border ); }
+	ID_INLINE idVec2 GetCenter() const { return idVec2( ( x2 - x1 ) * 0.5f, ( y2 - y1 ) * 0.5f ); }
+	ID_INLINE float GetCenterX() const { return ( x2 - x1 ) * 0.5f; }
+	ID_INLINE float GetCenterY() const { return ( y2 - y1 ) * 0.5f; }
 	ID_INLINE bool IsValid() const { return( GetWidth() > 0 && GetHeight() > 0 ); }
 
 	// expand by one pixel each way to fix roundoffs
@@ -157,7 +160,7 @@ public:
 
 	ID_INLINE bool Equals( const idScreenRect& rect ) const
 	{
-		return ( x1 == rect.x1 && x2 == rect.x2 && y1 == rect.y1 && y2 == rect.y2 );
+		return( x1 == rect.x1 && x2 == rect.x2 && y1 == rect.y1 && y2 == rect.y2 );
 	}
 };
 

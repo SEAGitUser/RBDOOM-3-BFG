@@ -82,6 +82,24 @@ ID_INLINE void SIMD_INIT_LAST_JOINT( idJointMat* joints, int numJoints )
 	}
 }
 
+// Positioning.
+// Axis rotation vectors must be unit length for many
+// R_LocalToGlobal functions to work, so don't scale models!
+// Axis vectors are [0] = forward, [1] = left, [2] = up
+struct idTransform {
+	idMat3 axis;
+	idVec3 origin;
+
+	ID_INLINE void Identity() { axis.Identity(); origin.Zero(); }
+
+	ID_INLINE const idVec3& GetForward() const { return axis[ 0 ]; }
+	ID_INLINE const idVec3& GetLeft() const { return axis[ 1 ]; }
+	ID_INLINE const idVec3& GetUp() const { return axis[ 2 ]; }
+
+	// Transform local to global.
+	ID_INLINE idVec3 Transform( const idVec3 & vec ) const { return origin + vec * axis; }
+};
+
 struct renderViewParms_t {
 	// player views will set this to a non-zero integer for model suppress / allow
 	// subviews (mirrors, cameras, etc) will always clear it to zero
@@ -110,6 +128,7 @@ struct renderViewParms_t {
 		memset( this, 0, sizeof( *this ) );
 	}
 };
+assert_sizeof_4_byte_multiple( renderViewParms_t );
 
 typedef bool( *deferredEntityCallback_t )( renderEntityParms_t*, const renderViewParms_t* );
 
@@ -138,16 +157,16 @@ struct renderEntityParms_t
 	// that player's eyes, but will show up in mirrors and other subviews
 	// security cameras could suppress their model in their subviews if we add a way
 	// of specifying a view number for a remoteRenderMap view
-	int						suppressSurfaceInViewID;
-	int						suppressShadowInViewID;
+	int16					suppressSurfaceInViewID;
+	int16					suppressShadowInViewID;
 
 	// world models for the player and weapons will not cast shadows from view weapon
 	// muzzle flashes
-	int						suppressShadowInLightID;
+	int16					suppressShadowInLightID;
 
 	// if non-zero, the surface and shadow (if it casts one)
 	// will only show up in the specific view, ie: player weapons
-	int						allowSurfaceInViewID;
+	int16					allowSurfaceInViewID;
 
 	// positioning
 	// axis rotation vectors must be unit length for many
@@ -166,28 +185,39 @@ struct renderEntityParms_t
 	// networking: see WriteGUIToSnapshot / ReadGUIFromSnapshot
 	class idUserInterface * gui[ MAX_RENDERENTITY_GUI ];
 
-	renderViewParms_t *		remoteRenderView;		// any remote camera surfaces will use this
+	// any remote camera surfaces will use this
+	renderViewParms_t *		remoteRenderView;
 
+	// Array of joints that will modify vertices. NULL if non-deformable model. NOT freed by renderer.
+	idJointMat * 			joints;
 	int						numJoints;
-	idJointMat * 			joints;					// array of joints that will modify vertices.
-	// NULL if non-deformable model.  NOT freed by renderer
 
-	float					modelDepthHack;			// squash depth range so particle effects don't clip into walls
+	// squash depth range so particle effects don't clip into walls
+	float					modelDepthHack;
 
 	// options to override surface shader flags (replace with material parameters?)
-	bool					noSelfShadow;			// cast shadows onto other objects,but not self
-	bool					noShadow;				// no shadow at all
 
-	bool					noDynamicInteractions;	// don't create any light / shadow interactions after
-	// the level load is completed.  This is a performance hack
+	// cast shadows onto other objects, but not self
+	bool					noSelfShadow;
+	// no shadow at all
+	bool					noShadow;
+
+	// don't create any light / shadow interactions after
+	// the level load is completed. This is a performance hack
 	// for the gigantic outdoor meshes in the monorail map, so
-	// all the lights in the moving monorail don't touch the meshes
+	// all the lights in the moving monorail don't touch the meshes.
+	bool					noDynamicInteractions;
 
-	bool					weaponDepthHack;		// squash depth range so view weapons don't poke into walls
-	// this automatically implies noShadow
-	bool					noOverlays;				// force no overlays on this model
-	bool					skipMotionBlur;			// Mask out this object during motion blur
-	int						forceUpdate;			// force an update (NOTE: not a bool to keep this struct a multiple of 4 bytes)
+	// squash depth range so view weapons don't poke into walls
+	// this automatically implies noShadow.
+	bool					weaponDepthHack;
+	// force no overlays on this model
+	bool					noOverlays;
+	// Mask out this object during motion blur
+	bool					skipMotionBlur;
+	// force an update
+	int						forceUpdate;			// (NOTE: not a bool to keep this struct a multiple of 4 bytes)
+
 	int						timeGroup;
 	int						xrayIndex;
 
@@ -202,7 +232,13 @@ struct renderEntityParms_t
 		shaderParms[ SHADERPARM_BLUE ]  = b;
 		shaderParms[ SHADERPARM_ALPHA ] = a;
 	}
+	ID_INLINE const idVec3& GetForward() const { return axis[ 0 ]; }
+	ID_INLINE const idVec3& GetLeft() const { return axis[ 1 ]; }
+	ID_INLINE const idVec3& GetUp() const { return axis[ 2 ]; }
+	// Transform local to global.
+	ID_INLINE idVec3		Transform( const idVec3 & vec ) const { return origin + vec * axis; }
 };
+assert_sizeof_4_byte_multiple( renderEntityParms_t );
 
 struct renderLightParms_t
 {
@@ -212,11 +248,11 @@ struct renderLightParms_t
 	// if non-zero, the light will not show up in the specific view,
 	// which may be used if we want to have slightly different muzzle
 	// flash lights for the player and other views
-	int						suppressLightInViewID;
+	int16					suppressLightInViewID;
 
 	// if non-zero, the light will only show up in the specific view
 	// which can allow player gun gui lights and such to not effect everyone
-	int						allowLightInViewID;
+	int16					allowLightInViewID;
 
 	// I am sticking the four bools together so there are no unused gaps in
 	// the padded structure, which could confuse the memcmp that checks for redundant
@@ -246,10 +282,11 @@ struct renderLightParms_t
 	idRenderModel * 		prelightModel;
 
 	// muzzle flash lights will not cast shadows from player and weapon world models
-	int						lightId;
+	int16					lightId;
 
+	int16                   smMaxLod; //SEA: added to fix mazzelflash shadows ( to reduce lod )
 
-	const idMaterial * 		shader;				// NULL = either lights/defaultPointLight or lights/defaultProjectedLight
+	const idMaterial * 		material;				// NULL = either lights/defaultPointLight or lights/defaultProjectedLight
 	float					shaderParms[MAX_ENTITY_SHADER_PARMS];		// can be used in any way by shader
 	idSoundEmitter * 		referenceSound;		// for shader sound tables, allowing effects to vary with sounds
 
@@ -265,6 +302,7 @@ struct renderLightParms_t
 		shaderParms[ SHADERPARM_ALPHA ] = a;
 	}
 };
+assert_sizeof_4_byte_multiple( renderLightParms_t );
 
 // exitPortal_t is returned by idRenderWorld::GetPortal()
 struct exitPortal_t
@@ -287,12 +325,12 @@ struct guiPoint_t
 // modelTrace_t is for tracing vs. visual geometry
 struct modelTrace_t
 {
-	float					fraction;			// fraction of trace completed
 	idVec3					point;				// end point of trace in global space
 	idVec3					normal;				// hit triangle normal vector in global space
 	const idMaterial * 		material;			// material of hit surface
 	const renderEntityParms_t * entity;			// render entity that was hit
 	int						jointNumber;		// md5 joint nearest to the hit triangle
+	float					fraction;			// fraction of trace completed
 };
 
 
@@ -309,6 +347,7 @@ enum portalConnection_t
 	PS_BLOCK_ALL = ( 1 << NUM_PORTAL_ATTRIBUTES ) - 1
 };
 
+#undef DrawText
 
 class idRenderWorld {
 public:

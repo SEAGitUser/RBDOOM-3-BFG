@@ -106,7 +106,7 @@ static const int AT_PREFIX = BIT( 31 );
 
 #define InOutVar ( AT_VS_OUT | AT_TCS_IN|AT_TCS_OUT|AT_TES_IN|AT_TES_OUT | AT_GS_IN|AT_GS_OUT | AT_PS_IN )
 
-struct glslShaderInfo_t 
+struct glslShaderInfo_t
 {
 	GLenum	glTargetType;
 	const char * shaderTypeDeclName;
@@ -165,7 +165,7 @@ struct attribInfo_t {
 /**/{ "float4",		"position",			"SV_Position",				"gl_Position",			0,	VOutR | GInR | GOutR | TCInR | TCOutR | TEInR | TEOutR | AT_PREFIX,	0 },
 /**/{ "float",		"clip",				"SV_ClipDistance",			"gl_ClipDistance",		0,	VOutR | GInR | GOutR | TCInR | TCOutR | TEInR | TEOutR | FInR | AT_PREFIX,	0 }, //[]
 /**/{ "float",		"cull",				"SV_CullDistance",			"gl_CullDistance",		0,	VOutR | GInR | GOutR | TCInR | TCOutR | TEInR | TEOutR | FInR | AT_PREFIX,	0 }, //[]
-/**/{ "int",		"count",			"",							"length()",				0,	GInR | TCInR | TEInR | AT_PREFIX, 0 }, 
+/**/{ "int",		"count",			"",							"length()",				0,	GInR | TCInR | TEInR | AT_PREFIX, 0 },
 
 
 /**/{ "uint",		"primitiveID",		"SV_PrimitiveID",			"gl_PrimitiveID",		0,	GOutR | TCInR | TEInR | FInR,	0 },
@@ -189,7 +189,7 @@ struct attribInfo_t {
 
 /**/{ "uint",		"stencilRef",		"SV_StencilRef",			"gl_FragStencilRef",	0,	FOutR,	0 }, //[]
 	{ "float",		"depth",			"SV_Depth",					"gl_FragDepth",			0,	FOutR,	0 },
-	
+
 	{ "float4",		"color",		"COLOR",		"out_FragColor",	0,	AT_PS_OUT,	0 },
 	{ "half4",		"hcolor",		"COLOR",		"out_FragColor",	0,	AT_PS_OUT,	0 },
 
@@ -210,7 +210,7 @@ struct attribInfo_t {
 	{ "half4",		"htarget5",		"SV_Target5",	"out_FragColor5",	5,	AT_PS_OUT,	0 },
 	{ "half4",		"htarget6",		"SV_Target6",	"out_FragColor6",	6,	AT_PS_OUT,	0 },
 	{ "half4",		"htarget7",		"SV_Target7",	"out_FragColor7",	7,	AT_PS_OUT,	0 },
-	
+
 	{ "uint3",		"numWorkGroups",	"",						"gl_NumWorkGroups",			0,	AT_CS_IN | AT_CS_IN_RESERVED,	0 }, //? to func
 	{ "uint3",		"workGroupSize",	"",						"gl_WorkGroupSize",			0,	AT_CS_IN | AT_CS_IN_RESERVED,	0 }, //? to func
 	{ "uint3",		"groupID",			"SV_GroupID",			"gl_WorkGroupID",			0,	AT_CS_IN | AT_CS_IN_RESERVED,	0 },
@@ -219,13 +219,13 @@ struct attribInfo_t {
 	{ "uint",		"groupIndex",		"SV_GroupIndex",		"gl_LocalInvocationIndex",	0,	AT_CS_IN | AT_CS_IN_RESERVED,	0 },
 
 	// shaders pass through
-	
+
 	{ "float4",		"color",		"COLOR",				"vofi_Color",		0,	AT_VS_OUT | AT_PS_IN,	0 },
 	{ "float4",		"color0",		"COLOR0",				"vofi_Color",		0,	AT_VS_OUT | AT_PS_IN,	0 },
-	
+
 	{ "half4",		"hcolor",		"COLOR",				"vofi_Color",		0,	AT_PS_IN,	0 },
 	{ "half4",		"hcolor0",		"COLOR0",				"vofi_Color",		0,	AT_PS_IN,	0 },
-	
+
 	{ "float4",		"texcoord0",	"TEXCOORD0_centroid",	"vofi_TexCoord0",	0,	AT_PS_IN,	0 },
 	{ "float4",		"texcoord1",	"TEXCOORD1_centroid",	"vofi_TexCoord1",	1,	AT_PS_IN,	0 },
 	{ "float4",		"texcoord2",	"TEXCOORD2_centroid",	"vofi_TexCoord2",	2,	AT_PS_IN,	0 },
@@ -242,7 +242,7 @@ struct attribInfo_t {
 	{ "float4",		"texcoord13",	"TEXCOORD13_centroid",	"vofi_TexCoord13",	13,	AT_PS_IN,	0 },
 	{ "float4",		"texcoord14",	"TEXCOORD14_centroid",	"vofi_TexCoord14",	14,	AT_PS_IN,	0 },
 	{ "float4",		"texcoord15",	"TEXCOORD15_centroid",	"vofi_TexCoord15",	15,	AT_PS_IN,	0 },
-	
+
 	{ "float4",		"texcoord0",	"TEXCOORD0",	"vofi_TexCoord0",	0,	AT_VS_OUT | AT_PS_IN,	0 },
 	{ "float4",		"texcoord1",	"TEXCOORD1",	"vofi_TexCoord1",	1,	AT_VS_OUT | AT_PS_IN,	0 },
 	{ "float4",		"texcoord2",	"TEXCOORD2",	"vofi_TexCoord2",	2,	AT_VS_OUT | AT_PS_IN,	0 },
@@ -492,7 +492,7 @@ void StripDeadCode( const char* in, const char* name, const idStrList& compileMa
 		src.AddDefine( "GLES" );
 	}
 
-	if( !builtin && glConfig.gpuSkinningAvailable )
+	if( !builtin )
 	{
 		src.AddDefine( "USE_GPU_SKINNING" );
 	}
@@ -1373,15 +1373,15 @@ void ParseInOutStruct( idLexer& src, int attribType, int attribIgnoreType, idLis
 /*
 ========================
  ConvertCG2GLSL
- 
+
  points
  lines
  lines_adjacency
  triangles
  triangles_adjacency
- 
+
  layout( triangles ) in;
- 
+
 ========================
 */
 void ConvertCG2GLSL( const idStr & in, idStr & out, const char* name, idStr& uniforms, shaderType_e shaderType )
@@ -1929,8 +1929,8 @@ GLuint idRenderProgManager::LoadGLSLShader( shaderType_e shaderType, const char*
 	idStr programGLSL, programUniforms;
 
 	// if the glsl file doesn't exist or we have a newer HLSL file we need to recreate the glsl file.
-	if( ( glslFileLength <= 0 ) || 
-		( hlslTimeStamp != FILE_NOT_FOUND_TIMESTAMP && hlslTimeStamp > glslTimeStamp ) || 
+	if( ( glslFileLength <= 0 ) ||
+		( hlslTimeStamp != FILE_NOT_FOUND_TIMESTAMP && hlslTimeStamp > glslTimeStamp ) ||
 		r_alwaysExportGLSL.GetBool() )
 	{
 		if( hlslFileLength <= 0 )

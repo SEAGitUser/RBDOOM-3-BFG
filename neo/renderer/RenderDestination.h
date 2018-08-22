@@ -46,7 +46,7 @@ static	int shadowMapResolutions[ MAX_SHADOWMAP_RESOLUTIONS ] = { 1024, 1024, 102
 
 	idRenderDestination
 
-	Does not support stencil only render targets
+	Does not support stencil-only render targets
 
 =============================================
 */
@@ -211,6 +211,8 @@ private:
 	guiRender.
 
 	r_renderThreadStackSizeKB( "r_renderThreadStackSizeKB", "4194304", , "" )
+
+	Enable color blind modes. 1: Protanopia, 2: Deuteranopia, 3: Tritanopia. ( tbd: Protanomaly, Deuteranomaly, Tritanomaly ). Disabled by default = 0
 
 =============================================
 */

@@ -72,48 +72,48 @@ idRenderModel* idRenderModelBeam::InstantiateDynamicModel( const struct renderEn
 	idRenderModelStatic* staticModel;
 	idTriangles* tri;
 	modelSurface_t surf;
-	
+
 	if( cachedModel )
 	{
 		delete cachedModel;
 		cachedModel = NULL;
 	}
-	
+
 	if( renderEntity == NULL || viewDef == NULL )
 	{
 		delete cachedModel;
 		return NULL;
 	}
-	
+
 	if( cachedModel != NULL )
-	{	
+	{
 		assert( dynamic_cast<idRenderModelStatic*>( cachedModel ) != NULL );
 		assert( idStr::Icmp( cachedModel->Name(), beam_SnapshotName ) == 0 );
-		
+
 		staticModel = static_cast<idRenderModelStatic*>( cachedModel );
 		surf = *staticModel->Surface( 0 );
 		tri = surf.geometry;
 	}
-	else {	
+	else {
 		staticModel = new( TAG_MODEL ) idRenderModelStatic;
 		staticModel->InitEmpty( beam_SnapshotName );
-		
+
 		tri = idTriangles::AllocStatic();
 		tri->AllocStaticVerts( 4 );
 		tri->AllocStaticIndexes( 6 );
-		
+
 		tri->verts[0].Clear();
 		tri->verts[0].SetTexCoord( 0, 0 );
-		
+
 		tri->verts[1].Clear();
 		tri->verts[1].SetTexCoord( 0, 1 );
-		
+
 		tri->verts[2].Clear();
 		tri->verts[2].SetTexCoord( 1, 0 );
-		
+
 		tri->verts[3].Clear();
 		tri->verts[3].SetTexCoord( 1, 1 );
-		
+
 		tri->indexes[0] = 0;
 		tri->indexes[1] = 2;
 		tri->indexes[2] = 1;
@@ -126,15 +126,15 @@ idRenderModel* idRenderModelBeam::InstantiateDynamicModel( const struct renderEn
 
 		tri->numVerts = 4;
 		tri->numIndexes = 6;
-		
-		surf.geometry = tri;
+
 		surf.id = 0;
-		surf.shader = tr.defaultMaterial;
+		surf.geometry = tri;
+		surf.material = tr.defaultMaterial;
 		staticModel->AddSurface( surf );
 	}
-	
+
 	idVec3 target = *reinterpret_cast<const idVec3*>( &renderEntity->shaderParms[SHADERPARM_BEAM_END_X] );
-	
+
 	// we need the view direction to project the minor axis of the tube
 	// as the view changes
 	idVec3 localView, localTarget;
@@ -146,7 +146,7 @@ idRenderModel* idRenderModelBeam::InstantiateDynamicModel( const struct renderEn
 	}
 	idVec3	major = localTarget;
 	idVec3	minor;
-	
+
 	idVec3	mid = 0.5f * localTarget;
 	idVec3	dir = mid - localView;
 	minor.Cross( major, dir );
@@ -155,40 +155,40 @@ idRenderModel* idRenderModelBeam::InstantiateDynamicModel( const struct renderEn
 	{
 		minor *= renderEntity->shaderParms[SHADERPARM_BEAM_WIDTH] * 0.5f;
 	}
-	
+
 	int red		= idMath::Ftoi( renderEntity->shaderParms[SHADERPARM_RED] * 255.0f );
 	int green	= idMath::Ftoi( renderEntity->shaderParms[SHADERPARM_GREEN] * 255.0f );
 	int blue	= idMath::Ftoi( renderEntity->shaderParms[SHADERPARM_BLUE] * 255.0f );
 	int alpha	= idMath::Ftoi( renderEntity->shaderParms[SHADERPARM_ALPHA] * 255.0f );
-	
+
 	tri->verts[0].SetPosition( minor );
 	tri->verts[0].color[0] = red;
 	tri->verts[0].color[1] = green;
 	tri->verts[0].color[2] = blue;
 	tri->verts[0].color[3] = alpha;
-	
+
 	tri->verts[1].SetPosition(-minor );
 	tri->verts[1].color[0] = red;
 	tri->verts[1].color[1] = green;
 	tri->verts[1].color[2] = blue;
 	tri->verts[1].color[3] = alpha;
-	
+
 	tri->verts[2].SetPosition( localTarget + minor );
 	tri->verts[2].color[0] = red;
 	tri->verts[2].color[1] = green;
 	tri->verts[2].color[2] = blue;
 	tri->verts[2].color[3] = alpha;
-	
+
 	tri->verts[3].SetPosition( localTarget - minor );
 	tri->verts[3].color[0] = red;
 	tri->verts[3].color[1] = green;
 	tri->verts[3].color[2] = blue;
 	tri->verts[3].color[3] = alpha;
-	
+
 	tri->DeriveBounds();
-	
+
 	staticModel->bounds = tri->GetBounds();
-	
+
 	return staticModel;
 }
 
@@ -200,7 +200,7 @@ idRenderModelBeam::Bounds
 idBounds idRenderModelBeam::Bounds( const struct renderEntityParms_t* renderEntity ) const
 {
 	idBounds b;
-	
+
 	b.Zero();
 	if( !renderEntity )
 	{
@@ -213,7 +213,7 @@ idBounds idRenderModelBeam::Bounds( const struct renderEntityParms_t* renderEnti
 		idRenderMatrix modelMatrix;
 		idRenderMatrix::CreateFromOriginAxis( renderEntity->origin, renderEntity->axis, modelMatrix );
 		modelMatrix.InverseTransformPoint( target, localTarget );
-		
+
 		b.AddPoint( localTarget );
 		if( renderEntity->shaderParms[SHADERPARM_BEAM_WIDTH] != 0.0f )
 		{

@@ -153,9 +153,6 @@ static void RB_ScreenSpaceBlendLight( const viewLight_t * const vLight )
 	GL_SetRenderProgram( renderProgManager.prog_blendlight2 );
 
 	// set the matrix for deforming the 'zeroOneCubeModel' into the frustum to exactly cover the light volume
-	///idRenderMatrix invProjectMVPMatrix;
-	///idRenderMatrix::Multiply( backEnd.viewDef->GetMVPMatrix(), vLight->inverseBaseLightProject, invProjectMVPMatrix );
-	///renderProgManager.SetMVPMatrixParms( invProjectMVPMatrix );
 	idRenderMatrix::Multiply( backEnd.viewDef->GetMVPMatrix(), vLight->inverseBaseLightProject,
 		renderProgManager.GetRenderParm( RENDERPARM_MVPMATRIX_X )->GetVec4(),
 		renderProgManager.GetRenderParm( RENDERPARM_MVPMATRIX_Y )->GetVec4(),

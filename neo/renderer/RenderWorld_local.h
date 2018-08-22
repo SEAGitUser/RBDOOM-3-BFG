@@ -36,39 +36,39 @@ If you have questions concerning this license or the applicable additional terms
 // assume any lightDef or entityDef index above this is an internal error
 const int LUDICROUS_INDEX	= 10000;
 
-typedef struct portal_s
+struct portal_t
 {
 	int						intoArea;		// area this portal leads to
 	idWinding* 				w;				// winding points have counter clockwise ordering seen this area
 	ALIGNTYPE16 idPlane		plane;			// view must be on the positive side of the plane to cross
-	struct portal_s* 		next;			// next portal of the area
-	struct doublePortal_s* 	doublePortal;
-} portal_t;
+	portal_t * 				next;			// next portal of the area
+	struct doublePortal_t * doublePortal;
+};
 
 
-typedef struct doublePortal_s
+struct doublePortal_t
 {
-	struct portal_s*		portals[2];
+	portal_t *				portals[2];
 	int						blockingBits;	// PS_BLOCK_VIEW, PS_BLOCK_AIR, etc, set by doors that shut them off
 
 	// A portal will be considered closed if it is past the
 	// fog-out point in a fog volume.  We only support a single
 	// fog volume over each portal.
 	idRenderLightLocal* 	fogLight;
-	struct doublePortal_s* 	nextFoggedPortal;
-} doublePortal_t;
+	doublePortal_t * 		nextFoggedPortal;
+};
 
 
-typedef struct portalArea_s
+struct portalArea_t
 {
-	int				areaNum;
-	int				connectedAreaNum[NUM_PORTAL_ATTRIBUTES];	// if two areas have matching connectedAreaNum, they are
+	int						areaNum;
+	int						connectedAreaNum[NUM_PORTAL_ATTRIBUTES];	// if two areas have matching connectedAreaNum, they are
 	// not separated by a portal with the apropriate PS_BLOCK_* blockingBits
-	int				viewCount;		// set by R_FindViewLightsAndEntities
-	portal_t* 		portals;		// never changes after load
-	areaReference_t	entityRefs;		// head/tail of doubly linked list, may change
-	areaReference_t	lightRefs;		// head/tail of doubly linked list, may change
-} portalArea_t;
+	int						viewCount;		// set by R_FindViewLightsAndEntities
+	portal_t * 				portals;		// never changes after load
+	areaReference_t			entityRefs;		// head/tail of doubly linked list, may change
+	areaReference_t			lightRefs;		// head/tail of doubly linked list, may change
+};
 
 
 static const int	CHILDREN_HAVE_MULTIPLE_AREAS = -2;
@@ -96,6 +96,8 @@ struct reusableOverlay_t
 };
 
 struct portalStack_t;
+
+#undef DrawText
 
 class idRenderWorldLocal : public idRenderWorld {
 public:
@@ -252,18 +254,18 @@ public:
 
 	void					StartWritingDemo( idDemoFile* );
 	void					StopWritingDemo();
-	bool					ProcessDemoCommand( idDemoFile* readDemo, renderViewParms_t* demoRenderView, int* demoTimeOffset );
+	bool					ProcessDemoCommand( idDemoFile* readDemo, renderViewParms_t* demoRenderViewParms, int* demoTimeOffset );
 
 	void					WriteLoadMap();
 	void					WriteRenderView( const renderViewParms_t* );
 	void					WriteVisibleDefs( const idRenderView* );
-	void					WriteFreeDecal( idDemoFile*, qhandle_t handle );
-	void					WriteFreeOverlay( idDemoFile*, qhandle_t handle );
-	void					WriteFreeLight( qhandle_t handle );
-	void					WriteFreeEntity( qhandle_t handle );
-	void					WriteRenderDecal( idDemoFile*, qhandle_t handle );
-	void					WriteRenderOverlay( idDemoFile*, qhandle_t handle );
-	void					WriteRenderLight( idDemoFile*, qhandle_t handle, const renderLightParms_t* );
+	void					WriteFreeDecal( idDemoFile*, qhandle_t );
+	void					WriteFreeOverlay( idDemoFile*, qhandle_t );
+	void					WriteFreeLight( qhandle_t );
+	void					WriteFreeEntity( qhandle_t );
+	void					WriteRenderDecal( idDemoFile*, qhandle_t );
+	void					WriteRenderOverlay( idDemoFile*, qhandle_t );
+	void					WriteRenderLight( idDemoFile*, qhandle_t, const renderLightParms_t* );
 	void					WriteRenderEntity( idDemoFile*, idRenderEntityLocal* );
 	void					ReadRenderEntity();
 	void					ReadRenderLight();
@@ -278,21 +280,21 @@ public:
 	void					AddLightRefToArea( idRenderLightLocal*, portalArea_t* );
 
 	void					RecurseProcBSP_r( modelTrace_t* results, int parentNodeNum, int nodeNum, float p1f, float p2f, const idVec3& p1, const idVec3& p2 ) const;
-	void					BoundsInAreas_r( int nodeNum, const idBounds& bounds, int* areas, int* numAreas, int maxAreas ) const;
+	void					BoundsInAreas_r( int nodeNum, const idBounds&, int* areas, int* numAreas, int maxAreas ) const;
 
 	float					DrawTextLength( const char* text, float scale, int len = 0 );
 
 	void					FreeInteractions();
 
-	void					PushFrustumIntoTree_r( idRenderEntityLocal*, idRenderLightLocal*, const frustumCorners_t&, int nodeNum );
-	void					PushFrustumIntoTree( idRenderEntityLocal*, idRenderLightLocal*, const idRenderMatrix& frustumTransform, const idBounds& frustumBounds );
+	void					PushFrustumIntoTree_r( idRenderEntityLocal*, idRenderLightLocal*, const idRenderMatrix::frustumCorners_t &, int nodeNum );
+	void					PushFrustumIntoTree( idRenderEntityLocal*, idRenderLightLocal*, const idRenderMatrix & frustumTransform, const idBounds& frustumBounds );
 
-	idRenderModelDecal* 	AllocDecal( qhandle_t newEntityHandle, int startTime );
-	idRenderModelOverlay* 	AllocOverlay( qhandle_t newEntityHandle, int startTime );
+	idRenderModelDecal * 	AllocDecal( qhandle_t newEntityHandle, int startTime );
+	idRenderModelOverlay * 	AllocOverlay( qhandle_t newEntityHandle, int startTime );
 
 	//-------------------------------
 	// tr_light.c
-	void					CreateLightDefInteractions( idRenderLightLocal* const ldef, const int renderViewID );
+	void					CreateLightDefInteractions( idRenderLightLocal* const, const int renderViewID );
 };
 
 // if an entity / light combination has been evaluated and found to not genrate any surfaces or shadows,

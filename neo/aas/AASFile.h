@@ -152,17 +152,17 @@ typedef struct aasEdge_s
 } aasEdge_t;
 
 // area boundary face
-typedef struct aasFace_s
+struct aasFace_t
 {
 	unsigned short				planeNum;			// number of the plane this face is on
 	unsigned short				flags;				// face flags
 	int							numEdges;			// number of edges in the boundary of the face
 	int							firstEdge;			// first edge in the edge index
 	short						areas[2];			// area at the front and back of this face
-} aasFace_t;
+};
 
 // area with a boundary of faces
-typedef struct aasArea_s
+struct aasArea_t
 {
 	int							numFaces;			// number of faces used for the boundary of the area
 	int							firstFace;			// first face in the face index used for the boundary of the area
@@ -175,35 +175,35 @@ typedef struct aasArea_s
 	int							travelFlags;		// travel flags for traveling through this area
 	idReachability* 			reach;				// reachabilities that start from this area
 	idReachability* 			rev_reach;			// reachabilities that lead to this area
-} aasArea_t;
+};
 
 // nodes of the bsp tree
-typedef struct aasNode_s
+struct aasNode_t
 {
 	unsigned short				planeNum;			// number of the plane that splits the subspace at this node
 	int							children[2];		// child nodes, zero is solid, negative is -(area number)
-} aasNode_t;
+};
 
 // cluster portal
-typedef struct aasPortal_s
+struct aasPortal_t
 {
 	short						areaNum;			// number of the area that is the actual portal
 	short						clusters[2];		// number of cluster at the front and back of the portal
 	short						clusterAreaNum[2];	// number of this portal area in the front and back cluster
 	unsigned short				maxAreaTravelTime;	// maximum travel time through the portal area
-} aasPortal_t;
+};
 
 // cluster
-typedef struct aasCluster_s
+struct aasCluster_t
 {
 	int							numAreas;			// number of areas in the cluster
 	int							numReachableAreas;	// number of areas with reachabilities
 	int							numPortals;			// number of cluster portals
 	int							firstPortal;		// first cluster portal in the index
-} aasCluster_t;
+};
 
 // trace through the world
-typedef struct aasTrace_s
+struct aasTrace_t
 {
 	// parameters
 	int							flags;				// areas with these flags block the trace
@@ -219,18 +219,18 @@ typedef struct aasTrace_s
 	int							numAreas;			// number of areas the trace went through
 	int* 						areas;				// array to store areas the trace went through
 	idVec3* 					points;				// points where the trace entered each new area
-	aasTrace_s()
+
+	aasTrace_t()
 	{
 		areas = NULL;
 		points = NULL;
 		getOutOfSolid = false;
 		flags = travelFlags = maxAreas = 0;
 	}
-} aasTrace_t;
+};
 
 // settings
-class idAASSettings
-{
+class idAASSettings {
 public:
 	// collision settings
 	int							numBoundingBoxes;
@@ -257,17 +257,17 @@ public:
 	int							tt_startCrouching;
 	int							tt_waterJump;
 	int							tt_startWalkOffLedge;
-	
+
 public:
 	idAASSettings();
-	
+
 	bool						FromFile( const idStr& fileName );
 	bool						FromParser( idLexer& src );
-	bool						FromDict( const char* name, const idDict* dict );
+	bool						FromDict( const char* name, const idDict* );
 	bool						WriteToFile( idFile* fp ) const;
-	bool						ValidForBounds( const idBounds& bounds ) const;
+	bool						ValidForBounds( const idBounds& ) const;
 	bool						ValidEntity( const char* classname ) const;
-	
+
 private:
 	bool						ParseBool( idLexer& src, bool& b );
 	bool						ParseInt( idLexer& src, int& i );
@@ -301,11 +301,10 @@ private:
 */
 
 
-class idAASFile
-{
+class idAASFile {
 public:
 	virtual 					~idAASFile() {}
-	
+
 	const char* 				GetName() const
 	{
 		return name.c_str();
@@ -314,7 +313,7 @@ public:
 	{
 		return crc;
 	}
-	
+
 	int							GetNumPlanes() const
 	{
 		return planeList.Num();
@@ -403,12 +402,12 @@ public:
 	{
 		return clusters[index];
 	}
-	
+
 	const idAASSettings& 		GetSettings() const
 	{
 		return settings;
 	}
-	
+
 	void						SetPortalMaxTravelTime( int index, int time )
 	{
 		portals[index].maxAreaTravelTime = time;
@@ -421,37 +420,37 @@ public:
 	{
 		areas[index].travelFlags &= ~flag;
 	}
-	
+
 	virtual idVec3				EdgeCenter( int edgeNum ) const = 0;
 	virtual idVec3				FaceCenter( int faceNum ) const = 0;
 	virtual idVec3				AreaCenter( int areaNum ) const = 0;
-	
+
 	virtual idBounds			EdgeBounds( int edgeNum ) const = 0;
 	virtual idBounds			FaceBounds( int faceNum ) const = 0;
 	virtual idBounds			AreaBounds( int areaNum ) const = 0;
-	
+
 	virtual int					PointAreaNum( const idVec3& origin ) const = 0;
 	virtual int					PointReachableAreaNum( const idVec3& origin, const idBounds& searchBounds, const int areaFlags, const int excludeTravelFlags ) const = 0;
-	virtual int					BoundsReachableAreaNum( const idBounds& bounds, const int areaFlags, const int excludeTravelFlags ) const = 0;
+	virtual int					BoundsReachableAreaNum( const idBounds&, const int areaFlags, const int excludeTravelFlags ) const = 0;
 	virtual void				PushPointIntoAreaNum( int areaNum, idVec3& point ) const = 0;
-	virtual bool				Trace( aasTrace_t& trace, const idVec3& start, const idVec3& end ) const = 0;
+	virtual bool				Trace( aasTrace_t&, const idVec3& start, const idVec3& end ) const = 0;
 	virtual void				PrintInfo() const = 0;
-	
+
 protected:
 	idStr						name;
 	unsigned int				crc;
-	
+
 	idPlaneSet					planeList;
-	idList<aasVertex_t, TAG_AAS>			vertices;
-	idList<aasEdge_t, TAG_AAS>			edges;
-	idList<aasIndex_t, TAG_AAS>			edgeIndex;
-	idList<aasFace_t, TAG_AAS>			faces;
-	idList<aasIndex_t, TAG_AAS>			faceIndex;
-	idList<aasArea_t, TAG_AAS>			areas;
-	idList<aasNode_t, TAG_AAS>			nodes;
-	idList<aasPortal_t, TAG_AAS>			portals;
-	idList<aasIndex_t, TAG_AAS>			portalIndex;
-	idList<aasCluster_t, TAG_AAS>		clusters;
+	idList<aasVertex_t, TAG_AAS> vertices;
+	idList<aasEdge_t, TAG_AAS>	edges;
+	idList<aasIndex_t, TAG_AAS>	edgeIndex;
+	idList<aasFace_t, TAG_AAS>	faces;
+	idList<aasIndex_t, TAG_AAS>	faceIndex;
+	idList<aasArea_t, TAG_AAS>	areas;
+	idList<aasNode_t, TAG_AAS>	nodes;
+	idList<aasPortal_t, TAG_AAS> portals;
+	idList<aasIndex_t, TAG_AAS>	portalIndex;
+	idList<aasCluster_t, TAG_AAS> clusters;
 	idAASSettings				settings;
 };
 

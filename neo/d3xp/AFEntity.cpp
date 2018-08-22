@@ -1210,8 +1210,7 @@ void idAFEntity_Gibbable::Present()
 		{
 			skeletonModelDefHandle = gameRenderWorld->AddEntityDef( &skeleton );
 		}
-		else
-		{
+		else {
 			gameRenderWorld->UpdateEntityDef( skeletonModelDefHandle, &skeleton );
 		}
 	}

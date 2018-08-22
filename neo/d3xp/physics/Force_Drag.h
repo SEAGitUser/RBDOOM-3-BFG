@@ -37,9 +37,7 @@ If you have questions concerning this license or the applicable additional terms
 ===============================================================================
 */
 
-class idForce_Drag : public idForce
-{
-
+class idForce_Drag : public idForce {
 public:
 	CLASS_PROTOTYPE( idForce_Drag );
 	

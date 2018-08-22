@@ -197,12 +197,11 @@ public:
 //
 // group of particle stages
 //
-class idDeclParticle : public idDecl
-{
+class idDeclParticle : public idDecl {
 public:
 
 	virtual size_t			Size() const;
-	virtual const char* 	DefaultDefinition() const;
+	virtual const char * 	DefaultDefinition() const;
 	virtual bool			Parse( const char* text, const int textLength, bool allowBinaryVersion );
 	virtual void			FreeData();
 
@@ -219,7 +218,7 @@ public:
 private:
 	bool					RebuildTextSource();
 	void					GetStageBounds( idParticleStage* );
-	idParticleStage* 		ParseParticleStage( idLexer& src );
+	idParticleStage * 		ParseParticleStage( idLexer& src );
 	void					ParseParms( idLexer& src, float* parms, int maxParms );
 	void					ParseParametric( idLexer& src, idParticleParm* );
 	void					WriteStage( idFile* f, idParticleStage* );

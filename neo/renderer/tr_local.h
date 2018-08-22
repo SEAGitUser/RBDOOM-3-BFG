@@ -182,6 +182,7 @@ typedef struct drawSurf_t
 	volatile shadowVolumeState_t shadowVolumeState;
 
 	ID_INLINE bool HasSkinning() const { return !!jointCache; }
+
 } idDrawSurface;
 
 // areas have references to hold all the lights and entities in them
@@ -192,7 +193,7 @@ struct areaReference_t
 	areaReference_t * 		ownerNext;				// chain on either the entityDef or lightDef
 	idRenderEntityLocal * 	entity;					// only one of entity / light will be non-NULL
 	idRenderLightLocal * 	light;					// only one of entity / light will be non-NULL
-	struct portalArea_s *	area;					// so owners can find all the areas they are in
+	struct portalArea_t *	area;					// so owners can find all the areas they are in
 };
 
 
@@ -230,7 +231,7 @@ public:
 	idInteraction* 			firstInteraction;		// doubly linked list
 	idInteraction* 			lastInteraction;
 
-	struct doublePortal_s* 	foggedPortals;
+	struct doublePortal_t *	foggedPortals;
 
 	int						areaNum;				// if not -1, we may be able to cull all the light's
 													// interactions if !viewDef->connectedAreas[areaNum]
@@ -610,7 +611,6 @@ public:
 	const idRenderMatrix &			GetInverseViewMatrix() const { return inverseViewMatrix; }
 	const idRenderMatrix &			GetInverseProjMatrix() const { return inverseProjectionMatrix; }
 
-	//TODO: get rid of this worldspace crap!
 	const viewModel_t &				GetWorldSpace() const { return worldSpace; }
 
 	float							GetZNear() const;
@@ -1016,6 +1016,13 @@ public:
 	virtual bool			IsStereoScopicRenderingSupported() const;
 	virtual stereo3DMode_t	GetStereoScopicRenderingMode() const;
 	virtual void			EnableStereoScopicRendering( const stereo3DMode_t mode ) const;
+//SEA: moved here from game code:
+	virtual stereoDistances_t CaclulateStereoDistances(
+		const float	interOcularCentimeters,
+		const float screenWidthCentimeters,
+		const float convergenceWorldUnits,
+		const float	fov_x_degrees ) const;
+
 	virtual int				GetWidth() const;
 	virtual int				GetHeight() const;
 	virtual int				GetVirtualWidth() const;
@@ -1296,8 +1303,6 @@ extern idCVar r_materialOverride;			// override all materials
 extern idCVar r_debugRenderToTexture;
 
 extern idCVar stereoRender_deGhost;			// subtract from opposite eye to reduce ghosting
-
-extern idCVar r_useGPUSkinning;
 
 // RB begin
 extern idCVar r_shadowMapFrustumFOV;
@@ -1704,7 +1709,6 @@ void RB_AddDebugLine( const idVec4& color, const idVec3& start, const idVec3& en
 void RB_ClearDebugLines( int time );
 void RB_AddDebugPolygon( const idVec4& color, const idWinding& winding, const int lifeTime, const bool depthTest );
 void RB_ClearDebugPolygons( int time );
-void RB_DrawBounds( const idBounds& );
 void RB_ShowLights( const drawSurf_t * const * drawSurfs, int numDrawSurfs );
 void RB_ShowLightCount( const drawSurf_t * const * drawSurfs, int numDrawSurfs );
 void RB_PolygonClear();

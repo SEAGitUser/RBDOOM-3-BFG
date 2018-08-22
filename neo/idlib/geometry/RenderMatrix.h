@@ -29,21 +29,40 @@ If you have questions concerning this license or the applicable additional terms
 #ifndef __RENDERMATRIX_H__
 #define __RENDERMATRIX_H__
 
-static const int NUM_FRUSTUM_CORNERS	= 8;
+#if defined( USE_INTRINSICS )
 
-ALIGNTYPE16 struct frustumCorners_t
+// Load XYZ0
+ID_FORCE_INLINE __m128 _mm_loadu_v30( const idVec3 & in )
 {
-	float	x[NUM_FRUSTUM_CORNERS];
-	float	y[NUM_FRUSTUM_CORNERS];
-	float	z[NUM_FRUSTUM_CORNERS];
+	__m128 vec = _mm_castsi128_ps( _mm_loadl_epi64( ( const __m128i* )in.ToFloatPtr() ) );
+	return _mm_movelh_ps( vec, _mm_load_ss( &in.z ) ); // (0ZYX)
+};
+// Load XYZ1
+ID_FORCE_INLINE __m128 _mm_loadu_v31( const idVec3 & in )
+{
+	static const __m128 vector_float_last_one = { 0.0f, 0.0f, 0.0f, 1.0f };
+	return _mm_or_ps( _mm_loadu_v30( in ), vector_float_last_one );  // (1ZYX)
+};
+ID_FORCE_INLINE __m128 _mm_mul_mat_vec( __m128 m0, __m128 m1, __m128 m2, __m128 m3, __m128 vec )
+{
+	__m128 t0 = _mm_mul_ps( m0, vec );
+	__m128 t1 = _mm_mul_ps( m1, vec );
+	__m128 t2 = _mm_mul_ps( m2, vec );
+	__m128 t3 = _mm_mul_ps( m3, vec );
+
+	return _mm_hadd_ps( _mm_hadd_ps( t0, t1 ), _mm_hadd_ps( t2, t3 ) );
+};
+ID_FORCE_INLINE __m128 _mm_mul_mat_vec( const float mat[ 16 ], __m128 vec )
+{
+	__m128 m0 = _mm_load_ps( mat + 0 * 4 );
+	__m128 m1 = _mm_load_ps( mat + 1 * 4 );
+	__m128 m2 = _mm_load_ps( mat + 2 * 4 );
+	__m128 m3 = _mm_load_ps( mat + 3 * 4 );
+
+	return _mm_mul_mat_vec( m0, m1, m2, m3, vec );
 };
 
-enum frustumCull_t
-{
-	FRUSTUM_CULL_FRONT		= 1,
-	FRUSTUM_CULL_BACK		= 2,
-	FRUSTUM_CULL_CROSS		= 3
-};
+#endif
 
 /*
 ================================================================================================
@@ -56,40 +75,53 @@ enum frustumCull_t
 
 ================================================================================================
 */
-class idRenderMatrix
-{
+class idRenderMatrix {
 public:
+	static const int NUM_FRUSTUM_CORNERS = 8;
+
+	ALIGNTYPE16 struct frustumCorners_t {
+		float	x[ NUM_FRUSTUM_CORNERS ];
+		float	y[ NUM_FRUSTUM_CORNERS ];
+		float	z[ NUM_FRUSTUM_CORNERS ];
+	};
+
+	enum frustumCull_t {
+		FRUSTUM_CULL_FRONT = 1,
+		FRUSTUM_CULL_BACK = 2,
+		FRUSTUM_CULL_CROSS = 3
+	};
+
 	idRenderMatrix() {}
 	ID_INLINE				idRenderMatrix(	float a0, float a1, float a2, float a3,
 											float b0, float b1, float b2, float b3,
 											float c0, float c1, float c2, float c3,
 											float d0, float d1, float d2, float d3 );
 
-	const float* 			operator[]( int index ) const
+	ID_INLINE const float * operator[]( int index ) const
 	{
 		assert( index >= 0 && index < 4 );
 		return &m[index * 4];
 	}
-	float* 					operator[]( int index )
+	ID_INLINE float * 		operator[]( int index )
 	{
 		assert( index >= 0 && index < 4 );
 		return &m[index * 4];
 	}
 
-	const float *			Ptr() const
+	ID_INLINE const float *	Ptr() const
 	{
 		return m;
 	}
 
 	ID_INLINE void			Zero()
 	{
-	#if !defined(USE_INTRINSICS)
-		memset( m, 0, sizeof( m ) );
+	#if defined( USE_INTRINSICS )
+		_mm_store_ps( m + 0 * 4, _mm_setzero_ps() );
+		_mm_store_ps( m + 1 * 4, _mm_setzero_ps() );
+		_mm_store_ps( m + 2 * 4, _mm_setzero_ps() );
+		_mm_store_ps( m + 3 * 4, _mm_setzero_ps() );
 	#else
-		_mm_store_ps( operator[]( 0 ), _mm_setzero_ps() );
-		_mm_store_ps( operator[]( 1 ), _mm_setzero_ps() );
-		_mm_store_ps( operator[]( 2 ), _mm_setzero_ps() );
-		_mm_store_ps( operator[]( 3 ), _mm_setzero_ps() );
+		memset( m, 0, sizeof( m ) );
 	#endif
 	}
 	ID_INLINE void			Identity();
@@ -97,10 +129,10 @@ public:
 	ID_INLINE void			Copy( const idRenderMatrix & src )
 	{
 	#if defined( USE_INTRINSICS )
-		const __m128 r0 = _mm_load_ps( src.m + 0 * 4 );
-		const __m128 r1 = _mm_load_ps( src.m + 1 * 4 );
-		const __m128 r2 = _mm_load_ps( src.m + 2 * 4 );
-		const __m128 r3 = _mm_load_ps( src.m + 3 * 4 );
+		__m128 r0 = _mm_load_ps( src.m + 0 * 4 );
+		__m128 r1 = _mm_load_ps( src.m + 1 * 4 );
+		__m128 r2 = _mm_load_ps( src.m + 2 * 4 );
+		__m128 r3 = _mm_load_ps( src.m + 3 * 4 );
 	  #if 1
 		_mm_store_ps( m + 0 * 4, r0 );
 		_mm_store_ps( m + 1 * 4, r1 );
@@ -179,8 +211,13 @@ public:
 	static void				CopyMatrix( const idRenderMatrix& matrix, idVec4& row0, idVec4& row1, idVec4& row2, idVec4& row3 );
 	static void				Multiply( const idRenderMatrix& a, const idRenderMatrix& b, idVec4& row0, idVec4& row1, idVec4& row2, idVec4& row3 );
 	static void				SetMVP( const idRenderMatrix& mvp, idVec4& row0, idVec4& row1, idVec4& row2, idVec4& row3, bool& negativeDeterminant );
+	static void	/*SEA*/		SetMVP( const idRenderMatrix& mvp, idVec4& row0, idVec4& row1, idVec4& row2, idVec4& row3 );
 	static void				SetMVPForBounds( const idRenderMatrix& mvp, const idBounds& bounds, idVec4& row0, idVec4& row1, idVec4& row2, idVec4& row3, bool& negativeDeterminant );
 	static void				SetMVPForInverseProject( const idRenderMatrix& mvp, const idRenderMatrix& inverseProject, idVec4& row0, idVec4& row1, idVec4& row2, idVec4& row3, bool& negativeDeterminant );
+	static void	/*SEA*/		SetMVPForInverseProject( const idRenderMatrix& mvp, const idRenderMatrix& inverseProject, idVec4& row0, idVec4& row1, idVec4& row2, idVec4& row3 );
+
+
+
 
 	// Cull to a Model-View-Projection (MVP) matrix.
 	static bool				CullPointToMVP( const idRenderMatrix& mvp, const idVec3& point, bool zeroToOne = false );
@@ -208,13 +245,12 @@ public:
 private:
 	ALIGN16( float			m[16] );
 };
+///const int idRenderMatrixSize = sizeof( idRenderMatrix );
 
 extern const idRenderMatrix renderMatrix_identity;
 extern const idRenderMatrix renderMatrix_flipToOpenGL;
 extern const idRenderMatrix renderMatrix_windowSpaceToClipSpace;
-// RB begin
 extern const idRenderMatrix renderMatrix_clipSpaceToWindowSpace;
-// RB end
 
 /*
 ========================
@@ -389,11 +425,21 @@ idRenderMatrix::TransformPoint
 ID_INLINE void idRenderMatrix::TransformPoint( const idVec3& in, idVec4& out ) const
 {
 	assert( in.ToFloatPtr() != out.ToFloatPtr() );
+
+#if defined( USE_INTRINSICS ) //SSE3
+	assert_16_byte_aligned( out.ToFloatPtr() );
+
+	__m128 vec = _mm_loadu_v31( in );
+	 vec = _mm_mul_mat_vec( Ptr(), vec );
+	_mm_store_ps( out.ToFloatPtr(), vec );
+
+#else
 	const idRenderMatrix& matrix = *this;
 	out[0] = in[0] * matrix[0][0] + in[1] * matrix[0][1] + in[2] * matrix[0][2] + matrix[0][3];
 	out[1] = in[0] * matrix[1][0] + in[1] * matrix[1][1] + in[2] * matrix[1][2] + matrix[1][3];
 	out[2] = in[0] * matrix[2][0] + in[1] * matrix[2][1] + in[2] * matrix[2][2] + matrix[2][3];
 	out[3] = in[0] * matrix[3][0] + in[1] * matrix[3][1] + in[2] * matrix[3][2] + matrix[3][3];
+#endif
 }
 
 /*
@@ -404,11 +450,22 @@ idRenderMatrix::TransformPoint
 ID_INLINE void idRenderMatrix::TransformPoint( const idVec4& in, idVec4& out ) const
 {
 	assert( in.ToFloatPtr() != out.ToFloatPtr() );
+
+#if defined( USE_INTRINSICS ) //SSE3
+	assert_16_byte_aligned( in.ToFloatPtr() );
+	assert_16_byte_aligned( out.ToFloatPtr() );
+
+	__m128 vec = _mm_load_ps( in.ToFloatPtr() );
+	 vec = _mm_mul_mat_vec( Ptr(), vec );
+	_mm_store_ps( out.ToFloatPtr(), vec );
+
+#else
 	const idRenderMatrix& matrix = *this;
 	out[0] = in[0] * matrix[0][0] + in[1] * matrix[0][1] + in[2] * matrix[0][2] + in[3] * matrix[0][3];
 	out[1] = in[0] * matrix[1][0] + in[1] * matrix[1][1] + in[2] * matrix[1][2] + in[3] * matrix[1][3];
 	out[2] = in[0] * matrix[2][0] + in[1] * matrix[2][1] + in[2] * matrix[2][2] + in[3] * matrix[2][3];
 	out[3] = in[0] * matrix[3][0] + in[1] * matrix[3][1] + in[2] * matrix[3][2] + in[3] * matrix[3][3];
+#endif
 }
 
 /*
@@ -541,6 +598,20 @@ idRenderMatrix::TransformModelToClip
 */
 ID_INLINE void idRenderMatrix::TransformModelToClip( const idVec3& src, const idRenderMatrix& modelMatrix, const idRenderMatrix& projectionMatrix, idVec4& eye, idVec4& clip )
 {
+#if defined( USE_INTRINSICS ) //SSE3
+	assert_16_byte_aligned( eye.ToFloatPtr() );
+	assert_16_byte_aligned( clip.ToFloatPtr() );
+
+	__m128 vec;
+
+	vec = _mm_loadu_v31( src );
+	vec = _mm_mul_mat_vec( modelMatrix.Ptr(), vec );
+	_mm_store_ps( eye.ToFloatPtr(), vec );
+
+	vec = _mm_mul_mat_vec( projectionMatrix.Ptr(), vec );
+	_mm_store_ps( clip.ToFloatPtr(), vec );
+
+#else
 	for( int i = 0; i < 4; i++ )
 	{
 		eye[i] =	modelMatrix[i][0] * src[0] +
@@ -555,6 +626,7 @@ ID_INLINE void idRenderMatrix::TransformModelToClip( const idVec3& src, const id
 					projectionMatrix[i][2] * eye[2] +
 					projectionMatrix[i][3] * eye[3];
 	}
+#endif
 }
 
 /*

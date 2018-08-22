@@ -57,6 +57,9 @@ If you have questions concerning this license or the applicable additional terms
 #define	ANGLE2BYTE(x)			( idMath::Ftoi( (x) * 256.0f / 360.0f ) & 255 )
 #define	BYTE2ANGLE(x)			( (x) * ( 360.0f / 256.0f ) )
 
+#define UNITS2METERS(x)			( (x) * 0.0254f )
+#define METERS2UNITS(x)			( (x) * ( 1.0f / 0.0254f ) )
+
 #define C_FLOAT_TO_INT( x )		(int)(x)
 
 /*
@@ -440,6 +443,13 @@ public:
 	template<typename T> static ID_INLINE T	Square( T x ) { return x * x; }
 	template<typename T> static ID_INLINE T	Cube( T x ) { return x * x * x; }
 
+	ID_INLINE static float		CentimetersToInches( const float cm ) { return( cm / 2.54f ); }
+	// one world unit == one inch
+	ID_INLINE static float		CentimetersToWorldUnits( const float cm ) { return CentimetersToInches( cm ); }
+
+	ID_INLINE static int		FRAME2MS( int f, int frameRate ) { return( ( f * 1000 ) / frameRate ); }
+	ID_INLINE static int		MS2FRAME( int t, int frameRate ) { return( t * frameRate / 1000 ); }
+
 	static const float			PI;							// pi
 	static const float			TWO_PI;						// pi * 2
 	static const float			HALF_PI;					// pi / 2
@@ -460,17 +470,17 @@ public:
 	static const float			FLT_SMALLEST_NON_DENORMAL;	// smallest non-denormal 32-bit floating point value
 
 #if defined( USE_INTRINSICS )
-	static const __m128				SIMD_SP_one;
-	static const __m128				SIMD_SP_zero;
-	static const __m128				SIMD_SP_255;
-	static const __m128				SIMD_SP_min_char;
-	static const __m128				SIMD_SP_max_char;
-	static const __m128				SIMD_SP_min_short;
-	static const __m128				SIMD_SP_max_short;
-	static const __m128				SIMD_SP_smallestNonDenorm;
-	static const __m128				SIMD_SP_tiny;
-	static const __m128				SIMD_SP_rsqrt_c0;
-	static const __m128				SIMD_SP_rsqrt_c1;
+	static const __m128			SIMD_SP_one;
+	static const __m128			SIMD_SP_zero;
+	static const __m128			SIMD_SP_255;
+	static const __m128			SIMD_SP_min_char;
+	static const __m128			SIMD_SP_max_char;
+	static const __m128			SIMD_SP_min_short;
+	static const __m128			SIMD_SP_max_short;
+	static const __m128			SIMD_SP_smallestNonDenorm;
+	static const __m128			SIMD_SP_tiny;
+	static const __m128			SIMD_SP_rsqrt_c0;
+	static const __m128			SIMD_SP_rsqrt_c1;
 #endif
 
 private:
@@ -678,8 +688,7 @@ idMath::SinCos
 ID_INLINE void idMath::SinCos( float a, float& s, float& c )
 {
 #if defined(_MSC_VER) && defined(_M_IX86)
-	_asm
-	{
+	_asm {
 		fld		a
 		fsincos
 		mov		ecx, c

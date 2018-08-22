@@ -136,6 +136,18 @@ enum stereoDepthType_t
 	STEREO_DEPTH_TYPE_FAR
 };
 
+// In a head mounted display with separate displays for each eye,
+// screen separation will be zero and world separation will be the eye distance.
+struct stereoDistances_t {
+	// Offset to projection matrix, positive one eye, negative the other.
+	// Total distance is twice this, so 0.05 would give a 10% of screen width
+	// separation for objects at infinity.
+	float	screenSeparation;
+
+	// Game world units from one eye to the centerline.
+	// Total distance is twice this.
+	float	worldSeparation;
+};
 
 enum graphicsVendor_t
 {
@@ -248,10 +260,6 @@ struct glconfig_t
 	int					max_texture_buffer_size;
 	int					texture_buffer_offset_alignment;
 
-	// only true with uniform buffer support and an OpenGL driver that supports GLSL >= 1.50
-	bool				gpuSkinningAvailable;
-	// RB end
-
 	stereo3DMode_t		stereo3Dmode;
 	int					nativeScreenWidth; // this is the native screen width resolution of the renderer
 	int					nativeScreenHeight; // this is the native screen height resolution of the renderer
@@ -336,6 +344,11 @@ public:
 	virtual stereo3DMode_t	GetStereoScopicRenderingMode() const = 0;
 	virtual void			EnableStereoScopicRendering( const stereo3DMode_t mode ) const = 0;
 	virtual bool			HasQuadBufferSupport() const = 0;
+	virtual stereoDistances_t CaclulateStereoDistances(
+								const float	interOcularCentimeters,		// distance between two eyes, typically 6.0 - 7.0
+								const float screenWidthCentimeters,		// read from operating system
+								const float convergenceWorldUnits,		// pass 0 for head mounted display mode
+								const float	fov_x_degrees ) const = 0; 	// edge to edge horizontal field of view, typically 60 - 90
 
 	// the number of displays can be found by itterating this until it returns false
 	// displayNum is the 0 based value passed to EnumDisplayDevices(), you must add

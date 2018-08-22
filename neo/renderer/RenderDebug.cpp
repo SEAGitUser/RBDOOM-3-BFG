@@ -10,19 +10,19 @@
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 
 struct debugLine_t {
-	idColor		rgb;
 	idVec3		start;
 	idVec3		end;
 	uint32		lifeTime;
+	uint32		color;
 	bool		depthTest;
 };
 
 struct debugBounds_t {
-	idColor		rgb;
 	idBounds	bounds;
 	idVec3		origin;
 	idMat3		axis;
 	uint32		lifeTime;
+	uint32		color;
 	bool		depthTest;
 };
 
@@ -30,20 +30,20 @@ struct debugText_t {
 	idStr		text;
 	idVec3		origin;
 	float		scale;
-	idColor		color;
 	idMat3		viewAxis;
 	int			align;
 	float		lineWidth;
 	uint32		lifeTime;
+	uint32		color;
 	bool		orientToRenderViewAxis;
 	bool		depthTest;
 };
 
 struct debugPolygon_t
 {
-	idColor		rgb;
 	idWinding	winding;
 	uint32		lifeTime;
+	uint32		color;
 	bool		depthTest;
 };
 
@@ -69,17 +69,19 @@ public:
 };
 
 
-class idRenderDebugLocal : public idRenderDebug 
+class idRenderDebugLocal : public idRenderDebug
 {
-	idList<debugLine_t, TAG_RENDER_DEBUG>		debugLines;
-	idList<debugBounds_t, TAG_RENDER_DEBUG>		debugBounds;
-	idList<debugText_t, TAG_RENDER_DEBUG>		debugText;
-	idList<debugPolygon_t, TAG_RENDER_DEBUG>	debugPolygons;
-
+	idList<debugLine_t, TAG_RENDER_DEBUG> debugLines;
 	uint32 debugLineTime;
-	uint32 debugPolygonTime;
-	uint32 debugTextTime;
+
+	idList<debugBounds_t, TAG_RENDER_DEBUG>	debugBounds;
 	uint32 debugBoundsTime;
+
+	idList<debugText_t, TAG_RENDER_DEBUG> debugText;
+	uint32 debugTextTime;
+
+	idList<debugPolygon_t, TAG_RENDER_DEBUG> debugPolygons;
+	uint32 debugPolygonTime;
 
 	void AddDebugBounds( const idColor & color, const idBounds & bounds, const idVec3& origin, const idMat3& axis, const uint32 lifetime, const bool depthTest );
 
@@ -229,12 +231,12 @@ void idRenderDebugLocal::AddDebugBounds( const idColor& color, const idBounds & 
 {
 	auto const dBounds = &debugBounds.Alloc();
 
-	dBounds->rgb = color;
 	dBounds->bounds = bounds;
 	dBounds->origin = origin;
 	dBounds->axis = axis;
 	dBounds->lifeTime = debugBoundsTime + lifetime;
 	dBounds->depthTest = depthTest;
+	dBounds->color = idColor::PackColor( color.ToVec4() );
 }
 
 /*
@@ -244,13 +246,13 @@ void idRenderDebugLocal::AddDebugBounds( const idColor& color, const idBounds & 
 */
 void idRenderDebugLocal::DebugLine( const idColor & color, const idVec3 & start, const idVec3 & end, uint32 lifetime, bool depthTest )
 {
-	auto const dLine = &debugLines.Alloc();
+	auto dLine = &debugLines.Alloc();
 
-	dLine->rgb = color;
 	dLine->start = start;
 	dLine->end = end;
 	dLine->depthTest = depthTest;
 	dLine->lifeTime = debugLineTime + lifetime;
+	dLine->color = idColor::PackColor( color.ToVec4() );
 }
 
 /*
@@ -336,6 +338,7 @@ void idRenderDebugLocal::DebugWinding( const idColor& color, const idWinding& wi
 void idRenderDebugLocal::DebugCircle( const idColor& color, const idVec3& origin, const idVec3& dir, float radius, int numSteps, uint32 lifetime, bool depthTest )
 {
 	idVec3 left, up, point, lastPoint;
+	float s, c;
 
 	dir.OrthogonalBasis( left, up );
 	left *= radius;
@@ -343,7 +346,6 @@ void idRenderDebugLocal::DebugCircle( const idColor& color, const idVec3& origin
 	lastPoint = origin + up;
 	for( int i = 1; i <= numSteps; ++i )
 	{
-		float s, c;
 		idMath::SinCos16( idMath::TWO_PI * i / numSteps, s, c );
 		point = origin + s * left + c * up;
 		DebugLine( color, lastPoint, point, lifetime, depthTest );
@@ -358,14 +360,14 @@ void idRenderDebugLocal::DebugCircle( const idColor& color, const idVec3& origin
 */
 void idRenderDebugLocal::DebugSphere( const idColor& color, const idSphere& sphere, uint32 lifetime, bool depthTest )
 {
-	int i, j, n, num;
-	float s, c;
-	idVec3 p, lastp, *lastArray;
+	int i, j, n;
+	float s, c, ss, cc;
+	idVec3 p, lastp;
 
-	num = 360 / 15;
-	lastArray = ( idVec3* )_alloca16( num * sizeof( idVec3 ) );
+	const int num = 360 / 15;
+	auto lastArray = ( idVec3* )_alloca16( num * sizeof( idVec3 ) );
 	lastArray[ 0 ] = sphere.GetOrigin() + idVec3( 0, 0, sphere.GetRadius() );
-	for( n = 1; n < num; ++n )
+	for( n = 1; n < num; n++ )
 	{
 		lastArray[ n ] = lastArray[ 0 ];
 	}
@@ -373,14 +375,14 @@ void idRenderDebugLocal::DebugSphere( const idColor& color, const idSphere& sphe
 	for( i = 15; i <= 360; i += 15 )
 	{
 		idMath::SinCos16( DEG2RAD( i ), s, c );
-
 		lastp[ 0 ] = sphere.GetOrigin()[ 0 ];
 		lastp[ 1 ] = sphere.GetOrigin()[ 1 ] + sphere.GetRadius() * s;
 		lastp[ 2 ] = sphere.GetOrigin()[ 2 ] + sphere.GetRadius() * c;
-		for( n = 0, j = 15; j <= 360; j += 15, ++n )
+		for( n = 0, j = 15; j <= 360; j += 15, n++ )
 		{
-			p[ 0 ] = sphere.GetOrigin()[ 0 ] + idMath::Sin16( DEG2RAD( j ) ) * sphere.GetRadius() * s;
-			p[ 1 ] = sphere.GetOrigin()[ 1 ] + idMath::Cos16( DEG2RAD( j ) ) * sphere.GetRadius() * s;
+			idMath::SinCos16( DEG2RAD( j ), ss, cc );
+			p[ 0 ] = sphere.GetOrigin()[ 0 ] + ss * sphere.GetRadius() * s;
+			p[ 1 ] = sphere.GetOrigin()[ 1 ] + cc * sphere.GetRadius() * s;
 			p[ 2 ] = lastp[ 2 ];
 
 			DebugLine( color, lastp, p, lifetime, depthTest );
@@ -518,9 +520,9 @@ void idRenderDebugLocal::DebugAxis( const idVec3& origin, const idMat3& axis, ui
 */
 void idRenderDebugLocal::DebugPolygon( const idColor& color, const idWinding& winding, uint32 lifeTime, bool depthTest )
 {
-	auto const dPoly = &debugPolygons.Alloc();
+	auto dPoly = &debugPolygons.Alloc();
 
-	dPoly->rgb = color;
+	dPoly->color = idColor::PackColor( color.ToVec4() );
 	dPoly->winding = winding;
 	dPoly->depthTest = depthTest;
 	dPoly->lifeTime = debugPolygonTime + lifeTime;
@@ -533,16 +535,16 @@ DebugClear
 */
 void idRenderDebugLocal::DebugText( const char *text, const idVec3 & origin, float scale, const idColor & color, const idMat3 & viewAxis, int align, uint32 lifetime, bool depthTest, bool bold )
 {
-	auto const dText = &debugText.Alloc();
+	auto dText = &debugText.Alloc();
 
 	dText->text = text;
 	dText->origin = origin;
 	dText->scale = scale;
-	dText->color = color;
 	dText->viewAxis = viewAxis;
 	dText->align = align;
 	dText->lineWidth;
 	dText->lifeTime = debugTextTime + lifetime;
+	dText->color = idColor::PackColor( color.ToVec4() );
 	dText->orientToRenderViewAxis;
 	dText->depthTest = depthTest;
 }
@@ -582,18 +584,17 @@ void idRenderDebugLocal::DebugScreenRect( const idColor & color, const idScreenR
 	idBounds bounds;
 	idVec3 p[ 4 ];
 
-	float centerx = ( viewDef->GetViewport().x2 - viewDef->GetViewport().x1 ) * 0.5f;
-	float centery = ( viewDef->GetViewport().y2 - viewDef->GetViewport().y1 ) * 0.5f;
+	idVec2 center = viewDef->GetViewport().GetCenter();
 
-	float dScale = r_znear.GetFloat() + 1.0f;
+	float dScale = viewDef->GetZNear() + 1.0f; // r_znear.GetFloat() + 1.0f
 	float hScale = dScale * idMath::Tan16( DEG2RAD( viewDef->GetFOVx() * 0.5f ) );
 	float vScale = dScale * idMath::Tan16( DEG2RAD( viewDef->GetFOVy() * 0.5f ) );
 
 	bounds[ 0 ][ 0 ] = bounds[ 1 ][ 0 ] = dScale;
-	bounds[ 0 ][ 1 ] = -( rect.x1 - centerx ) / centerx * hScale;
-	bounds[ 1 ][ 1 ] = -( rect.x2 - centerx ) / centerx * hScale;
-	bounds[ 0 ][ 2 ] =  ( rect.y1 - centery ) / centery * vScale;
-	bounds[ 1 ][ 2 ] =  ( rect.y2 - centery ) / centery * vScale;
+	bounds[ 0 ][ 1 ] = -( rect.x1 - center.x ) / center.x * hScale;
+	bounds[ 1 ][ 1 ] = -( rect.x2 - center.x ) / center.x * hScale;
+	bounds[ 0 ][ 2 ] =  ( rect.y1 - center.y ) / center.y * vScale;
+	bounds[ 1 ][ 2 ] =  ( rect.y2 - center.y ) / center.y * vScale;
 
 	for( int i = 0; i < 4; i++ )
 	{
@@ -605,6 +606,6 @@ void idRenderDebugLocal::DebugScreenRect( const idColor & color, const idScreenR
 	}
 	for( int i = 0; i < 4; i++ )
 	{
-		DebugLine( color, p[ i ], p[ ( i + 1 ) & 3 ], lifetime, depthTest );
+		DebugLine( color, p[ i ], p[ ( i + 1 ) & 3 ], lifetime, false );
 	}
 }

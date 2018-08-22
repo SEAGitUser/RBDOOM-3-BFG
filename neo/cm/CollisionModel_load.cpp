@@ -3844,7 +3844,7 @@ cm_model_t* idCollisionModelManagerLocal::LoadRenderModel( const char* fileName 
 	for( i = 0; i < renderModel->NumSurfaces(); i++ )
 	{
 		surf = renderModel->Surface( i );
-		if( surf->shader->GetSurfaceFlags() & SURF_COLLISION )
+		if( surf->GetMaterial()->GetSurfaceFlags() & SURF_COLLISION )
 		{
 			collisionSurface = true;
 		}
@@ -3854,12 +3854,12 @@ cm_model_t* idCollisionModelManagerLocal::LoadRenderModel( const char* fileName 
 	{
 		surf = renderModel->Surface( i );
 		// if this surface has no contents
-		if( !( surf->shader->GetContentFlags() & CONTENTS_REMOVE_UTIL ) )
+		if( !( surf->GetMaterial()->GetContentFlags() & CONTENTS_REMOVE_UTIL ) )
 		{
 			continue;
 		}
 		// if the model has a collision surface and this surface is not a collision surface
-		if( collisionSurface && !( surf->shader->GetSurfaceFlags() & SURF_COLLISION ) )
+		if( collisionSurface && !( surf->GetMaterial()->GetSurfaceFlags() & SURF_COLLISION ) )
 		{
 			continue;
 		}
@@ -3883,12 +3883,12 @@ cm_model_t* idCollisionModelManagerLocal::LoadRenderModel( const char* fileName 
 	{
 		surf = renderModel->Surface( i );
 		// if this surface has no contents
-		if( !( surf->shader->GetContentFlags() & CONTENTS_REMOVE_UTIL ) )
+		if( !( surf->GetMaterial()->GetContentFlags() & CONTENTS_REMOVE_UTIL ) )
 		{
 			continue;
 		}
 		// if the model has a collision surface and this surface is not a collision surface
-		if( collisionSurface && !( surf->shader->GetSurfaceFlags() & SURF_COLLISION ) )
+		if( collisionSurface && !( surf->GetMaterial()->GetSurfaceFlags() & SURF_COLLISION ) )
 		{
 			continue;
 		}
@@ -3901,7 +3901,7 @@ cm_model_t* idCollisionModelManagerLocal::LoadRenderModel( const char* fileName 
 			w += surf->geometry->verts[ surf->geometry->indexes[ j + 0 ] ].GetPosition();
 			w.GetPlane( plane );
 			plane = -plane;
-			PolygonFromWinding( model, &w, plane, surf->shader, 1 );
+			PolygonFromWinding( model, &w, plane, surf->GetMaterial(), 1 );
 		}
 	}
 

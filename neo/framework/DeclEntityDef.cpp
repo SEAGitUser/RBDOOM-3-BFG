@@ -57,18 +57,18 @@ idDeclEntityDef::Parse
 */
 bool idDeclEntityDef::Parse( const char* text, const int textLength, bool allowBinaryVersion )
 {
-	idToken	token, token2;	
+	idToken	token, token2;
 	idLexer src( text, textLength, GetFileName(), DECL_LEXER_FLAGS, GetLineNum() );
-	
+
 	src.SkipUntilString( "{" );
-	
+
 	while( 1 )
 	{
 		if( !src.ReadToken( &token ) )
 		{
 			break;
 		}
-		
+
 		if( !token.Icmp( "}" ) )
 		{
 			break;
@@ -79,41 +79,40 @@ bool idDeclEntityDef::Parse( const char* text, const int textLength, bool allowB
 			MakeDefault();
 			return false;
 		}
-		
+
 		if( !src.ReadToken( &token2 ) )
 		{
 			src.Warning( "Unexpected end of file" );
 			MakeDefault();
 			return false;
 		}
-		
+
 		if( dict.FindKey( token ) )
 		{
 			src.Warning( "'%s' already defined", token.c_str() );
 		}
 		dict.Set( token, token2 );
 	}
-	
+
 	// we always automatically set a "classname" key to our name
 	dict.Set( "classname", GetName() );
-	
+
 	// "inherit" keys will cause all values from another entityDef to be copied into this one
 	// if they don't conflict.  We can't have circular recursions, because each entityDef will
 	// never be parsed mroe than once
-	
+
 	// find all of the dicts first, because copying inherited values will modify the dict
 	idList<const idDeclEntityDef*> defList;
-	
+
 	while( 1 )
 	{
-		const idKeyValue* kv;
-		kv = dict.MatchPrefix( "inherit", NULL );
+		auto kv = dict.MatchPrefix( "inherit", NULL );
 		if( !kv )
 		{
 			break;
 		}
-		
-		const idDeclEntityDef* copy = static_cast<const idDeclEntityDef*>( declManager->FindType( DECL_ENTITYDEF, kv->GetValue(), false ) );
+
+		auto copy = declManager->FindType( DECL_ENTITYDEF, kv->GetValue(), false )->Cast<idDeclEntityDef>();
 		if( !copy )
 		{
 			src.Warning( "Unknown entityDef '%s' inherited by '%s'", kv->GetValue().c_str(), GetName() );
@@ -122,24 +121,24 @@ bool idDeclEntityDef::Parse( const char* text, const int textLength, bool allowB
 		{
 			defList.Append( copy );
 		}
-		
+
 		// delete this key/value pair
 		dict.Delete( kv->GetKey() );
 	}
-	
+
 	// now copy over the inherited key / value pairs
 	for( int i = 0 ; i < defList.Num() ; i++ )
 	{
 		dict.SetDefaults( &defList[ i ]->dict );
 	}
-	
+
 	// precache all referenced media
 	// do this as long as we arent in modview
 	if( !( com_editors & ( EDITOR_AAS ) ) )
 	{
 		game->CacheDictionaryMedia( &dict );
 	}
-	
+
 	return true;
 }
 

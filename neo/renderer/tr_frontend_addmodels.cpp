@@ -101,7 +101,39 @@ void R_SetupDrawSurfShader( drawSurf_t * drawSurf, const idMaterial * material, 
 
 		// process the shader expressions for conditionals / color / texcoords
 		material->EvaluateRegisters( regs, gameParms, viewDef->GetGlobalMaterialParms(),
-			viewDef->GetGameTimeSec( renderEntityParms->timeGroup ), renderEntityParms->referenceSound );
+									 viewDef->GetGameTimeSec( renderEntityParms->timeGroup ),
+									 renderEntityParms->referenceSound );
+	}
+}
+
+//SEA: D3
+/*
+==================
+R_CreateAmbientCache
+Create it if needed
+==================
+*/
+void R_CreateAmbientCache( idTriangles *tri, const idMaterial* material, bool bDeriveTangents )
+{
+	// make sure we have an ambient cache and all necessary normals / tangents
+	if( !vertexCache.CacheIsCurrent( tri->indexCache ) )
+	{
+		tri->indexCache = vertexCache.AllocIndex( tri->indexes, ALIGN( tri->numIndexes * sizeof( triIndex_t ), INDEX_CACHE_ALIGN ) );
+	}
+
+	if( !vertexCache.CacheIsCurrent( tri->vertexCache ) )
+	{
+		// we are going to use it for drawing, so make sure we have the tangents and normals
+		if( bDeriveTangents && !tri->tangentsCalculated )
+		{
+			assert( tri->staticModelWithJoints == NULL );
+			tri->DeriveTangents();
+
+			// RB: this was hit by parametric particle models ..
+			//assert( false );	// this should no longer be hit
+			// RB end
+		}
+		tri->vertexCache = vertexCache.AllocVertex( tri->verts, ALIGN( tri->numVerts * sizeof( idDrawVert ), VERTEX_CACHE_ALIGN ) );
 	}
 }
 
@@ -112,21 +144,18 @@ void R_SetupDrawSurfShader( drawSurf_t * drawSurf, const idMaterial * material, 
 */
 void R_SetupDrawSurfJoints( drawSurf_t* drawSurf, const idTriangles* tri, const idMaterial* shader )
 {
-	// RB: added check wether GPU skinning is available at all
-	if( tri->staticModelWithJoints == NULL || !r_useGPUSkinning.GetBool() || !glConfig.gpuSkinningAvailable )
+	if( tri->staticModelWithJoints == NULL )
 	{
 		drawSurf->jointCache = 0;
 		return;
 	}
-	// RB end
 
 	idRenderModelStatic* model = tri->staticModelWithJoints;
 	assert( model->jointsInverted != NULL );
 
 	if( !vertexCache.CacheIsCurrent( model->jointsInvertedBuffer ) )
 	{
-		model->jointsInvertedBuffer = vertexCache.AllocJoint(
-			model->jointsInverted, ALIGN( model->numInvertedJoints * sizeof( idJointMat ), glConfig.uniformBufferOffsetAlignment ) );
+		model->jointsInvertedBuffer = vertexCache.AllocJoint( model->jointsInverted, ALIGN( model->numInvertedJoints * sizeof( idJointMat ), glConfig.uniformBufferOffsetAlignment ) );
 	}
 	drawSurf->jointCache = model->jointsInvertedBuffer;
 }
@@ -279,7 +308,7 @@ void R_AddSingleModel( viewModel_t * vEntity )
 	// create a dynamic model if the geometry isn't static
 	//---------------------------
 	auto const model = entityDef->EmitDynamicModel();
-	if( model == NULL || model->NumSurfaces() <= 0 )
+	if( !model || !model->NumSurfaces() )
 	{
 		return;
 	}
@@ -419,7 +448,7 @@ void R_AddSingleModel( viewModel_t * vEntity )
 		{
 			// this is sort of a hack, but causes deformed surfaces to map to empty surfaces,
 			// so the item highlight overlay doesn't highlight the autosprite surface
-			if( material->Deform() )
+			if( material->GetDeformType() )
 			{
 				continue;
 			}
@@ -483,9 +512,7 @@ void R_AddSingleModel( viewModel_t * vEntity )
 		// individual surfaces.
 		const bool surfaceDirectlyVisible = modelIsVisible && !idRenderMatrix::CullBoundsToMVP( vEntity->mvp, tri->GetBounds() );
 
-		// RB: added check wether GPU skinning is available at all
-		const bool gpuSkinned = ( tri->staticModelWithJoints != NULL && r_useGPUSkinning.GetBool() && glConfig.gpuSkinningAvailable );
-		// RB end
+		const bool gpuSkinned = ( tri->staticModelWithJoints != NULL );
 
 		//--------------------------
 		// base drawing surface
@@ -531,7 +558,7 @@ void R_AddSingleModel( viewModel_t * vEntity )
 				shaderRegisters = baseDrawSurf->shaderRegisters;
 
 				// Check for deformations (eyeballs, flares, etc)
-				const deform_t shaderDeform = material->Deform();
+				const auto shaderDeform = material->GetDeformType();
 				if( shaderDeform != DFRM_NONE )
 				{
 					drawSurf_t* deformDrawSurf = R_DeformDrawSurf( baseDrawSurf );
@@ -813,7 +840,8 @@ void R_AddSingleModel( viewModel_t * vEntity )
 			}
 
 			// No shadow if it's suppressed for this light.
-			if( entityDef->GetParms().suppressShadowInLightID && entityDef->GetParms().suppressShadowInLightID == lightDef->GetID() )
+			if( entityDef->GetParms().suppressShadowInLightID &&
+				entityDef->GetParms().suppressShadowInLightID == lightDef->GetID() )
 			{
 				continue;
 			}

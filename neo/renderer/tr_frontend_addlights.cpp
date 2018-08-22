@@ -40,6 +40,95 @@ extern idCVar r_useShadowPreciseInsideTest;
 idCVar r_useAreasConnectedForShadowCulling( "r_useAreasConnectedForShadowCulling", "2", CVAR_RENDERER | CVAR_INTEGER, "cull entities cut off by doors" );
 idCVar r_useParallelAddLights( "r_useParallelAddLights", "1", CVAR_RENDERER | CVAR_BOOL, "aadd all lights in parallel with jobs" );
 
+//SEA: D3
+#if 1
+idCVar r_lightSourceRadius( "r_lightSourceRadius", "0", CVAR_RENDERER | CVAR_FLOAT, "for soft-shadow sampling" );
+/*
+====================
+R_TestPointInViewLight
+====================
+*/
+static const float INSIDE_LIGHT_FRUSTUM_SLOP = 32;
+// this needs to be greater than the dist from origin to corner of near clip plane
+static bool R_TestPointInViewLight( const idVec3 &org, const idRenderLightLocal *light )
+{
+	idRenderPlane frustum[ 6 ];
+	idRenderMatrix::GetFrustumPlanes( frustum, light->inverseBaseLightProject, false, false );
+	for( int i = 0; i < 6; i++ )
+	{
+		float d = frustum[ i ].Distance( org );
+		if( d > INSIDE_LIGHT_FRUSTUM_SLOP )
+		{
+			return false;
+		}
+	}
+	return true;
+}
+/*
+===================
+R_PointInFrustum
+Assumes positive sides face outward
+===================
+*/
+static bool R_PointInFrustum( const idVec3 &p, const idPlane planes[], int numPlanes )
+{
+	for( int i = 0; i < numPlanes; i++ )
+	{
+		float d = planes[ i ].Distance( p );
+		if( d > 0 )
+		{
+			return false;
+		}
+	}
+	return true;
+}
+
+
+void Test( idRenderLightLocal *light )
+{
+	bool viewInsideLight = R_TestPointInViewLight( tr.viewDef->GetOrigin(), light );
+
+	// this should not be referenced in case =63;
+	int viewSeesPlaneBits = 63;
+
+	struct shadowFrustum_t
+	{
+		int		numPlanes;		// this is always 6 for now
+
+		// positive sides facing inward
+		// plane 5 is always the plane the projection is going to, the
+		// other planes are just clip planes
+		// all planes are in global coordinates
+		idPlane	planes[ 6 ];
+
+		// a projected light with a single frustum needs to make sil planes
+		// from triangles that clip against side planes, but a point light
+		// that has adjacent frustums doesn't need to
+		bool	makeClippedPlanes;
+	};
+
+	if( !viewInsideLight )
+	{
+		int numShadowFrustums;	// one for projected lights, usually six for point lights
+		shadowFrustum_t shadowFrustums[ 6 ];
+
+		viewSeesPlaneBits = 0;
+		for( int i = 0; i < numShadowFrustums; i++ )
+		{
+			float d = shadowFrustums[ i ].planes[ 5 ].Distance( tr.viewDef->GetOrigin() );
+			if( d < INSIDE_LIGHT_FRUSTUM_SLOP )
+			{
+				viewSeesPlaneBits |= 1 << i;
+			}
+		}
+	}
+
+	// see if the light center is in view, which will allow us to cull invisible shadows
+	bool viewSeesGlobalLightOrigin = R_PointInFrustum( light->globalLightOrigin, tr.viewDef->GetBaseFrustum().planes, 4 );
+}
+#endif
+
+
 /*
 ============================
  R_ShadowBounds
@@ -116,7 +205,7 @@ int R_CalculateShadowLod( const idRenderView * view, const viewLight_t * const v
 		lod = 1;
 	}
 
-	return lod;
+	return idMath::Max( lod, ( int )vLight->lightDef->GetParms().smMaxLod );
 }
 
 /*
@@ -157,11 +246,13 @@ static void R_AddSingleLight( viewLight_t* vLight )
 	// see if we are suppressing the light in this view
 	if( !r_skipSuppress.GetBool() )
 	{
-		if( light->GetParms().suppressLightInViewID && light->GetParms().suppressLightInViewID == viewDef->GetID() )
+		if( light->GetParms().suppressLightInViewID &&
+			light->GetParms().suppressLightInViewID == viewDef->GetID() )
 		{
 			return;
 		}
-		if( light->GetParms().allowLightInViewID && light->GetParms().allowLightInViewID != viewDef->GetID() )
+		if( light->GetParms().allowLightInViewID &&
+			light->GetParms().allowLightInViewID != viewDef->GetID() )
 		{
 			return;
 		}
@@ -214,7 +305,15 @@ static void R_AddSingleLight( viewLight_t* vLight )
 	//--------------------------------------------
 	// copy data used by backend
 	//--------------------------------------------
+
+	// if we are doing a soft-shadow novelty test, regenerate the light with
+	// a random offset every time
 	vLight->globalLightOrigin = light->globalLightOrigin;
+	if( r_lightSourceRadius.GetFloat() != 0.0f ) {
+		for( int i = 0; i < 3; i++ ) {
+			vLight->globalLightOrigin[ i ] += r_lightSourceRadius.GetFloat() * ( -1 + 2 * ( rand() & 0xfff ) / ( float ) 0xfff );
+		}
+	}
 
 	memcpy( vLight->lightProject, light->lightProject, sizeof( light->lightProject ) );
 
@@ -402,11 +501,13 @@ static void R_AddSingleLight( viewLight_t* vLight )
 			// if we are suppressing its shadow in this view (player shadows, etc), skip
 			if( !r_skipSuppress.GetBool() )
 			{
-				if( eParms.suppressShadowInViewID && eParms.suppressShadowInViewID == viewDef->GetID() )
+				if( eParms.suppressShadowInViewID &&
+					eParms.suppressShadowInViewID == viewDef->GetID() )
 				{
 					continue;
 				}
-				if( eParms.suppressShadowInLightID && eParms.suppressShadowInLightID == light->GetID() )
+				if( eParms.suppressShadowInLightID &&
+					eParms.suppressShadowInLightID == light->GetID() )
 				{
 					continue;
 				}
@@ -687,9 +788,9 @@ void R_OptimizeViewLightsList( idRenderView * const renderView )
 	{
 		viewLight_t* 	vLight;
 		int				screenArea;
-		static int sort( const void* a, const void* b )
+		static int sort( const sortLight_t & a, const sortLight_t & b )
 		{
-			return ( ( sortLight_t* )a )->screenArea - ( ( sortLight_t* )b )->screenArea;
+			return( a.screenArea - b.screenArea );
 		}
 	};
 	sortLight_t* sortLights = ( sortLight_t* )_alloca( sizeof( sortLight_t ) * numViewLights );
@@ -701,13 +802,26 @@ void R_OptimizeViewLightsList( idRenderView * const renderView )
 		++numSortLightsFilled;
 	}
 
-	qsort( sortLights, numSortLightsFilled, sizeof( sortLights[0] ), sortLight_t::sort );
+	///qsort( sortLights, numSortLightsFilled, sizeof( sortLights[0] ), sortLight_t::sort );
+	std::sort( sortLights, sortLights + numSortLightsFilled, sortLight_t::sort );
 
 	// rebuild the linked list in order
 	renderView->viewLights = NULL;
 	for( int i = 0; i < numSortLightsFilled; ++i )
 	{
-		sortLights[i].vLight->next = renderView->viewLights;
-		renderView->viewLights = sortLights[i].vLight;
+		sortLights[ i ].vLight->next = renderView->viewLights;
+		renderView->viewLights = sortLights[ i ].vLight;
 	}
 }
+
+/*
+#pragma pack(push,_CRT_PACKING)
+#pragma warning(push,3)
+#pragma warning(disable: 4244 28309 28285)
+#pragma push_macro("new")
+#undef new
+
+#pragma pop_macro("new")
+#pragma warning(pop)
+#pragma pack(pop)
+*/

@@ -203,10 +203,10 @@ EVENT( EV_Thread_DrawText,				idThread::Event_DrawText )
 EVENT( EV_Thread_InfluenceActive,		idThread::Event_InfluenceActive )
 END_CLASS
 
-idThread*			idThread::currentThread = NULL;
-int					idThread::threadIndex = 0;
+idThread *						idThread::currentThread = NULL;
+int								idThread::threadIndex = 0;
 idList<idThread*, TAG_THREAD>	idThread::threadList;
-trace_t				idThread::trace;
+trace_t							idThread::trace;
 
 /*
 ================
@@ -229,10 +229,7 @@ int idThread::CurrentThreadNum()
 	{
 		return currentThread->GetThreadNum();
 	}
-	else
-	{
-		return 0;
-	}
+	return 0;
 }
 
 /*
@@ -288,7 +285,7 @@ idThread::idThread
 idThread::idThread( idEntity* self, const function_t* func )
 {
 	assert( self );
-	
+
 	Init();
 	SetThreadName( self->name );
 	interpreter.EnterObjectFunction( self, func, false );
@@ -306,7 +303,7 @@ idThread::idThread
 idThread::idThread( const function_t* func )
 {
 	assert( func );
-	
+
 	Init();
 	SetThreadName( func->Name() );
 	interpreter.EnterFunction( func, false );
@@ -339,7 +336,7 @@ idThread::idThread
 idThread::idThread( idInterpreter* source, idEntity* self, const function_t* func, int args )
 {
 	assert( self );
-	
+
 	Init();
 	SetThreadName( self->name );
 	interpreter.ThreadCall( source, func, args );
@@ -357,16 +354,14 @@ idThread::~idThread
 idThread::~idThread()
 {
 	idThread*	thread;
-	int			i;
-	int			n;
-	
+
 	if( g_debugScript.GetBool() )
 	{
 		gameLocal.Printf( "%d: end thread (%d) '%s'\n", gameLocal.GetGameTimeMs(), threadNum, threadName.c_str() );
 	}
 	threadList.Remove( this );
-	n = threadList.Num();
-	for( i = 0; i < n; i++ )
+	int n = threadList.Num();
+	for( int i = 0; i < n; i++ )
 	{
 		thread = threadList[ i ];
 		if( thread->WaitingOnThread() == this )
@@ -374,7 +369,7 @@ idThread::~idThread()
 			thread->ThreadCallback( this );
 		}
 	}
-	
+
 	if( currentThread == this )
 	{
 		currentThread = NULL;
@@ -402,19 +397,19 @@ void idThread::Save( idSaveGame* savefile ) const
 	// We will check on restore that threadNum is still the same,
 	//  threads should have been restored in the same order.
 	savefile->WriteInt( threadNum );
-	
+
 	savefile->WriteObject( waitingForThread );
 	savefile->WriteInt( waitingFor );
 	savefile->WriteInt( waitingUntil );
-	
+
 	interpreter.Save( savefile );
-	
+
 	savefile->WriteDict( &spawnArgs );
 	savefile->WriteString( threadName );
-	
+
 	savefile->WriteInt( lastExecuteTime );
 	savefile->WriteInt( creationTime );
-	
+
 	savefile->WriteBool( manualControl );
 }
 
@@ -426,19 +421,19 @@ idThread::Restore
 void idThread::Restore( idRestoreGame* savefile )
 {
 	savefile->ReadInt( threadNum );
-	
+
 	savefile->ReadObject( reinterpret_cast<idClass*&>( waitingForThread ) );
 	savefile->ReadInt( waitingFor );
 	savefile->ReadInt( waitingUntil );
-	
+
 	interpreter.Restore( savefile );
-	
+
 	savefile->ReadDict( &spawnArgs );
 	savefile->ReadString( threadName );
-	
+
 	savefile->ReadInt( lastExecuteTime );
 	savefile->ReadInt( creationTime );
-	
+
 	savefile->ReadBool( manualControl );
 }
 
@@ -450,8 +445,7 @@ idThread::Init
 void idThread::Init()
 {
 	// create a unique threadNum
-	do
-	{
+	do {
 		threadIndex++;
 		if( threadIndex == 0 )
 		{
@@ -459,16 +453,16 @@ void idThread::Init()
 		}
 	}
 	while( GetThread( threadIndex ) );
-	
+
 	threadNum = threadIndex;
 	threadList.Append( this );
-	
+
 	creationTime = gameLocal.GetGameTimeMs();
 	lastExecuteTime = 0;
 	manualControl = false;
-	
+
 	ClearWaitFor();
-	
+
 	interpreter.SetThread( this );
 }
 
@@ -479,12 +473,10 @@ idThread::GetThread
 */
 idThread* idThread::GetThread( int num )
 {
-	int			i;
-	int			n;
 	idThread*	thread;
-	
-	n = threadList.Num();
-	for( i = 0; i < n; i++ )
+
+	int n = threadList.Num();
+	for( int i = 0; i < n; i++ )
 	{
 		thread = threadList[ i ];
 		if( thread->GetThreadNum() == num )
@@ -492,7 +484,7 @@ idThread* idThread::GetThread( int num )
 			return thread;
 		}
 	}
-	
+
 	return NULL;
 }
 
@@ -511,7 +503,7 @@ void idThread::DisplayInfo()
 		threadNum, threadName.c_str(),
 		interpreter.CurrentFile(), interpreter.CurrentLine(),
 		creationTime, gameLocal.GetGameTimeMs() - creationTime );
-		
+
 	if( interpreter.threadDying )
 	{
 		gameLocal.Printf( "Dying\n" );
@@ -533,18 +525,16 @@ void idThread::DisplayInfo()
 		{
 			gameLocal.Printf( "Waiting until %d (%d ms total wait time)\n", waitingUntil, waitingUntil - lastExecuteTime );
 		}
-		else
-		{
+		else {
 			gameLocal.Printf( "None\n" );
 		}
 	}
-	else
-	{
+	else {
 		gameLocal.Printf( "Processing\n" );
 	}
-	
+
 	interpreter.DisplayInfo();
-	
+
 	gameLocal.Printf( "\n" );
 }
 
@@ -555,11 +545,8 @@ idThread::ListThreads_f
 */
 void idThread::ListThreads_f( const idCmdArgs& args )
 {
-	int	i;
-	int	n;
-	
-	n = threadList.Num();
-	for( i = 0; i < n; i++ )
+	int n = threadList.Num();
+	for( int i = 0; i < n; i++ )
 	{
 		//threadList[ i ]->DisplayInfo();
 		gameLocal.Printf( "%3i: %-20s : %s(%d)\n", threadList[ i ]->threadNum, threadList[ i ]->threadName.c_str(), threadList[ i ]->interpreter.CurrentFile(), threadList[ i ]->interpreter.CurrentLine() );
@@ -574,21 +561,18 @@ idThread::Restart
 */
 void idThread::Restart()
 {
-	int	i;
-	int	n;
-	
 	// reset the threadIndex
 	threadIndex = 0;
-	
+
 	currentThread = NULL;
-	n = threadList.Num();
-	for( i = n - 1; i >= 0; i-- )
+	int n = threadList.Num();
+	for( int i = n - 1; i >= 0; i-- )
 	{
 		delete threadList[ i ];
 	}
 	threadList.Clear();
-	
-	memset( &trace, 0, sizeof( trace ) );
+
+	trace.Clear();
 	trace.c.entityNum = ENTITYNUM_NONE;
 }
 
@@ -614,12 +598,8 @@ idThread::Start
 */
 bool idThread::Start()
 {
-	bool result;
-	
 	CancelEvents( &EV_Thread_Execute );
-	result = Execute();
-	
-	return result;
+	return Execute();
 }
 
 /*
@@ -639,14 +619,12 @@ idThread::ObjectMoveDone
 */
 void idThread::ObjectMoveDone( int threadnum, idEntity* obj )
 {
-	idThread* thread;
-	
 	if( !threadnum )
 	{
 		return;
 	}
-	
-	thread = GetThread( threadnum );
+
+	auto thread = GetThread( threadnum );
 	if( thread )
 	{
 		thread->ObjectMoveDone( obj );
@@ -672,26 +650,22 @@ idThread::KillThread
 */
 void idThread::KillThread( const char* name )
 {
-	int			i;
-	int			num;
 	int			len;
-	const char*	ptr;
 	idThread*	thread;
-	
+
 	// see if the name uses a wild card
-	ptr = strchr( name, '*' );
+	auto ptr = strchr( name, '*' );
 	if( ptr )
 	{
 		len = ptr - name;
 	}
-	else
-	{
-		len = strlen( name );
+	else {
+		len = idStr::Length( name );
 	}
-	
+
 	// kill only those threads whose name matches name
-	num = threadList.Num();
-	for( i = 0; i < num; i++ )
+	int num = threadList.Num();
+	for( int i = 0; i < num; i++ )
 	{
 		thread = threadList[ i ];
 		if( !idStr::Cmpn( thread->GetThreadName(), name, len ) )
@@ -708,9 +682,7 @@ idThread::KillThread
 */
 void idThread::KillThread( int num )
 {
-	idThread* thread;
-	
-	thread = GetThread( num );
+	auto thread = GetThread( num );
 	if( thread )
 	{
 		// Tell thread to die.  It will delete itself on it's own.
@@ -725,20 +697,17 @@ idThread::Execute
 */
 bool idThread::Execute()
 {
-	idThread*	oldThread;
-	bool		done;
-	
 	if( manualControl && ( waitingUntil > gameLocal.GetGameTimeMs() ) )
 	{
 		return false;
 	}
-	
-	oldThread = currentThread;
+
+	auto oldThread = currentThread;
 	currentThread = this;
-	
+
 	lastExecuteTime = gameLocal.GetGameTimeMs();
 	ClearWaitFor();
-	done = interpreter.Execute();
+	bool done = interpreter.Execute();
 	if( done )
 	{
 		End();
@@ -758,9 +727,9 @@ bool idThread::Execute()
 			PostEventMS( &EV_Thread_Execute, 1 );
 		}
 	}
-	
+
 	currentThread = oldThread;
-	
+
 	return done;
 }
 
@@ -777,12 +746,12 @@ bool idThread::IsWaiting()
 	{
 		return true;
 	}
-	
+
 	if( waitingUntil && ( waitingUntil > gameLocal.GetGameTimeMs() ) )
 	{
 		return true;
 	}
-	
+
 	return false;
 }
 
@@ -844,7 +813,7 @@ idThread::ObjectMoveDone
 void idThread::ObjectMoveDone( idEntity* obj )
 {
 	assert( obj );
-	
+
 	if( IsWaitingFor( obj ) )
 	{
 		ClearWaitFor();
@@ -863,7 +832,7 @@ void idThread::ThreadCallback( idThread* thread )
 	{
 		return;
 	}
-	
+
 	if( thread == waitingForThread )
 	{
 		ClearWaitFor();
@@ -890,11 +859,11 @@ void idThread::Error( const char* fmt, ... ) const
 {
 	va_list	argptr;
 	char	text[ 1024 ];
-	
+
 	va_start( argptr, fmt );
 	vsprintf( text, fmt, argptr );
 	va_end( argptr );
-	
+
 	interpreter.Error( text );
 }
 
@@ -907,11 +876,11 @@ void idThread::Warning( const char* fmt, ... ) const
 {
 	va_list	argptr;
 	char	text[ 1024 ];
-	
+
 	va_start( argptr, fmt );
 	vsprintf( text, fmt, argptr );
 	va_end( argptr );
-	
+
 	interpreter.Warning( text );
 }
 
@@ -1017,7 +986,7 @@ idThread::WaitFrame
 void idThread::WaitFrame()
 {
 	Pause();
-	
+
 	// manual control threads don't set waitingUntil so that they can be run again
 	// that frame if necessary.
 	if( !manualControl )
@@ -1039,9 +1008,7 @@ idThread::Event_TerminateThread
 */
 void idThread::Event_TerminateThread( int num )
 {
-	idThread* thread;
-	
-	thread = GetThread( num );
+	auto thread = GetThread( num );
 	KillThread( num );
 }
 
@@ -1100,9 +1067,7 @@ idThread::Event_WaitForThread
 */
 void idThread::Event_WaitForThread( int num )
 {
-	idThread* thread;
-	
-	thread = GetThread( num );
+	auto thread = GetThread( num );
 	if( !thread )
 	{
 		if( g_debugScript.GetBool() )
@@ -1111,8 +1076,7 @@ void idThread::Event_WaitForThread( int num )
 			Warning( "Thread %d not running", num );
 		}
 	}
-	else
-	{
+	else {
 		Pause();
 		waitingForThread = thread;
 	}
@@ -1200,17 +1164,14 @@ idThread::Event_Random
 */
 void idThread::Event_Random( float range ) const
 {
-	float result;
-	
-	result = gameLocal.random.RandomFloat();
+	float result = gameLocal.random.RandomFloat();
 	ReturnFloat( range * result );
 }
 
 
 void idThread::Event_RandomInt( int range ) const
 {
-	int result;
-	result = gameLocal.random.RandomInt( range );
+	int result = gameLocal.random.RandomInt( range );
 	ReturnFloat( result );
 }
 
@@ -1222,9 +1183,8 @@ idThread::Event_GetTime
 */
 void idThread::Event_GetTime()
 {
-
 	ReturnFloat( MS2SEC( gameLocal.realClientTime ) );
-	
+
 	/*  Script always uses realClient time to determine scripty stuff. ( This Fixes Weapon Animation timing bugs )
 	if ( common->IsMultiplayer() ) {
 		ReturnFloat( MS2SEC( gameLocal.GetServerGameTimeMs() ) );
@@ -1251,14 +1211,11 @@ idThread::Event_GetEntity
 */
 void idThread::Event_GetEntity( const char* name )
 {
-	int			entnum;
-	idEntity*	ent;
-	
 	assert( name );
-	
+
 	if( name[ 0 ] == '*' )
 	{
-		entnum = atoi( &name[ 1 ] );
+		int entnum = atoi( &name[ 1 ] );
 		if( ( entnum < 0 ) || ( entnum >= MAX_GENTITIES ) )
 		{
 			Error( "Entity number in string out of range." );
@@ -1266,9 +1223,8 @@ void idThread::Event_GetEntity( const char* name )
 		}
 		ReturnEntity( gameLocal.entities[ entnum ] );
 	}
-	else
-	{
-		ent = gameLocal.FindEntity( name );
+	else {
+		auto ent = gameLocal.FindEntity( name );
 		ReturnEntity( ent );
 	}
 }
@@ -1281,7 +1237,6 @@ idThread::Event_Spawn
 void idThread::Event_Spawn( const char* classname )
 {
 	idEntity* ent;
-	
 	spawnArgs.Set( "classname", classname );
 	gameLocal.SpawnEntityDef( spawnArgs, &ent );
 	ReturnEntity( ent );
@@ -1316,7 +1271,6 @@ idThread::Event_SpawnString
 void idThread::Event_SpawnString( const char* key, const char* defaultvalue )
 {
 	const char* result;
-	
 	spawnArgs.GetString( key, defaultvalue, &result );
 	ReturnString( result );
 }
@@ -1329,7 +1283,6 @@ idThread::Event_SpawnFloat
 void idThread::Event_SpawnFloat( const char* key, float defaultvalue )
 {
 	float result;
-	
 	spawnArgs.GetFloat( key, va( "%f", defaultvalue ), result );
 	ReturnFloat( result );
 }
@@ -1342,7 +1295,6 @@ idThread::Event_SpawnVector
 void idThread::Event_SpawnVector( const char* key, idVec3& defaultvalue )
 {
 	idVec3 result;
-	
 	spawnArgs.GetVector( key, va( "%f %f %f", defaultvalue.x, defaultvalue.y, defaultvalue.z ), result );
 	ReturnVector( result );
 }
@@ -1376,7 +1328,6 @@ idThread::Event_GetPersistantString
 void idThread::Event_GetPersistantString( const char* key )
 {
 	const char* result;
-	
 	gameLocal.persistentLevelInfo.GetString( key, "", &result );
 	ReturnString( result );
 }
@@ -1389,7 +1340,6 @@ idThread::Event_GetPersistantFloat
 void idThread::Event_GetPersistantFloat( const char* key )
 {
 	float result;
-	
 	gameLocal.persistentLevelInfo.GetFloat( key, "0", result );
 	ReturnFloat( result );
 }
@@ -1402,7 +1352,6 @@ idThread::Event_GetPersistantVector
 void idThread::Event_GetPersistantVector( const char* key )
 {
 	idVec3 result;
-	
 	gameLocal.persistentLevelInfo.GetVector( key, "0 0 0", result );
 	ReturnVector( result );
 }
@@ -1425,7 +1374,6 @@ idThread::Event_AngToRight
 void idThread::Event_AngToRight( idAngles& ang )
 {
 	idVec3 vec;
-	
 	ang.ToVectors( NULL, &vec );
 	ReturnVector( vec );
 }
@@ -1438,7 +1386,6 @@ idThread::Event_AngToUp
 void idThread::Event_AngToUp( idAngles& ang )
 {
 	idVec3 vec;
-	
 	ang.ToVectors( NULL, NULL, &vec );
 	ReturnVector( vec );
 }
@@ -1500,9 +1447,7 @@ idThread::Event_VecNormalize
 */
 void idThread::Event_VecNormalize( idVec3& vec )
 {
-	idVec3 n;
-	
-	n = vec;
+	idVec3 n = vec;
 	n.Normalize();
 	ReturnVector( n );
 }
@@ -1556,24 +1501,21 @@ idThread::Event_VecToOrthoBasisAngles
 void idThread::Event_VecToOrthoBasisAngles( idVec3& vec )
 {
 	idVec3 left, up;
-	idAngles ang;
-	
 	vec.OrthogonalBasis( left, up );
+
 	idMat3 axis( left, up, vec );
-	
-	ang = axis.ToAngles();
-	
+	idAngles ang = axis.ToAngles();
+
 	ReturnVector( idVec3( ang[0], ang[1], ang[2] ) );
 }
 
 void idThread::Event_RotateVector( idVec3& vec, idVec3& ang )
 {
-
 	idAngles tempAng( ang );
 	idMat3 axis = tempAng.ToMat3();
 	idVec3 ret = vec * axis;
 	ReturnVector( ret );
-	
+
 }
 
 /*
@@ -1583,27 +1525,25 @@ idThread::Event_OnSignal
 */
 void idThread::Event_OnSignal( int signal, idEntity* ent, const char* func )
 {
-	const function_t* function;
-	
 	assert( func );
-	
+
 	if( ent == NULL )
 	{
 		Error( "Entity not found" );
 		return;
 	}
-	
+
 	if( ( signal < 0 ) || ( signal >= NUM_SIGNALS ) )
 	{
 		Error( "Signal out of range" );
 	}
-	
-	function = gameLocal.program.FindFunction( func );
+
+	auto function = gameLocal.program.FindFunction( func );
 	if( !function )
 	{
 		Error( "Function '%s' not found", func );
 	}
-	
+
 	ent->SetSignal( ( signalNum_t )signal, this, function );
 }
 
@@ -1619,12 +1559,12 @@ void idThread::Event_ClearSignalThread( int signal, idEntity* ent )
 		Error( "Entity not found" );
 		return;
 	}
-	
+
 	if( ( signal < 0 ) || ( signal >= NUM_SIGNALS ) )
 	{
 		Error( "Signal out of range" );
 	}
-	
+
 	ent->ClearSignalThread( ( signalNum_t )signal, this );
 }
 
@@ -1640,13 +1580,13 @@ void idThread::Event_SetCamera( idEntity* ent )
 		Error( "Entity not found" );
 		return;
 	}
-	
+
 	if( !ent->IsType( idCamera::Type ) )
 	{
 		Error( "Entity is not a camera" );
 		return;
 	}
-	
+
 	gameLocal.SetCamera( ( idCamera* )ent );
 }
 
@@ -1671,8 +1611,7 @@ void idThread::Event_Trace( const idVec3& start, const idVec3& end, const idVec3
 	{
 		gameLocal.clip.TracePoint( trace, start, end, contents_mask, passEntity );
 	}
-	else
-	{
+	else {
 		gameLocal.clip.TraceBounds( trace, start, end, idBounds( mins, maxs ), contents_mask, passEntity );
 	}
 	ReturnFloat( trace.fraction );
@@ -1720,8 +1659,7 @@ void idThread::Event_GetTraceNormal()
 	{
 		ReturnVector( trace.c.normal );
 	}
-	else
-	{
+	else {
 		ReturnVector( vec3_origin );
 	}
 }
@@ -1737,8 +1675,7 @@ void idThread::Event_GetTraceEntity()
 	{
 		ReturnEntity( gameLocal.entities[ trace.c.entityNum ] );
 	}
-	else
-	{
+	else {
 		ReturnEntity( ( idEntity* )NULL );
 	}
 }
@@ -1793,13 +1730,10 @@ idThread::Event_FadeIn
 */
 void idThread::Event_FadeIn( idVec3& color, float time )
 {
-	idVec4		fadeColor;
-	idPlayer*	player;
-	
-	player = gameLocal.GetLocalPlayer();
+	auto player = gameLocal.GetLocalPlayer();
 	if( player )
 	{
-		fadeColor.Set( color[ 0 ], color[ 1 ], color[ 2 ], 0.0f );
+		idVec4 fadeColor( color[ 0 ], color[ 1 ], color[ 2 ], 0.0f );
 		player->playerView.Fade( fadeColor, SEC2MS( time ) );
 	}
 }
@@ -1811,13 +1745,10 @@ idThread::Event_FadeOut
 */
 void idThread::Event_FadeOut( idVec3& color, float time )
 {
-	idVec4		fadeColor;
-	idPlayer*	player;
-	
-	player = gameLocal.GetLocalPlayer();
+	auto player = gameLocal.GetLocalPlayer();
 	if( player )
 	{
-		fadeColor.Set( color[ 0 ], color[ 1 ], color[ 2 ], 1.0f );
+		idVec4 fadeColor( color[ 0 ], color[ 1 ], color[ 2 ], 1.0f );
 		player->playerView.Fade( fadeColor, SEC2MS( time ) );
 	}
 }
@@ -1829,13 +1760,10 @@ idThread::Event_FadeTo
 */
 void idThread::Event_FadeTo( idVec3& color, float alpha, float time )
 {
-	idVec4		fadeColor;
-	idPlayer*	player;
-	
-	player = gameLocal.GetLocalPlayer();
+	auto player = gameLocal.GetLocalPlayer();
 	if( player )
 	{
-		fadeColor.Set( color[ 0 ], color[ 1 ], color[ 2 ], alpha );
+		idVec4 fadeColor( color[ 0 ], color[ 1 ], color[ 2 ], alpha );
 		player->playerView.Fade( fadeColor, SEC2MS( time ) );
 	}
 }
@@ -1852,7 +1780,7 @@ void idThread::Event_SetShaderParm( int parmnum, float value )
 		Error( "shader parm index (%d) out of range", parmnum );
 		return;
 	}
-	
+
 	gameLocal.globalShaderParms[ parmnum ] = value;
 }
 
@@ -1893,9 +1821,7 @@ idThread::Event_StrLen
 */
 void idThread::Event_StrLen( const char* string )
 {
-	int len;
-	
-	len = strlen( string );
+	int len = idStr::Length( string );
 	idThread::ReturnInt( len );
 }
 
@@ -1906,21 +1832,19 @@ idThread::Event_StrLeft
 */
 void idThread::Event_StrLeft( const char* string, int num )
 {
-	int len;
-	
 	if( num < 0 )
 	{
 		idThread::ReturnString( "" );
 		return;
 	}
-	
-	len = strlen( string );
+
+	int len = idStr::Length( string );
 	if( len < num )
 	{
 		idThread::ReturnString( string );
 		return;
 	}
-	
+
 	idStr result( string, 0, num );
 	idThread::ReturnString( result );
 }
@@ -1932,21 +1856,19 @@ idThread::Event_StrRight
 */
 void idThread::Event_StrRight( const char* string, int num )
 {
-	int len;
-	
 	if( num < 0 )
 	{
 		idThread::ReturnString( "" );
 		return;
 	}
-	
-	len = strlen( string );
+
+	int len = idStr::Length( string );
 	if( len < num )
 	{
 		idThread::ReturnString( string );
 		return;
 	}
-	
+
 	idThread::ReturnString( string + len - num );
 }
 
@@ -1957,21 +1879,19 @@ idThread::Event_StrSkip
 */
 void idThread::Event_StrSkip( const char* string, int num )
 {
-	int len;
-	
 	if( num < 0 )
 	{
 		idThread::ReturnString( string );
 		return;
 	}
-	
-	len = strlen( string );
+
+	int len = idStr::Length( string );
 	if( len < num )
 	{
 		idThread::ReturnString( "" );
 		return;
 	}
-	
+
 	idThread::ReturnString( string + num );
 }
 
@@ -1982,29 +1902,27 @@ idThread::Event_StrMid
 */
 void idThread::Event_StrMid( const char* string, int start, int num )
 {
-	int len;
-	
 	if( num < 0 )
 	{
 		idThread::ReturnString( "" );
 		return;
 	}
-	
+
 	if( start < 0 )
 	{
 		start = 0;
 	}
-	len = strlen( string );
+	int len = idStr::Length( string );
 	if( start > len )
 	{
 		start = len;
 	}
-	
+
 	if( start + num > len )
 	{
 		num = len - start;
 	}
-	
+
 	idStr result( string, start, start + num );
 	idThread::ReturnString( result );
 }
@@ -2016,9 +1934,7 @@ idThread::Event_StrToFloat( const char *string )
 */
 void idThread::Event_StrToFloat( const char* string )
 {
-	float result;
-	
-	result = atof( string );
+	float result = atof( string );
 	idThread::ReturnFloat( result );
 }
 
@@ -2139,15 +2055,12 @@ idThread::Event_InfluenceActive
 */
 void idThread::Event_InfluenceActive()
 {
-	idPlayer* player;
-	
-	player = gameLocal.GetLocalPlayer();
+	auto player = gameLocal.GetLocalPlayer();
 	if( player != NULL && player->GetInfluenceLevel() )
 	{
 		idThread::ReturnInt( true );
 	}
-	else
-	{
+	else {
 		idThread::ReturnInt( false );
 	}
 }

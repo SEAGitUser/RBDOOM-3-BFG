@@ -37,9 +37,7 @@ If you have questions concerning this license or the applicable additional terms
 ===============================================================================
 */
 
-class idWinding
-{
-
+class idWinding {
 public:
 	idWinding();
 	explicit idWinding( const int n );								// allocate for n points

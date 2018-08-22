@@ -255,6 +255,7 @@ public:
 	VertexColorMAD
 	===========================
 	*/
+
 	ID_INLINE void		SetVertexColorParm( stageVertexColor_t svc )const
 	{
 	#if USE_INTRINSICS
@@ -271,11 +272,13 @@ public:
 		}
 	#endif
 	}
+
 	/*
 	===========================
 	SkinningParms
 	===========================
 	*/
+
 	ID_INLINE void		EnableSkinningParm() const
 	{
 	#if USE_INTRINSICS
@@ -300,11 +303,13 @@ public:
 		renderProgManager.GetRenderParm( RENDERPARM_ENABLE_SKINNING )->GetVec4().Fill( hasJoints ? 1.0 : 0.0 );
 	#endif
 	}
+
 	/*
 	===========================
 	AlphaTest
 	===========================
 	*/
+
 	ID_INLINE void		EnableAlphaTestParm( const float cmpValue ) const
 	{
 	#if USE_INTRINSICS
@@ -321,11 +326,13 @@ public:
 		renderProgManager.GetRenderParm( RENDERPARM_ALPHA_TEST )->GetVec4().Fill( 0.0 );
 	#endif
 	}
+
 	/*
 	===========================
 	TexGen0Enabled
 	===========================
 	*/
+
 	ID_INLINE void		EnableTexgen0Parm() const
 	{
 	#if USE_INTRINSICS
@@ -342,11 +349,13 @@ public:
 		renderProgManager.GetRenderParm( RENDERPARM_ENABLE_SKINNING )->GetVec4().Fill( 0.0 );
 	#endif
 	}
+
 	/*
 	====================
 	GL_Color
 	====================
 	*/
+
 	ID_INLINE void		SetColorParm( float r, float g, float b, float a ) const
 	{
 	#if USE_INTRINSICS
@@ -371,6 +380,12 @@ public:
 	{
 		SetColorParm( r, g, b, 1.0f );
 	}
+
+	/*
+	====================
+	Matrices
+	====================
+	*/
 
 	ID_INLINE void		SetMVPMatrixParms( const idRenderMatrix & mvp ) const
 	{

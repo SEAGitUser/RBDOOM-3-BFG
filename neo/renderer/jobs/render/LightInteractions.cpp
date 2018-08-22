@@ -173,6 +173,7 @@ static void RB_DrawSingleInteraction( drawInteraction_t * din )
 
 	din->Clear();
 }
+
 /*
 ====================================================
  RB_DrawComplexMaterialInteraction
@@ -190,7 +191,7 @@ void RB_DrawComplexMaterialInteraction( drawInteraction_t & inter, const float* 
 {
 	RENDERLOG_OPEN_BLOCK( material->GetName() );
 
-	for( int stageNum = 0; stageNum < material->GetNumStages(); stageNum++ )
+	for( int stageNum = 0; stageNum < material->GetNumStages(); ++stageNum )
 	{
 		auto const materialStage = material->GetStage( stageNum );
 
@@ -222,6 +223,7 @@ void RB_DrawComplexMaterialInteraction( drawInteraction_t & inter, const float* 
 				inter.bumpImage->Set( materialStage->texture.image );
 				inter.diffuseImage->Set( ( idImage * )NULL );
 				inter.specularImage->Set( ( idImage * )NULL );
+
 				RB_SetupInteractionStage( materialStage, surfaceRegs, inter.bumpMatrix, NULL );
 				break;
 			}
@@ -279,7 +281,7 @@ void RB_DrawComplexMaterialInteraction( drawInteraction_t & inter, const float* 
 idCVar r_skipInteractionFastPath( "r_skipInteractionFastPath", "1", CVAR_RENDERER | CVAR_BOOL, "" );
 idCVar r_useLightStencilSelect( "r_useLightStencilSelect", "0", CVAR_RENDERER | CVAR_BOOL, "use stencil select pass" );
 
-struct forwardInteractionsRenderPassParms_t
+struct forwardLightInteractionsParms_t
 {
 	const idDeclRenderParm *	rpBumpMap;
 	const idDeclRenderParm *	rpDiffuseMap;
@@ -357,7 +359,7 @@ void RB_SetupForFastPathInteractions()
 	With added sorting and trivial path work.
 =============
 */
-void RB_RenderInteractions( const drawSurf_t* const surfList, const viewLight_t* const vLight, int depthFunc, bool performStencilTest, bool useLightDepthBounds )
+static void RB_RenderInteractions( const drawSurf_t* const surfList, const viewLight_t* const vLight, int depthFunc, bool performStencilTest, bool useLightDepthBounds )
 {
 	if( surfList == NULL )
 		return;
@@ -424,7 +426,7 @@ void RB_RenderInteractions( const drawSurf_t* const surfList, const viewLight_t*
 		allSurfaces.Append( complexSurfaces[ i ] );
 	}
 
-	bool lightDepthBoundsDisabled = false;
+	bool bLightDepthBoundsDisabled = false;
 
 	const uint32 shadowLOD = vLight->GetShadowLOD();
 	const auto lightType = vLight->GetLightType();
@@ -489,7 +491,7 @@ void RB_RenderInteractions( const drawSurf_t* const surfList, const viewLight_t*
 		// even if the space does not change between light stages, each light stage may need a different lightTextureMatrix baked in
 		backEnd.ClearCurrentSpace();
 
-		for( int sortedSurfNum = 0; sortedSurfNum < allSurfaces.Num(); sortedSurfNum++ )
+		for( int sortedSurfNum = 0; sortedSurfNum < allSurfaces.Num(); ++sortedSurfNum )
 		{
 			const auto surf = allSurfaces[ sortedSurfNum ];
 
@@ -570,17 +572,19 @@ void RB_RenderInteractions( const drawSurf_t* const surfList, const viewLight_t*
 				{
 					if( !surf->space->weaponDepthHack && surf->space->modelDepthHack == 0.0f )
 					{
-						if( lightDepthBoundsDisabled )
+						if( bLightDepthBoundsDisabled )
 						{
 							GL_DepthBoundsTest( vLight->scissorRect.zmin, vLight->scissorRect.zmax );
-							lightDepthBoundsDisabled = false;
+
+							bLightDepthBoundsDisabled = false;
 						}
 					}
 					else {
-						if( !lightDepthBoundsDisabled )
+						if( !bLightDepthBoundsDisabled )
 						{
 							GL_DepthBoundsTest( 0.0f, 0.0f );
-							lightDepthBoundsDisabled = true;
+
+							bLightDepthBoundsDisabled = true;
 						}
 					}
 				}
@@ -601,9 +605,6 @@ void RB_RenderInteractions( const drawSurf_t* const surfList, const viewLight_t*
 				continue;
 			}
 
-			//inter.bumpImage = inter.specularImage = inter.diffuseImage = NULL;
-			//inter.diffuseColor[ 0 ] = inter.diffuseColor[ 1 ] = inter.diffuseColor[ 2 ] = inter.diffuseColor[ 3 ] = 0;
-			//inter.specularColor[ 0 ] = inter.specularColor[ 1 ] = inter.specularColor[ 2 ] = inter.specularColor[ 3 ] = 0;
 			inter.bumpImage->Set( ( idImage * )NULL );
 			inter.diffuseImage->Set( ( idImage * )NULL );
 			inter.specularImage->Set( ( idImage * )NULL );
@@ -614,7 +615,7 @@ void RB_RenderInteractions( const drawSurf_t* const surfList, const viewLight_t*
 		}
 	}
 
-	if( useLightDepthBounds && lightDepthBoundsDisabled )
+	if( useLightDepthBounds && bLightDepthBoundsDisabled )
 	{
 		GL_DepthBoundsTest( vLight->scissorRect.zmin, vLight->scissorRect.zmax );
 	}
@@ -807,6 +808,28 @@ void RB_DrawInteractionsForward( const idRenderView * const viewDef )
 //
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 
+// Sets up rasterizer and depth state for rendering bounding geometry in a deferred pass.
+uint64 GetBoundingGeometryRasterizerAndDepthState( const idRenderView *const View, const idSphere & LightBounds )
+{
+	// true if ViewMatrix.Determinant() is negative.
+	const bool bReverseCulling = false;
+
+	const bool bCameraInsideLightGeometry = ( View->GetOrigin() - LightBounds.GetOrigin() ).LengthSqr() < idMath::Square( LightBounds.GetRadius() * 1.05f + View->GetZNear() * 2.0f );
+
+	if( bCameraInsideLightGeometry )
+	{
+		// Render backfaces with depth tests disabled since the camera is inside (or close to inside) the light geometry
+		//GraphicsPSOInit.RasterizerState = bReverseCulling ? TStaticRasterizerState<FM_Solid, CM_CW>::GetRHI() : TStaticRasterizerState<FM_Solid, CM_CCW>::GetRHI();
+		//GraphicsPSOInit.DepthStencilState = TStaticDepthStencilState<false, CF_Always>::GetRHI();
+		return( GLS_DEPTHMASK | GLS_DEPTHFUNC_ALWAYS | GLS_BACKSIDED );
+	}
+
+	// Render frontfaces with depth tests on to get the speedup from HiZ since the camera is outside the light geometry
+	//GraphicsPSOInit.RasterizerState = bReverseCulling ? TStaticRasterizerState<FM_Solid, CM_CCW>::GetRHI() : TStaticRasterizerState<FM_Solid, CM_CW>::GetRHI();
+	//GraphicsPSOInit.DepthStencilState = TStaticDepthStencilState<false, CF_DepthNearOrEqual>::GetRHI();
+	return( GLS_DEPTHMASK |  GLS_DEPTHFUNC_LEQUAL | GLS_FRONTSIDED );
+}
+
 /*
 ==========================================================
 RB_DrawLight
@@ -815,17 +838,14 @@ RB_DrawLight
 void RB_DrawLight( const viewLight_t * const vLight )
 {
 	{ // Set the matrix for deforming the 'zeroOneCubeModel' into the frustum to exactly cover the light volume
-	  ///idRenderMatrix invProjectMVPMatrix;
-	  ///idRenderMatrix::Multiply( backEnd.viewDef->GetMVPMatrix(), vLight->inverseBaseLightProject, invProjectMVPMatrix );
-	  ///renderProgManager.SetMVPMatrixParms( invProjectMVPMatrix );
-		bool negativeDeterminant;
+		//bool negativeDeterminant;
 		idRenderMatrix::SetMVPForInverseProject( backEnd.viewDef->GetMVPMatrix(), vLight->inverseBaseLightProject,
 			renderProgManager.GetRenderParm( RENDERPARM_MVPMATRIX_X )->GetVec4(),
 			renderProgManager.GetRenderParm( RENDERPARM_MVPMATRIX_Y )->GetVec4(),
 			renderProgManager.GetRenderParm( RENDERPARM_MVPMATRIX_Z )->GetVec4(),
-			renderProgManager.GetRenderParm( RENDERPARM_MVPMATRIX_W )->GetVec4(),
-			negativeDeterminant );
-		RENDERLOG_PRINT( "-- mvp determinant is %s --\n", negativeDeterminant ? "negative" : "positive" );
+			renderProgManager.GetRenderParm( RENDERPARM_MVPMATRIX_W )->GetVec4() );
+		//	negativeDeterminant );
+		//RENDERLOG_PRINT( "-- mvp determinant is %s --\n", negativeDeterminant ? "negative" : "positive" );
 	}
 
 	const auto lightMaterial = vLight->lightShader;
@@ -893,14 +913,12 @@ void RB_DrawLight( const viewLight_t * const vLight )
 			renderProgManager.SetRenderParm( RENDERPARM_LIGHTPROJECTION_S, lightProjection[ 0 ].ToFloatPtr() );
 			renderProgManager.SetRenderParm( RENDERPARM_LIGHTPROJECTION_T, lightProjection[ 1 ].ToFloatPtr() );
 			renderProgManager.SetRenderParm( RENDERPARM_LIGHTPROJECTION_Q, lightProjection[ 2 ].ToFloatPtr() );
-			renderProgManager.SetRenderParm( RENDERPARM_LIGHTFALLOFF_S, lightProjection[ 3 ].ToFloatPtr() );
+			renderProgManager.SetRenderParm( RENDERPARM_LIGHTFALLOFF_S,	   lightProjection[ 3 ].ToFloatPtr() );
 
 			idRenderMatrix lightTextureRenderMatrix;
 			idMaterial::GetTexMatrixFromStage( lightRegs, &lightStage->texture, lightTextureRenderMatrix );
 
-			idRenderMatrix baseLightProject;
-			idRenderMatrix::Multiply( lightTextureRenderMatrix, vLight->baseLightProject, baseLightProject );
-			idRenderMatrix::CopyMatrix( baseLightProject,
+			idRenderMatrix::Multiply( lightTextureRenderMatrix, vLight->baseLightProject,
 				renderProgManager.GetRenderParm( RENDERPARM_BASELIGHTPROJECT_S )->GetVec4(),
 				renderProgManager.GetRenderParm( RENDERPARM_BASELIGHTPROJECT_T )->GetVec4(),
 				renderProgManager.GetRenderParm( RENDERPARM_BASELIGHTPROJECT_R )->GetVec4(),
@@ -911,7 +929,7 @@ void RB_DrawLight( const viewLight_t * const vLight )
 			renderProgManager.SetRenderParm( RENDERPARM_LIGHTPROJECTION_S, vLight->lightProject[ 0 ].ToFloatPtr() );
 			renderProgManager.SetRenderParm( RENDERPARM_LIGHTPROJECTION_T, vLight->lightProject[ 1 ].ToFloatPtr() );
 			renderProgManager.SetRenderParm( RENDERPARM_LIGHTPROJECTION_Q, vLight->lightProject[ 2 ].ToFloatPtr() );
-			renderProgManager.SetRenderParm( RENDERPARM_LIGHTFALLOFF_S, vLight->lightProject[ 3 ].ToFloatPtr() );
+			renderProgManager.SetRenderParm( RENDERPARM_LIGHTFALLOFF_S,    vLight->lightProject[ 3 ].ToFloatPtr() );
 
 			idRenderMatrix::CopyMatrix( vLight->baseLightProject,
 				renderProgManager.GetRenderParm( RENDERPARM_BASELIGHTPROJECT_S )->GetVec4(),
@@ -998,22 +1016,28 @@ void RB_DrawInteractionsDeferred( const idRenderView * const view )
 		// calculate the global light bounds by inverse projecting the zero to one cube with the 'inverseBaseLightProject'
 		idBounds globalLightBounds;
 		idRenderMatrix::ProjectedBounds( globalLightBounds, vLight->inverseBaseLightProject, bounds_zeroOneCube, false );
-		///const bool bCameraInsideLightGeometry = backEnd.viewDef->ViewInsideLightVolume( globalLightBounds );
+	#if 0
+		const bool bCameraInsideLightGeometry = backEnd.viewDef->ViewInsideLightVolume( globalLightBounds );
 		globalLightBounds.ExpandSelf( r_dlmul.GetFloat() );
 		const bool bCameraInsideLightGeometry = globalLightBounds.ContainsPoint( view->GetOrigin() );
 		///const bool bCameraInsideLightGeometry = !idRenderMatrix::CullPointToMVP( vLight->baseLightProject, backEnd.viewDef->GetOrigin(), true );
-
 		if( bCameraInsideLightGeometry )
 		{
 			// Render backfaces with depth tests disabled since the camera is inside (or close to inside) the light geometry
-			GL_State(/*GLS_ALPHAMASK |*/ GLS_DEPTHMASK | GLS_SRCBLEND_ONE | GLS_DSTBLEND_ONE | GLS_DEPTHFUNC_ALWAYS | GLS_BACKSIDED );
+			GL_State(/*GLS_ALPHAMASK |*/ GLS_SRCBLEND_ONE | GLS_DSTBLEND_ONE |
+					  GLS_DEPTHMASK | GLS_DEPTHFUNC_ALWAYS | GLS_BACKSIDED );
 			///renderProgManager.SetColorParm( idColor::white.ToVec4() );
 		}
 		else {
 			// Render frontfaces with depth tests on to get the speedup from HiZ since the camera is outside the light geometry
-			GL_State(/*GLS_ALPHAMASK |*/ GLS_DEPTHMASK | GLS_SRCBLEND_ONE | GLS_DSTBLEND_ONE | GLS_DEPTHFUNC_LESS | GLS_FRONTSIDED );
+			GL_State(/*GLS_ALPHAMASK |*/ GLS_SRCBLEND_ONE | GLS_DSTBLEND_ONE |
+					  GLS_DEPTHMASK | GLS_DEPTHFUNC_LESS | GLS_FRONTSIDED );
 			///renderProgManager.SetColorParm( idColor::purple.ToVec4() );
 		}
+	#else
+		uint64 stateBits = GetBoundingGeometryRasterizerAndDepthState( backEnd.viewDef, globalLightBounds.ToSphere() );
+		GL_State( GLS_ALPHAMASK | GLS_SRCBLEND_ONE | GLS_DSTBLEND_ONE | stateBits );
+	#endif //SEA: fix it!
 
 		RB_DrawLight( vLight );
 
@@ -1041,3 +1065,22 @@ void RB_DrawInteractionsDeferred( const idRenderView * const view )
 	RENDERLOG_CLOSE_BLOCK();
 	RENDERLOG_CLOSE_MAINBLOCK();
 }
+
+
+
+
+/*
+=====================================================================================================
+
+	Clustered forward lighting
+
+=====================================================================================================
+*/
+
+idCVar r_clusteredLightingTilesX( "r_clusteredLightingTilesX", "", 0, "Clustered lighting tile count in frustum X direction" );
+idCVar r_clusteredLightingTilesY( "r_clusteredLightingTilesY", "", 0, "Clustered lighting tile count in frustum Y direction" );
+idCVar r_clusteredLightingTilesZ( "r_clusteredLightingTilesZ", "", 0, "Clustered lighting tile count in frustum Z direction" );
+
+idCVar r_clusteredLightingNearZ( "r_clusteredLightingNearZ", "", 0, "Set pseudo near z to be used for zslices distribution" );
+idCVar r_clusteredLightingFarZ( "r_clusteredLightingFarZ", "8000.0f", 0, "Set pseudo far z to be used for zslices distribution" );
+

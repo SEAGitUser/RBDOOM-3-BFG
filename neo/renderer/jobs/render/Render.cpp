@@ -30,6 +30,58 @@ backEndState_t	backEnd;
 */
 void RB_BakeTextureMatrixIntoTexgen( idPlane lightProject[ 3 ], const float* textureMatrix )
 {
+#if USE_INTRINSICS
+
+	__m128 a0 = _mm_load_ps( lightProject[ 0 ].ToFloatPtr() );
+	__m128 a1 = _mm_load_ps( lightProject[ 1 ].ToFloatPtr() );
+	__m128 a2 = _mm_setzero_ps();
+	__m128 a3 = _mm_load_ps( lightProject[ 2 ].ToFloatPtr() );
+
+	__m128 r0 = _mm_unpacklo_ps( a0, a2 );
+	__m128 r1 = _mm_unpackhi_ps( a0, a2 );
+	__m128 r2 = _mm_unpacklo_ps( a1, a3 );
+	__m128 r3 = _mm_unpackhi_ps( a1, a3 );
+
+		   a0 = _mm_unpacklo_ps( r0, r2 );
+		   a1 = _mm_unpackhi_ps( r0, r2 );
+		   a2 = _mm_unpacklo_ps( r1, r3 );
+		   a3 = _mm_unpackhi_ps( r1, r3 );
+
+	__m128 b0 = _mm_load_ps( textureMatrix + 0 * 4 );
+	__m128 b1 = _mm_load_ps( textureMatrix + 1 * 4 );
+	__m128 b2 = _mm_load_ps( textureMatrix + 2 * 4 );
+	__m128 b3 = _mm_load_ps( textureMatrix + 3 * 4 );
+
+	__m128 t0 = _mm_mul_ps( _mm_splat_ps( a0, 0 ), b0 );
+	__m128 t1 = _mm_mul_ps( _mm_splat_ps( a1, 0 ), b0 );
+	__m128 t2 = _mm_mul_ps( _mm_splat_ps( a2, 0 ), b0 );
+	__m128 t3 = _mm_mul_ps( _mm_splat_ps( a3, 0 ), b0 );
+
+		   t0 = _mm_madd_ps( _mm_splat_ps( a0, 1 ), b1, t0 );
+		   t1 = _mm_madd_ps( _mm_splat_ps( a1, 1 ), b1, t1 );
+		   t2 = _mm_madd_ps( _mm_splat_ps( a2, 1 ), b1, t2 );
+		   t3 = _mm_madd_ps( _mm_splat_ps( a3, 1 ), b1, t3 );
+
+		   t0 = _mm_madd_ps( _mm_splat_ps( a0, 2 ), b2, t0 );
+		   t1 = _mm_madd_ps( _mm_splat_ps( a1, 2 ), b2, t1 );
+		   t2 = _mm_madd_ps( _mm_splat_ps( a2, 2 ), b2, t2 );
+		   t3 = _mm_madd_ps( _mm_splat_ps( a3, 2 ), b2, t3 );
+
+		   t0 = _mm_madd_ps( _mm_splat_ps( a0, 3 ), b3, t0 );
+		   t1 = _mm_madd_ps( _mm_splat_ps( a1, 3 ), b3, t1 );
+		   t2 = _mm_madd_ps( _mm_splat_ps( a2, 3 ), b3, t2 );
+		   t3 = _mm_madd_ps( _mm_splat_ps( a3, 3 ), b3, t3 );
+
+		   r0 = _mm_unpacklo_ps( t0, t2 );
+		   r2 = _mm_unpacklo_ps( t1, t3 );
+
+		   t0 = _mm_unpacklo_ps( r0, r2 );
+		   t1 = _mm_unpackhi_ps( r0, r2 );
+
+	_mm_store_ps( lightProject[ 0 ].ToFloatPtr(), t0 );
+	_mm_store_ps( lightProject[ 1 ].ToFloatPtr(), t1 );
+
+#else
 	ALIGN16( float genMatrix[ 16 ] );
 	ALIGN16( float final[ 16 ] );
 
@@ -64,6 +116,7 @@ void RB_BakeTextureMatrixIntoTexgen( idPlane lightProject[ 3 ], const float* tex
 	lightProject[ 1 ][ 1 ] = final[ 1 * 4 + 1 ];
 	lightProject[ 1 ][ 2 ] = final[ 2 * 4 + 1 ];
 	lightProject[ 1 ][ 3 ] = final[ 3 * 4 + 1 ];
+#endif
 }
 
 #if 0

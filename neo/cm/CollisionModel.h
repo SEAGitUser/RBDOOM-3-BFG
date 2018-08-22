@@ -73,7 +73,7 @@ struct contactInfo_t
 };
 
 // trace result
-struct trace_t 
+struct trace_t
 {
 	float					fraction;		// fraction of movement completed, 1.0 = didn't hit anything
 	idVec3					endpos;			// final position of trace model
@@ -94,25 +94,24 @@ const short CM_BOX_EPSILON_SHORT = ( short )CM_BOX_EPSILON;
 #define CM_MAX_TRACE_DIST	4096.0f			// maximum distance a trace model may be traced, point traces are unlimited
 //#define MAIN_THREAD_ID		1
 
-class idCollisionModelManager
-{
+class idCollisionModelManager {
 public:
 	virtual					~idCollisionModelManager() {}
-	
+
 	// Loads collision models from a map file.
 	virtual void			LoadMap( const idMapFile* mapFile ) = 0;
 	// Frees all the collision models.
 	virtual void			FreeMap() = 0;
-	
+
 	virtual void			Preload( const char* mapName ) = 0;
-	
+
 	// Gets the clip handle for a model.
 	virtual cmHandle_t		LoadModel( const char* modelName ) = 0;
 	// Sets up a trace model for collision with other trace models.
 	virtual cmHandle_t		SetupTrmModel( const idTraceModel& trm, const idMaterial* ) = 0;
 	// Creates a trace model from a collision model, returns true if succesfull.
 	virtual bool			TrmFromModel( const char* modelName, idTraceModel& trm ) = 0;
-	
+
 	// Gets the name of a model.
 	virtual const char* 	GetModelName( cmHandle_t model ) const = 0;
 	// Gets the bounds of a model.
@@ -125,7 +124,7 @@ public:
 	virtual bool			GetModelEdge( cmHandle_t model, int edgeNum, idVec3& start, idVec3& end ) const = 0;
 	// Gets a polygon of a model.
 	virtual bool			GetModelPolygon( cmHandle_t model, int polygonNum, idFixedWinding& ) const = 0;
-	
+
 	// Translates a trace model and reports the first collision if any.
 	virtual void			Translation( trace_t* results, const idVec3& start, const idVec3& end,
 										 const idTraceModel* trm, const idMat3& trmAxis, int contentMask,
@@ -142,7 +141,7 @@ public:
 	virtual int				Contacts( contactInfo_t* contacts, const int maxContacts, const idVec3& start, const idVec6& dir, const float depth,
 									  const idTraceModel* trm, const idMat3& trmAxis, int contentMask,
 									  cmHandle_t model, const idVec3& modelOrigin, const idMat3& modelAxis ) = 0;
-									  
+
 	// Tests collision detection.
 	virtual void			DebugOutput( const idVec3& origin ) = 0;
 	// Draws a model.

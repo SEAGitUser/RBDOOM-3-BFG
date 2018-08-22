@@ -302,17 +302,18 @@ void RB_StencilSelectLight( const viewLight_t* const vLight )
 		GLS_STENCIL_FUNC_ALWAYS | GLS_STENCIL_MAKE_REF( STENCIL_SHADOW_TEST_VALUE ) | GLS_STENCIL_MAKE_MASK( STENCIL_SHADOW_MASK_VALUE ) |
 		GLS_TWOSIDED
 	);
+	// two-sided stencil test
+	glStencilOpSeparate( GL_FRONT, GL_KEEP, GL_REPLACE, GL_ZERO );
+	glStencilOpSeparate( GL_BACK, GL_KEEP, GL_ZERO, GL_REPLACE );
 
 	GL_SetRenderProgram( renderProgManager.prog_depth );
 
 	// set the matrix for deforming the 'zeroOneCubeModel' into the frustum to exactly cover the light volume
-	idRenderMatrix invProjectMVPMatrix;
-	idRenderMatrix::Multiply( backEnd.viewDef->GetMVPMatrix(), vLight->inverseBaseLightProject, invProjectMVPMatrix );
-	renderProgManager.SetMVPMatrixParms( invProjectMVPMatrix );
-
-	// two-sided stencil test
-	glStencilOpSeparate( GL_FRONT, GL_KEEP, GL_REPLACE, GL_ZERO );
-	glStencilOpSeparate( GL_BACK, GL_KEEP, GL_ZERO, GL_REPLACE );
+	idRenderMatrix::Multiply( backEnd.viewDef->GetMVPMatrix(), vLight->inverseBaseLightProject,
+		renderProgManager.GetRenderParm( RENDERPARM_MVPMATRIX_X )->GetVec4(),
+		renderProgManager.GetRenderParm( RENDERPARM_MVPMATRIX_Y )->GetVec4(),
+		renderProgManager.GetRenderParm( RENDERPARM_MVPMATRIX_Z )->GetVec4(),
+		renderProgManager.GetRenderParm( RENDERPARM_MVPMATRIX_W )->GetVec4() );
 
 	GL_DrawZeroOneCube();
 

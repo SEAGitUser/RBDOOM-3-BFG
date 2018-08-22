@@ -974,7 +974,7 @@ void idInteraction::CreateStaticInteraction()
 		// determine the shader for this surface, possibly by skinning
 		// Note that this will be wrong if customSkin/customMaterial are
 		// changed after map load time without invalidating the interaction!
-		auto const shader = R_RemapShaderBySkin( surf->shader, entityDef->GetParms().customSkin, entityDef->GetParms().customMaterial );
+		auto const shader = R_RemapShaderBySkin( surf->GetMaterial(), entityDef->GetParms().customSkin, entityDef->GetParms().customMaterial );
 		if( shader == NULL )
 		{
 			continue;

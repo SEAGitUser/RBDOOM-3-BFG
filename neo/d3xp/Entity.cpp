@@ -4183,23 +4183,20 @@ bool idEntity::HandleGuiCommands( idEntity* entityGui, const char* cmds )
 					int score = entityGui->renderEntity.gui[0]->State().GetInt( "score" );
 					score += atoi( token2 );
 					entityGui->renderEntity.gui[0]->SetStateInt( "score", score );
-					if( gameLocal.GetLocalPlayer() && score >= 25000 )
+					if( gameLocal.GetLocalPlayer() && score >= 10000 )
 					{
 						gameLocal.GetLocalPlayer()->GetAchievementManager().EventCompletesAchievement( ACHIEVEMENT_SCORE_25000_TURKEY_PUNCHER );
-						gameLocal.GetLocalPlayer()->GiveEmail( static_cast<const idDeclEmail*>( declManager->FindType( DECL_EMAIL, "highScore", false ) ) );
+						gameLocal.GetLocalPlayer()->GiveEmail( declManager->FindType( DECL_EMAIL, "highScore", false )->Cast<idDeclEmail>() );
 					}
 				}
 				continue;
 			}
 
-
 			if( !token.Icmp( "martianbuddycomplete" ) )
 			{
-				gameLocal.GetLocalPlayer()->GiveEmail( static_cast<const idDeclEmail*>( declManager->FindType( DECL_EMAIL, "MartianBuddyGameComplete", false ) ) );
+				gameLocal.GetLocalPlayer()->GiveEmail( declManager->FindType( DECL_EMAIL, "MartianBuddyGameComplete", false )->Cast<idDeclEmail>() );
 				continue;
 			}
-
-
 
 			// handy for debugging GUI stuff
 			if( !token.Icmp( "print" ) )
@@ -6490,7 +6487,7 @@ void idAnimatedEntity::UpdateDamageEffects()
 
 		animator.GetJointTransform( de->jointNum, gameLocal.GetGameTimeMs(), origin, axis );
 		axis *= renderEntity.axis;
-		origin = renderEntity.origin + origin * renderEntity.axis;
+		origin = renderEntity.Transform( origin );
 		start = origin + de->localOrigin * axis;
 		if( !gameLocal.smokeParticles->EmitSmoke( de->type, de->time, gameLocal.random.CRandomFloat(), start, axis, timeGroup /*_D3XP*/ ) )
 		{

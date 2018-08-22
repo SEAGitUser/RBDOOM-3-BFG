@@ -37,45 +37,44 @@ If you have questions concerning this license or the applicable additional terms
 ===============================================================================
 */
 
-class idAASFileLocal : public idAASFile
-{
+class idAASFileLocal : public idAASFile {
 	friend class idAASBuild;
 	friend class idAASReach;
 	friend class idAASCluster;
 public:
 	idAASFileLocal();
 	virtual 					~idAASFileLocal();
-	
+
 public:
 	virtual idVec3				EdgeCenter( int edgeNum ) const;
 	virtual idVec3				FaceCenter( int faceNum ) const;
 	virtual idVec3				AreaCenter( int areaNum ) const;
-	
+
 	virtual idBounds			EdgeBounds( int edgeNum ) const;
 	virtual idBounds			FaceBounds( int faceNum ) const;
 	virtual idBounds			AreaBounds( int areaNum ) const;
-	
+
 	virtual int					PointAreaNum( const idVec3& origin ) const;
 	virtual int					PointReachableAreaNum( const idVec3& origin, const idBounds& searchBounds, const int areaFlags, const int excludeTravelFlags ) const;
-	virtual int					BoundsReachableAreaNum( const idBounds& bounds, const int areaFlags, const int excludeTravelFlags ) const;
+	virtual int					BoundsReachableAreaNum( const idBounds&, const int areaFlags, const int excludeTravelFlags ) const;
 	virtual void				PushPointIntoAreaNum( int areaNum, idVec3& point ) const;
 	virtual bool				Trace( aasTrace_t& trace, const idVec3& start, const idVec3& end ) const;
 	virtual void				PrintInfo() const;
-	
+
 public:
 	bool						Load( const idStr& fileName, unsigned int mapFileCRC );
 	bool						Write( const idStr& fileName, unsigned int mapFileCRC );
-	
+
 	size_t						MemorySize() const;
 	void						ReportRoutingEfficiency() const;
 	void						Optimize();
 	void						LinkReversedReachability();
 	void						FinishAreas();
-	
+
 	void						Clear();
 	void						DeleteReachabilities();
 	void						DeleteClusters();
-	
+
 private:
 	bool						ParseIndex( idLexer& src, idList<aasIndex_t>& indexes );
 	bool						ParsePlanes( idLexer& src );
@@ -87,9 +86,9 @@ private:
 	bool						ParseNodes( idLexer& src );
 	bool						ParsePortals( idLexer& src );
 	bool						ParseClusters( idLexer& src );
-	
+
 private:
-	int							BoundsReachableAreaNum_r( int nodeNum, const idBounds& bounds, const int areaFlags, const int excludeTravelFlags ) const;
+	int							BoundsReachableAreaNum_r( int nodeNum, const idBounds&, const int areaFlags, const int excludeTravelFlags ) const;
 	void						MaxTreeDepth_r( int nodeNum, int& depth, int& maxDepth ) const;
 	int							MaxTreeDepth() const;
 	int							AreaContentsTravelFlags( int areaNum ) const;

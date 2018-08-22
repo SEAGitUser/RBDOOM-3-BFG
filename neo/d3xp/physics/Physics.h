@@ -65,28 +65,26 @@ If you have questions concerning this license or the applicable additional terms
 
 class idEntity;
 
-typedef struct impactInfo_s
+struct impactInfo_t
 {
 	float						invMass;			// inverse mass
 	idMat3						invInertiaTensor;	// inverse inertia tensor
 	idVec3						position;			// impact position relative to center of mass
 	idVec3						velocity;			// velocity at the impact position
-} impactInfo_t;
+};
 
 
-class idPhysics : public idClass
-{
-
+class idPhysics : public idClass {
 public:
 	ABSTRACT_PROTOTYPE( idPhysics );
-	
+
 	virtual						~idPhysics();
 	static int					SnapTimeToPhysicsFrame( int t );
-	
+
 	// Must not be virtual
 	void						Save( idSaveGame* savefile ) const;
 	void						Restore( idRestoreGame* savefile );
-	
+
 public:	// common physics interface
 	// set pointer to entity using physics
 	virtual void				SetSelf( idEntity* e ) = 0;

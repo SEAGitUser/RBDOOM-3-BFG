@@ -246,13 +246,11 @@ void idProjectile::Create( idEntity* owner, const idVec3& start, const idVec3& d
 
 	renderLight.Clear();
 	shaderName = spawnArgs.GetString( "mtr_light_shader" );
-	if( *( const char* )shaderName )
+	if( !shaderName.IsEmpty() )
 	{
-		renderLight.shader = declManager->FindMaterial( shaderName, false );
+		renderLight.material = declManager->FindMaterial( shaderName, false );
 		renderLight.pointLight = true;
-		renderLight.lightRadius[ 0 ] =
-		renderLight.lightRadius[ 1 ] =
-		renderLight.lightRadius[ 2 ] = spawnArgs.GetFloat( "light_radius" );
+		renderLight.lightRadius.Set( spawnArgs.GetFloat( "light_radius" ) );
 	#ifdef ID_PC
 		renderLight.lightRadius *= 1.5f;
 		renderLight.forceShadows = true;
@@ -568,9 +566,11 @@ void idProjectile::AddParticlesAndLight()
 	// add the light
 	if( renderLight.lightRadius.x > 0.0f && g_projectileLights.GetBool() )
 	{
+		renderLight.smMaxLod = g_projectileLightMaxLod.GetInteger();
+
 		renderLight.origin = GetPhysics()->GetOrigin() + GetPhysics()->GetAxis() * lightOffset;
 		renderLight.axis = GetPhysics()->GetAxis();
-		if( ( lightDefHandle != -1 ) )
+		if( lightDefHandle != -1 )
 		{
 			if( lightEndTime > 0 && gameLocal.GetGameTimeMs() <= lightEndTime )
 			{
@@ -580,14 +580,13 @@ void idProjectile::AddParticlesAndLight()
 					float frac = ( float )( gameLocal.GetGameTimeMs() - lightStartTime ) / ( float )( lightEndTime - lightStartTime );
 					color.Lerp( lightColor, color, frac );
 				}
-				renderLight.shaderParms[ SHADERPARM_RED ] = color.x;
+				renderLight.shaderParms[ SHADERPARM_RED ]   = color.x;
 				renderLight.shaderParms[ SHADERPARM_GREEN ] = color.y;
-				renderLight.shaderParms[ SHADERPARM_BLUE ] = color.z;
+				renderLight.shaderParms[ SHADERPARM_BLUE ]  = color.z;
 			}
 			gameRenderWorld->UpdateLightDef( lightDefHandle, &renderLight );
 		}
-		else
-		{
+		else {
 			lightDefHandle = gameRenderWorld->AddLightDef( &renderLight );
 		}
 	}
@@ -756,7 +755,7 @@ bool idProjectile::Collide( const trace_t& collision, const idVec3& velocity )
 
 			// Only handle the server's own attacks here. Attacks by other players on the server occur through
 			// reliable messages.
-			if( !common->IsMultiplayer() || common->IsClient() || 
+			if( !common->IsMultiplayer() || common->IsClient() ||
 				( common->IsServer() && owner.GetEntityNum() == gameLocal.GetLocalClientNum() ) ||
 				( common->IsServer() && !isHitscan ) )
 			{
@@ -1162,11 +1161,9 @@ void idProjectile::Explode( const trace_t& collision, idEntity* ignore )
 
 	if( *light_shader )
 	{
-		renderLight.shader = declManager->FindMaterial( light_shader, false );
+		renderLight.material = declManager->FindMaterial( light_shader, false );
 		renderLight.pointLight = true;
-		renderLight.lightRadius[ 0 ] =
-		renderLight.lightRadius[ 1 ] =
-		renderLight.lightRadius[ 2 ] = spawnArgs.GetFloat( "explode_light_radius" );
+		renderLight.lightRadius.Set( spawnArgs.GetFloat( "explode_light_radius" ) );
 	#ifdef ID_PC
 		renderLight.lightRadius *= 2.0f;
 		renderLight.forceShadows = true;
@@ -1175,9 +1172,7 @@ void idProjectile::Explode( const trace_t& collision, idEntity* ignore )
 		// Midnight ctf
 		if( gameLocal.mpGame.IsGametypeFlagBased() && gameLocal.serverInfo.GetBool( "si_midnight" ) )
 		{
-			renderLight.lightRadius[ 0 ] =
-			renderLight.lightRadius[ 1 ] =
-			renderLight.lightRadius[ 2 ] = spawnArgs.GetFloat( "explode_light_radius" ) * 2;
+			renderLight.lightRadius.Set( spawnArgs.GetFloat( "explode_light_radius" ) * 2.0 );
 		}
 
 		spawnArgs.GetVector( "explode_light_color", "1 1 1", lightColor );
@@ -1978,7 +1973,7 @@ void idGuidedProjectile::Launch( const idVec3& start, const idVec3& dir, const i
 	unGuided = false;
 	burstDist = spawnArgs.GetFloat( "burstDist", "64" );
 	burstVelocity = spawnArgs.GetFloat( "burstVelocity", "1.25" );
-	
+
 	UpdateVisuals();
 }
 
@@ -2613,7 +2608,7 @@ void idBFGProjectile::Launch( const idVec3& start, const idVec3& dir, const idVe
 	}
 	damageFreq = spawnArgs.GetString( "def_damageFreq" );
 	nextDamageTime = gameLocal.GetGameTimeMs() + BFG_DAMAGE_FREQUENCY;
-	
+
 	UpdateVisuals();
 }
 
@@ -2697,7 +2692,7 @@ void idBFGProjectile::Explode( const trace_t& collision, idEntity* ignore )
 		{
 			dir = beamTargets[ i ].target.GetEntity()->GetPhysics()->GetOrigin() - GetPhysics()->GetOrigin();
 			dir.Normalize();
-			beamTargets[ i ].target.GetEntity()->Damage( this, ownerEnt, dir, damage, damageScale, 
+			beamTargets[ i ].target.GetEntity()->Damage( this, ownerEnt, dir, damage, damageScale,
 				( collision.c.id < 0 ) ? CLIPMODEL_ID_TO_JOINT_HANDLE( collision.c.id ) : INVALID_JOINT );
 		}
 	}

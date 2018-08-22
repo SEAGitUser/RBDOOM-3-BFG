@@ -138,8 +138,7 @@ struct frameTiming_t
 #define SAVEGAME_DESCRIPTION_FILENAME		"gamedata.txt"
 #define SAVEGAME_STRINGS_FILENAME			"gamedata.strings"
 
-class idCommonLocal : public idCommon
-{
+class idCommonLocal : public idCommon {
 public:
 	idCommonLocal();
 
@@ -149,7 +148,7 @@ public:
 	virtual void				Quit();
 	virtual bool				IsInitialized() const;
 	virtual void				Frame();
-	// DG: added possibility to *not* release mouse in UpdateScreen(), it fucks up the view angle for screenshots
+	// DG: added possibility to *not* release mouse in UpdateScreen(), it frucks up the view angle for screenshots
 	virtual void				UpdateScreen( bool captureToImage, bool releaseMouse = true );
 	// DG end
 	virtual void				UpdateLevelLoadPacifier();  // Indefinate
@@ -472,7 +471,7 @@ private:
 	int					timeDemoStartTime;
 	int					numDemoFrames;		// for timeDemo and demoShot
 	int					demoTimeOffset;
-	renderViewParms_t		currentDemoRenderView;
+	renderViewParms_t	currentDemoRenderView;
 
 	idStrList			mpGameModes;
 	idStrList			mpDisplayGameModes;
@@ -614,10 +613,7 @@ private:
 	// Doom classic support
 	void	RunDoomClassicFrame();
 	void	RenderDoomClassic();
-	bool	IsPlayingDoomClassic() const
-	{
-		return GetCurrentGame() != DOOM3_BFG;
-	}
+	bool	IsPlayingDoomClassic() const { return( GetCurrentGame() != DOOM3_BFG ); }
 	void	PerformGameSwitch();
 #endif
 	// RB end

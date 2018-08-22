@@ -85,7 +85,7 @@ void idSWF::DrawStretchPic( const idVec4& topLeft, const idVec4& topRight, const
 idSWF::Render
 ========================
 */
-void idSWF::Render( idRenderSystem* gui, int time, bool isSplitscreen )
+void idSWF::Render( int time, bool isSplitscreen )
 {
 	if( !IsLoaded() )
 	{
@@ -152,7 +152,7 @@ void idSWF::Render( idRenderSystem* gui, int time, bool isSplitscreen )
 
 	scaleToVirtual.Set( ( float )renderSystem->GetVirtualWidth() / sysWidth, ( float )renderSystem->GetVirtualHeight() / sysHeight );
 
-	RenderSprite( gui, mainspriteInstance, renderState, time, isSplitscreen );
+	RenderSprite( mainspriteInstance, renderState, time, isSplitscreen );
 
 	if( blackbars )
 	{
@@ -160,13 +160,13 @@ void idSWF::Render( idRenderSystem* gui, int time, bool isSplitscreen )
 		float barHeight = renderState.matrix.ty + 0.5f;
 		if( barWidth > 0.0f )
 		{
-			gui->SetColor( idVec4( 0.0f, 0.0f, 0.0f, 1.0f ) );
+			renderSystem->SetColor( idVec4( 0.0f, 0.0f, 0.0f, 1.0f ) );
 			DrawStretchPic( 0.0f, 0.0f, barWidth, sysHeight, 0, 0, 1, 1, white );
 			DrawStretchPic( sysWidth - barWidth, 0.0f, barWidth, sysHeight, 0, 0, 1, 1, white );
 		}
 		if( barHeight > 0.0f )
 		{
-			gui->SetColor( idVec4( 0.0f, 0.0f, 0.0f, 1.0f ) );
+			renderSystem->SetColor( idVec4( 0.0f, 0.0f, 0.0f, 1.0f ) );
 			DrawStretchPic( 0.0f, 0.0f, sysWidth, barHeight, 0, 0, 1, 1, white );
 			DrawStretchPic( 0.0f, sysHeight - barHeight, sysWidth, barHeight, 0, 0, 1, 1, white );
 		}
@@ -174,8 +174,8 @@ void idSWF::Render( idRenderSystem* gui, int time, bool isSplitscreen )
 
 	if( isMouseInClientArea && ( mouseEnabled && useMouse ) && ( InhibitControl() || ( !InhibitControl() && !useInhibtControl ) ) )
 	{
-		gui->SetGLState( GLS_SRCBLEND_SRC_ALPHA | GLS_DSTBLEND_ONE_MINUS_SRC_ALPHA );
-		gui->SetColor( idVec4( 1.0f, 1.0f, 1.0f, 1.0f ) );
+		renderSystem->SetGLState( GLS_SRCBLEND_SRC_ALPHA | GLS_DSTBLEND_ONE_MINUS_SRC_ALPHA );
+		renderSystem->SetColor( idVec4( 1.0f, 1.0f, 1.0f, 1.0f ) );
 		idVec2 mouse = renderState.matrix.Transform( idVec2( mouseX - 1, mouseY - 2 ) );
 		//idSWFScriptObject * hitObject = HitTest( mainspriteInstance, swfRenderState_t(), mouseX, mouseY, NULL );
 		if( !hasHitObject )    //hitObject == NULL ) {
@@ -189,7 +189,7 @@ void idSWF::Render( idRenderSystem* gui, int time, bool isSplitscreen )
 	}
 
 	// restore the GL State
-	gui->SetGLState( 0 );
+	renderSystem->SetGLState( 0 );
 }
 
 /*
@@ -197,7 +197,7 @@ void idSWF::Render( idRenderSystem* gui, int time, bool isSplitscreen )
 idSWF::RenderMask
 ========================
 */
-void idSWF::RenderMask( idRenderSystem* gui, const swfDisplayEntry_t* mask, const swfRenderState_t& renderState, const int stencilMode )
+void idSWF::RenderMask( const swfDisplayEntry_t* mask, const swfRenderState_t& renderState, const int stencilMode )
 {
 	swfRenderState_t renderState2;
 	renderState2.stereoDepth = renderState.stereoDepth;
@@ -210,11 +210,11 @@ void idSWF::RenderMask( idRenderSystem* gui, const swfDisplayEntry_t* mask, cons
 	idSWFDictionaryEntry& entry = dictionary[ mask->characterID ];
 	if( entry.type == SWF_DICT_SHAPE )
 	{
-		RenderShape( gui, entry.shape, renderState2 );
+		RenderShape( entry.shape, renderState2 );
 	}
 	else if( entry.type == SWF_DICT_MORPH )
 	{
-		RenderMorphShape( gui, entry.shape, renderState2 );
+		RenderMorphShape( entry.shape, renderState2 );
 	}
 }
 
@@ -223,7 +223,7 @@ void idSWF::RenderMask( idRenderSystem* gui, const swfDisplayEntry_t* mask, cons
 idSWF::RenderSprite
 ========================
 */
-void idSWF::RenderSprite( idRenderSystem* gui, idSWFSpriteInstance* spriteInstance, const swfRenderState_t& renderState, int time, bool isSplitscreen )
+void idSWF::RenderSprite( idSWFSpriteInstance* spriteInstance, const swfRenderState_t& renderState, int time, bool isSplitscreen )
 {
 	if( spriteInstance == NULL )
 	{
@@ -250,14 +250,14 @@ void idSWF::RenderSprite( idRenderSystem* gui, idSWFSpriteInstance* spriteInstan
 			const swfDisplayEntry_t* mask = activeMasks[ j ];
 			if( display.depth > mask->clipDepth )
 			{
-				RenderMask( gui, mask, renderState, STENCIL_DECR );
+				RenderMask( mask, renderState, STENCIL_DECR );
 				activeMasks.RemoveIndexFast( j );
 			}
 		}
 		if( display.clipDepth > 0 )
 		{
 			activeMasks.Append( &display );
-			RenderMask( gui, &display, renderState, STENCIL_INCR );
+			RenderMask( &display, renderState, STENCIL_INCR );
 			continue;
 		}
 		idSWFDictionaryEntry* entry = FindDictionaryEntry( display.characterID );
@@ -443,19 +443,19 @@ void idSWF::RenderSprite( idRenderSystem* gui, idSWFSpriteInstance* spriteInstan
 				}
 			}
 
-			RenderSprite( gui, display.spriteInstance, renderState2, time, isSplitscreen );
+			RenderSprite( display.spriteInstance, renderState2, time, isSplitscreen );
 		}
 		else if( entry->type == SWF_DICT_SHAPE )
 		{
-			RenderShape( gui, entry->shape, renderState2 );
+			RenderShape( entry->shape, renderState2 );
 		}
 		else if( entry->type == SWF_DICT_MORPH )
 		{
-			RenderMorphShape( gui, entry->shape, renderState2 );
+			RenderMorphShape( entry->shape, renderState2 );
 		}
 		else if( entry->type == SWF_DICT_EDITTEXT )
 		{
-			RenderEditText( gui, display.textInstance, renderState2, time, isSplitscreen );
+			RenderEditText( display.textInstance, renderState2, time, isSplitscreen );
 		}
 		else
 		{
@@ -468,7 +468,7 @@ void idSWF::RenderSprite( idRenderSystem* gui, idSWFSpriteInstance* spriteInstan
 	{
 		swfRect_t rect = CalcRect( spriteInstance, renderState );
 
-		DrawRect( gui, rect, idColor::red.ToVec4() );
+		DrawRect( rect, idColor::red.ToVec4() );
 
 		if( swf_show.GetInteger() > 1 )
 		{
@@ -483,8 +483,8 @@ void idSWF::RenderSprite( idRenderSystem* gui, idSWFSpriteInstance* spriteInstan
 			//str = display.spriteInstance->name.c_str();
 			sprintf( str, "%s\n%s", spriteInstance->name.c_str(), GetName() );
 
-			DrawText( gui, str, 0.35f, 0, color, swfRect_t( rect.tl.x, rect.tl.y, 300, 40 ), false );
-			//DrawText( gui, str, 0.25 * 2, 0, idColor::white.ToVec4(), swfRect_t( rect.tl.x, rect.tl.y, 300, 40 ), false );
+			DrawText( str, 0.35f, 0, color, swfRect_t( rect.tl.x, rect.tl.y, 300, 40 ), false );
+			//DrawText( str, 0.25 * 2, 0, idColor::white.ToVec4(), swfRect_t( rect.tl.x, rect.tl.y, 300, 40 ), false );
 		}
 	}
 	// RB end
@@ -492,7 +492,7 @@ void idSWF::RenderSprite( idRenderSystem* gui, idSWFSpriteInstance* spriteInstan
 	for( int j = 0; j < activeMasks.Num(); j++ )
 	{
 		const swfDisplayEntry_t* mask = activeMasks[ j ];
-		RenderMask( gui, mask, renderState, STENCIL_DECR );
+		RenderMask( mask, renderState, STENCIL_DECR );
 	}
 }
 
@@ -503,7 +503,7 @@ idSWF::GLStateForBlendMode
 */
 uint64 idSWF::GLStateForRenderState( const swfRenderState_t& renderState )
 {
-	uint64 extraGLState = GLS_OVERRIDE | GLS_DEPTHFUNC_LEQUAL | GLS_DEPTHMASK; 
+	uint64 extraGLState = GLS_OVERRIDE | GLS_DEPTHFUNC_LEQUAL | GLS_DEPTHMASK;
 	// SWF GL State always overrides what's set in the material
 
 	if( renderState.activeMasks > 0 )
@@ -552,7 +552,7 @@ uint64 idSWF::GLStateForRenderState( const swfRenderState_t& renderState )
 idSWF::RenderMorphShape
 ========================
 */
-void idSWF::RenderMorphShape( idRenderSystem* gui, const idSWFShape* shape, const swfRenderState_t& renderState )
+void idSWF::RenderMorphShape( const idSWFShape* shape, const swfRenderState_t& renderState )
 {
 	if( shape == NULL )
 	{
@@ -622,9 +622,9 @@ void idSWF::RenderMorphShape( idRenderSystem* gui, const idSWFShape* shape, cons
 
 		swfMatrix_t invMatrix = styleMatrix.Inverse();
 
-		gui->SetGLState( GLStateForRenderState( renderState ) );
+		renderSystem->SetGLState( GLStateForRenderState( renderState ) );
 
-		idDrawVert* verts = gui->AllocTris( fill.startVerts.Num(), fill.indices.Ptr(), fill.indices.Num(), material, renderState.stereoDepth );
+		idDrawVert* verts = renderSystem->AllocTris( fill.startVerts.Num(), fill.indices.Ptr(), fill.indices.Num(), material, renderState.stereoDepth );
 		if( verts == NULL )
 		{
 			continue;
@@ -657,7 +657,7 @@ void idSWF::RenderMorphShape( idRenderSystem* gui, const idSWFShape* shape, cons
 idSWF::RenderShape
 ========================
 */
-void idSWF::RenderShape( idRenderSystem* gui, const idSWFShape* shape, const swfRenderState_t& renderState )
+void idSWF::RenderShape( const idSWFShape* shape, const swfRenderState_t& renderState )
 {
 	if( shape == NULL )
 	{
@@ -757,9 +757,9 @@ void idSWF::RenderShape( idRenderSystem* gui, const idSWFShape* shape, const swf
 		}
 		idVec2 oneOverSize( 1.0f / size.x, 1.0f / size.y );
 
-		gui->SetGLState( GLStateForRenderState( renderState ) );
+		renderSystem->SetGLState( GLStateForRenderState( renderState ) );
 
-		idDrawVert* verts = gui->AllocTris( fill.startVerts.Num(), fill.indices.Ptr(), fill.indices.Num(), material, renderState.stereoDepth );
+		idDrawVert* verts = renderSystem->AllocTris( fill.startVerts.Num(), fill.indices.Ptr(), fill.indices.Num(), material, renderState.stereoDepth );
 		if( verts == NULL )
 		{
 			continue;
@@ -831,9 +831,9 @@ void idSWF::RenderShape( idRenderSystem* gui, const idSWFShape* shape, const swf
 			uint32 packedColorM = LittleLong( PackColor( color.mul ) );
 			uint32 packedColorA = LittleLong( PackColor( ( color.add * 0.5f ) + idVec4( 0.5f ) ) ); // Compress from -1..1 to 0..1
 
-			gui->SetGLState( GLStateForRenderState( renderState ) | GLS_POLYMODE_LINE );
+			renderSystem->SetGLState( GLStateForRenderState( renderState ) | GLS_POLYMODE_LINE );
 
-			idDrawVert* verts = gui->AllocTris( line.startVerts.Num(), line.indices.Ptr(), line.indices.Num(), white, renderState.stereoDepth );
+			idDrawVert* verts = renderSystem->AllocTris( line.startVerts.Num(), line.indices.Ptr(), line.indices.Num(), white, renderState.stereoDepth );
 			if( verts == NULL )
 			{
 				continue;
@@ -863,7 +863,7 @@ void idSWF::RenderShape( idRenderSystem* gui, const idSWFShape* shape, const swf
 idSWF::DrawEditCursor
 ========================
 */
-void idSWF::DrawEditCursor( idRenderSystem* gui, float x, float y, float w, float h, const swfMatrix_t& matrix )
+void idSWF::DrawEditCursor( float x, float y, float w, float h, const swfMatrix_t& matrix )
 {
 	idVec2 topl = matrix.Transform( idVec2( x, y ) );
 	idVec2 topr = matrix.Transform( idVec2( x + w, y ) );
@@ -877,7 +877,7 @@ void idSWF::DrawEditCursor( idRenderSystem* gui, float x, float y, float w, floa
 idSWF::RenderEditText
 ========================
 */
-void idSWF::RenderEditText( idRenderSystem* gui, idSWFTextInstance* textInstance, const swfRenderState_t& renderState, int time, bool isSplitscreen )
+void idSWF::RenderEditText( idSWFTextInstance* textInstance, const swfRenderState_t& renderState, int time, bool isSplitscreen )
 {
 	if( textInstance == NULL )
 	{
@@ -1026,8 +1026,8 @@ void idSWF::RenderEditText( idRenderSystem* gui, idSWFTextInstance* textInstance
 	idVec4 selColor( defaultColor );
 	selColor.w *= 0.5f;
 
-	gui->SetColor( defaultColor );
-	gui->SetGLState( GLStateForRenderState( renderState ) );
+	renderSystem->SetColor( defaultColor );
+	renderSystem->SetGLState( GLStateForRenderState( renderState ) );
 
 	swfRect_t bounds;
 	bounds.tl.x = xScale * ( shape->bounds.tl.x + SWFTWIP( shape->leftMargin ) );
@@ -1057,7 +1057,7 @@ void idSWF::RenderEditText( idRenderSystem* gui, idSWFTextInstance* textInstance
 		scaledGlyphInfo_t glyph;
 		fontInfo->GetScaledGlyph( glyphScale, ' ', glyph );
 		yPos = glyph.height / 2.0f;
-		DrawEditCursor( gui, bounds.tl.x, yPos, 1.0f, linespacing, matrix );
+		DrawEditCursor( bounds.tl.x, yPos, 1.0f, linespacing, matrix );
 	}
 
 	if( textInstance->IsSubtitle() )
@@ -1683,12 +1683,12 @@ void idSWF::RenderEditText( idRenderSystem* gui, idSWFTextInstance* textInstance
 				float s2 = 1.0f;
 				float t2 = 1.0f;
 
-				//uint32 color = gui->GetColor();
+				//uint32 color = renderSystem->GetColor();
 				idVec4 imgColor = idColor::white.ToVec4();
 				imgColor.w = defaultColor.w;
-				gui->SetColor( imgColor );
+				renderSystem->SetColor( imgColor );
 				DrawStretchPic( idVec4( topl.x, topl.y, s1, t1 ), idVec4( topr.x, topr.y, s2, t1 ), idVec4( br.x, br.y, s2, t2 ), idVec4( bl.x, bl.y, s1, t2 ), icon.material );
-				gui->SetColor( defaultColor );
+				renderSystem->SetColor( defaultColor );
 
 				x += icon.imageWidth * imageScale;
 				x += extraSpace;
@@ -1738,9 +1738,9 @@ void idSWF::RenderEditText( idRenderSystem* gui, idSWFTextInstance* textInstance
 				idVec2 topr = matrix.Transform( idVec2( x + glyphSkip, y ) );
 				idVec2 br = matrix.Transform( idVec2( x + glyphSkip, y + linespacing ) );
 				idVec2 bl = matrix.Transform( idVec2( x, y + linespacing ) );
-				gui->SetColor( selColor );
+				renderSystem->SetColor( selColor );
 				DrawStretchPic( idVec4( topl.x, topl.y, 0, 0 ), idVec4( topr.x, topr.y, 1, 0 ), idVec4( br.x, br.y, 1, 1 ), idVec4( bl.x, bl.y, 0, 1 ), white );
-				gui->SetColor( textColor );
+				renderSystem->SetColor( textColor );
 			}
 
 			if( textInstance->GetHasDropShadow() )
@@ -1755,15 +1755,15 @@ void idSWF::RenderEditText( idRenderSystem* gui, idSWFTextInstance* textInstance
 
 				idVec4 dsColor = idColor::black.ToVec4();
 				dsColor.w = defaultColor.w;
-				gui->SetColor( dsColor );
+				renderSystem->SetColor( dsColor );
 				DrawStretchPic( idVec4( dstopl.x, dstopl.y, s1, t1 ), idVec4( dstopr.x, dstopr.y, s2, t1 ), idVec4( dsbr.x, dsbr.y, s2, t2 ), idVec4( dsbl.x, dsbl.y, s1, t2 ), glyph.material );
-				gui->SetColor( textColor );
+				renderSystem->SetColor( textColor );
 			}
 			else if( textInstance->HasStroke() )
 			{
 				idVec4 strokeColor = idColor::black.ToVec4();
 				strokeColor.w = textInstance->GetStrokeStrength() * defaultColor.w;
-				gui->SetColor( strokeColor );
+				renderSystem->SetColor( strokeColor );
 				for( int index = 0; index < 4; ++index )
 				{
 					float xPos = glyphX + ( ( strokeXOffsets[ index ] * textInstance->GetStrokeWeight() ) * glyphScale );
@@ -1774,7 +1774,7 @@ void idSWF::RenderEditText( idRenderSystem* gui, idSWFTextInstance* textInstance
 					idVec2 botLeft = matrix.Transform( idVec2( xPos, yPos + glyphH ) );
 					DrawStretchPic( idVec4( topLeft.x, topLeft.y, s1, t1 ), idVec4( topRight.x, topRight.y, s2, t1 ), idVec4( botRight.x, botRight.y, s2, t2 ), idVec4( botLeft.x, botLeft.y, s1, t2 ), glyph.material );
 				}
-				gui->SetColor( textColor );
+				renderSystem->SetColor( textColor );
 			}
 
 			DrawStretchPic( idVec4( topl.x, topl.y, s1, t1 ), idVec4( topr.x, topr.y, s2, t1 ), idVec4( br.x, br.y, s2, t2 ), idVec4( bl.x, bl.y, s1, t2 ), glyph.material );
@@ -1782,7 +1782,7 @@ void idSWF::RenderEditText( idRenderSystem* gui, idSWFTextInstance* textInstance
 			x += extraSpace;
 			if( cursorPos == c )
 			{
-				DrawEditCursor( gui, x - 1.0f, y, 1.0f, linespacing, matrix );
+				DrawEditCursor( x - 1.0f, y, 1.0f, linespacing, matrix );
 			}
 			c++;
 			overallIndex += i - overallLineIndex;
@@ -1993,7 +1993,7 @@ swfRect_t idSWF::CalcRect( const idSWFSpriteInstance* spriteInstance, const swfR
 	return bounds;
 }
 
-void idSWF::DrawRect( idRenderSystem* gui, const swfRect_t& rect, const idVec4& color )
+void idSWF::DrawRect( const swfRect_t& rect, const idVec4& color )
 {
 	renderSystem->SetColor( color );
 
@@ -2010,17 +2010,8 @@ void idSWF::DrawRect( idRenderSystem* gui, const swfRect_t& rect, const idVec4& 
 	DrawStretchPic( x, y + h - size, w, size, 0, 0, 0, 0, white );
 }
 
-static triIndex_t quadPicIndexes[ 6 ] = { 3, 0, 2, 2, 0, 1 };
-int idSWF::DrawText( idRenderSystem* gui, float x, float y, float scale, idVec4 color, const char* text, float adjust, int limit, int style )
+int idSWF::DrawText( float x, float y, float scale, idVec4 color, const char* text, float adjust, int limit, int style )
 {
-	/*
-	if( !matIsIdentity || cursor != -1 )
-	{
-		// fallback to old code
-		return idDeviceContext::DrawText( x, y, scale, color, text, adjust, limit, style, cursor );
-	}
-	*/
-
 	idStr drawText = text;
 
 	if( drawText.Length() == 0 )
@@ -2080,7 +2071,7 @@ int idSWF::DrawText( idRenderSystem* gui, float x, float y, float scale, idVec4 
 		float xOffset = 0;
 		float yOffset = 0;
 
-		//idDrawVert* verts = gui->AllocTris( fill.startVerts.Num(), fill.indices.Ptr(), fill.indices.Num(), material, renderState.stereoDepth );
+		//idDrawVert* verts = renderSystem->AllocTris( fill.startVerts.Num(), fill.indices.Ptr(), fill.indices.Num(), material, renderState.stereoDepth );
 
 		//if( !ClippedCoords( &drawX, &drawY, &w, &h, &s, &t, &s2, &t2 ) )
 		{
@@ -2088,29 +2079,8 @@ int idSWF::DrawText( idRenderSystem* gui, float x, float y, float scale, idVec4 
 			float x2 = xOffset + ( drawX + w ) * scaleToVirtual.x;
 			float y1 = yOffset + drawY * scaleToVirtual.y;
 			float y2 = yOffset + ( drawY + h ) * scaleToVirtual.y;
-			idDrawVert* verts = gui->AllocTris( 4, quadPicIndexes, 6, glyphInfo.material, STEREO_DEPTH_TYPE_NONE );
-			if( verts != NULL )
-			{
-				verts[ 0 ].SetPosition( x1, y1, 0.0f );
-				verts[ 0 ].SetTexCoord( s, t );
-				verts[ 0 ].SetNativeOrderColor( currentColorNativeByteOrder );
-				verts[ 0 ].ClearColor2();
 
-				verts[ 1 ].SetPosition( x2, y1, 0.0f );
-				verts[ 1 ].SetTexCoord( s2, t );
-				verts[ 1 ].SetNativeOrderColor( currentColorNativeByteOrder );
-				verts[ 1 ].ClearColor2();
-
-				verts[ 2 ].SetPosition( x2, y2, 0.0f );
-				verts[ 2 ].SetTexCoord( s2, t2 );
-				verts[ 2 ].SetNativeOrderColor( currentColorNativeByteOrder );
-				verts[ 2 ].ClearColor2();
-
-				verts[ 3 ].SetPosition( x1, y2, 0.0f );
-				verts[ 3 ].SetTexCoord( s, t2 );
-				verts[ 3 ].SetNativeOrderColor( currentColorNativeByteOrder );
-				verts[ 3 ].ClearColor2();
-			}
+			renderSystem->DrawStretchPic( idVec4( x1, y1, s, t ), idVec4( x2, y1, s2, t ), idVec4( x2, y2, s2, t2 ), idVec4( x1, y2, s, t2 ), glyphInfo.material );
 		}
 
 		x += glyphInfo.xSkip + adjust;
@@ -2118,7 +2088,7 @@ int idSWF::DrawText( idRenderSystem* gui, float x, float y, float scale, idVec4 
 	return drawText.Length();
 }
 
-int idSWF::DrawText( idRenderSystem* gui, const char* text, float textScale, int textAlign, idVec4 color, const swfRect_t& rectDraw, bool wrap, int cursor, bool calcOnly, idList<int>* breaks, int limit )
+int idSWF::DrawText( const char* text, float textScale, int textAlign, idVec4 color, const swfRect_t& rectDraw, bool wrap, int cursor, bool calcOnly, idList<int>* breaks, int limit )
 {
 	int		count = 0;
 	int		charIndex = 0;
@@ -2246,12 +2216,12 @@ int idSWF::DrawText( idRenderSystem* gui, const char* text, float textScale, int
 			{
 				if( lastBreak > 0 )
 				{
-					count += DrawText( gui, x, y, textScale, color, textBuffer.Left( lastBreak ).c_str(), 0, 0, 0 );
+					count += DrawText( x, y, textScale, color, textBuffer.Left( lastBreak ).c_str(), 0, 0, 0 );
 					textBuffer = textBuffer.Right( textBuffer.Length() - lastBreak );
 				}
 				else
 				{
-					count += DrawText( gui, x, y, textScale, color, textBuffer.c_str(), 0, 0, 0 );
+					count += DrawText( x, y, textScale, color, textBuffer.c_str(), 0, 0, 0 );
 					textBuffer.Clear();
 				}
 			}

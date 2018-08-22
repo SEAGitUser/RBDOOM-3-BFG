@@ -220,6 +220,8 @@ idCVar r_debugRenderToTexture( "r_debugRenderToTexture", "0", CVAR_RENDERER | CV
 idCVar stereoRender_enable( "stereoRender_enable", "0", CVAR_INTEGER | CVAR_ARCHIVE, "1 = side-by-side compressed, 2 = top and bottom compressed, 3 = side-by-side, 4 = 720 frame packed, 5 = interlaced, 6 = OpenGL quad buffer" );
 idCVar stereoRender_swapEyes( "stereoRender_swapEyes", "0", CVAR_BOOL | CVAR_ARCHIVE, "reverse eye adjustments" );
 idCVar stereoRender_deGhost( "stereoRender_deGhost", "0.05", CVAR_FLOAT | CVAR_ARCHIVE, "subtract from opposite eye to reduce ghosting" );
+idCVar stereoRender_interOccularCentimeters( "stereoRender_interOccularCentimeters", "3.0", CVAR_ARCHIVE | CVAR_RENDERER, "Distance between eyes" );
+idCVar stereoRender_convergence( "stereoRender_convergence", "6", CVAR_RENDERER, "0 = head mounted display, otherwise world units to convergence plane" );
 
 idCVar r_useVirtualScreenResolution( "r_useVirtualScreenResolution", "1", CVAR_RENDERER | CVAR_BOOL | CVAR_ARCHIVE, "do 2D rendering at 640x480 and stretch to the current resolution" );
 
@@ -481,9 +483,6 @@ static void R_CheckPortableExtensions()
 		}
 		glGetIntegerv( GL_MAX_UNIFORM_BLOCK_SIZE, ( GLint* )&glConfig.uniformBufferMaxSize );
 	}
-	// RB: make GPU skinning optional for weak OpenGL drivers
-	glConfig.gpuSkinningAvailable = glConfig.uniformBufferAvailable &&
-		( glConfig.driverType == GLDRV_OPENGL3X || glConfig.driverType == GLDRV_OPENGL32_CORE_PROFILE || glConfig.driverType == GLDRV_OPENGL32_COMPATIBILITY_PROFILE );
 
 	// ATI_separate_stencil / OpenGL 2.0 separate stencil
 	glConfig.twoSidedStencilAvailable = ( glConfig.glVersion >= 2.0f ) || CHECK_EXT( ATI_separate_stencil );
@@ -1161,15 +1160,6 @@ void GfxInfo_f( const idCmdArgs& args )
 						renderSystem->GetPhysicalScreenWidthInCentimeters(), renderSystem->GetPhysicalScreenWidthInCentimeters() / 2.54f
 						* sqrt( ( float )( 16 * 16 + 9 * 9 ) ) / 16.0f );
 	}
-
-	if( glConfig.gpuSkinningAvailable )
-	{
-		common->Printf( S_COLOR_GREEN "GPU skeletal animation available\n" );
-	}
-	else
-	{
-		common->Printf( S_COLOR_RED "GPU skeletal animation not available (slower CPU path active)\n" );
-	}
 }
 
 /*
@@ -1435,7 +1425,7 @@ void idRenderSystemLocal::Shutdown()
 {
 	common->Printf( "idRenderSystem::Shutdown()\n" );
 
-	fonts.DeleteContents();
+	fonts.DeleteContents( true );
 
 	if( R_IsInitialized() )
 	{
@@ -1767,7 +1757,7 @@ idRenderSystemLocal::GetStereoScopicRenderingMode
 */
 stereo3DMode_t idRenderSystemLocal::GetStereoScopicRenderingMode() const
 {
-	return ( !IsStereoScopicRenderingSupported() ) ? STEREO3D_OFF : ( stereo3DMode_t )stereoRender_enable.GetInteger();
+	return ( !IsStereoScopicRenderingSupported() )? STEREO3D_OFF : ( stereo3DMode_t )stereoRender_enable.GetInteger();
 }
 
 /*
@@ -1778,6 +1768,43 @@ idRenderSystemLocal::IsStereoScopicRenderingSupported
 void idRenderSystemLocal::EnableStereoScopicRendering( const stereo3DMode_t mode ) const
 {
 	stereoRender_enable.SetInteger( mode );
+}
+
+static float CalculateWorldSeparation(
+	const float screenSeparation,
+	const float convergenceDistance,
+	const float fov_x_degrees )
+{
+	const float fovRadians = DEG2RAD( fov_x_degrees );
+	const float screen = idMath::Tan( fovRadians * 0.5f ) * idMath::Fabs( screenSeparation );
+	const float worldSeparation = screen * convergenceDistance / 0.5f;
+	return worldSeparation;
+}
+/*
+========================
+idRenderSystemLocal::CaclulateStereoDistances
+========================
+*/
+stereoDistances_t idRenderSystemLocal::CaclulateStereoDistances(
+	const float	interOcularCentimeters,		// distance between two eyes, typically 6.0 - 7.0
+	const float screenWidthCentimeters,		// read from operating system
+	const float convergenceWorldUnits,		// pass 0 for head mounted display mode
+	const float	fov_x_degrees ) const 		// edge to edge horizontal field of view, typically 60 - 90
+{
+	stereoDistances_t dists = {};
+
+	if( convergenceWorldUnits == 0.0f )
+	{
+		// head mounted display mode
+		dists.worldSeparation = idMath::CentimetersToInches( interOcularCentimeters * 0.5 );
+		dists.screenSeparation = 0.0f;
+		return dists;
+	}
+
+	// 3DTV mode
+	dists.screenSeparation = 0.5f * interOcularCentimeters / screenWidthCentimeters;
+	dists.worldSeparation = CalculateWorldSeparation( dists.screenSeparation, convergenceWorldUnits, fov_x_degrees );
+	return dists;
 }
 
 /*
@@ -1796,9 +1823,10 @@ float idRenderSystemLocal::GetPixelAspect() const
 		case STEREO3D_INTERLACED:
 			return glConfig.pixelAspect * 0.5f;
 
-		default:
-			return glConfig.pixelAspect;
+		//default:
+		//	return glConfig.pixelAspect;
 	}
+	return glConfig.pixelAspect;
 }
 
 /*
@@ -1832,3 +1860,4 @@ bool idRenderSystemLocal::GetModeListForDisplay( const int displayNum, vidModes_
 	extern bool R_GetModeListForDisplay( const int, vidModes_t & );
 	return R_GetModeListForDisplay( displayNum, modeList );
 }
+
