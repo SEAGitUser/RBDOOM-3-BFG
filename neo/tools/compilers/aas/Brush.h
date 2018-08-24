@@ -60,47 +60,23 @@ void DisplayRealTimeString( const char* string, ... ) ID_STATIC_ATTRIBUTE_PRINTF
 #define SFL_USED_SPLITTER			0x0004
 #define SFL_TESTED_SPLITTER			0x0008
 
-class idBrushSide
-{
-
+class idBrushSide {
 	friend class idBrush;
-	
 public:
 	idBrushSide();
 	idBrushSide( const idPlane& plane, int planeNum );
 	~idBrushSide();
-	
-	int						GetFlags() const
-	{
-		return flags;
-	}
-	void					SetFlag( int flag )
-	{
-		flags |= flag;
-	}
-	void					RemoveFlag( int flag )
-	{
-		flags &= ~flag;
-	}
-	const idPlane& 			GetPlane() const
-	{
-		return plane;
-	}
-	void					SetPlaneNum( int num )
-	{
-		planeNum = num;
-	}
-	int						GetPlaneNum()
-	{
-		return planeNum;
-	}
-	const idWinding* 		GetWinding() const
-	{
-		return winding;
-	}
+
+	int						GetFlags() const { return flags; }
+	void					SetFlag( int flag ) { flags |= flag; }
+	void					RemoveFlag( int flag ) { flags &= ~flag; }
+	const idPlane& 			GetPlane() const { return plane; }
+	void					SetPlaneNum( int num ) { planeNum = num; }
+	int						GetPlaneNum() { return planeNum; }
+	const idWinding* 		GetWinding() const { return winding; }
 	idBrushSide* 			Copy() const;
 	int						Split( const idPlane& splitPlane, idBrushSide** front, idBrushSide** back ) const;
-	
+
 private:
 	int						flags;
 	int						planeNum;
@@ -117,68 +93,26 @@ private:
 
 #define BFL_NO_VALID_SPLITTERS		0x0001
 
-class idBrush
-{
-
+class idBrush {
 	friend class idBrushList;
-	
 public:
 	idBrush();
 	~idBrush();
-	
-	int						GetFlags() const
-	{
-		return flags;
-	}
-	void					SetFlag( int flag )
-	{
-		flags |= flag;
-	}
-	void					RemoveFlag( int flag )
-	{
-		flags &= ~flag;
-	}
-	void					SetEntityNum( int num )
-	{
-		entityNum = num;
-	}
-	void					SetPrimitiveNum( int num )
-	{
-		primitiveNum = num;
-	}
-	void					SetContents( int contents )
-	{
-		this->contents = contents;
-	}
-	int						GetContents() const
-	{
-		return contents;
-	}
-	const idBounds& 		GetBounds() const
-	{
-		return bounds;
-	}
+
+	int						GetFlags() const { return flags; }
+	void					SetFlag( int flag ) { flags |= flag; }
+	void					RemoveFlag( int flag ) { flags &= ~flag; }
+	void					SetEntityNum( int num ) { entityNum = num; }
+	void					SetPrimitiveNum( int num ) { primitiveNum = num; }
+	void					SetContents( int contents ) { this->contents = contents; }
+	int						GetContents() const { return contents; }
+	const idBounds& 		GetBounds() const { return bounds; }
 	float					GetVolume() const;
-	int						GetNumSides() const
-	{
-		return sides.Num();
-	}
-	idBrushSide* 			GetSide( int i ) const
-	{
-		return sides[i];
-	}
-	void					SetPlaneSide( int s )
-	{
-		planeSide = s;
-	}
-	void					SavePlaneSide()
-	{
-		savedPlaneSide = planeSide;
-	}
-	int						GetSavedPlaneSide() const
-	{
-		return savedPlaneSide;
-	}
+	int						GetNumSides() const { return sides.Num(); }
+	idBrushSide* 			GetSide( int i ) const { return sides[i]; }
+	void					SetPlaneSide( int s ) { planeSide = s; }
+	void					SavePlaneSide() { savedPlaneSide = planeSide; }
+	int						GetSavedPlaneSide() const { return savedPlaneSide; }
 	bool					FromSides( idList<idBrushSide*>& sideList );
 	bool					FromWinding( const idWinding& w, const idPlane& windingPlane );
 	bool					FromBounds( const idBounds& bounds );
@@ -192,11 +126,8 @@ public:
 	// expand the brush for an axial bounding box
 	void					ExpandForAxialBox( const idBounds& bounds );
 	// next brush in list
-	idBrush* 				Next() const
-	{
-		return next;
-	}
-	
+	idBrush* 				Next() const { return next; }
+
 private:
 	mutable idBrush* 		next;				// next brush in list
 	int						entityNum;			// entity number in editor
@@ -208,7 +139,7 @@ private:
 	int						savedPlaneSide;		// saved plane side
 	idBounds				bounds;				// brush bounds
 	idList<idBrushSide*>	sides;				// list with sides
-	
+
 private:
 	bool					CreateWindings();
 	void					BoundBrush( const idBrush* original = NULL );
@@ -228,32 +159,13 @@ class idBrushList
 public:
 	idBrushList();
 	~idBrushList();
-	
-	int						Num() const
-	{
-		return numBrushes;
-	}
-	int						NumSides() const
-	{
-		return numBrushSides;
-	}
-	idBrush* 				Head() const
-	{
-		return head;
-	}
-	idBrush* 				Tail() const
-	{
-		return tail;
-	}
-	void					Clear()
-	{
-		head = tail = NULL;
-		numBrushes = 0;
-	}
-	bool					IsEmpty() const
-	{
-		return ( numBrushes == 0 );
-	}
+
+	int						Num() const { return numBrushes; }
+	int						NumSides() const { return numBrushSides; }
+	idBrush* 				Head() const { return head; }
+	idBrush* 				Tail() const { return tail; }
+	void					Clear() { head = tail = NULL; numBrushes = 0; }
+	bool					IsEmpty() const { return( numBrushes == 0 ); }
 	idBounds				GetBounds() const;
 	// add brush to the tail of the list
 	void					AddToTail( idBrush* brush );
@@ -283,7 +195,7 @@ public:
 	void					CreatePlaneList( idPlaneSet& planeList ) const;
 	// write a brush map with the brushes in the list
 	void					WriteBrushMap( const idStr& fileName, const idStr& ext ) const;
-	
+
 private:
 	idBrush* 				head;
 	idBrush* 				tail;
@@ -298,19 +210,14 @@ private:
 //
 //===============================================================
 
-class idBrushMap
-{
-
+class idBrushMap {
 public:
 	idBrushMap( const idStr& fileName, const idStr& ext );
 	~idBrushMap();
-	void					SetTexture( const idStr& textureName )
-	{
-		texture = textureName;
-	}
+	void					SetTexture( const idStr& textureName ) { texture = textureName; }
 	void					WriteBrush( const idBrush* brush );
 	void					WriteBrushList( const idBrushList& brushList );
-	
+
 private:
 	idFile* 				fp;
 	idStr					texture;

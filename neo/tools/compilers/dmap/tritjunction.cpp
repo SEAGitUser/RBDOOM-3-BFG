@@ -85,11 +85,11 @@ If you have questions concerning this license or the applicable additional terms
 
 #define	HASH_BINS	16
 
-typedef struct hashVert_s {
-	struct hashVert_s*	next;
+struct hashVert_t {
+	hashVert_t *		next;
 	idVec3				v;
 	int					iv[ 3 ];
-} hashVert_t;
+};
 
 static idBounds	hashBounds;
 static idVec3	hashScale;
@@ -104,7 +104,7 @@ GetHashVert
 Also modifies the original vert to the snapped value
 ===============
 */
-struct hashVert_s*	GetHashVert( idVec3& v )
+hashVert_t * GetHashVert( idVec3& v )
 {
 	int		iv[ 3 ];
 	int		block[ 3 ];
@@ -179,8 +179,7 @@ bins that should hold the triangle
 */
 static void HashBlocksForTri( const mapTri_t* tri, int blocks[ 2 ][ 3 ] )
 {
-	idBounds	bounds;
-	int			i;
+	idBounds bounds;
 
 	bounds.Clear();
 	bounds.AddPoint( tri->v[ 0 ].GetPosition() );
@@ -188,7 +187,7 @@ static void HashBlocksForTri( const mapTri_t* tri, int blocks[ 2 ][ 3 ] )
 	bounds.AddPoint( tri->v[ 2 ].GetPosition() );
 
 	// add a 1.0 slop margin on each side
-	for( i = 0; i < 3; i++ )
+	for( int i = 0; i < 3; i++ )
 	{
 		blocks[ 0 ][ i ] = ( bounds[ 0 ][ i ] - 1.0 - hashBounds[ 0 ][ i ] ) / hashScale[ i ];
 		if( blocks[ 0 ][ i ] < 0 )
@@ -430,7 +429,7 @@ FixTriangleAgainstHash
 Potentially splits a triangle into a list of triangles based on tjunctions
 ==================
 */
-static mapTri_t*	FixTriangleAgainstHash( const mapTri_t* tri )
+static mapTri_t * FixTriangleAgainstHash( const mapTri_t* tri )
 {
 	mapTri_t*		fixed;
 	mapTri_t*		a;
@@ -442,9 +441,9 @@ static mapTri_t*	FixTriangleAgainstHash( const mapTri_t* tri )
 	// if this triangle is degenerate after point snapping,
 	// do nothing (this shouldn't happen, because they should
 	// be removed as they are hashed)
-	if( tri->hashVert[ 0 ] == tri->hashVert[ 1 ]
-		|| tri->hashVert[ 0 ] == tri->hashVert[ 2 ]
-		|| tri->hashVert[ 1 ] == tri->hashVert[ 2 ] )
+	if( tri->hashVert[ 0 ] == tri->hashVert[ 1 ] ||
+		tri->hashVert[ 0 ] == tri->hashVert[ 2 ] ||
+		tri->hashVert[ 1 ] == tri->hashVert[ 2 ] )
 	{
 		return NULL;
 	}
@@ -496,14 +495,11 @@ CountGroupListTris
 */
 int CountGroupListTris( const optimizeGroup_t* groupList )
 {
-	int		c;
-
-	c = 0;
+	int c = 0;
 	for( ; groupList; groupList = groupList->nextGroup )
 	{
 		c += CountTriList( groupList->triList );
 	}
-
 	return c;
 }
 
@@ -512,7 +508,7 @@ int CountGroupListTris( const optimizeGroup_t* groupList )
 FixAreaGroupsTjunctions
 ==================
 */
-void	FixAreaGroupsTjunctions( optimizeGroup_t* groupList )
+void FixAreaGroupsTjunctions( optimizeGroup_t* groupList )
 {
 	const mapTri_t*	tri;
 	mapTri_t*		newList;
@@ -570,11 +566,9 @@ void	FixAreaGroupsTjunctions( optimizeGroup_t* groupList )
 FixEntityTjunctions
 ==================
 */
-void	FixEntityTjunctions( uEntity_t* e )
+void FixEntityTjunctions( uEntity_t* e )
 {
-	int		i;
-
-	for( i = 0; i < e->numAreas; i++ )
+	for( int i = 0; i < e->numAreas; i++ )
 	{
 		FixAreaGroupsTjunctions( e->areas[ i ].groups );
 		FreeTJunctionHash();
@@ -586,7 +580,7 @@ void	FixEntityTjunctions( uEntity_t* e )
 FixGlobalTjunctions
 ==================
 */
-void	FixGlobalTjunctions( uEntity_t* e )
+void FixGlobalTjunctions( uEntity_t* e )
 {
 	mapTri_t*	a;
 	int			vert;
@@ -620,8 +614,8 @@ void	FixGlobalTjunctions( uEntity_t* e )
 	// spread the bounds so it will never have a zero size
 	for( i = 0; i < 3; i++ )
 	{
-		hashBounds[ 0 ][ i ] = floor( hashBounds[ 0 ][ i ] - 1 );
-		hashBounds[ 1 ][ i ] = ceil( hashBounds[ 1 ][ i ] + 1 );
+		hashBounds[ 0 ][ i ] = idMath::Floor( hashBounds[ 0 ][ i ] - 1 );
+		hashBounds[ 1 ][ i ] = idMath::Ceil( hashBounds[ 1 ][ i ] + 1 );
 		hashIntMins[ i ] = hashBounds[ 0 ][ i ] * SNAP_FRACTIONS;
 
 		hashScale[ i ] = ( hashBounds[ 1 ][ i ] - hashBounds[ 0 ][ i ] ) / HASH_BINS;
@@ -661,20 +655,24 @@ void	FixGlobalTjunctions( uEntity_t* e )
 	{
 		for( int eNum = 1; eNum < dmapGlobals.num_entities; ++eNum )
 		{
-			uEntity_t* entity = &dmapGlobals.uEntities[ eNum ];
-			const char* className = entity->mapEntity->epairs.GetString( "classname" );
+			auto & entity = dmapGlobals.uEntities[ eNum ];
+
+			const char* className = entity.mapEntity->epairs.GetString( "classname" );
 			if( idStr::Icmp( className, "func_static" ) )
 			{
 				continue;
 			}
-			const char* modelName = entity->mapEntity->epairs.GetString( "model" );
+			const char* modelName = entity.mapEntity->epairs.GetString( "model" );
 			if( !modelName )
 			{
 				continue;
 			}
 
 			// RB: DAE support
-			if( !strstr( modelName, ".lwo" ) && !strstr( modelName, ".ase" ) && !strstr( modelName, ".ma" ) && !strstr( modelName, ".dae" ) )
+			if( !idStr::FindString( modelName, ".lwo", false ) &&
+				!idStr::FindString( modelName, ".ase", false ) &&
+				!idStr::FindString( modelName, ".ma", false ) &&
+				!idStr::FindString( modelName, ".dae", false ) )
 			{
 				continue;
 			}
@@ -685,9 +683,9 @@ void	FixGlobalTjunctions( uEntity_t* e )
 
 			idMat3	axis;
 			// get the rotation matrix in either full form, or single angle form
-			if( !entity->mapEntity->epairs.GetMatrix( "rotation", "1 0 0 0 1 0 0 0 1", axis ) )
+			if( !entity.mapEntity->epairs.GetMatrix( "rotation", "1 0 0 0 1 0 0 0 1", axis ) )
 			{
-				float angle = entity->mapEntity->epairs.GetFloat( "angle" );
+				float angle = entity.mapEntity->epairs.GetFloat( "angle" );
 				if( angle != 0.0f )
 				{
 					axis = idAngles( 0.0f, angle, 0.0f ).ToMat3();
@@ -697,7 +695,7 @@ void	FixGlobalTjunctions( uEntity_t* e )
 				}
 			}
 
-			idVec3	origin = entity->mapEntity->epairs.GetVector( "origin" );
+			idVec3 origin = entity.mapEntity->epairs.GetVector( "origin" );
 
 			for( i = 0; i < model->NumSurfaces(); i++ )
 			{

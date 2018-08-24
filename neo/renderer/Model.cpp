@@ -295,8 +295,7 @@ void idRenderModelStatic::InitFromFile( const char* fileName )
 		loaded = LoadMA( name );
 		reloadable = true;
 	}
-	else
-	{
+	else {
 		common->Warning( "idRenderModelStatic::InitFromFile: unknown type for model: \'%s\'", name.c_str() );
 		loaded = false;
 	}

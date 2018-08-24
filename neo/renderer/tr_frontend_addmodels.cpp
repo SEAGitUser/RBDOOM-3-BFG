@@ -160,6 +160,14 @@ void R_SetupDrawSurfJoints( drawSurf_t* drawSurf, const idTriangles* tri, const 
 	drawSurf->jointCache = model->jointsInvertedBuffer;
 }
 
+struct localInteractions_t
+{
+	static const int MAX_CONTACTED_LIGHTS = 128;
+	int	numContactedLights = 0;
+	viewLight_t* contactedLights[ MAX_CONTACTED_LIGHTS ];
+	idInteraction* staticInteractions[ MAX_CONTACTED_LIGHTS ];
+};
+
 /*
 ===================
  R_AddSingleModel
@@ -211,10 +219,8 @@ void R_AddSingleModel( viewModel_t * vEntity )
 	//
 	// OPTIMIZE: world areas can assume all referenced lights are used
 	//---------------------------
-	int	numContactedLights = 0;
-	static const int MAX_CONTACTED_LIGHTS = 128;
-	viewLight_t* contactedLights[ MAX_CONTACTED_LIGHTS ];
-	idInteraction* staticInteractions[ MAX_CONTACTED_LIGHTS ];
+
+	localInteractions_t inters;
 
 	if( entityDef->GetModel() == NULL ||
 		entityDef->GetModel()->ModelHasInteractingSurfaces() ||
@@ -231,9 +237,11 @@ void R_AddSingleModel( viewModel_t * vEntity )
 				// new code path, everything was done in AddLight
 				if( vLight->entityInteractionState[ entityDef->GetIndex() ] == viewLight_t::INTERACTION_YES )
 				{
-					contactedLights[ numContactedLights ] = vLight;
-					staticInteractions[ numContactedLights ] = world->interactionTable[ vLight->lightDef->GetIndex() * world->interactionTableWidth + entityDef->GetIndex() ];
-					if( ++numContactedLights == MAX_CONTACTED_LIGHTS )
+					inters.contactedLights[ inters.numContactedLights ] = vLight;
+					inters.staticInteractions[ inters.numContactedLights ] = world->GetInteractionForPair( entityDef->GetIndex(), vLight->lightDef->GetIndex() );
+					inters.numContactedLights++;
+
+					if( inters.numContactedLights == localInteractions_t::MAX_CONTACTED_LIGHTS )
 					{
 						break;
 					}
@@ -288,9 +296,11 @@ void R_AddSingleModel( viewModel_t * vEntity )
 				}
 			}
 
-			contactedLights[ numContactedLights ] = vLight;
-			staticInteractions[ numContactedLights ] = world->interactionTable[ vLight->lightDef->GetIndex() * world->interactionTableWidth + entityDef->GetIndex() ];
-			if( ++numContactedLights == MAX_CONTACTED_LIGHTS )
+			inters.contactedLights[ inters.numContactedLights ] = vLight;
+			inters.staticInteractions[ inters.numContactedLights ] = world->GetInteractionForPair( entityDef->GetIndex(), vLight->lightDef->GetIndex() );
+			inters.numContactedLights++;
+
+			if( inters.numContactedLights == localInteractions_t::MAX_CONTACTED_LIGHTS )
 			{
 				break;
 			}
@@ -299,7 +309,7 @@ void R_AddSingleModel( viewModel_t * vEntity )
 
 	// if we aren't visible and none of the shadows stretch into the view,
 	// we don't need to do anything else
-	if( !modelIsVisible && numContactedLights == 0 )
+	if( !modelIsVisible && inters.numContactedLights == 0 )
 	{
 		return;
 	}
@@ -609,11 +619,12 @@ void R_AddSingleModel( viewModel_t * vEntity )
 		//----------------------------------------
 		// add all light interactions
 		//----------------------------------------
-		for( int contactedLight = 0; contactedLight < numContactedLights; contactedLight++ )
+		for( int contactedLight = 0; contactedLight < inters.numContactedLights; ++contactedLight )
 		{
-			viewLight_t* vLight = contactedLights[ contactedLight ];
+			viewLight_t* vLight = inters.contactedLights[ contactedLight ];
+			const idInteraction* interaction = inters.staticInteractions[ contactedLight ];
+
 			const idRenderLightLocal* lightDef = vLight->lightDef;
-			const idInteraction* interaction = staticInteractions[ contactedLight ];
 
 			// check for a static interaction
 			surfaceInteraction_t* surfInter = NULL;
@@ -1081,7 +1092,7 @@ void R_AddSingleModel( viewModel_t * vEntity )
 			R_SetupDrawSurfJoints( shadowDrawSurf, tri, NULL );
 
 			// determine which linked list to add the shadow surface to
-			shadowDrawSurf->linkChain = material->TestMaterialFlag( MF_NOSELFSHADOW ) ? &vLight->localShadows : &vLight->globalShadows;
+			shadowDrawSurf->linkChain = material->TestMaterialFlag( MF_NOSELFSHADOW )? &vLight->localShadows : &vLight->globalShadows;
 
 			shadowDrawSurf->nextOnLight = vEntity->drawSurfs;
 			vEntity->drawSurfs = shadowDrawSurf;
@@ -1120,8 +1131,7 @@ static viewModel_t* R_SortViewEntities( viewModel_t* vEntities )
 			vEntity->next = areas;
 			areas = vEntity;
 		}
-		else
-		{
+		else {
 			vEntity->next = others;
 			others = vEntity;
 		}
@@ -1134,16 +1144,20 @@ static viewModel_t* R_SortViewEntities( viewModel_t* vEntities )
 	for( viewModel_t* vEntity = areas; vEntity != NULL; )
 	{
 		viewModel_t* next = vEntity->next;
+
 		vEntity->next = all;
 		all = vEntity;
+
 		vEntity = next;
 	}
 
 	for( viewModel_t* vEntity = dynamics; vEntity != NULL; )
 	{
 		viewModel_t* next = vEntity->next;
+
 		vEntity->next = all;
 		all = vEntity;
+
 		vEntity = next;
 	}
 
@@ -1154,7 +1168,7 @@ static viewModel_t* R_SortViewEntities( viewModel_t* vEntities )
 =================
  R_LinkDrawSurfToView
 
-	Als called directly by GuiModel
+	Also called directly by GuiModel
 =================
 */
 void R_LinkDrawSurfToView( drawSurf_t* drawSurf, idRenderView* viewDef )
@@ -1170,11 +1184,11 @@ void R_LinkDrawSurfToView( drawSurf_t* drawSurf, idRenderView* viewDef )
 			viewDef->maxDrawSurfs = INITIAL_DRAWSURFS;
 			count = 0;
 		}
-		else
-		{
+		else {
 			count = viewDef->maxDrawSurfs * sizeof( viewDef->drawSurfs[0] );
 			viewDef->maxDrawSurfs *= 2;
 		}
+
 		viewDef->drawSurfs = allocManager.FrameAlloc<drawSurf_t*, FRAME_ALLOC_DRAW_SURFACE_POINTER>( viewDef->maxDrawSurfs );
 		memcpy( viewDef->drawSurfs, old, count );
 	}

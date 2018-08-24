@@ -814,8 +814,7 @@ ID_INLINE idVec3 idVec3::Truncate( float length ) const
 	{
 		return vec3_zero;
 	}
-	else
-	{
+	else {
 		float length2 = LengthSqr();
 		if( length2 > length * length )
 		{

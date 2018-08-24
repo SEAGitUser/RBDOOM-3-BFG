@@ -399,10 +399,7 @@ ID_INLINE int idPlane::Side( const idVec3& v, const float epsilon ) const
 	{
 		return PLANESIDE_BACK;
 	}
-	else
-	{
-		return PLANESIDE_ON;
-	}
+	return PLANESIDE_ON;
 }
 
 ID_INLINE bool idPlane::LineIntersection( const idVec3& start, const idVec3& end ) const

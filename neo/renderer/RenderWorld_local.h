@@ -202,6 +202,11 @@ public:
 
 	bool					generateAllInteractionsCalled;
 
+	ID_INLINE idInteraction * GetInteractionForPair( int entityDefIndex, int lightDefIndex ) const
+	{
+		return interactionTable[ lightDefIndex * interactionTableWidth + entityDefIndex ];
+	}
+
 	//-----------------------
 	// RenderWorld_load.cpp
 

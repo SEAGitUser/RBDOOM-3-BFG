@@ -1033,9 +1033,9 @@ static void CarveGroupsByLight( uEntity_t* e, mapLight_t* light )
 			nextGroup = group->nextGroup;
 
 			// if the surface doesn't get lit, don't carve it up
-			if( ( light->def.lightShader->IsFogLight() && !group->material->ReceivesFog() )
-				|| ( !light->def.lightShader->IsFogLight() && !group->material->ReceivesLighting() )
-				|| !group->bounds.IntersectsBounds( light->def.globalLightBounds ) )
+			if( ( light->def.lightShader->IsFogLight() && !group->material->ReceivesFog() ) ||
+				( !light->def.lightShader->IsFogLight() && !group->material->ReceivesLighting() ) ||
+				!group->bounds.IntersectsBounds( light->def.globalLightBounds ) )
 			{
 				group->nextGroup = carvedGroups;
 				carvedGroups = group;
@@ -1066,7 +1066,6 @@ static void CarveGroupsByLight( uEntity_t* e, mapLight_t* light )
 			for( tri = group->triList; tri; tri = tri->next )
 			{
 				mapTri_t *in, *out;
-
 				ClipTriByLight( light, tri, &in, &out );
 				inside = MergeTriLists( inside, in );
 				outside = MergeTriLists( outside, out );

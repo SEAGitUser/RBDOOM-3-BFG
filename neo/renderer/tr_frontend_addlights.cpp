@@ -41,8 +41,8 @@ idCVar r_useAreasConnectedForShadowCulling( "r_useAreasConnectedForShadowCulling
 idCVar r_useParallelAddLights( "r_useParallelAddLights", "1", CVAR_RENDERER | CVAR_BOOL, "aadd all lights in parallel with jobs" );
 
 //SEA: D3
-#if 1
 idCVar r_lightSourceRadius( "r_lightSourceRadius", "0", CVAR_RENDERER | CVAR_FLOAT, "for soft-shadow sampling" );
+#if 0
 /*
 ====================
 R_TestPointInViewLight
@@ -152,8 +152,8 @@ void R_ShadowBounds( const idBounds& modelBounds, const idBounds& lightBounds, c
 	}
 }
 
-//SEA: TODO decrease shadow lod on muzzle flashes!
-int R_CalculateShadowLod( const idRenderView * view, const viewLight_t * const vLight, const idBounds & projected )
+//SEA: TODO decrease shadow lod on muzzle flashes! - semi done by 'smMaxLod'
+static int R_CalculateShadowLod( const idRenderView * view, const viewLight_t * const vLight, const idBounds & projected )
 {
 	// subviews will get the lowest resolution.
 	if( view->isSubview )
@@ -366,11 +366,12 @@ static void R_AddSingleLight( viewLight_t* vLight )
 		lightScissorRect.x2 = idMath::Ftoi16( projected[ 1 ][ 0 ] * screenWidth );
 		lightScissorRect.y1 = idMath::Ftoi16( projected[ 0 ][ 1 ] * screenHeight );
 		lightScissorRect.y2 = idMath::Ftoi16( projected[ 1 ][ 1 ] * screenHeight );
+
 		lightScissorRect.Expand();
 
 		vLight->scissorRect.Intersect( lightScissorRect );
-		vLight->scissorRect.zmin = projected[ 0 ][ 2 ];
-		vLight->scissorRect.zmax = projected[ 1 ][ 2 ];
+		vLight->scissorRect.zmin = projected[ 0 ].z;
+		vLight->scissorRect.zmax = projected[ 1 ].z;
 
 		// RB: calculate shadow LOD similar to Q3A .md3 LOD code
 		vLight->shadowLOD = MAX_SHADOWMAP_RESOLUTIONS - 1;
@@ -394,8 +395,6 @@ static void R_AddSingleLight( viewLight_t* vLight )
 	// this bool array will be set true whenever the entity will visibly interact with the light
 	vLight->entityInteractionState = allocManager.FrameAlloc<byte, FRAME_ALLOC_INTERACTION_STATE, true>( world->entityDefs.Num() );
 
-	idInteraction** const interactionTableRow = world->interactionTable + light->GetIndex() * world->interactionTableWidth;
-
 	for( auto lref = light->references; lref != NULL; lref = lref->ownerNext )
 	{
 		auto area = lref->area;
@@ -414,20 +413,20 @@ static void R_AddSingleLight( viewLight_t* vLight )
 		// check all the models in this area
 		for( auto eref = area->entityRefs.areaNext; eref != &area->entityRefs; eref = eref->areaNext )
 		{
-			idRenderEntityLocal* edef = eref->entity;
+			idRenderEntityLocal* entity = eref->entity;
 
-			if( vLight->entityInteractionState[ edef->GetIndex() ] != viewLight_t::INTERACTION_UNCHECKED )
+			if( vLight->entityInteractionState[ entity->GetIndex() ] != viewLight_t::INTERACTION_UNCHECKED )
 			{
 				continue;
 			}
 			// until proven otherwise
-			vLight->entityInteractionState[ edef->GetIndex() ] = viewLight_t::INTERACTION_NO;
+			vLight->entityInteractionState[ entity->GetIndex() ] = viewLight_t::INTERACTION_NO;
 
 			// The table is updated at interaction::AllocAndLink() and interaction::UnlinkAndFree()
-			const idInteraction* inter = interactionTableRow[ edef->GetIndex() ];
+			const idInteraction* inter = world->GetInteractionForPair( entity->GetIndex(), light->GetIndex() );
 
-			auto & eParms = edef->GetParms();
-			auto eModel = edef->GetModel();
+			auto & eParms = entity->GetParms();
+			auto eModel = entity->GetModel();
 
 			// a large fraction of static entity / light pairs will still have no interactions even though
 			// they are both present in the same area(s)
@@ -452,7 +451,7 @@ static void R_AddSingleLight( viewLight_t* vLight )
 
 			// non-shadow casting entities don't need to be added if they aren't
 			// directly visible
-			if( ( eParms.noShadow || ( eModel && !eModel->ModelHasShadowCastingSurfaces() ) ) && !edef->IsDirectlyVisible() )
+			if( ( eParms.noShadow || ( eModel && !eModel->ModelHasShadowCastingSurfaces() ) ) && !entity->IsDirectlyVisible() )
 			{
 				continue;
 			}
@@ -476,7 +475,7 @@ static void R_AddSingleLight( viewLight_t* vLight )
 
 				// do a check of the entity reference bounds against the light frustum to see if they can't
 				// possibly interact, despite sharing one or more world areas
-				if( light->CullModelBoundsToLight( edef->localReferenceBounds, edef->modelRenderMatrix ) )
+				if( light->CullModelBoundsToLight( entity->localReferenceBounds, entity->modelRenderMatrix ) )
 				{
 					continue;
 				}
@@ -484,10 +483,10 @@ static void R_AddSingleLight( viewLight_t* vLight )
 
 			// we now know that the entity and light do overlap
 
-			if( edef->IsDirectlyVisible() )
+			if( entity->IsDirectlyVisible() )
 			{
 				// entity is directly visible, so the interaction is definitely needed
-				vLight->entityInteractionState[ edef->GetIndex() ] = viewLight_t::INTERACTION_YES;
+				vLight->entityInteractionState[ entity->GetIndex() ] = viewLight_t::INTERACTION_YES;
 				continue;
 			}
 
@@ -515,7 +514,7 @@ static void R_AddSingleLight( viewLight_t* vLight )
 
 			// should we use the shadow bounds from pre-calculated interactions?
 			idBounds shadowBounds;
-			R_ShadowBounds( edef->globalReferenceBounds, light->globalLightBounds, light->globalLightOrigin, shadowBounds );
+			R_ShadowBounds( entity->globalReferenceBounds, light->globalLightBounds, light->globalLightOrigin, shadowBounds );
 
 			// this test is pointless if we knew the light was completely contained
 			// in the view frustum, but the entity would also be directly visible in most
@@ -529,20 +528,21 @@ static void R_AddSingleLight( viewLight_t* vLight )
 			}
 
 			// debug tool to allow viewing of only one entity at a time
-			if( r_singleEntity.GetInteger() >= 0 && r_singleEntity.GetInteger() != edef->GetIndex() )
+			if( r_singleEntity.GetInteger() >= 0 && r_singleEntity.GetInteger() != entity->GetIndex() )
 			{
 				continue;
 			}
 
 			// we do need it for shadows
-			vLight->entityInteractionState[ edef->GetIndex() ] = viewLight_t::INTERACTION_YES;
+			vLight->entityInteractionState[ entity->GetIndex() ] = viewLight_t::INTERACTION_YES;
 
 			// we will need to create a viewModel_t for it in the serial code section
 			auto shadEnt = allocManager.FrameAlloc<shadowOnlyEntity_t, FRAME_ALLOC_SHADOW_ONLY_ENTITY>();
+
 			shadEnt->next = vLight->shadowOnlyViewEntities;
 			vLight->shadowOnlyViewEntities = shadEnt;
 
-			shadEnt->edef = edef;
+			shadEnt->edef = entity;
 		}
 	}
 
