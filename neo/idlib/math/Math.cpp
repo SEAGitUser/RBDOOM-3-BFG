@@ -32,23 +32,24 @@ If you have questions concerning this license or the applicable additional terms
 const int SMALLEST_NON_DENORMAL					= 1 << IEEE_FLT_MANTISSA_BITS;
 const int NAN_VALUE								= 0x7f800000;
 
-const float	idMath::PI				= 3.14159265358979323846f;
-const float	idMath::TWO_PI			= 2.0f * PI;
-const float	idMath::HALF_PI			= 0.5f * PI;
-const float	idMath::ONEFOURTH_PI	= 0.25f * PI;
-const float idMath::ONEOVER_PI		= 1.0f / idMath::PI;
-const float idMath::ONEOVER_TWOPI	= 1.0f / idMath::TWO_PI;
-const float idMath::E				= 2.71828182845904523536f;
-const float idMath::SQRT_TWO		= 1.41421356237309504880f;
-const float idMath::SQRT_THREE		= 1.73205080756887729352f;
-const float	idMath::SQRT_1OVER2		= 0.70710678118654752440f;
-const float	idMath::SQRT_1OVER3		= 0.57735026918962576450f;
-const float	idMath::M_DEG2RAD		= PI / 180.0f;
-const float	idMath::M_RAD2DEG		= 180.0f / PI;
-const float	idMath::M_SEC2MS		= 1000.0f;
-const float	idMath::M_MS2SEC		= 0.001f;
-const float	idMath::INFINITY		= 1e30f;
-const float idMath::FLT_EPSILON		= 1.192092896e-07f;
+const float	idMath::PI							= 3.14159265358979323846f;
+const float	idMath::TWO_PI						= 2.0f * idMath::PI;
+const float	idMath::HALF_PI						= 0.5f * idMath::PI;
+const float	idMath::ONEFOURTH_PI				= 0.25f * idMath::PI;
+const float idMath::ONEOVER_PI					= 1.0f / idMath::PI;
+const float idMath::ONEOVER_TWOPI				= 1.0f / idMath::TWO_PI;
+const float	idMath::THREEFOURTHS_PI				= 0.75f * idMath::PI;
+const float idMath::E							= 2.71828182845904523536f;
+const float idMath::SQRT_TWO					= 1.41421356237309504880f;
+const float idMath::SQRT_THREE					= 1.73205080756887729352f;
+const float	idMath::SQRT_1OVER2					= 0.70710678118654752440f;
+const float	idMath::SQRT_1OVER3					= 0.57735026918962576450f;
+const float	idMath::M_DEG2RAD					= idMath::PI / 180.0f;
+const float	idMath::M_RAD2DEG					= 180.0f / idMath::PI;
+const float	idMath::M_SEC2MS					= 1000.0f;
+const float	idMath::M_MS2SEC					= 0.001f;
+const float	idMath::INFINITY					= 1e30f;
+const float idMath::FLT_EPSILON					= 1.192092896e-07f;
 const float idMath::FLT_SMALLEST_NON_DENORMAL	= * reinterpret_cast< const float* >( & SMALLEST_NON_DENORMAL );	// 1.1754944e-038f
 
 #if defined( USE_INTRINSICS )
@@ -160,4 +161,43 @@ float idMath::BitsToFloat( int i, int exponentBits, int mantissaBits )
 	mantissa = ( i & ( ( 1 << mantissaBits ) - 1 ) ) << ( IEEE_FLT_MANTISSA_BITS - mantissaBits );
 	value = sign << IEEE_FLT_SIGN_BIT | ( exponent + IEEE_FLT_EXPONENT_BIAS ) << IEEE_FLT_MANTISSA_BITS | mantissa;
 	return *reinterpret_cast<float*>( &value );
+}
+
+
+// ================================================================================================
+// Barycentric texture coordinate functions
+// Get the *SIGNED* area of a triangle required for barycentric
+// ================================================================================================
+
+float idMath::BarycentricTriangleArea( const idVec3 &normal, const idVec3 &a, const idVec3 &b, const idVec3 &c )
+{
+	idVec3 v1 = b - a;
+	idVec3 v2 = c - a;
+	idVec3 cross = v1.Cross( v2 );
+	return( 0.5f * ( cross * normal ) );
+}
+
+void idMath::BarycentricEvaluate( idVec2 &result, const idVec3 &point, const idVec3 &normal, const float area, const idVec3 t[ 3 ], const idVec2 tc[ 3 ] )
+{
+	float scale = 1.0f;
+	scale /= area;
+
+	float b1 = idMath::BarycentricTriangleArea( normal, point, t[ 1 ], t[ 2 ] );
+	float b2 = idMath::BarycentricTriangleArea( normal, t[ 0 ], point, t[ 2 ] );
+	float b3 = idMath::BarycentricTriangleArea( normal, t[ 0 ], t[ 1 ], point );
+
+	result[ 0 ] = ( ( b1 * tc[ 0 ][ 0 ] ) + ( b2 * tc[ 1 ][ 0 ] ) + ( b3 * tc[ 2 ][ 0 ] ) ) * scale;
+	result[ 1 ] = ( ( b1 * tc[ 0 ][ 1 ] ) + ( b2 * tc[ 1 ][ 1 ] ) + ( b3 * tc[ 2 ][ 1 ] ) ) * scale;
+}
+
+void idMath::BarycentricEvaluate( idVec2 &result, const idVec3 &point, const idVec3 &normal, const float area, const idVec3 t[ 3 ], const short tc[ 3 ][ 2 ], float scale )
+{
+	scale /= area;
+
+	float b1 = idMath::BarycentricTriangleArea( normal, point, t[ 1 ], t[ 2 ] );
+	float b2 = idMath::BarycentricTriangleArea( normal, t[ 0 ], point, t[ 2 ] );
+	float b3 = idMath::BarycentricTriangleArea( normal, t[ 0 ], t[ 1 ], point );
+
+	result[ 0 ] = ( ( b1 * tc[ 0 ][ 0 ] ) + ( b2 * tc[ 1 ][ 0 ] ) + ( b3 * tc[ 2 ][ 0 ] ) ) * scale;
+	result[ 1 ] = ( ( b1 * tc[ 0 ][ 1 ] ) + ( b2 * tc[ 1 ][ 1 ] ) + ( b3 * tc[ 2 ][ 1 ] ) ) * scale;
 }

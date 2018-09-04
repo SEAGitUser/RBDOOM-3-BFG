@@ -667,8 +667,10 @@ void idRenderModelDecal::RemoveFadedDecals( int time )
 R_CopyDecalSurface
 =====================
 */
-static void R_CopyDecalSurface( idDrawVert* verts, int numVerts, triIndex_t* indexes, int numIndexes, const decal_t* decal, const float fadeColor[ 4 ] )
+static void R_CopyDecalSurface( idDrawVert* verts, int numVerts, triIndex_t* indexes, int numIndexes, const decal_t* decal, const float fadeColor[ 4 ] ) 
 {
+#if defined( USE_INTRINSICS )
+
 	assert_16_byte_aligned( &verts[ numVerts ] );
 	assert_16_byte_aligned( &indexes[ numIndexes ] );
 	assert_16_byte_aligned( decal->indexes );
@@ -676,8 +678,6 @@ static void R_CopyDecalSurface( idDrawVert* verts, int numVerts, triIndex_t* ind
 	assert( ( ( decal->numVerts * sizeof( idDrawVert ) ) & 15 ) == 0 );
 	assert( ( ( decal->numIndexes * sizeof( triIndex_t ) ) & 15 ) == 0 );
 	assert_16_byte_aligned( fadeColor );
-
-#if defined(USE_INTRINSICS)
 
 	const __m128i vector_int_num_verts = _mm_shuffle_epi32( _mm_cvtsi32_si128( numVerts ), 0 );
 	const __m128i vector_short_num_verts = _mm_packs_epi32( vector_int_num_verts, vector_int_num_verts );

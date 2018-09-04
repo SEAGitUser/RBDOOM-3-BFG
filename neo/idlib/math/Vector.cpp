@@ -30,12 +30,16 @@ If you have questions concerning this license or the applicable additional terms
 #pragma hdrstop
 
 idVec2 vec2_origin( 0.0f, 0.0f );
+idVec2 vec2_one( 1.0f, 1.0f );
 idVec3 vec3_origin( 0.0f, 0.0f, 0.0f );
+idVec3 vec3_one( 1.0f, 1.0f, 1.0f );
 ALIGNTYPE16 idVec4 vec4_origin( 0.0f, 0.0f, 0.0f, 0.0f );
+ALIGNTYPE16 idVec4 vec4_one( 1.0f, 1.0f, 1.0f, 1.0f );
 idVec5 vec5_origin( 0.0f, 0.0f, 0.0f, 0.0f, 0.0f );
+idVec5 vec5_one( 1.0f, 1.0f, 1.0f, 1.0f, 1.0f );
 idVec6 vec6_origin( 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f );
+idVec6 vec6_one( 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f );
 idVec6 vec6_infinity( idMath::INFINITY, idMath::INFINITY, idMath::INFINITY, idMath::INFINITY, idMath::INFINITY, idMath::INFINITY );
-
 
 //===============================================================
 //
@@ -76,7 +80,6 @@ void idVec2::Lerp( const idVec2& v1, const idVec2& v2, const float l )
 	}
 }
 
-
 //===============================================================
 //
 //	idVec3
@@ -91,7 +94,7 @@ idVec3::ToYaw
 float idVec3::ToYaw() const
 {
 	float yaw;
-	
+
 	if( ( y == 0.0f ) && ( x == 0.0f ) )
 	{
 		yaw = 0.0f;
@@ -104,7 +107,7 @@ float idVec3::ToYaw() const
 			yaw += 360.0f;
 		}
 	}
-	
+
 	return yaw;
 }
 
@@ -117,7 +120,7 @@ float idVec3::ToPitch() const
 {
 	float	forward;
 	float	pitch;
-	
+
 	if( ( x == 0.0f ) && ( y == 0.0f ) )
 	{
 		if( z > 0.0f )
@@ -131,14 +134,14 @@ float idVec3::ToPitch() const
 	}
 	else
 	{
-		forward = ( float )idMath::Sqrt( x * x + y * y );
+		forward = ( float ) idMath::Sqrt( x * x + y * y );
 		pitch = RAD2DEG( atan2( z, forward ) );
 		if( pitch < 0.0f )
 		{
 			pitch += 360.0f;
 		}
 	}
-	
+
 	return pitch;
 }
 
@@ -152,7 +155,7 @@ idAngles idVec3::ToAngles() const
 	float forward;
 	float yaw;
 	float pitch;
-	
+
 	if( ( x == 0.0f ) && ( y == 0.0f ) )
 	{
 		yaw = 0.0f;
@@ -172,16 +175,56 @@ idAngles idVec3::ToAngles() const
 		{
 			yaw += 360.0f;
 		}
-		
-		forward = ( float )idMath::Sqrt( x * x + y * y );
+
+		forward = ( float ) idMath::Sqrt( x * x + y * y );
 		pitch = RAD2DEG( atan2( z, forward ) );
 		if( pitch < 0.0f )
 		{
 			pitch += 360.0f;
 		}
 	}
-	
+
 	return idAngles( -pitch, yaw, 0.0f );
+}
+
+/*
+=============
+idVec3::ToRadians
+=============
+*/
+idRadAngles idVec3::ToRadians() const
+{
+	float forward;
+	float yaw;
+	float pitch;
+
+	if( !x && !y )
+	{
+		yaw = 0.0f;
+		if( z > 0.0f )
+		{
+			pitch = idMath::HALF_PI;
+		}
+		else {
+			pitch = idMath::THREEFOURTHS_PI;
+		}
+	}
+	else {
+		yaw = atan2f( y, x );
+		if( yaw < 0.0f )
+		{
+			yaw += idMath::TWO_PI;
+		}
+
+		forward = ( float ) idMath::Sqrt( x * x + y * y );
+		pitch = idMath::ATan( z, forward );
+		if( pitch < 0.0f )
+		{
+			pitch += idMath::TWO_PI;
+		}
+	}
+
+	return( idRadAngles( -pitch, yaw, 0.0f ) );
 }
 
 /*
@@ -194,7 +237,7 @@ idPolar3 idVec3::ToPolar() const
 	float forward;
 	float yaw;
 	float pitch;
-	
+
 	if( ( x == 0.0f ) && ( y == 0.0f ) )
 	{
 		yaw = 0.0f;
@@ -209,14 +252,14 @@ idPolar3 idVec3::ToPolar() const
 	}
 	else
 	{
-		yaw = RAD2DEG( atan2( y, x ) );
+		yaw = RAD2DEG( idMath::ATan( y, x ) );
 		if( yaw < 0.0f )
 		{
 			yaw += 360.0f;
 		}
-		
-		forward = ( float )idMath::Sqrt( x * x + y * y );
-		pitch = RAD2DEG( atan2( z, forward ) );
+
+		forward = ( float ) idMath::Sqrt( x * x + y * y );
+		pitch = RAD2DEG( idMath::ATan( z, forward ) );
 		if( pitch < 0.0f )
 		{
 			pitch += 360.0f;
@@ -230,28 +273,34 @@ idPolar3 idVec3::ToPolar() const
 idVec3::ToMat3
 =============
 */
-idMat3 idVec3::ToMat3() const
+idMat3 & idVec3::ToMat3( idMat3 &mat ) const
 {
-	idMat3	mat;
-	float	d;
-	
-	mat[0] = *this;
-	d = x * x + y * y;
+	mat[ 0 ] = *this;
+	float d = x * x + y * y;
 	if( !d )
 	{
-		mat[1][0] = 1.0f;
-		mat[1][1] = 0.0f;
-		mat[1][2] = 0.0f;
+		mat[ 1 ][ 0 ] = 1.0f;
+		mat[ 1 ][ 1 ] = 0.0f;
+		mat[ 1 ][ 2 ] = 0.0f;
 	}
-	else
-	{
+	else {
 		d = idMath::InvSqrt( d );
-		mat[1][0] = -y * d;
-		mat[1][1] = x * d;
-		mat[1][2] = 0.0f;
+		mat[ 1 ][ 0 ] = -y * d;
+		mat[ 1 ][ 1 ] = x * d;
+		mat[ 1 ][ 2 ] = 0.0f;
 	}
-	mat[2] = Cross( mat[1] );
-	
+	mat[ 2 ] = Cross( mat[ 1 ] );
+	return( mat );
+}
+/*
+=============
+idVec3::ToMat3
+=============
+*/
+idMat3 idVec3::ToMat3() const
+{
+	idMat3 mat;
+	ToMat3( mat );
 	return mat;
 }
 
@@ -301,7 +350,7 @@ Vectors are expected to be normalized.
 void idVec3::SLerp( const idVec3& v1, const idVec3& v2, const float t )
 {
 	float omega, cosom, sinom, scale0, scale1;
-	
+
 	if( t <= 0.0f )
 	{
 		( *this ) = v1;
@@ -312,7 +361,7 @@ void idVec3::SLerp( const idVec3& v1, const idVec3& v2, const float t )
 		( *this ) = v2;
 		return;
 	}
-	
+
 	cosom = v1 * v2;
 	if( ( 1.0f - cosom ) > LERP_DELTA )
 	{
@@ -326,7 +375,7 @@ void idVec3::SLerp( const idVec3& v1, const idVec3& v2, const float t )
 		scale0 = 1.0f - t;
 		scale1 = t;
 	}
-	
+
 	( *this ) = ( v1 * scale0 + v2 * scale1 );
 }
 
@@ -341,7 +390,7 @@ void idVec3::ProjectSelfOntoSphere( const float radius )
 {
 	float rsqr = radius * radius;
 	float len = Length();
-	if( len  < rsqr * 0.5f )
+	if( len < rsqr * 0.5f )
 	{
 		z = sqrt( rsqr - len );
 	}
@@ -350,8 +399,6 @@ void idVec3::ProjectSelfOntoSphere( const float radius )
 		z = rsqr / ( 2.0f * sqrt( len ) );
 	}
 }
-
-
 
 //===============================================================
 //
@@ -391,7 +438,6 @@ void idVec4::Lerp( const idVec4& v1, const idVec4& v2, const float l )
 		( *this ) = v1 + l * ( v2 - v1 );
 	}
 }
-
 
 //===============================================================
 //
@@ -433,7 +479,6 @@ void idVec5::Lerp( const idVec5& v1, const idVec5& v2, const float l )
 		t = v1.t + l * ( v2.t - v1.t );
 	}
 }
-
 
 //===============================================================
 //

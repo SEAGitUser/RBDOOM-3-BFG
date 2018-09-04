@@ -30,7 +30,7 @@ backEndState_t	backEnd;
 */
 void RB_BakeTextureMatrixIntoTexgen( idPlane lightProject[ 3 ], const float* textureMatrix )
 {
-#if USE_INTRINSICS
+#if 0//USE_INTRINSICS
 
 	__m128 a0 = _mm_load_ps( lightProject[ 0 ].ToFloatPtr() );
 	__m128 a1 = _mm_load_ps( lightProject[ 1 ].ToFloatPtr() );

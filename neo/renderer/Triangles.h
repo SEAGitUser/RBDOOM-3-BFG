@@ -283,7 +283,7 @@ public:
 	{
 		bounds = src->bounds;
 	}
-	ID_INLINE const idBounds &	GetBounds() const
+	ID_INLINE const idBounds & GetBounds() const
 	{
 		return bounds;
 	}

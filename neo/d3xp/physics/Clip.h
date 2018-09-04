@@ -121,17 +121,17 @@ private:
 	int						traceModelIndex;		// trace model used for collision detection
 	int						renderModelHandle;		// render model def handle
 
-	struct clipLink_s* 		clipLinks;				// links into sectors
+	struct clipLink_t * 	clipLinks;				// links into sectors
 	int						touchCount;
 
 	void					Init();			// initialize
-	void					Link_r( struct clipSector_s* node );
+	void					Link_r( struct clipSector_t* node );
 
 	static int				AllocTraceModel( const idTraceModel& trm, bool persistantThroughSaves = true );
 	static void				FreeTraceModel( int traceModelIndex );
-	static idTraceModel* 	GetCachedTraceModel( int traceModelIndex );
+	static idTraceModel * 	GetCachedTraceModel( int traceModelIndex );
 	static int				GetTraceModelHashKey( const idTraceModel& trm );
-	static struct trmCache_s* 		GetTraceModelEntry( int traceModelIndex );
+	static struct trmCache_t * GetTraceModelEntry( int traceModelIndex );
 };
 
 ID_INLINE void idClipModel::Translate( const idVec3& translation )
@@ -277,39 +277,39 @@ public:
 
 	// clip versus the rest of the world
 	bool					Translation( trace_t& results, const idVec3& start, const idVec3& end,
-		const idClipModel* mdl, const idMat3& trmAxis, int contentMask, const idEntity* passEntity );
+										 const idClipModel* mdl, const idMat3& trmAxis, int contentMask, const idEntity* passEntity );
 	bool					Rotation( trace_t& results, const idVec3& start, const idRotation& rotation,
-		const idClipModel* mdl, const idMat3& trmAxis, int contentMask, const idEntity* passEntity );
+									  const idClipModel* mdl, const idMat3& trmAxis, int contentMask, const idEntity* passEntity );
 	bool					Motion( trace_t& results, const idVec3& start, const idVec3& end, const idRotation& rotation,
-		const idClipModel* mdl, const idMat3& trmAxis, int contentMask, const idEntity* passEntity );
+									const idClipModel* mdl, const idMat3& trmAxis, int contentMask, const idEntity* passEntity );
 	int						Contacts( contactInfo_t* contacts, const int maxContacts, const idVec3& start, const idVec6& dir, const float depth,
-		const idClipModel* mdl, const idMat3& trmAxis, int contentMask, const idEntity* passEntity );
+									  const idClipModel* mdl, const idMat3& trmAxis, int contentMask, const idEntity* passEntity );
 	int						Contents( const idVec3& start,
-		const idClipModel* mdl, const idMat3& trmAxis, int contentMask, const idEntity* passEntity );
+									  const idClipModel* mdl, const idMat3& trmAxis, int contentMask, const idEntity* passEntity );
 
 	// special case translations versus the rest of the world
 	bool					TracePoint( trace_t& results, const idVec3& start, const idVec3& end,
-		int contentMask, const idEntity* passEntity );
+										int contentMask, const idEntity* passEntity );
 	bool					TraceBounds( trace_t& results, const idVec3& start, const idVec3& end, const idBounds& bounds,
-		int contentMask, const idEntity* passEntity );
+										 int contentMask, const idEntity* passEntity );
 
 	// clip versus a specific model
 	void					TranslationModel( trace_t& results, const idVec3& start, const idVec3& end,
-		const idClipModel* mdl, const idMat3& trmAxis, int contentMask,
-		cmHandle_t model, const idVec3& modelOrigin, const idMat3& modelAxis );
+											  const idClipModel* mdl, const idMat3& trmAxis, int contentMask,
+											  cmHandle_t model, const idVec3& modelOrigin, const idMat3& modelAxis );
 	void					RotationModel( trace_t& results, const idVec3& start, const idRotation& rotation,
-		const idClipModel* mdl, const idMat3& trmAxis, int contentMask,
-		cmHandle_t model, const idVec3& modelOrigin, const idMat3& modelAxis );
+										   const idClipModel* mdl, const idMat3& trmAxis, int contentMask,
+										   cmHandle_t model, const idVec3& modelOrigin, const idMat3& modelAxis );
 	int						ContactsModel( contactInfo_t* contacts, const int maxContacts, const idVec3& start, const idVec6& dir, const float depth,
-		const idClipModel* mdl, const idMat3& trmAxis, int contentMask,
-		cmHandle_t model, const idVec3& modelOrigin, const idMat3& modelAxis );
+										   const idClipModel* mdl, const idMat3& trmAxis, int contentMask,
+										   cmHandle_t model, const idVec3& modelOrigin, const idMat3& modelAxis );
 	int						ContentsModel( const idVec3& start,
-		const idClipModel* mdl, const idMat3& trmAxis, int contentMask,
-		cmHandle_t model, const idVec3& modelOrigin, const idMat3& modelAxis );
+										   const idClipModel* mdl, const idMat3& trmAxis, int contentMask,
+										   cmHandle_t model, const idVec3& modelOrigin, const idMat3& modelAxis );
 
 	// clip versus all entities but not the world
 	void					TranslationEntities( trace_t& results, const idVec3& start, const idVec3& end,
-		const idClipModel* mdl, const idMat3& trmAxis, int contentMask, const idEntity* passEntity );
+												 const idClipModel* mdl, const idMat3& trmAxis, int contentMask, const idEntity* passEntity );
 
 	// get a contact feature
 	bool					GetModelContactFeature( const contactInfo_t& contact, const idClipModel* clipModel, idFixedWinding& winding ) const;
@@ -328,7 +328,7 @@ public:
 
 private:
 	int						numClipSectors;
-	struct clipSector_s* 	clipSectors;
+	struct clipSector_t* 	clipSectors;
 	idBounds				worldBounds;
 	idClipModel				temporaryClipModel;
 	idClipModel				defaultClipModel;
@@ -342,11 +342,11 @@ private:
 	int						numContacts;
 
 private:
-	struct clipSector_s* 	CreateClipSectors_r( const int depth, const idBounds& bounds, idVec3& maxSector );
-	void					ClipModelsTouchingBounds_r( const struct clipSector_s* node, struct listParms_s& parms ) const;
-	const idTraceModel* 	TraceModelForClipModel( const idClipModel* mdl ) const;
-	int						GetTraceClipModels( const idBounds& bounds, int contentMask, const idEntity* passEntity, idClipModel** clipModelList ) const;
-	void					TraceRenderModel( trace_t& trace, const idVec3& start, const idVec3& end, const float radius, const idMat3& axis, idClipModel* touch ) const;
+	struct clipSector_t* 	CreateClipSectors_r( const int depth, const idBounds& bounds, idVec3& maxSector );
+	void					ClipModelsTouchingBounds_r( const struct clipSector_t* node, struct listParms_t& ) const;
+	const idTraceModel* 	TraceModelForClipModel( const idClipModel* ) const;
+	int						GetTraceClipModels( const idBounds&, int contentMask, const idEntity* passEntity, idClipModel** clipModelList ) const;
+	void					TraceRenderModel( trace_t&, const idVec3& start, const idVec3& end, const float radius, const idMat3& axis, idClipModel* touch ) const;
 };
 
 ID_INLINE bool idClip::TracePoint( trace_t& results, const idVec3& start, const idVec3& end, int contentMask, const idEntity* passEntity )

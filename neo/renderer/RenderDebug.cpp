@@ -449,39 +449,36 @@ void idRenderDebugLocal::DebugBox( const idColor& color, const idBox& box, uint3
 void idRenderDebugLocal::DebugCone( const idColor& color, const idVec3& apex, const idVec3& dir, float radius1, float radius2, uint32 lifetime, bool depthTest )
 {
 	idMat3 axis;
-	idVec3 top, p1, p2, lastp1, lastp2, d;
-	float s, c;
-
 	axis[ 2 ] = dir;
 	axis[ 2 ].Normalize();
 	axis[ 2 ].NormalVectors( axis[ 0 ], axis[ 1 ] );
 	axis[ 1 ] = -axis[ 1 ];
 
-	top = apex + dir;
-	lastp2 = top + radius2 * axis[ 1 ];
+	idVec3 top = apex + dir;
+	idVec3 lastp2 = top + radius2 * axis[ 1 ];
 
 	if( radius1 == 0.0f )
 	{
 		for( int i = 20; i <= 360; i += 20 )
 		{
-			idMath::SinCos16( DEG2RAD( i ), s, c );
+			float s, c; idMath::SinCos16( DEG2RAD( i ), s, c );
 
-			d = s * axis[ 0 ] + c * axis[ 1 ];
-			p2 = top + d * radius2;
+			idVec3 d = s * axis[ 0 ] + c * axis[ 1 ];
+			idVec3 p2 = top + d * radius2;
 			DebugLine( color, lastp2, p2, lifetime, depthTest );
 			DebugLine( color, p2, apex, lifetime, depthTest );
 			lastp2 = p2;
 		}
 	}
 	else {
-		lastp1 = apex + radius1 * axis[ 1 ];
+		idVec3 lastp1 = apex + radius1 * axis[ 1 ];
 		for( int i = 20; i <= 360; i += 20 )
 		{
-			idMath::SinCos16( DEG2RAD( i ), s, c );
+			float s, c; idMath::SinCos16( DEG2RAD( i ), s, c );
 
-			d = s * axis[ 0 ] + c * axis[ 1 ];
-			p1 = apex + d * radius1;
-			p2 = top + d * radius2;
+			idVec3 d = s * axis[ 0 ] + c * axis[ 1 ];
+			idVec3 p1 = apex + d * radius1;
+			idVec3 p2 = top + d * radius2;
 			DebugLine( color, lastp1, p1, lifetime, depthTest );
 			DebugLine( color, lastp2, p2, lifetime, depthTest );
 			DebugLine( color, p1, p2, lifetime, depthTest );

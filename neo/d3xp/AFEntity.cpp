@@ -1643,7 +1643,6 @@ void idAFEntity_WithAttachedHead::SetupHead()
 	const char*			headModel;
 	jointHandle_t		joint;
 	idVec3				origin;
-	idMat3				axis;
 
 	headModel = spawnArgs.GetString( "def_head", "" );
 	if( headModel[ 0 ] )
@@ -1667,7 +1666,7 @@ void idAFEntity_WithAttachedHead::SetupHead()
 			headEnt->xraySkin = declManager->FindSkin( xSkin.c_str() );
 			headEnt->UpdateModel();
 		}
-		animator.GetJointTransform( joint, gameLocal.GetGameTimeMs(), origin, axis );
+		animator.GetJointTransform( joint, gameLocal.GetGameTimeMs(), origin );
 		origin = renderEntity.origin + origin * renderEntity.axis;
 		headEnt->SetOrigin( origin );
 		headEnt->SetAxis( renderEntity.axis );
@@ -1917,9 +1916,6 @@ idAFEntity_Vehicle::Use
 */
 void idAFEntity_Vehicle::Use( idPlayer* other )
 {
-	idVec3 origin;
-	idMat3 axis;
-
 	if( player )
 	{
 		if( player == other )
@@ -1930,10 +1926,10 @@ void idAFEntity_Vehicle::Use( idPlayer* other )
 			af.GetPhysics()->SetComeToRest( true );
 		}
 	}
-	else
-	{
+	else {
+		idVec3 origin;
 		player = other;
-		animator.GetJointTransform( eyesJoint, gameLocal.GetGameTimeMs(), origin, axis );
+		animator.GetJointTransform( eyesJoint, gameLocal.GetGameTimeMs(), origin );
 		origin = renderEntity.origin + origin * renderEntity.axis;
 		player->GetPhysics()->SetOrigin( origin );
 		player->BindToBody( this, 0, true );
@@ -2022,16 +2018,14 @@ void idAFEntity_VehicleSimple::Spawn()
 	};
 	static idVec3 wheelPoly[ 4 ] = { idVec3( 2, 2, 0 ), idVec3( 2, -2, 0 ), idVec3( -2, -2, 0 ), idVec3( -2, 2, 0 ) };
 
-	int i;
 	idVec3 origin;
-	idMat3 axis;
 	idTraceModel trm;
 
 	trm.SetupPolygon( wheelPoly, 4 );
 	trm.Translate( idVec3( 0, 0, -wheelRadius ) );
 	wheelModel = new( TAG_PHYSICS_CLIP_AF ) idClipModel( trm );
 
-	for( i = 0; i < 4; i++ )
+	for( int i = 0; i < 4; i++ )
 	{
 		const char* wheelJointName = spawnArgs.GetString( wheelJointKeys[ i ], "" );
 		if( !wheelJointName[ 0 ] )
@@ -2044,7 +2038,7 @@ void idAFEntity_VehicleSimple::Spawn()
 			gameLocal.Error( "idAFEntity_VehicleSimple '%s' can't find wheel joint '%s'", name.c_str(), wheelJointName );
 		}
 
-		GetAnimator()->GetJointTransform( wheelJoints[ i ], 0, origin, axis );
+		GetAnimator()->GetJointTransform( wheelJoints[ i ], 0, origin );
 		origin = renderEntity.origin + origin * renderEntity.axis;
 
 		suspension[ i ] = new( TAG_PHYSICS_AF ) idAFConstraint_Suspension();
@@ -2294,7 +2288,6 @@ void idAFEntity_VehicleFourWheels::Think()
 {
 	int i;
 	float force = 0.0f, velocity = 0.0f, steerAngle = 0.0f;
-	idVec3 origin;
 	idMat3 axis;
 	idRotation rotation;
 
@@ -2338,7 +2331,7 @@ void idAFEntity_VehicleFourWheels::Think()
 		}
 
 		// update the steering wheel
-		animator.GetJointTransform( steeringWheelJoint, gameLocal.GetGameTimeMs(), origin, axis );
+		animator.GetJointTransform( steeringWheelJoint, gameLocal.GetGameTimeMs(), axis );
 		rotation.SetVec( axis[ 2 ] );
 		rotation.SetAngle( -steerAngle );
 		animator.SetJointAxis( steeringWheelJoint, JOINTMOD_WORLD, rotation.ToMat3() );
@@ -2501,7 +2494,6 @@ idAFEntity_VehicleSixWheels::Think
 void idAFEntity_VehicleSixWheels::Think()
 {
 	int i;
-	idVec3 origin;
 	idMat3 axis;
 	idRotation rotation;
 
@@ -2553,7 +2545,7 @@ void idAFEntity_VehicleSixWheels::Think()
 		}
 
 		// update the steering wheel
-		animator.GetJointTransform( steeringWheelJoint, gameLocal.GetGameTimeMs(), origin, axis );
+		animator.GetJointTransform( steeringWheelJoint, gameLocal.GetGameTimeMs(), axis );
 		rotation.SetVec( axis[ 2 ] );
 		rotation.SetAngle( -steerAngle );
 		animator.SetJointAxis( steeringWheelJoint, JOINTMOD_WORLD, rotation.ToMat3() );

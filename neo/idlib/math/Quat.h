@@ -46,19 +46,18 @@ class idMat3;
 class idMat4;
 class idCQuat;
 
-class idQuat
-{
+ALIGNTYPE16 class idQuat {
 public:
 	float			x;
 	float			y;
 	float			z;
 	float			w;
-	
+
 	idQuat();
 	idQuat( float x, float y, float z, float w );
-	
+
 	void 			Set( float x, float y, float z, float w );
-	
+
 	float			operator[]( int index ) const;
 	float& 			operator[]( int index );
 	idQuat			operator-() const;
@@ -72,22 +71,22 @@ public:
 	idQuat			operator*( float a ) const;
 	idQuat& 		operator*=( const idQuat& a );
 	idQuat& 		operator*=( float a );
-	
+
 	friend idQuat	operator*( const float a, const idQuat& b );
 	friend idVec3	operator*( const idVec3& a, const idQuat& b );
-	
+
 	bool			Compare( const idQuat& a ) const;						// exact compare, no epsilon
 	bool			Compare( const idQuat& a, const float epsilon ) const;	// compare with epsilon
 	bool			operator==(	const idQuat& a ) const;					// exact compare, no epsilon
 	bool			operator!=(	const idQuat& a ) const;					// exact compare, no epsilon
-	
+
 	idQuat			Inverse() const;
 	float			Length() const;
 	idQuat& 		Normalize();
-	
+
 	float			CalcW() const;
 	int				GetDimension() const;
-	
+
 	idAngles		ToAngles() const;
 	idRotation		ToRotation() const;
 	idMat3			ToMat3() const;
@@ -97,9 +96,11 @@ public:
 	const float* 	ToFloatPtr() const;
 	float* 			ToFloatPtr();
 	const char* 	ToString( int precision = 2 ) const;
-	
+
 	idQuat& 		Slerp( const idQuat& from, const idQuat& to, float t );
 	idQuat& 		Lerp( const idQuat& from, const idQuat& to, const float t );
+
+	bool			FixDenormals( float epsilon = idMath::FLT_EPSILON );				// change tiny numbers to zero
 };
 
 // A non-member slerp function allows constructing a const idQuat object with the result of a slerp,
@@ -141,7 +142,7 @@ ID_INLINE idQuat& idQuat::operator=( const idQuat& a )
 	y = a.y;
 	z = a.z;
 	w = a.w;
-	
+
 	return *this;
 }
 
@@ -156,7 +157,7 @@ ID_INLINE idQuat& idQuat::operator+=( const idQuat& a )
 	y += a.y;
 	z += a.z;
 	w += a.w;
-	
+
 	return *this;
 }
 
@@ -171,7 +172,7 @@ ID_INLINE idQuat& idQuat::operator-=( const idQuat& a )
 	y -= a.y;
 	z -= a.z;
 	w -= a.w;
-	
+
 	return *this;
 }
 
@@ -192,14 +193,14 @@ ID_INLINE idVec3 idQuat::operator*( const idVec3& a ) const
 	// result = this->Inverse() * idQuat( a.x, a.y, a.z, 0.0f ) * (*this)
 	float xxzz = x * x - z * z;
 	float wwyy = w * w - y * y;
-	
+
 	float xw2 = x * w * 2.0f;
 	float xy2 = x * y * 2.0f;
 	float xz2 = x * z * 2.0f;
 	float yw2 = y * w * 2.0f;
 	float yz2 = y * z * 2.0f;
 	float zw2 = z * w * 2.0f;
-	
+
 	return idVec3(
 			   ( xxzz + wwyy ) * a.x		+ ( xy2 + zw2 ) * a.y		+ ( xz2 - yw2 ) * a.z,
 			   ( xy2 - zw2 ) * a.x			+ ( y * y + w * w - x * x - z * z ) * a.y	+ ( yz2 + xw2 ) * a.z,
@@ -226,7 +227,7 @@ ID_INLINE idVec3 operator*( const idVec3& a, const idQuat& b )
 ID_INLINE idQuat& idQuat::operator*=( const idQuat& a )
 {
 	*this = *this * a;
-	
+
 	return *this;
 }
 
@@ -236,7 +237,7 @@ ID_INLINE idQuat& idQuat::operator*=( float a )
 	y *= a;
 	z *= a;
 	w *= a;
-	
+
 	return *this;
 }
 
@@ -291,21 +292,15 @@ ID_INLINE idQuat idQuat::Inverse() const
 
 ID_INLINE float idQuat::Length() const
 {
-	float len;
-	
-	len = x * x + y * y + z * z + w * w;
+	float len = x * x + y * y + z * z + w * w;
 	return idMath::Sqrt( len );
 }
 
 ID_INLINE idQuat& idQuat::Normalize()
 {
-	float len;
-	float ilength;
-	
-	len = this->Length();
-	if( len )
-	{
-		ilength = 1 / len;
+	float len = this->Length();
+	if( len ) {
+		float ilength = 1.0f / len;
 		x *= ilength;
 		y *= ilength;
 		z *= ilength;
@@ -335,6 +330,32 @@ ID_INLINE float* idQuat::ToFloatPtr()
 	return &x;
 }
 
+ID_INLINE bool idQuat::FixDenormals( float epsilon )
+{
+	bool denormal = false;
+	if( fabs( x ) < epsilon )
+	{
+		x = 0.0f;
+		denormal = true;
+	}
+	if( fabs( y ) < epsilon )
+	{
+		y = 0.0f;
+		denormal = true;
+	}
+	if( fabs( z ) < epsilon )
+	{
+		z = 0.0f;
+		denormal = true;
+	}
+	if( fabs( w ) < epsilon )
+	{
+		w = 0.0f;
+		denormal = true;
+	}
+	return denormal;
+}
+
 /*
 ===============================================================================
 
@@ -356,28 +377,27 @@ struct idTupleSize< idQuat >
 ===============================================================================
 */
 
-class idCQuat
-{
+class idCQuat {
 public:
 	float			x;
 	float			y;
 	float			z;
-	
+
 	idCQuat();
 	idCQuat( float x, float y, float z );
-	
+
 	void 			Set( float x, float y, float z );
-	
+
 	float			operator[]( int index ) const;
 	float& 			operator[]( int index );
-	
+
 	bool			Compare( const idCQuat& a ) const;						// exact compare, no epsilon
 	bool			Compare( const idCQuat& a, const float epsilon ) const;	// compare with epsilon
 	bool			operator==(	const idCQuat& a ) const;					// exact compare, no epsilon
 	bool			operator!=(	const idCQuat& a ) const;					// exact compare, no epsilon
-	
+
 	int				GetDimension() const;
-	
+
 	idAngles		ToAngles() const;
 	idRotation		ToRotation() const;
 	idMat3			ToMat3() const;
@@ -386,6 +406,8 @@ public:
 	const float* 	ToFloatPtr() const;
 	float* 			ToFloatPtr();
 	const char* 	ToString( int precision = 2 ) const;
+
+	bool			FixDenormals( float epsilon = idMath::FLT_EPSILON );	// change tiny numbers to zero
 };
 
 ID_INLINE idCQuat::idCQuat()
@@ -469,6 +491,27 @@ ID_INLINE const float* idCQuat::ToFloatPtr() const
 ID_INLINE float* idCQuat::ToFloatPtr()
 {
 	return &x;
+}
+
+ID_INLINE bool idCQuat::FixDenormals( float epsilon )
+{
+	bool denormal = false;
+	if( fabs( x ) < epsilon )
+	{
+		x = 0.0f;
+		denormal = true;
+	}
+	if( fabs( y ) < epsilon )
+	{
+		y = 0.0f;
+		denormal = true;
+	}
+	if( fabs( z ) < epsilon )
+	{
+		z = 0.0f;
+		denormal = true;
+	}
+	return denormal;
 }
 
 /*

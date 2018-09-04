@@ -45,6 +45,7 @@ public:
 	explicit idBox( const idVec3& point );
 	explicit idBox( const idBounds& bounds );
 	explicit idBox( const idBounds& bounds, const idVec3& origin, const idMat3& axis );
+	explicit idBox( const idBounds &bounds, const float modelMatrix[16] );
 	
 	idBox			operator+( const idVec3& t ) const;				// returns translated box
 	idBox& 			operator+=( const idVec3& t );					// translate the box
@@ -73,6 +74,7 @@ public:
 	bool			AddBox( const idBox& a );						// add the box, returns true if the box expanded
 	idBox			Expand( const float d ) const;					// return box expanded in all directions with the given value
 	idBox& 			ExpandSelf( const float d );					// expand box in all directions with the given value
+	idBox &			ExpandSelf( const float dx, const float dy, const float dz );	// expand box in all directions with given values
 	idBox			Translate( const idVec3& translation ) const;	// return translated box
 	idBox& 			TranslateSelf( const idVec3& translation );		// translate this box
 	idBox			Rotate( const idMat3& rotation ) const;			// return rotated box
@@ -146,6 +148,30 @@ ID_INLINE idBox::idBox( const idBounds& bounds, const idVec3& origin, const idMa
 	this->extents = bounds[1] - this->center;
 	this->center = origin + this->center * axis;
 	this->axis = axis;
+}
+
+ID_INLINE idBox::idBox( const idBounds &bounds, const float modelMatrix[16] )
+{
+	this->center = ( bounds[0] + bounds[1] ) * 0.5f;
+	this->extents = bounds[1] - this->center;
+
+	idVec3 origin;
+	axis[0][0] = modelMatrix[0];
+	axis[0][1] = modelMatrix[1];
+	axis[0][2] = modelMatrix[2];
+
+	axis[1][0] = modelMatrix[4];
+	axis[1][1] = modelMatrix[5];
+	axis[1][2] = modelMatrix[6];
+
+	axis[2][0] = modelMatrix[8];
+	axis[2][1] = modelMatrix[9];
+	axis[2][2] = modelMatrix[10];
+
+	origin[0]  = modelMatrix[12];			   
+	origin[1]  = modelMatrix[13];			   
+	origin[2]  = modelMatrix[14];
+	this->center = origin + this->center * this->axis;
 }
 
 ID_INLINE idBox idBox::operator+( const idVec3& t ) const
@@ -265,6 +291,13 @@ ID_INLINE idBox& idBox::ExpandSelf( const float d )
 	extents[0] += d;
 	extents[1] += d;
 	extents[2] += d;
+	return *this;
+}
+
+ID_INLINE idBox &idBox::ExpandSelf ( const float dx, const float dy, const float dz ) {
+	extents[0] += dx;
+	extents[1] += dy;
+	extents[2] += dz;
 	return *this;
 }
 

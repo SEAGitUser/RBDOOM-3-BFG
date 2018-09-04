@@ -402,11 +402,11 @@ private:
 	void					Event_AmmoAvailable();
 	void					Event_TotalAmmoCount();
 	void					Event_ClipSize();
-	void					Event_PlayAnim( int channel, const char* animname );
-	void					Event_PlayCycle( int channel, const char* animname );
-	void					Event_AnimDone( int channel, int blendFrames );
-	void					Event_SetBlendFrames( int channel, int blendFrames );
-	void					Event_GetBlendFrames( int channel );
+	void					Event_PlayAnim( animChannel_t channel, const char* animname );
+	void					Event_PlayCycle( animChannel_t channel, const char* animname );
+	void					Event_AnimDone( animChannel_t channel, int blendFrames );
+	void					Event_SetBlendFrames( animChannel_t channel, int blendFrames );
+	void					Event_GetBlendFrames( animChannel_t channel );
 	void					Event_Next();
 	void					Event_SetSkin( const char* skinname );
 	void					Event_Flashlight( int enable );

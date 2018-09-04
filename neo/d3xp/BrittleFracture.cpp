@@ -715,7 +715,7 @@ idBrittleFracture::ProjectDecal
 void idBrittleFracture::ProjectDecal( const idVec3& point, const idVec3& dir, const int time, const char* damageDefName )
 {
 	int i, j, bits, clipBits;
-	idVec2 st[ MAX_POINTS_ON_WINDING ];
+	idVec2 st[ idFixedWinding::MAX_POINTS ];
 	idVec3 origin;
 	idMat3 axis, axistemp;
 	idPlane textureAxis[ 2 ];
@@ -1118,12 +1118,10 @@ void idBrittleFracture::Fracture_r( idFixedWinding& w, idRandom2& random )
 		{
 			a = idMath::TWO_PI / 2.0f;
 		}
-		else
-		{
+		else {
 			a = random.RandomFloat() * idMath::TWO_PI;
 		}
-		c = idMath::Cos( a );
-		s = -idMath::Sin( a );
+		idMath::SinCos16( a, s, c ); s = -s;
 		axis[ 2 ].NormalVectors( axistemp[ 0 ], axistemp[ 1 ] );
 		axis[ 0 ] = axistemp[ 0 ] * c + axistemp[ 1 ] * s;
 		axis[ 1 ] = axistemp[ 0 ] * s + axistemp[ 1 ] * -c;
@@ -1242,7 +1240,7 @@ void idBrittleFracture::CreateFractures( const idRenderModel* renderModel )
 			w.AddPoint( idVec5( verts[ i0 ].GetPosition(), verts[ i0 ].GetTexCoord() ) );
 			idPlane p1;
 			w.GetPlane( p1 );
-			for( int k = j + 3; k < surf->GetTriangles()->numIndexes && ( w.GetNumPoints() + 1 < MAX_POINTS_ON_WINDING ); k += 3 )
+			for( int k = j + 3; k < surf->GetTriangles()->numIndexes && ( w.GetNumPoints() + 1 < idFixedWinding::MAX_POINTS ); k += 3 )
 			{
 				int i3 = indexes[ k + 0 ];
 				int i4 = indexes[ k + 1 ];

@@ -165,6 +165,8 @@ public:
 	byte				GetBiTangentSignBit() const;
 
 	void				SetTexCoordNative( const halfFloat_t s, const halfFloat_t t );
+	void				SetTexCoordNativeS( const halfFloat_t s );
+	void				SetTexCoordNativeT( const halfFloat_t t );
 	void				SetTexCoord( const idVec2& st );
 	void				SetTexCoord( float s, float t );
 	void				SetTexCoordS( float s );
@@ -571,6 +573,14 @@ idDrawVert::SetTexCoordNative
 ID_INLINE void idDrawVert::SetTexCoordNative( const halfFloat_t s, const halfFloat_t t )
 {
 	st[ 0 ] = s;
+	st[ 1 ] = t;
+}
+ID_INLINE void idDrawVert::SetTexCoordNativeS( const halfFloat_t s )
+{
+	st[ 0 ] = s;
+}
+ID_INLINE void idDrawVert::SetTexCoordNativeT( const halfFloat_t t )
+{
 	st[ 1 ] = t;
 }
 

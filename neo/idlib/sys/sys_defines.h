@@ -188,6 +188,7 @@ Defines and macros usable in all code
 // RB: changed UINT_PTR to uintptr_t
 #define _alloca16( x )					((void *)ALIGN( (uintptr_t)_alloca( ALIGN( x, 16 ) + 16 ), 16 ) )
 #define _alloca128( x )					((void *)ALIGN( (uintptr_t)_alloca( ALIGN( x, 128 ) + 128 ), 128 ) )
+#define _alloca256( x )					((void *)ALIGN( (uintptr_t)_alloca( ALIGN( x, 256 ) + 256 ), 256 ) )
 // RB end
 
 #define likely( x )	( x )

@@ -37,8 +37,7 @@ If you have questions concerning this license or the applicable additional terms
 ===============================================================================
 */
 
-class idSIMD_Generic : public idSIMDProcessor
-{
+class idSIMD_Generic : public idSIMDProcessor {
 public:
 	virtual const char* VPCALL GetName() const;
 	

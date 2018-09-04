@@ -61,7 +61,7 @@ struct rigidBodyIState_t
 	}
 };
 
-typedef struct rigidBodyPState_t
+struct rigidBodyPState_t
 {
 	int						atRest;						// set when simulation is suspended
 	float					lastTimeStep;				// length of last time step

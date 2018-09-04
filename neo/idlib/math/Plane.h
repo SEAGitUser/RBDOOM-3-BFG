@@ -37,7 +37,6 @@ If you have questions concerning this license or the applicable additional terms
 ===============================================================================
 */
 
-
 class idVec3;
 class idMat3;
 
@@ -68,8 +67,7 @@ class idMat3;
 #define PLANETYPE_ZEROZ				8
 #define PLANETYPE_NONAXIAL			9
 
-class idPlane
-{
+class idPlane {
 public:
 	idPlane();
 	explicit idPlane( float a, float b, float c, float d );
@@ -92,6 +90,7 @@ public:
 	bool			operator!=(	const idPlane& p ) const;					// exact compare, no epsilon
 
 	void			Zero();							// zero plane
+	void			Set( float x, float y, float z, float dist );
 	void			SetNormal( const idVec3& normal );		// sets the normal
 	void			SetNormal( float X, float Y, float Z );	// sets the normal
 	const idVec3& 	Normal() const;					// reference to const normal
@@ -104,6 +103,7 @@ public:
 	int				Type() const;						// returns plane type
 
 	bool			FromPoints( const idVec3& p1, const idVec3& p2, const idVec3& p3, bool fixDegenerate = true );
+	bool			FromPointsHighPrecision( const idVec3 &p0, const idVec3 &p1, const idVec3 &p2, bool fixDegenerate );
 	bool			FromVecs( const idVec3& dir1, const idVec3& dir2, const idVec3& p, bool fixDegenerate = true );
 	void			FitThroughPoint( const idVec3& p );	// assumes normal is valid
 	bool			HeightFit( const idVec3* points, const int numPoints );
@@ -116,6 +116,8 @@ public:
 	int				Side( const idVec3& v, const float epsilon = 0.0f ) const;
 
 	bool			LineIntersection( const idVec3& start, const idVec3& end ) const;
+	bool			LineIntersection( const idVec3 &start, const idVec3 &end, float &fraction ) const;
+
 	// intersection point is start + dir * scale
 	bool			RayIntersection( const idVec3& start, const idVec3& dir, float& scale ) const;
 	bool			PlaneIntersection( const idPlane& plane, idVec3& start, idVec3& dir ) const;
@@ -129,10 +131,7 @@ public:
 	const char* 	ToString( int precision = 2 ) const;
 
 private:
-	float			a;
-	float			b;
-	float			c;
-	float			d;
+	float			a, b, c, d;
 };
 
 extern idPlane plane_origin;
@@ -329,6 +328,14 @@ ID_INLINE void idPlane::SetDist( const float dist )
 	d = -dist;
 }
 
+ID_INLINE void idPlane::Set( float a, float b, float c, float d )
+{
+	this->a = a;
+	this->b = b;
+	this->c = c;
+	this->d = d;
+}
+
 ID_INLINE bool idPlane::FromPoints( const idVec3& p1, const idVec3& p2, const idVec3& p3, bool fixDegenerate )
 {
 	Normal() = ( p1 - p2 ).Cross( p3 - p2 );
@@ -338,6 +345,51 @@ ID_INLINE bool idPlane::FromPoints( const idVec3& p1, const idVec3& p2, const id
 	}
 	d = -( Normal() * p2 );
 	return true;
+}
+
+ID_INLINE bool idPlane::FromPointsHighPrecision( const idVec3 &p0, const idVec3 &p1, const idVec3 &p2, bool fixDegenerate )
+{
+	// Take the cross product of the edge directions of the two shortest edges for maximum precision.
+	// The shortest two edges of a triangle are also the two edges that are most orthogonal to each other.
+#if 0
+	float l0 = ( p2 - p1 ).LengthSqr();
+	float l1 = ( p0 - p2 ).LengthSqr();
+	float l2 = ( p1 - p0 ).LengthSqr();
+
+	if( l0 > l1 && l0 > l2 )
+	{
+		idVec3 v1 = p1 - p0;
+		idVec3 v2 = p2 - p0;
+		Normal() = v1.Cross( v2 );
+	}
+	else if( l1 > l0 && l1 > l2 )
+	{
+		idVec3 v1 = p2 - p1;
+		idVec3 v2 = p0 - p1;
+		Normal() = v1.Cross( v2 );
+	}
+	else
+	{
+		idVec3 v1 = p0 - p2;
+		idVec3 v2 = p1 - p2;
+		Normal() = v1.Cross( v2 );
+	}
+	bool r = Normalize( fixDegenerate ) != 0.0f;
+	FitThroughPoint( p0 );
+	return r;
+#else
+	const idVec3 *p[ 3 ] = { &p0, &p1, &p2 };
+	float l0 = ( p2 - p1 ).LengthSqr();
+	float l1 = ( p0 - p2 ).LengthSqr();
+	float l2 = ( p1 - p0 ).LengthSqr();
+	int index = Max3Index( l0, l1, l2 );
+	idVec3 v1 = *p[ ( index + 1 ) % 3 ] - *p[ index ];
+	idVec3 v2 = *p[ ( index + 2 ) % 3 ] - *p[ index ];
+	Normal() = v1.Cross( v2 );
+	bool r = Normalize( fixDegenerate ) != 0.0f;
+	FitThroughPoint( p0 );
+	return r;
+#endif
 }
 
 ID_INLINE bool idPlane::FromVecs( const idVec3& dir1, const idVec3& dir2, const idVec3& p, bool fixDegenerate )
@@ -404,10 +456,27 @@ ID_INLINE int idPlane::Side( const idVec3& v, const float epsilon ) const
 
 ID_INLINE bool idPlane::LineIntersection( const idVec3& start, const idVec3& end ) const
 {
-	float d1, d2, fraction;
-
-	d1 = Normal() * start + d;
-	d2 = Normal() * end + d;
+	float d1 = Normal() * start + d;
+	float d2 = Normal() * end + d;
+	if( d1 == d2 )
+	{
+		return false;
+	}
+	if( d1 > 0.0f && d2 > 0.0f )
+	{
+		return false;
+	}
+	if( d1 < 0.0f && d2 < 0.0f )
+	{
+		return false;
+	}
+	float fraction = ( d1 / ( d1 - d2 ) );
+	return ( fraction >= 0.0f && fraction <= 1.0f );
+}
+ID_INLINE bool idPlane::LineIntersection( const idVec3 &start, const idVec3 &end, float &fraction ) const
+{
+	float d1 = Normal() * start + d;
+	float d2 = Normal() * end + d;
 	if( d1 == d2 )
 	{
 		return false;
@@ -426,10 +495,8 @@ ID_INLINE bool idPlane::LineIntersection( const idVec3& start, const idVec3& end
 
 ID_INLINE bool idPlane::RayIntersection( const idVec3& start, const idVec3& dir, float& scale ) const
 {
-	float d1, d2;
-
-	d1 = Normal() * start + d;
-	d2 = Normal() * dir;
+	float d1 = Normal() * start + d;
+	float d2 = Normal() * dir;
 	if( d2 == 0.0f )
 	{
 		return false;

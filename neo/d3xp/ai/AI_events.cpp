@@ -882,7 +882,6 @@ void idAI::Event_MeleeAttackToJoint( const char* jointname, const char* meleeDef
 	jointHandle_t	joint;
 	idVec3			start;
 	idVec3			end;
-	idMat3			axis;
 	trace_t			trace;
 	idEntity*		hitEnt;
 
@@ -891,7 +890,7 @@ void idAI::Event_MeleeAttackToJoint( const char* jointname, const char* meleeDef
 	{
 		gameLocal.Error( "Unknown joint '%s' on %s", jointname, GetEntityDefName() );
 	}
-	animator.GetJointTransform( joint, gameLocal.GetGameTimeMs(), end, axis );
+	animator.GetJointTransform( joint, gameLocal.GetGameTimeMs(), end );
 	end = physicsObj.GetOrigin() + ( end + modelOffset ) * viewAxis * physicsObj.GetGravityAxis();
 	start = GetEyePosition();
 
@@ -1867,7 +1866,6 @@ void idAI::Event_CanHitEnemyFromJoint( const char* jointname )
 {
 	trace_t	tr;
 	idVec3	muzzle;
-	idMat3	axis;
 	idVec3	start;
 	float	distance;
 
@@ -1894,7 +1892,7 @@ void idAI::Event_CanHitEnemyFromJoint( const char* jointname )
 	{
 		gameLocal.Error( "Unknown joint '%s' on %s", jointname, GetEntityDefName() );
 	}
-	animator.GetJointTransform( joint, gameLocal.GetGameTimeMs(), muzzle, axis );
+	animator.GetJointTransform( joint, gameLocal.GetGameTimeMs(), muzzle );
 	muzzle = org + ( muzzle + modelOffset ) * viewAxis * physicsObj.GetGravityAxis();
 
 	if( projectileClipModel == NULL )

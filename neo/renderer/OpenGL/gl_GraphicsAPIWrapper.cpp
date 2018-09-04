@@ -1850,6 +1850,8 @@ void GL_StartFrame( int frame )
 */
 void GL_EndFrame()
 {
+	UnbindBufferObjects();
+
 	if( !glConfig.timerQueryAvailable )
 		return;
 

@@ -838,8 +838,7 @@ idEntityFx* idEntityFx::StartFx( const char* fx, const idVec3* useOrigin, const 
 		nfx->BindToJoint( ent, nfx->Joint(), true );
 		nfx->SetOrigin( vec3_origin );
 	}
-	else
-	{
+	else {
 		nfx->SetOrigin( ( useOrigin ) ? *useOrigin : ent->GetPhysics()->GetOrigin() );
 		nfx->SetAxis( ( useAxis ) ? *useAxis : ent->GetPhysics()->GetAxis() );
 	}

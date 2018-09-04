@@ -26,7 +26,9 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
-#include "StaticShadowVolume_local.h"
+#include "../../tr_local.h"
+#include "../ShadowShared.h"
+#include "StaticShadowVolume.h"
 
 /*
 ===================
@@ -67,8 +69,7 @@ void StaticShadowVolumeJob( const staticShadowVolumeParms_t* parms )
 				renderZFail = R_ViewInsideShadowVolume( parms->tempCullBits, parms->verts, parms->numVerts, parms->indexes, parms->numIndexes,
 														parms->localLightOrigin, parms->localViewOrigin, parms->zNear * INSIDE_SHADOW_VOLUME_EXTRA_STRETCH );
 			}
-			else
-			{
+			else {
 				renderZFail = true;
 			}
 		}

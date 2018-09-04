@@ -1477,7 +1477,6 @@ void idAnimated::Event_LaunchMissilesUpdate( int launchjoint, int targetjoint, i
 {
 	idVec3			launchPos;
 	idVec3			targetPos;
-	idMat3			axis;
 	idVec3			dir;
 	idEntity* 		ent;
 	idProjectile* 	projectile;
@@ -1494,10 +1493,10 @@ void idAnimated::Event_LaunchMissilesUpdate( int launchjoint, int targetjoint, i
 	
 	StartSound( "snd_missile", SND_CHANNEL_WEAPON, 0, false, NULL );
 	
-	animator.GetJointTransform( ( jointHandle_t )launchjoint, gameLocal.GetGameTimeMs(), launchPos, axis );
+	animator.GetJointTransform( ( jointHandle_t )launchjoint, gameLocal.GetGameTimeMs(), launchPos );
 	launchPos = renderEntity.origin + launchPos * renderEntity.axis;
 	
-	animator.GetJointTransform( ( jointHandle_t )targetjoint, gameLocal.GetGameTimeMs(), targetPos, axis );
+	animator.GetJointTransform( ( jointHandle_t )targetjoint, gameLocal.GetGameTimeMs(), targetPos );
 	targetPos = renderEntity.origin + targetPos * renderEntity.axis;
 	
 	dir = targetPos - launchPos;

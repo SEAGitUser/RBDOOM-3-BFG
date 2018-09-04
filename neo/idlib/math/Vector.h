@@ -41,21 +41,15 @@ If you have questions concerning this license or the applicable additional terms
 
 #define VECTOR_EPSILON		0.001f
 
-class idAngles;
-class idPolar3;
-class idMat3;
-
 //===============================================================
 //
 //	idVec2 - 2D vector
 //
 //===============================================================
 
-class idVec2
-{
+class idVec2 {
 public:
-	float			x;
-	float			y;
+	float			x, y;
 
 	idVec2();
 	explicit idVec2( const float x, const float y );
@@ -83,8 +77,10 @@ public:
 
 	bool			Compare( const idVec2& a ) const;							// exact compare, no epsilon
 	bool			Compare( const idVec2& a, const float epsilon ) const;		// compare with epsilon
-	bool			operator==(	const idVec2& a ) const;						// exact compare, no epsilon
-	bool			operator!=(	const idVec2& a ) const;						// exact compare, no epsilon
+	bool			operator==( const idVec2& a ) const;						// exact compare, no epsilon
+	bool			operator!=( const idVec2& a ) const;						// exact compare, no epsilon
+
+	bool			IsZero() const;
 
 	float			Length() const;
 	float			LengthFast() const;
@@ -103,14 +99,17 @@ public:
 	const char* 	ToString( int precision = 2 ) const;
 
 	void			Lerp( const idVec2& v1, const idVec2& v2, const float l );
+
+	// Ensures second element greater than first.
+	void			EnsureIncremental();
 };
 
 extern idVec2 vec2_origin;
+extern idVec2 vec2_one;
 #define vec2_zero vec2_origin
 
 ID_INLINE idVec2::idVec2()
-{
-}
+{}
 
 ID_INLINE idVec2::idVec2( const float x, const float y )
 {
@@ -159,6 +158,11 @@ ID_INLINE bool idVec2::operator!=( const idVec2& a ) const
 	return !Compare( a );
 }
 
+ID_INLINE bool idVec2::IsZero() const
+{
+	return ( ( ( *( const unsigned int * )&( x ) ) | ( *( const unsigned int * )&( y ) ) ) & ~( 1 << 31 ) ) == 0;
+}
+
 ID_INLINE float idVec2::operator[]( int index ) const
 {
 	return ( &x )[ index ];
@@ -171,14 +175,12 @@ ID_INLINE float& idVec2::operator[]( int index )
 
 ID_INLINE float idVec2::Length() const
 {
-	return ( float )idMath::Sqrt( x * x + y * y );
+	return ( float ) idMath::Sqrt( x * x + y * y );
 }
 
 ID_INLINE float idVec2::LengthFast() const
 {
-	float sqrLength;
-
-	sqrLength = x * x + y * y;
+	float sqrLength = x * x + y * y;
 	return sqrLength * idMath::InvSqrt( sqrLength );
 }
 
@@ -189,10 +191,8 @@ ID_INLINE float idVec2::LengthSqr() const
 
 ID_INLINE float idVec2::Normalize()
 {
-	float sqrLength, invLength;
-
-	sqrLength = x * x + y * y;
-	invLength = idMath::InvSqrt( sqrLength );
+	float sqrLength = x * x + y * y;
+	float invLength = idMath::InvSqrt( sqrLength );
 	x *= invLength;
 	y *= invLength;
 	return invLength * sqrLength;
@@ -200,10 +200,8 @@ ID_INLINE float idVec2::Normalize()
 
 ID_INLINE float idVec2::NormalizeFast()
 {
-	float lengthSqr, invLength;
-
-	lengthSqr = x * x + y * y;
-	invLength = idMath::InvSqrt( lengthSqr );
+	float lengthSqr = x * x + y * y;
+	float invLength = idMath::InvSqrt( lengthSqr );
 	x *= invLength;
 	y *= invLength;
 	return invLength * lengthSqr;
@@ -249,8 +247,8 @@ ID_INLINE void idVec2::Clamp( const idVec2& min, const idVec2& max )
 
 ID_INLINE void idVec2::Snap()
 {
-	x = floorf( x + 0.5f );
-	y = floorf( y + 0.5f );
+	x = idMath::Floor( x + 0.5f );
+	y = idMath::Floor( y + 0.5f );
 }
 
 ID_INLINE void idVec2::SnapInt()
@@ -356,6 +354,17 @@ ID_INLINE float* idVec2::ToFloatPtr()
 	return &x;
 }
 
+// ensures the second element is greater than the first
+ID_INLINE void idVec2::EnsureIncremental()
+{
+	if( x < y )
+	{
+		return;
+	}
+	float temp = x;
+	x = y;
+	y = temp;
+}
 
 //===============================================================
 //
@@ -363,18 +372,12 @@ ID_INLINE float* idVec2::ToFloatPtr()
 //
 //===============================================================
 
-class idVec3
-{
+class idVec3 {
 public:
-	float			x;
-	float			y;
-	float			z;
+	float			x, y, z;
 
 	idVec3();
-	explicit idVec3( const float xyz )
-	{
-		Set( xyz, xyz, xyz );
-	}
+	explicit idVec3( const float xyz ) { Set( xyz, xyz, xyz ); }
 	explicit idVec3( const float x, const float y, const float z );
 
 	void 			Set( const float x, const float y, const float z );
@@ -405,11 +408,13 @@ public:
 
 	bool			Compare( const idVec3& a ) const;							// exact compare, no epsilon
 	bool			Compare( const idVec3& a, const float epsilon ) const;		// compare with epsilon
-	bool			operator==(	const idVec3& a ) const;						// exact compare, no epsilon
-	bool			operator!=(	const idVec3& a ) const;						// exact compare, no epsilon
+	bool			operator==( const idVec3& a ) const;						// exact compare, no epsilon
+	bool			operator!=( const idVec3& a ) const;						// exact compare, no epsilon
+
+	bool			IsZero() const;
 
 	bool			FixDegenerateNormal();	// fix degenerate axial cases
-	bool			FixDenormals();			// change tiny numbers to zero
+	bool			FixDenormals( float epsilon = idMath::FLT_EPSILON );			// change tiny numbers to zero
 
 	idVec3			Cross( const idVec3& a ) const;
 	idVec3& 		Cross( const idVec3& a, const idVec3& b );
@@ -420,6 +425,7 @@ public:
 	float			NormalizeFast();			// returns length
 	idVec3			Truncate( float length ) const;		// cap length
 	void			Clamp( const idVec3& min, const idVec3& max );
+	void			ClampMin( const float &minx, const float &miny, const float &minz );
 	void			Snap();					// snap to closest integer value
 	void			SnapInt();				// snap towards integer (floor)
 
@@ -427,9 +433,9 @@ public:
 
 	float			ToYaw() const;
 	float			ToPitch() const;
-	idAngles		ToAngles() const;
-	idPolar3		ToPolar() const;
-	idMat3			ToMat3() const;		// vector should be normalized
+	class idAngles	ToAngles() const;
+	class idPolar3	ToPolar() const;
+	class idMat3	ToMat3() const;		// vector should be normalized
 	const idVec2& 	ToVec2() const;
 	idVec2& 		ToVec2();
 	const float* 	ToFloatPtr() const;
@@ -445,14 +451,33 @@ public:
 
 	void			Lerp( const idVec3& v1, const idVec3& v2, const float l );
 	void			SLerp( const idVec3& v1, const idVec3& v2, const float l );
+
+	// Ensures second element greater than first.
+	void			EnsureIncremental();
+
+	int				GetLargestAxis() const;
+
+	class idRadAngles ToRadians() const;
+	idMat3 &		ToMat3( idMat3 &mat ) const;		// vector should be normalized
+	ID_INLINE float	Dist( const idVec3 &Pt ) const
+	{
+		idVec3 delta( x, y, z );
+		delta = delta - Pt;
+		return delta.LengthFast();
+	}
+
+	idVec3			ToMaya() const;
+	idVec3 &		ToMayaSelf();
+	idVec3			FromMaya() const;
+	idVec3 &		FromMayaSelf();
 };
 
 extern idVec3 vec3_origin;
+extern idVec3 vec3_one;
 #define vec3_zero vec3_origin
 
 ID_INLINE idVec3::idVec3()
-{
-}
+{}
 
 ID_INLINE idVec3::idVec3( const float x, const float y, const float z )
 {
@@ -463,11 +488,13 @@ ID_INLINE idVec3::idVec3( const float x, const float y, const float z )
 
 ID_INLINE float idVec3::operator[]( const int index ) const
 {
+	assert( index >= 0 && index < 3 );
 	return ( &x )[ index ];
 }
 
 ID_INLINE float& idVec3::operator[]( const int index )
 {
+	assert( index >= 0 && index < 3 );
 	return ( &x )[ index ];
 }
 
@@ -637,12 +664,15 @@ ID_INLINE bool idVec3::operator!=( const idVec3& a ) const
 	return !Compare( a );
 }
 
+ID_INLINE bool idVec3::IsZero() const
+{
+	return ( ( ( *( const unsigned int * )&( x ) ) | ( *( const unsigned int * )&( y ) ) | ( *( const unsigned int * )&( z ) ) ) & ~( 1 << 31 ) ) == 0;
+}
+
 ID_INLINE float idVec3::NormalizeFast()
 {
-	float sqrLength, invLength;
-
-	sqrLength = x * x + y * y + z * z;
-	invLength = idMath::InvSqrt( sqrLength );
+	float sqrLength = x * x + y * y + z * z;
+	float invLength = idMath::InvSqrt( sqrLength );
 	x *= invLength;
 	y *= invLength;
 	z *= invLength;
@@ -747,20 +777,20 @@ ID_INLINE bool idVec3::FixDegenerateNormal()
 	return false;
 }
 
-ID_INLINE bool idVec3::FixDenormals()
+ID_INLINE bool idVec3::FixDenormals( float epsilon )
 {
 	bool denormal = false;
-	if( fabs( x ) < 1e-30f )
+	if( idMath::Fabs( x ) < epsilon )
 	{
 		x = 0.0f;
 		denormal = true;
 	}
-	if( fabs( y ) < 1e-30f )
+	if( idMath::Fabs( y ) < epsilon )
 	{
 		y = 0.0f;
 		denormal = true;
 	}
-	if( fabs( z ) < 1e-30f )
+	if( idMath::Fabs( z ) < epsilon )
 	{
 		z = 0.0f;
 		denormal = true;
@@ -784,7 +814,7 @@ ID_INLINE idVec3& idVec3::Cross( const idVec3& a, const idVec3& b )
 
 ID_INLINE float idVec3::Length() const
 {
-	return ( float )idMath::Sqrt( x * x + y * y + z * z );
+	return ( float ) idMath::Sqrt( x * x + y * y + z * z );
 }
 
 ID_INLINE float idVec3::LengthSqr() const
@@ -814,7 +844,8 @@ ID_INLINE idVec3 idVec3::Truncate( float length ) const
 	{
 		return vec3_zero;
 	}
-	else {
+	else
+	{
 		float length2 = LengthSqr();
 		if( length2 > length * length )
 		{
@@ -853,11 +884,27 @@ ID_INLINE void idVec3::Clamp( const idVec3& min, const idVec3& max )
 	}
 }
 
+ID_INLINE void idVec3::ClampMin( const float &minx, const float &miny, const float &minz )
+{
+	if( x < minx )
+	{
+		x = minx;
+	}
+	if( y < miny )
+	{
+		y = miny;
+	}
+	if( z < minz )
+	{
+		z = minz;
+	}
+}
+
 ID_INLINE void idVec3::Snap()
 {
-	x = floor( x + 0.5f );
-	y = floor( y + 0.5f );
-	z = floor( z + 0.5f );
+	x = idMath::Floor( x + 0.5f );
+	y = idMath::Floor( y + 0.5f );
+	z = idMath::Floor( z + 0.5f );
 }
 
 ID_INLINE void idVec3::SnapInt()
@@ -874,12 +921,12 @@ ID_INLINE int idVec3::GetDimension() const
 
 ID_INLINE const idVec2& idVec3::ToVec2() const
 {
-	return *reinterpret_cast<const idVec2*>( this );
+	return *reinterpret_cast< const idVec2* >( this );
 }
 
 ID_INLINE idVec2& idVec3::ToVec2()
 {
-	return *reinterpret_cast<idVec2*>( this );
+	return *reinterpret_cast< idVec2* >( this );
 }
 
 ID_INLINE const float* idVec3::ToFloatPtr() const
@@ -894,21 +941,19 @@ ID_INLINE float* idVec3::ToFloatPtr()
 
 ID_INLINE void idVec3::NormalVectors( idVec3& left, idVec3& down ) const
 {
-	float d;
-
-	d = x * x + y * y;
+	float d = x * x + y * y;
 	if( !d )
 	{
-		left[0] = 1;
-		left[1] = 0;
-		left[2] = 0;
+		left[ 0 ] = 1.0f;
+		left[ 1 ] = 0.0f;
+		left[ 2 ] = 0.0f;
 	}
 	else
 	{
 		d = idMath::InvSqrt( d );
-		left[0] = -y * d;
-		left[1] = x * d;
-		left[2] = 0;
+		left[ 0 ] = -y * d;
+		left[ 1 ] = x * d;
+		left[ 2 ] = 0.0f;
 	}
 	down = left.Cross( *this );
 }
@@ -921,31 +966,29 @@ ID_INLINE void idVec3::OrthogonalBasis( idVec3& left, idVec3& up ) const
 	{
 		l = y * y + z * z;
 		s = idMath::InvSqrt( l );
-		up[0] = 0;
-		up[1] = z * s;
-		up[2] = -y * s;
-		left[0] = l * s;
-		left[1] = -x * up[2];
-		left[2] = x * up[1];
+		up[ 0 ] = 0.0f;
+		up[ 1 ] = z * s;
+		up[ 2 ] = -y * s;
+		left[ 0 ] = l * s;
+		left[ 1 ] = -x * up[ 2 ];
+		left[ 2 ] = x * up[ 1 ];
 	}
 	else
 	{
 		l = x * x + y * y;
 		s = idMath::InvSqrt( l );
-		left[0] = -y * s;
-		left[1] = x * s;
-		left[2] = 0;
-		up[0] = -z * left[1];
-		up[1] = z * left[0];
-		up[2] = l * s;
+		left[ 0 ] = -y * s;
+		left[ 1 ] = x * s;
+		left[ 2 ] = 0.0f;
+		up[ 0 ] = -z * left[ 1 ];
+		up[ 1 ] = z * left[ 0 ];
+		up[ 2 ] = l * s;
 	}
 }
 
 ID_INLINE void idVec3::ProjectOntoPlane( const idVec3& normal, const float overBounce )
 {
-	float backoff;
-
-	backoff = *this * normal;
+	float backoff = *this * normal;
 
 	if( overBounce != 1.0 )
 	{
@@ -964,13 +1007,10 @@ ID_INLINE void idVec3::ProjectOntoPlane( const idVec3& normal, const float overB
 
 ID_INLINE bool idVec3::ProjectAlongPlane( const idVec3& normal, const float epsilon, const float overBounce )
 {
-	idVec3 cross;
-	float len;
-
-	cross = this->Cross( normal ).Cross( ( *this ) );
+	idVec3 cross = this->Cross( normal ).Cross( ( *this ) );
 	// normalize so a fixed epsilon can be used
 	cross.Normalize();
-	len = normal * cross;
+	float len = normal * cross;
 	if( idMath::Fabs( len ) < epsilon )
 	{
 		return false;
@@ -978,6 +1018,69 @@ ID_INLINE bool idVec3::ProjectAlongPlane( const idVec3& normal, const float epsi
 	cross *= overBounce * ( normal * ( *this ) ) / len;
 	( *this ) -= cross;
 	return true;
+}
+
+// jscott: ensures x < y < z
+ID_INLINE void idVec3::EnsureIncremental()
+{
+	if( y < x )
+	{
+		SwapValues( x, y );
+	}
+	if( z < y )
+	{
+		SwapValues( x, z );
+	}
+	if( y < x )
+	{
+		SwapValues( x, y );
+	}
+}
+
+ID_INLINE int idVec3::GetLargestAxis() const
+{
+	float a = idMath::Fabs( x );
+	float b = idMath::Fabs( y );
+	float c = idMath::Fabs( z );
+
+	if( a >= b && a >= c )
+	{
+		return( 0 );
+	}
+	if( b >= a && b >= c )
+	{
+		return( 1 );
+	}
+	if( c >= a && c >= b )
+	{
+		return( 2 );
+	}
+	return( 0 );
+}
+
+ID_INLINE idVec3 idVec3::ToMaya() const
+{
+	idVec3 vecMaya = *this;
+	vecMaya.ToMayaSelf();
+	return vecMaya;
+}
+ID_INLINE idVec3& idVec3::ToMayaSelf()
+{
+	SwapValues( y, z );
+	z = -z;
+	return ( *this );
+}
+ID_INLINE idVec3 idVec3::FromMaya() const
+{
+	idVec3 vecId = *this;
+	vecId.FromMayaSelf();
+	return vecId;
+}
+ID_INLINE idVec3& idVec3::FromMayaSelf()
+{
+	SwapValues( y, z );
+	y = -y;
+	return ( *this );
 }
 
 //===============================================================
@@ -988,8 +1091,7 @@ ID_INLINE bool idVec3::ProjectAlongPlane( const idVec3& normal, const float epsi
 //===============================================================
 
 template<>
-struct idTupleSize< idVec3 >
-{
+struct idTupleSize< idVec3 > {
 	enum { value = 3 };
 };
 
@@ -999,31 +1101,15 @@ struct idTupleSize< idVec3 >
 //
 //===============================================================
 
-class idVec4
-{
+class idVec4 {
 public:
-	float			x;
-	float			y;
-	float			z;
-	float			w;
+	float			x, y, z, w;
 
-	idVec4() { }
-	explicit idVec4( const float x )
-	{
-		Set( x, x, x, x );
-	}
-	explicit idVec4( const float x, const float y, const float z, const float w )
-	{
-		Set( x, y, z, w );
-	}
-	explicit idVec4( const idVec3 &xyz, const float w )
-	{
-		Set( xyz.x, xyz.y, xyz.z, w );
-	}
-	explicit idVec4( const idVec2 &xy, const idVec2 &zw )
-	{
-		Set( xy.x, xy.y, zw.x, zw.y );
-	}
+	idVec4() {}
+	explicit idVec4( const float x ) { Set( x, x, x, x ); }
+	explicit idVec4( const float x, const float y, const float z, const float w ) { Set( x, y, z, w ); }
+	explicit idVec4( const idVec3 &xyz, const float w ) { Set( xyz.x, xyz.y, xyz.z, w ); }
+	explicit idVec4( const idVec2 &xy, const idVec2 &zw ) { Set( xy.x, xy.y, zw.x, zw.y ); }
 
 	void 			Set( const float x, const float y, const float z, const float w );
 	void			Set( const idVec3 &xyz, const float w );
@@ -1036,7 +1122,7 @@ public:
 	float			operator[]( const int index ) const;
 	float& 			operator[]( const int index );
 	idVec4			operator-() const;
-	float			operator*( const idVec4& a ) const;
+	float			operator*( const idVec4& a ) const; // dot4
 	idVec4			operator*( const float a ) const;
 	idVec4			operator/( const float a ) const;
 	idVec4			operator+( const idVec4& a ) const;
@@ -1053,8 +1139,10 @@ public:
 
 	bool			Compare( const idVec4& a ) const;							// exact compare, no epsilon
 	bool			Compare( const idVec4& a, const float epsilon ) const;		// compare with epsilon
-	bool			operator==(	const idVec4& a ) const;						// exact compare, no epsilon
-	bool			operator!=(	const idVec4& a ) const;						// exact compare, no epsilon
+	bool			operator==( const idVec4& a ) const;						// exact compare, no epsilon
+	bool			operator!=( const idVec4& a ) const;						// exact compare, no epsilon
+
+	bool			IsZero() const;
 
 	float			Length() const;
 	float			LengthSqr() const;
@@ -1072,9 +1160,13 @@ public:
 	const char* 	ToString( int precision = 2 ) const;
 
 	void			Lerp( const idVec4& v1, const idVec4& v2, const float l );
+
+	bool			ContainsPoint( const float xTest, const float yTest ) const;
+	bool			ContainsPoint( const idVec2& testPoint ) const;
 };
 
 extern idVec4 vec4_origin;
+extern idVec4 vec4_one;
 #define vec4_zero vec4_origin
 
 ID_INLINE void idVec4::Set( const float x, const float y, const float z, const float w )
@@ -1100,11 +1192,13 @@ ID_INLINE void idVec4::Zero()
 
 ID_INLINE float idVec4::operator[]( int index ) const
 {
+	assert( index >= 0 && index < 4 );
 	return ( &x )[ index ];
 }
 
 ID_INLINE float& idVec4::operator[]( int index )
 {
+	assert( index >= 0 && index < 4 );
 	return ( &x )[ index ];
 }
 
@@ -1240,9 +1334,14 @@ ID_INLINE bool idVec4::operator!=( const idVec4& a ) const
 	return !Compare( a );
 }
 
+ID_INLINE bool idVec4::IsZero() const
+{
+	return ( ( ( *( const unsigned int * )&( x ) ) | ( *( const unsigned int * )&( y ) ) | ( *( const unsigned int * )&( z ) ) | ( *( const unsigned int * )&( w ) ) ) & ~( 1 << 31 ) ) == 0;
+}
+
 ID_INLINE float idVec4::Length() const
 {
-	return ( float )idMath::Sqrt( x * x + y * y + z * z + w * w );
+	return ( float ) idMath::Sqrt( x * x + y * y + z * z + w * w );
 }
 
 ID_INLINE float idVec4::LengthSqr() const
@@ -1252,10 +1351,8 @@ ID_INLINE float idVec4::LengthSqr() const
 
 ID_INLINE float idVec4::Normalize()
 {
-	float sqrLength, invLength;
-
-	sqrLength = x * x + y * y + z * z + w * w;
-	invLength = idMath::InvSqrt( sqrLength );
+	float sqrLength = x * x + y * y + z * z + w * w;
+	float invLength = idMath::InvSqrt( sqrLength );
 	x *= invLength;
 	y *= invLength;
 	z *= invLength;
@@ -1265,10 +1362,8 @@ ID_INLINE float idVec4::Normalize()
 
 ID_INLINE float idVec4::NormalizeFast()
 {
-	float sqrLength, invLength;
-
-	sqrLength = x * x + y * y + z * z + w * w;
-	invLength = idMath::InvSqrt( sqrLength );
+	float sqrLength = x * x + y * y + z * z + w * w;
+	float invLength = idMath::InvSqrt( sqrLength );
 	x *= invLength;
 	y *= invLength;
 	z *= invLength;
@@ -1283,22 +1378,22 @@ ID_INLINE int idVec4::GetDimension() const
 
 ID_INLINE const idVec2& idVec4::ToVec2() const
 {
-	return *reinterpret_cast<const idVec2*>( this );
+	return *reinterpret_cast< const idVec2* >( this );
 }
 
 ID_INLINE idVec2& idVec4::ToVec2()
 {
-	return *reinterpret_cast<idVec2*>( this );
+	return *reinterpret_cast< idVec2* >( this );
 }
 
 ID_INLINE const idVec3& idVec4::ToVec3() const
 {
-	return *reinterpret_cast<const idVec3*>( this );
+	return *reinterpret_cast< const idVec3* >( this );
 }
 
 ID_INLINE idVec3& idVec4::ToVec3()
 {
-	return *reinterpret_cast<idVec3*>( this );
+	return *reinterpret_cast< idVec3* >( this );
 }
 
 ID_INLINE const float* idVec4::ToFloatPtr() const
@@ -1311,6 +1406,15 @@ ID_INLINE float* idVec4::ToFloatPtr()
 	return &x;
 }
 
+ID_INLINE bool idVec4::ContainsPoint( const idVec2& testPoint ) const
+{
+	return !( ( ( testPoint.x < x ) || ( testPoint.x > x + z ) ) || ( ( testPoint.y < y ) || ( testPoint.y > y + w ) ) );
+}
+
+ID_INLINE bool idVec4::ContainsPoint( const float xTest, const float yTest ) const
+{
+	return !( ( ( xTest < x ) || ( xTest > x + z ) ) || ( ( yTest < y ) || ( yTest > y + w ) ) );
+}
 
 //===============================================================
 //
@@ -1318,14 +1422,10 @@ ID_INLINE float* idVec4::ToFloatPtr()
 //
 //===============================================================
 
-class idVec5
-{
+class idVec5 {
 public:
-	float			x;
-	float			y;
-	float			z;
-	float			s;
-	float			t;
+	float			x, y, z;
+	float			s, t;
 
 	idVec5();
 	explicit idVec5( const idVec3& xyz, const idVec2& st );
@@ -1334,9 +1434,12 @@ public:
 	float			operator[]( int index ) const;
 	float& 			operator[]( int index );
 	idVec5& 		operator=( const idVec3& a );
+	///bool			operator==( const idVec5 &rhs ) const;
 
 	int				GetDimension() const;
 
+	const idVec2 &	ToVec2( void ) const;
+	idVec2 &		ToVec2( void );
 	const idVec3& 	ToVec3() const;
 	idVec3& 		ToVec3();
 	const float* 	ToFloatPtr() const;
@@ -1344,22 +1447,23 @@ public:
 	const char* 	ToString( int precision = 2 ) const;
 
 	void			Lerp( const idVec5& v1, const idVec5& v2, const float l );
+	void			Set( const idVec3& xyz, const idVec2& st );
 };
 
 extern idVec5 vec5_origin;
+extern idVec5 vec5_one;
 #define vec5_zero vec5_origin
 
 ID_INLINE idVec5::idVec5()
-{
-}
+{}
 
 ID_INLINE idVec5::idVec5( const idVec3& xyz, const idVec2& st )
 {
 	x = xyz.x;
 	y = xyz.y;
 	z = xyz.z;
-	s = st[0];
-	t = st[1];
+	s = st[ 0 ];
+	t = st[ 1 ];
 }
 
 ID_INLINE idVec5::idVec5( const float x, const float y, const float z, const float s, const float t )
@@ -1395,26 +1499,42 @@ ID_INLINE int idVec5::GetDimension() const
 	return 5;
 }
 
-ID_INLINE const idVec3& idVec5::ToVec3() const
+ID_INLINE const idVec2 &idVec5::ToVec2() const
 {
-	return *reinterpret_cast<const idVec3*>( this );
+	return *reinterpret_cast< const idVec2 * >( &s );
 }
 
+ID_INLINE idVec2 &idVec5::ToVec2()
+{
+	return *reinterpret_cast< idVec2 * >( &s );
+}
+
+ID_INLINE const idVec3& idVec5::ToVec3() const
+{
+	return *reinterpret_cast< const idVec3* >( this );
+}
 ID_INLINE idVec3& idVec5::ToVec3()
 {
-	return *reinterpret_cast<idVec3*>( this );
+	return *reinterpret_cast< idVec3* >( this );
 }
 
 ID_INLINE const float* idVec5::ToFloatPtr() const
 {
 	return &x;
 }
-
 ID_INLINE float* idVec5::ToFloatPtr()
 {
 	return &x;
 }
 
+ID_INLINE void idVec5::Set( const idVec3& xyz, const idVec2& st )
+{
+	x = xyz.x;
+	y = xyz.y;
+	z = xyz.z;
+	s = st.x;
+	t = st.y;
+}
 
 //===============================================================
 //
@@ -1422,8 +1542,7 @@ ID_INLINE float* idVec5::ToFloatPtr()
 //
 //===============================================================
 
-class idVec6
-{
+class idVec6 {
 public:
 	idVec6();
 	explicit idVec6( const float* a );
@@ -1449,8 +1568,8 @@ public:
 
 	bool			Compare( const idVec6& a ) const;							// exact compare, no epsilon
 	bool			Compare( const idVec6& a, const float epsilon ) const;		// compare with epsilon
-	bool			operator==(	const idVec6& a ) const;						// exact compare, no epsilon
-	bool			operator!=(	const idVec6& a ) const;						// exact compare, no epsilon
+	bool			operator==( const idVec6& a ) const;						// exact compare, no epsilon
+	bool			operator!=( const idVec6& a ) const;						// exact compare, no epsilon
 
 	float			Length() const;
 	float			LengthSqr() const;
@@ -1466,16 +1585,16 @@ public:
 	const char* 	ToString( int precision = 2 ) const;
 
 private:
-	float			p[6];
+	float			p[ 6 ];
 };
 
 extern idVec6 vec6_origin;
+extern idVec6 vec6_one;
 #define vec6_zero vec6_origin
 extern idVec6 vec6_infinity;
 
 ID_INLINE idVec6::idVec6()
-{
-}
+{}
 
 ID_INLINE idVec6::idVec6( const float* a )
 {
@@ -1484,37 +1603,37 @@ ID_INLINE idVec6::idVec6( const float* a )
 
 ID_INLINE idVec6::idVec6( const float a1, const float a2, const float a3, const float a4, const float a5, const float a6 )
 {
-	p[0] = a1;
-	p[1] = a2;
-	p[2] = a3;
-	p[3] = a4;
-	p[4] = a5;
-	p[5] = a6;
+	p[ 0 ] = a1;
+	p[ 1 ] = a2;
+	p[ 2 ] = a3;
+	p[ 3 ] = a4;
+	p[ 4 ] = a5;
+	p[ 5 ] = a6;
 }
 
 ID_INLINE idVec6 idVec6::operator-() const
 {
-	return idVec6( -p[0], -p[1], -p[2], -p[3], -p[4], -p[5] );
+	return idVec6( -p[ 0 ], -p[ 1 ], -p[ 2 ], -p[ 3 ], -p[ 4 ], -p[ 5 ] );
 }
 
 ID_INLINE float idVec6::operator[]( const int index ) const
 {
-	return p[index];
+	return p[ index ];
 }
 
 ID_INLINE float& idVec6::operator[]( const int index )
 {
-	return p[index];
+	return p[ index ];
 }
 
 ID_INLINE idVec6 idVec6::operator*( const float a ) const
 {
-	return idVec6( p[0] * a, p[1] * a, p[2] * a, p[3] * a, p[4] * a, p[5] * a );
+	return idVec6( p[ 0 ] * a, p[ 1 ] * a, p[ 2 ] * a, p[ 3 ] * a, p[ 4 ] * a, p[ 5 ] * a );
 }
 
 ID_INLINE float idVec6::operator*( const idVec6& a ) const
 {
-	return p[0] * a[0] + p[1] * a[1] + p[2] * a[2] + p[3] * a[3] + p[4] * a[4] + p[5] * a[5];
+	return p[ 0 ] * a[ 0 ] + p[ 1 ] * a[ 1 ] + p[ 2 ] * a[ 2 ] + p[ 3 ] * a[ 3 ] + p[ 4 ] * a[ 4 ] + p[ 5 ] * a[ 5 ];
 }
 
 ID_INLINE idVec6 idVec6::operator/( const float a ) const
@@ -1523,64 +1642,62 @@ ID_INLINE idVec6 idVec6::operator/( const float a ) const
 
 	assert( a != 0.0f );
 	inva = 1.0f / a;
-	return idVec6( p[0] * inva, p[1] * inva, p[2] * inva, p[3] * inva, p[4] * inva, p[5] * inva );
+	return idVec6( p[ 0 ] * inva, p[ 1 ] * inva, p[ 2 ] * inva, p[ 3 ] * inva, p[ 4 ] * inva, p[ 5 ] * inva );
 }
 
 ID_INLINE idVec6 idVec6::operator+( const idVec6& a ) const
 {
-	return idVec6( p[0] + a[0], p[1] + a[1], p[2] + a[2], p[3] + a[3], p[4] + a[4], p[5] + a[5] );
+	return idVec6( p[ 0 ] + a[ 0 ], p[ 1 ] + a[ 1 ], p[ 2 ] + a[ 2 ], p[ 3 ] + a[ 3 ], p[ 4 ] + a[ 4 ], p[ 5 ] + a[ 5 ] );
 }
 
 ID_INLINE idVec6 idVec6::operator-( const idVec6& a ) const
 {
-	return idVec6( p[0] - a[0], p[1] - a[1], p[2] - a[2], p[3] - a[3], p[4] - a[4], p[5] - a[5] );
+	return idVec6( p[ 0 ] - a[ 0 ], p[ 1 ] - a[ 1 ], p[ 2 ] - a[ 2 ], p[ 3 ] - a[ 3 ], p[ 4 ] - a[ 4 ], p[ 5 ] - a[ 5 ] );
 }
 
 ID_INLINE idVec6& idVec6::operator*=( const float a )
 {
-	p[0] *= a;
-	p[1] *= a;
-	p[2] *= a;
-	p[3] *= a;
-	p[4] *= a;
-	p[5] *= a;
+	p[ 0 ] *= a;
+	p[ 1 ] *= a;
+	p[ 2 ] *= a;
+	p[ 3 ] *= a;
+	p[ 4 ] *= a;
+	p[ 5 ] *= a;
 	return *this;
 }
 
 ID_INLINE idVec6& idVec6::operator/=( const float a )
 {
-	float inva;
-
 	assert( a != 0.0f );
-	inva = 1.0f / a;
-	p[0] *= inva;
-	p[1] *= inva;
-	p[2] *= inva;
-	p[3] *= inva;
-	p[4] *= inva;
-	p[5] *= inva;
+	float inva = 1.0f / a;
+	p[ 0 ] *= inva;
+	p[ 1 ] *= inva;
+	p[ 2 ] *= inva;
+	p[ 3 ] *= inva;
+	p[ 4 ] *= inva;
+	p[ 5 ] *= inva;
 	return *this;
 }
 
 ID_INLINE idVec6& idVec6::operator+=( const idVec6& a )
 {
-	p[0] += a[0];
-	p[1] += a[1];
-	p[2] += a[2];
-	p[3] += a[3];
-	p[4] += a[4];
-	p[5] += a[5];
+	p[ 0 ] += a[ 0 ];
+	p[ 1 ] += a[ 1 ];
+	p[ 2 ] += a[ 2 ];
+	p[ 3 ] += a[ 3 ];
+	p[ 4 ] += a[ 4 ];
+	p[ 5 ] += a[ 5 ];
 	return *this;
 }
 
 ID_INLINE idVec6& idVec6::operator-=( const idVec6& a )
 {
-	p[0] -= a[0];
-	p[1] -= a[1];
-	p[2] -= a[2];
-	p[3] -= a[3];
-	p[4] -= a[4];
-	p[5] -= a[5];
+	p[ 0 ] -= a[ 0 ];
+	p[ 1 ] -= a[ 1 ];
+	p[ 2 ] -= a[ 2 ];
+	p[ 3 ] -= a[ 3 ];
+	p[ 4 ] -= a[ 4 ];
+	p[ 5 ] -= a[ 5 ];
 	return *this;
 }
 
@@ -1591,38 +1708,38 @@ ID_INLINE idVec6 operator*( const float a, const idVec6 & b )
 
 ID_INLINE bool idVec6::Compare( const idVec6& a ) const
 {
-	return ( ( p[0] == a[0] ) && ( p[1] == a[1] ) && ( p[2] == a[2] ) &&
-			 ( p[3] == a[3] ) && ( p[4] == a[4] ) && ( p[5] == a[5] ) );
+	return( ( p[ 0 ] == a[ 0 ] ) && ( p[ 1 ] == a[ 1 ] ) && ( p[ 2 ] == a[ 2 ] ) &&
+		    ( p[ 3 ] == a[ 3 ] ) && ( p[ 4 ] == a[ 4 ] ) && ( p[ 5 ] == a[ 5 ] ) );
 }
 
 ID_INLINE bool idVec6::Compare( const idVec6& a, const float epsilon ) const
 {
-	if( idMath::Fabs( p[0] - a[0] ) > epsilon )
+	if( idMath::Fabs( p[ 0 ] - a[ 0 ] ) > epsilon )
 	{
 		return false;
 	}
 
-	if( idMath::Fabs( p[1] - a[1] ) > epsilon )
+	if( idMath::Fabs( p[ 1 ] - a[ 1 ] ) > epsilon )
 	{
 		return false;
 	}
 
-	if( idMath::Fabs( p[2] - a[2] ) > epsilon )
+	if( idMath::Fabs( p[ 2 ] - a[ 2 ] ) > epsilon )
 	{
 		return false;
 	}
 
-	if( idMath::Fabs( p[3] - a[3] ) > epsilon )
+	if( idMath::Fabs( p[ 3 ] - a[ 3 ] ) > epsilon )
 	{
 		return false;
 	}
 
-	if( idMath::Fabs( p[4] - a[4] ) > epsilon )
+	if( idMath::Fabs( p[ 4 ] - a[ 4 ] ) > epsilon )
 	{
 		return false;
 	}
 
-	if( idMath::Fabs( p[5] - a[5] ) > epsilon )
+	if( idMath::Fabs( p[ 5 ] - a[ 5 ] ) > epsilon )
 	{
 		return false;
 	}
@@ -1642,56 +1759,52 @@ ID_INLINE bool idVec6::operator!=( const idVec6& a ) const
 
 ID_INLINE void idVec6::Set( const float a1, const float a2, const float a3, const float a4, const float a5, const float a6 )
 {
-	p[0] = a1;
-	p[1] = a2;
-	p[2] = a3;
-	p[3] = a4;
-	p[4] = a5;
-	p[5] = a6;
+	p[ 0 ] = a1;
+	p[ 1 ] = a2;
+	p[ 2 ] = a3;
+	p[ 3 ] = a4;
+	p[ 4 ] = a5;
+	p[ 5 ] = a6;
 }
 
 ID_INLINE void idVec6::Zero()
 {
-	p[0] = p[1] = p[2] = p[3] = p[4] = p[5] = 0.0f;
+	p[ 0 ] = p[ 1 ] = p[ 2 ] = p[ 3 ] = p[ 4 ] = p[ 5 ] = 0.0f;
 }
 
 ID_INLINE float idVec6::Length() const
 {
-	return ( float )idMath::Sqrt( p[0] * p[0] + p[1] * p[1] + p[2] * p[2] + p[3] * p[3] + p[4] * p[4] + p[5] * p[5] );
+	return ( float ) idMath::Sqrt( p[ 0 ] * p[ 0 ] + p[ 1 ] * p[ 1 ] + p[ 2 ] * p[ 2 ] + p[ 3 ] * p[ 3 ] + p[ 4 ] * p[ 4 ] + p[ 5 ] * p[ 5 ] );
 }
 
 ID_INLINE float idVec6::LengthSqr() const
 {
-	return ( p[0] * p[0] + p[1] * p[1] + p[2] * p[2] + p[3] * p[3] + p[4] * p[4] + p[5] * p[5] );
+	return ( p[ 0 ] * p[ 0 ] + p[ 1 ] * p[ 1 ] + p[ 2 ] * p[ 2 ] + p[ 3 ] * p[ 3 ] + p[ 4 ] * p[ 4 ] + p[ 5 ] * p[ 5 ] );
 }
 
 ID_INLINE float idVec6::Normalize()
 {
-	float sqrLength, invLength;
-
-	sqrLength = p[0] * p[0] + p[1] * p[1] + p[2] * p[2] + p[3] * p[3] + p[4] * p[4] + p[5] * p[5];
-	invLength = idMath::InvSqrt( sqrLength );
-	p[0] *= invLength;
-	p[1] *= invLength;
-	p[2] *= invLength;
-	p[3] *= invLength;
-	p[4] *= invLength;
-	p[5] *= invLength;
+	float sqrLength = p[ 0 ] * p[ 0 ] + p[ 1 ] * p[ 1 ] + p[ 2 ] * p[ 2 ] + p[ 3 ] * p[ 3 ] + p[ 4 ] * p[ 4 ] + p[ 5 ] * p[ 5 ];
+	float invLength = idMath::InvSqrt( sqrLength );
+	p[ 0 ] *= invLength;
+	p[ 1 ] *= invLength;
+	p[ 2 ] *= invLength;
+	p[ 3 ] *= invLength;
+	p[ 4 ] *= invLength;
+	p[ 5 ] *= invLength;
 	return invLength * sqrLength;
 }
 
 ID_INLINE float idVec6::NormalizeFast()
 {
-	float sqrLength, invLength;
-
-	sqrLength = p[0] * p[0] + p[1] * p[1] + p[2] * p[2] + p[3] * p[3] + p[4] * p[4] + p[5] * p[5];
-	invLength = idMath::InvSqrt( sqrLength );
-	p[0] *= invLength;
-	p[1] *= invLength;
-	p[2] *= invLength;
-	p[3] *= invLength;
-	p[4] *= invLength;
-	p[5] *= invLength;
+	float sqrLength = p[ 0 ] * p[ 0 ] + p[ 1 ] * p[ 1 ] + p[ 2 ] * p[ 2 ] + p[ 3 ] * p[ 3 ] + p[ 4 ] * p[ 4 ] + p[ 5 ] * p[ 5 ];
+	float invLength = idMath::InvSqrt( sqrLength );
+	p[ 0 ] *= invLength;
+	p[ 1 ] *= invLength;
+	p[ 2 ] *= invLength;
+	p[ 3 ] *= invLength;
+	p[ 4 ] *= invLength;
+	p[ 5 ] *= invLength;
 	return invLength * sqrLength;
 }
 
@@ -1702,12 +1815,12 @@ ID_INLINE int idVec6::GetDimension() const
 
 ID_INLINE const idVec3& idVec6::SubVec3( int index ) const
 {
-	return *reinterpret_cast<const idVec3*>( p + index * 3 );
+	return *reinterpret_cast< const idVec3* >( p + index * 3 );
 }
 
 ID_INLINE idVec3& idVec6::SubVec3( int index )
 {
-	return *reinterpret_cast<idVec3*>( p + index * 3 );
+	return *reinterpret_cast< idVec3* >( p + index * 3 );
 }
 
 ID_INLINE const float* idVec6::ToFloatPtr() const
@@ -1726,8 +1839,7 @@ ID_INLINE float* idVec6::ToFloatPtr()
 //
 //===============================================================
 
-class idPolar3
-{
+class idPolar3 {
 public:
 	float			radius, theta, phi;
 
@@ -1745,8 +1857,7 @@ public:
 };
 
 ID_INLINE idPolar3::idPolar3()
-{
-}
+{}
 
 ID_INLINE idPolar3::idPolar3( const float radius, const float theta, const float phi )
 {
@@ -1794,7 +1905,6 @@ ID_INLINE idVec3 idPolar3::ToVec3() const
 	idMath::SinCos( theta, st, ct );
 	return idVec3( cp * radius * ct, cp * radius * st, radius * sp );
 }
-
 
 /*
 ===============================================================================

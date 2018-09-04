@@ -244,26 +244,29 @@ public:
 	virtual void				ParseSpawnArgsToRefSound( const idDict* args, refSound_t* );
 	
 	// Animation system calls for non-game based skeletal rendering.
-	virtual idRenderModel* 		ANIM_GetModelFromEntityDef( const char* classname );
-	virtual const idVec3&		 ANIM_GetModelOffsetFromEntityDef( const char* classname );
-	virtual idRenderModel* 		ANIM_GetModelFromEntityDef( const idDict* args );
-	virtual idRenderModel* 		ANIM_GetModelFromName( const char* modelName );
-	virtual const idMD5Anim* 	ANIM_GetAnimFromEntityDef( const char* classname, const char* animname );
-	virtual int					ANIM_GetNumAnimsFromEntityDef( const idDict* args );
-	virtual const char* 		ANIM_GetAnimNameFromEntityDef( const idDict* args, int animNum );
-	virtual const idMD5Anim* 	ANIM_GetAnim( const char* fileName );
-	virtual int					ANIM_GetLength( const idMD5Anim* );
-	virtual int					ANIM_GetNumFrames( const idMD5Anim* );
-	virtual void				ANIM_CreateAnimFrame( const idRenderModel*, const idMD5Anim*, int numJoints, idJointMat* frame, int time, const idVec3& offset, bool remove_origin_offset );
-	virtual idRenderModel* 		ANIM_CreateMeshForAnim( idRenderModel*, const char* classname, const char* animname, int frame, bool remove_origin_offset );
+	virtual idRenderModel* 		ANIM_GetModelFromEntityDef( const char* classname ) const;
+	virtual const idVec3 &		ANIM_GetModelOffsetFromEntityDef( const char* classname ) const;
+	virtual const idVec3 &		ANIM_GetModelOffsetFromEntityDef( const idDict *args ) const;
+	virtual idRenderModel* 		ANIM_GetModelFromEntityDef( const idDict* args ) const;
+	virtual idRenderModel* 		ANIM_GetModelFromName( const char* modelName ) const;
+	virtual const idMD5Anim* 	ANIM_GetAnimFromEntityDef( const char* classname, const char* animname ) const;
+	virtual const idMD5Anim *	ANIM_GetAnimFromEntityDef( const idDict* args ) const;
+	virtual int					ANIM_GetNumAnimsFromEntityDef( const idDict* args ) const;
+	virtual const char* 		ANIM_GetAnimNameFromEntityDef( const idDict* args, int animNum ) const;
+	virtual const idMD5Anim* 	ANIM_GetAnim( const char* fileName ) const;
+	virtual int					ANIM_GetLength( const idMD5Anim* ) const;
+	virtual int					ANIM_GetNumFrames( const idMD5Anim* ) const;
+	virtual void				ANIM_CreateAnimFrame( const idRenderModel*, const idMD5Anim*, int numJoints, idJointMat* frame, int time, const idVec3& offset, bool remove_origin_offset ) const;
+	virtual idRenderModel* 		ANIM_CreateMeshForAnim( idRenderModel*, const char* classname, const char* animname, int frame, bool remove_origin_offset ) const;
+	virtual idRenderModel*		ANIM_CreateMeshForAnim( idRenderModel*, const idDict& args, bool remove_origin_offset ) const;
+	virtual void				ANIM_GetFrameBounds( const idMD5Anim *, idBounds&, int frame, int cyclecount ) const;
 	
 	// Articulated Figure calls for AF editor and Radiant.
 	virtual bool				AF_SpawnEntity( const char* fileName );
 	virtual void				AF_UpdateEntities( const char* fileName );
 	virtual void				AF_UndoChanges();
 	virtual idRenderModel* 		AF_CreateMesh( const idDict& args, idVec3& meshOrigin, idMat3& meshAxis, bool& poseIsSet );
-	
-	
+		
 	// Entity selection.
 	virtual void				ClearEntitySelection();
 	virtual int					GetSelectedEntities( idEntity* list[], int max );

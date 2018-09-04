@@ -1691,26 +1691,26 @@ This returns the offset and axis of a weapon bone in world space, suitable for a
 */
 bool idWeapon::GetGlobalJointTransform( bool viewModel, const jointHandle_t jointHandle, idVec3& offset, idMat3& axis )
 {
-	if( viewModel )
-	{
-		// view model
+	if( viewModel ) // view model
+	{		
 		if( animator.GetJointTransform( jointHandle, gameLocal.GetGameTimeMs(), offset, axis ) )
 		{
 			offset = offset * viewWeaponAxis + viewWeaponOrigin;
-			axis = axis * viewWeaponAxis;
+			axis *= viewWeaponAxis;
 			return true;
 		}
 	}
-	else
-	{
-		// world model
-		if( worldModel.GetEntity() && worldModel.GetEntity()->GetAnimator()->GetJointTransform( jointHandle, gameLocal.GetGameTimeMs(), offset, axis ) )
+	else // world model
+	{ 
+		if( worldModel.GetEntity() && 
+			worldModel.GetEntity()->GetAnimator()->GetJointTransform( jointHandle, gameLocal.GetGameTimeMs(), offset, axis ) )
 		{
 			offset = worldModel.GetEntity()->GetPhysics()->GetOrigin() + offset * worldModel.GetEntity()->GetPhysics()->GetAxis();
-			axis = axis * worldModel.GetEntity()->GetPhysics()->GetAxis();
+			axis *= worldModel.GetEntity()->GetPhysics()->GetAxis();
 			return true;
 		}
 	}
+
 	offset = viewWeaponOrigin;
 	axis = viewWeaponAxis;
 	return false;
@@ -3587,7 +3587,7 @@ void idWeapon::Event_NetEndReload()
 idWeapon::Event_PlayAnim
 ===============
 */
-void idWeapon::Event_PlayAnim( int channel, const char* animname )
+void idWeapon::Event_PlayAnim( animChannel_t channel, const char* animname )
 {
 	int anim = animator.GetAnim( animname );
 	if( !anim )
@@ -3622,7 +3622,7 @@ void idWeapon::Event_PlayAnim( int channel, const char* animname )
 idWeapon::Event_PlayCycle
 ===============
 */
-void idWeapon::Event_PlayCycle( int channel, const char* animname )
+void idWeapon::Event_PlayCycle( animChannel_t channel, const char* animname )
 {
 	int anim = animator.GetAnim( animname );
 	if( !anim )
@@ -3654,7 +3654,7 @@ void idWeapon::Event_PlayCycle( int channel, const char* animname )
 idWeapon::Event_AnimDone
 ===============
 */
-void idWeapon::Event_AnimDone( int channel, int blendFrames )
+void idWeapon::Event_AnimDone( animChannel_t channel, int blendFrames )
 {
 	if( animDoneTime - FRAME2MS( blendFrames ) <= gameLocal.GetGameTimeMs() )
 	{
@@ -3671,7 +3671,7 @@ void idWeapon::Event_AnimDone( int channel, int blendFrames )
 idWeapon::Event_SetBlendFrames
 ===============
 */
-void idWeapon::Event_SetBlendFrames( int channel, int blendFrames )
+void idWeapon::Event_SetBlendFrames( animChannel_t channel, int blendFrames )
 {
 	animBlendFrames = blendFrames;
 }
@@ -3681,7 +3681,7 @@ void idWeapon::Event_SetBlendFrames( int channel, int blendFrames )
 idWeapon::Event_GetBlendFrames
 ===============
 */
-void idWeapon::Event_GetBlendFrames( int channel )
+void idWeapon::Event_GetBlendFrames( animChannel_t channel )
 {
 	idThread::ReturnInt( animBlendFrames );
 }

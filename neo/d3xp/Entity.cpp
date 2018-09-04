@@ -3967,11 +3967,6 @@ idEntity::Signal
 */
 void idEntity::Signal( signalNum_t signalnum )
 {
-	int			i;
-	int			num;
-	signal_t	sigs[ MAX_SIGNAL_THREADS ];
-	idThread*	thread;
-
 	assert( ( signalnum >= 0 ) && ( signalnum < NUM_SIGNALS ) );
 
 	if( !signals )
@@ -3979,12 +3974,14 @@ void idEntity::Signal( signalNum_t signalnum )
 		return;
 	}
 
+	signal_t sigs[ MAX_SIGNAL_THREADS ];
+
 	// we copy the signal list since each thread has the potential
 	// to end any of the threads in the list.  By copying the list
 	// we don't have to worry about the list changing as we're
 	// processing it.
-	num = signals->signal[ signalnum ].Num();
-	for( i = 0; i < num; i++ )
+	int num = signals->signal[ signalnum ].Num();
+	for( int i = 0; i < num; ++i )
 	{
 		sigs[ i ] = signals->signal[ signalnum ][ i ];
 	}
@@ -3992,9 +3989,9 @@ void idEntity::Signal( signalNum_t signalnum )
 	// clear out the signal list so that we don't get into an infinite loop
 	signals->signal[ signalnum ].Clear();
 
-	for( i = 0; i < num; i++ )
+	for( int i = 0; i < num; ++i )
 	{
-		thread = idThread::GetThread( sigs[ i ].threadnum );
+		auto thread = idThread::GetThread( sigs[ i ].threadnum );
 		if( thread )
 		{
 			thread->CallFunction( this, sigs[ i ].function, true );
@@ -4037,8 +4034,7 @@ idEntity::TriggerGuis
 */
 void idEntity::TriggerGuis()
 {
-	int i;
-	for( i = 0; i < MAX_RENDERENTITY_GUI; i++ )
+	for( int i = 0; i < MAX_RENDERENTITY_GUI; i++ )
 	{
 		if( renderEntity.gui[ i ] )
 		{

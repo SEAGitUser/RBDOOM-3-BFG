@@ -118,6 +118,18 @@ static int boxEdgeVerts[12][2] = {
 };
 */
 
+#define POS_EDGE( e )	( e + 1 )
+#define NEG_EDGE( e )	-( e + 1 )
+
+static int boxPlaneEdges[6][4] = {
+	{ NEG_EDGE( 3 ), POS_EDGE( 11 ), POS_EDGE(  7 ), NEG_EDGE(  8 ) },	// min x
+	{ POS_EDGE( 9 ), POS_EDGE(  5 ), NEG_EDGE( 10 ), NEG_EDGE(  1 ) },	// max x
+	{ NEG_EDGE( 0 ), POS_EDGE(  8 ), POS_EDGE(  4 ), NEG_EDGE(  9 ) },	// min y
+	{ NEG_EDGE( 2 ), POS_EDGE( 10 ), POS_EDGE(  6 ), NEG_EDGE( 11 ) },	// max y
+	{ POS_EDGE( 0 ), POS_EDGE(  1 ), POS_EDGE(  2 ), POS_EDGE(  3 ) },	// min z
+	{ NEG_EDGE( 7 ), NEG_EDGE(  6 ), NEG_EDGE(  5 ), NEG_EDGE(  4 ) }	// max z
+};
+
 static int boxPlaneBitsSilVerts[64][7] =
 {
 	{ 0, 0, 0, 0, 0, 0, 0 }, // 000000 = 0
@@ -348,9 +360,12 @@ float idBox::PlaneDistance( const idPlane& plane ) const
 	float d1, d2;
 
 	d1 = plane.Distance( center );
-	d2 = idMath::Fabs( extents[0] * plane.Normal()[0] ) +
-		 idMath::Fabs( extents[1] * plane.Normal()[1] ) +
-		 idMath::Fabs( extents[2] * plane.Normal()[2] );
+	//d2 = idMath::Fabs( extents[0] * plane.Normal()[0] ) +
+	//	 idMath::Fabs( extents[1] * plane.Normal()[1] ) +
+	//	 idMath::Fabs( extents[2] * plane.Normal()[2] );
+	d2 = idMath::Fabs( extents[0] * ( plane.Normal() * axis[0] ) ) +
+		 idMath::Fabs( extents[1] * ( plane.Normal() * axis[1] ) ) +
+		 idMath::Fabs( extents[2] * ( plane.Normal() * axis[2] ) );
 
 	if( d1 - d2 > 0.0f )
 	{
@@ -373,9 +388,12 @@ int idBox::PlaneSide( const idPlane& plane, const float epsilon ) const
 	float d1, d2;
 
 	d1 = plane.Distance( center );
-	d2 = idMath::Fabs( extents[0] * plane.Normal()[0] ) +
-		 idMath::Fabs( extents[1] * plane.Normal()[1] ) +
-		 idMath::Fabs( extents[2] * plane.Normal()[2] );
+	//d2 = idMath::Fabs( extents[0] * plane.Normal()[0] ) +
+	//	 idMath::Fabs( extents[1] * plane.Normal()[1] ) +
+	//	 idMath::Fabs( extents[2] * plane.Normal()[2] );
+	d2 = idMath::Fabs( extents[0] * ( plane.Normal() * axis[0] ) ) +
+		 idMath::Fabs( extents[1] * ( plane.Normal() * axis[1] ) ) +
+		 idMath::Fabs( extents[2] * ( plane.Normal() * axis[2] ) );
 
 	if( d1 - d2 > epsilon )
 	{
@@ -395,13 +413,12 @@ idBox::IntersectsBox
 */
 bool idBox::IntersectsBox( const idBox& a ) const
 {
-	idVec3 dir;			// vector between centers
 	float c[3][3];		// matrix c = axis.Transpose() * a.axis
 	float ac[3][3];		// absolute values of c
 	float axisdir[3];	// axis[i] * dir
 	float d, e0, e1;	// distance between centers and projected extents
 
-	dir = a.center - center;
+	idVec3 dir = a.center - center; // vector between centers
 
 	// axis C0 + t * A0
 	c[0][0] = axis[0] * a.axis[0];

@@ -117,18 +117,9 @@ public:
 	void			FreeStaticData();
 	
 	// this data is only valid for one frame of rendering
-	vertCacheHandle_t	AllocVertex( const void* data, int bytes )
-	{
-		return ActuallyAlloc( frameData[listNum], data, bytes, CACHE_VERTEX );
-	}
-	vertCacheHandle_t	AllocIndex( const void* data, int bytes )
-	{
-		return ActuallyAlloc( frameData[listNum], data, bytes, CACHE_INDEX );
-	}
-	vertCacheHandle_t	AllocJoint( const void* data, int bytes )
-	{
-		return ActuallyAlloc( frameData[listNum], data, bytes, CACHE_JOINT );
-	}
+	vertCacheHandle_t	AllocVertex( const void* data, int bytes ) { return ActuallyAlloc( frameData[ listNum ], data, bytes, CACHE_VERTEX ); }
+	vertCacheHandle_t	AllocIndex( const void* data, int bytes ) { return ActuallyAlloc( frameData[ listNum ], data, bytes, CACHE_INDEX ); }
+	vertCacheHandle_t	AllocJoint( const void* data, int bytes ) { return ActuallyAlloc( frameData[listNum], data, bytes, CACHE_JOINT ); }
 	
 	// this data is valid until the next map load
 	vertCacheHandle_t	AllocStaticVertex( const void* data, int bytes )

@@ -201,12 +201,12 @@ idLight::idLight():
 	nextBaseColor( vec3_zero )
 {
 	renderLight.Clear();
-	localLightOrigin	= vec3_zero;
-	localLightAxis		= mat3_identity;
+	localLightOrigin.Zero();
+	localLightAxis.Identity();
 	lightDefHandle		= -1;
 	levels				= 0;
 	currentLevel		= 0;
-	baseColor			= vec3_zero;
+	baseColor.Zero();
 	breakOnTrigger		= false;
 	count				= 0;
 	triggercount		= 0;

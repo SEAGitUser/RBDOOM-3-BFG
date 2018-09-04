@@ -37,9 +37,7 @@ If you have questions concerning this license or the applicable additional terms
 #pragma hdrstop
 #include "precompiled.h"
 
-
 #include "CollisionModel_local.h"
-
 
 /*
 ===============================================================================
@@ -89,13 +87,13 @@ int cm_contentsFlagByIndex[] =
 	0
 };
 
-idCVar cm_drawMask(	"cm_drawMask",			"none",		CVAR_GAME,				"collision mask", cm_contentsNameByIndex, idCmdSystem::ArgCompletion_String<cm_contentsNameByIndex> );
-idCVar cm_drawColor(	"cm_drawColor",			"1 0 0 .5",	CVAR_GAME,				"color used to draw the collision models" );
-idCVar cm_drawFilled(	"cm_drawFilled",		"0",		CVAR_GAME | CVAR_BOOL,	"draw filled polygons" );
-idCVar cm_drawInternal(	"cm_drawInternal",		"1",		CVAR_GAME | CVAR_BOOL,	"draw internal edges green" );
-idCVar cm_drawNormals(	"cm_drawNormals",		"0",		CVAR_GAME | CVAR_BOOL,	"draw polygon and edge normals" );
-idCVar cm_backFaceCull(	"cm_backFaceCull",		"0",		CVAR_GAME | CVAR_BOOL,	"cull back facing polygons" );
-idCVar cm_debugCollision(	"cm_debugCollision",	"0",		CVAR_GAME | CVAR_BOOL,	"debug the collision detection" );
+idCVar cm_drawMask( "cm_drawMask", "none", CVAR_GAME, "collision mask", cm_contentsNameByIndex, idCmdSystem::ArgCompletion_String<cm_contentsNameByIndex> );
+idCVar cm_drawColor( "cm_drawColor", "1 0 0 .5", CVAR_GAME, "color used to draw the collision models" );
+idCVar cm_drawFilled( "cm_drawFilled", "0", CVAR_GAME | CVAR_BOOL, "draw filled polygons" );
+idCVar cm_drawInternal( "cm_drawInternal", "1", CVAR_GAME | CVAR_BOOL, "draw internal edges green" );
+idCVar cm_drawNormals( "cm_drawNormals", "0", CVAR_GAME | CVAR_BOOL, "draw polygon and edge normals" );
+idCVar cm_backFaceCull( "cm_backFaceCull", "0", CVAR_GAME | CVAR_BOOL, "cull back facing polygons" );
+idCVar cm_debugCollision( "cm_debugCollision", "0", CVAR_GAME | CVAR_BOOL, "debug the collision detection" );
 
 static idVec4 cm_color;
 
@@ -109,23 +107,23 @@ int idCollisionModelManagerLocal::ContentsFromString( const char* string ) const
 	int i, contents = 0;
 	idLexer src( string, idStr::Length( string ), "ContentsFromString" );
 	idToken token;
-	
+
 	while( src.ReadToken( &token ) )
 	{
 		if( token == "," )
 		{
 			continue;
 		}
-		for( i = 1; cm_contentsNameByIndex[i] != NULL; i++ )
+		for( i = 1; cm_contentsNameByIndex[ i ] != NULL; i++ )
 		{
-			if( token.Icmp( cm_contentsNameByIndex[i] ) == 0 )
+			if( token.Icmp( cm_contentsNameByIndex[ i ] ) == 0 )
 			{
-				contents |= cm_contentsFlagByIndex[i];
+				contents |= cm_contentsFlagByIndex[ i ];
 				break;
 			}
 		}
 	}
-	
+
 	return contents;
 }
 
@@ -137,22 +135,22 @@ idCollisionModelManagerLocal::StringFromContents
 const char* idCollisionModelManagerLocal::StringFromContents( const int contents ) const
 {
 	int i, length = 0;
-	static char contentsString[MAX_STRING_CHARS];
-	
-	contentsString[0] = '\0';
-	
-	for( i = 1; cm_contentsFlagByIndex[i] != 0; i++ )
+	static char contentsString[ MAX_STRING_CHARS ];
+
+	contentsString[ 0 ] = '\0';
+
+	for( i = 1; cm_contentsFlagByIndex[ i ] != 0; i++ )
 	{
-		if( contents & cm_contentsFlagByIndex[i] )
+		if( contents & cm_contentsFlagByIndex[ i ] )
 		{
 			if( length != 0 )
 			{
 				length += idStr::snPrintf( contentsString + length, sizeof( contentsString ) - length, "," );
 			}
-			length += idStr::snPrintf( contentsString + length, sizeof( contentsString ) - length, cm_contentsNameByIndex[i] );
+			length += idStr::snPrintf( contentsString + length, sizeof( contentsString ) - length, cm_contentsNameByIndex[ i ] );
 		}
 	}
-	
+
 	return contentsString;
 }
 
@@ -167,14 +165,14 @@ void idCollisionModelManagerLocal::DrawEdge( cm_model_t* model, int edgeNum, con
 	cm_edge_t* edge;
 	idVec3 start, end, mid;
 	bool isRotated;
-	
+
 	isRotated = axis.IsRotated();
-	
+
 	edge = model->edges + idMath::Abs( edgeNum );
 	side = edgeNum < 0;
-	
-	start = model->vertices[edge->vertexNum[side]].p;
-	end = model->vertices[edge->vertexNum[!side]].p;
+
+	start = model->vertices[ edge->vertexNum[ side ] ].p;
+	end = model->vertices[ edge->vertexNum[ !side ] ].p;
 	if( isRotated )
 	{
 		start *= axis;
@@ -182,7 +180,7 @@ void idCollisionModelManagerLocal::DrawEdge( cm_model_t* model, int edgeNum, con
 	}
 	start += origin;
 	end += origin;
-	
+
 	if( edge->internal )
 	{
 		if( cm_drawInternal.GetBool() )
@@ -201,7 +199,7 @@ void idCollisionModelManagerLocal::DrawEdge( cm_model_t* model, int edgeNum, con
 			common->RW()->DebugArrow( cm_color, start, end, 1 );
 		}
 	}
-	
+
 	if( cm_drawNormals.GetBool() )
 	{
 		mid = ( start + end ) * 0.5f;
@@ -227,26 +225,26 @@ void idCollisionModelManagerLocal::DrawPolygon( cm_model_t* model, cm_polygon_t*
 	int i, edgeNum;
 	cm_edge_t* edge;
 	idVec3 center, end, dir;
-	
+
 	if( cm_backFaceCull.GetBool() )
 	{
-		edgeNum = p->edges[0];
+		edgeNum = p->edges[ 0 ];
 		edge = model->edges + idMath::Abs( edgeNum );
-		dir = model->vertices[edge->vertexNum[0]].p - viewOrigin;
+		dir = model->vertices[ edge->vertexNum[ 0 ] ].p - viewOrigin;
 		if( dir * p->plane.Normal() > 0.0f )
 		{
 			return;
 		}
 	}
-	
+
 	if( cm_drawNormals.GetBool() )
 	{
 		center = vec3_origin;
 		for( i = 0; i < p->numEdges; i++ )
 		{
-			edgeNum = p->edges[i];
+			edgeNum = p->edges[ i ];
 			edge = model->edges + idMath::Abs( edgeNum );
-			center += model->vertices[edge->vertexNum[edgeNum < 0]].p;
+			center += model->vertices[ edge->vertexNum[ edgeNum < 0 ] ].p;
 		}
 		center *= ( 1.0f / p->numEdges );
 		if( axis.IsRotated() )
@@ -261,15 +259,15 @@ void idCollisionModelManagerLocal::DrawPolygon( cm_model_t* model, cm_polygon_t*
 		}
 		common->RW()->DebugArrow( idColor::magenta.ToVec4(), center, end, 1 );
 	}
-	
+
 	if( cm_drawFilled.GetBool() )
 	{
 		idFixedWinding winding;
 		for( i = p->numEdges - 1; i >= 0; i-- )
 		{
-			edgeNum = p->edges[i];
+			edgeNum = p->edges[ i ];
 			edge = model->edges + idMath::Abs( edgeNum );
-			winding += origin + model->vertices[edge->vertexNum[INT32_SIGNBITSET( edgeNum )]].p * axis;
+			winding += origin + model->vertices[ edge->vertexNum[ INT32_SIGNBITSET( edgeNum ) ] ].p * axis;
 		}
 		common->RW()->DebugPolygon( cm_color, winding );
 	}
@@ -277,7 +275,7 @@ void idCollisionModelManagerLocal::DrawPolygon( cm_model_t* model, cm_polygon_t*
 	{
 		for( i = 0; i < p->numEdges; i++ )
 		{
-			edgeNum = p->edges[i];
+			edgeNum = p->edges[ i ];
 			edge = model->edges + idMath::Abs( edgeNum );
 			if( edge->checkcount == checkCount )
 			{
@@ -295,13 +293,13 @@ idCollisionModelManagerLocal::DrawNodePolygons
 ================
 */
 void idCollisionModelManagerLocal::DrawNodePolygons( cm_model_t* model, cm_node_t* node,
-		const idVec3& origin, const idMat3& axis,
-		const idVec3& viewOrigin, const float radius )
+													 const idVec3& origin, const idMat3& axis,
+													 const idVec3& viewOrigin, const float radius )
 {
 	int i;
 	cm_polygon_t* p;
 	cm_polygonRef_t* pref;
-	
+
 	while( 1 )
 	{
 		for( pref = node->polygons; pref; pref = pref->next )
@@ -312,11 +310,11 @@ void idCollisionModelManagerLocal::DrawNodePolygons( cm_model_t* model, cm_node_
 				// polygon bounds should overlap with trace bounds
 				for( i = 0; i < 3; i++ )
 				{
-					if( p->bounds[0][i] > viewOrigin[i] + radius )
+					if( p->bounds[ 0 ][ i ] > viewOrigin[ i ] + radius )
 					{
 						break;
 					}
-					if( p->bounds[1][i] < viewOrigin[i] - radius )
+					if( p->bounds[ 1 ][ i ] < viewOrigin[ i ] - radius )
 					{
 						break;
 					}
@@ -330,11 +328,11 @@ void idCollisionModelManagerLocal::DrawNodePolygons( cm_model_t* model, cm_node_
 			{
 				continue;
 			}
-			if( !( p->contents & cm_contentsFlagByIndex[cm_drawMask.GetInteger()] ) )
+			if( !( p->contents & cm_contentsFlagByIndex[ cm_drawMask.GetInteger() ] ) )
 			{
 				continue;
 			}
-			
+
 			DrawPolygon( model, p, origin, axis, viewOrigin );
 			p->checkcount = checkCount;
 		}
@@ -342,18 +340,18 @@ void idCollisionModelManagerLocal::DrawNodePolygons( cm_model_t* model, cm_node_
 		{
 			break;
 		}
-		if( radius && viewOrigin[node->planeType] > node->planeDist + radius )
+		if( radius && viewOrigin[ node->planeType ] > node->planeDist + radius )
 		{
-			node = node->children[0];
+			node = node->children[ 0 ];
 		}
-		else if( radius && viewOrigin[node->planeType] < node->planeDist - radius )
+		else if( radius && viewOrigin[ node->planeType ] < node->planeDist - radius )
 		{
-			node = node->children[1];
+			node = node->children[ 1 ];
 		}
 		else
 		{
-			DrawNodePolygons( model, node->children[1], origin, axis, viewOrigin, radius );
-			node = node->children[0];
+			DrawNodePolygons( model, node->children[ 1 ], origin, axis, viewOrigin, radius );
+			node = node->children[ 0 ];
 		}
 	}
 }
@@ -364,19 +362,19 @@ idCollisionModelManagerLocal::DrawModel
 ================
 */
 void idCollisionModelManagerLocal::DrawModel( cmHandle_t handle, const idVec3& modelOrigin, const idMat3& modelAxis,
-		const idVec3& viewOrigin, const float radius )
+											  const idVec3& viewOrigin, const float radius )
 {
 	if( handle < 0 && handle >= numModels )
 	{
 		return;
 	}
-	
+
 	if( cm_drawColor.IsModified() )
 	{
 		sscanf( cm_drawColor.GetString(), "%f %f %f %f", &cm_color.x, &cm_color.y, &cm_color.z, &cm_color.w );
 		cm_drawColor.ClearModified();
 	}
-	
+
 	auto model = models[ handle ];
 	idVec3 viewPos = ( viewOrigin - modelOrigin ) * modelAxis.Transpose();
 	checkCount++;
@@ -391,19 +389,19 @@ Speed test code
 ===============================================================================
 */
 
-static idCVar cm_testCollision(	"cm_testCollision",		"0",					CVAR_GAME | CVAR_BOOL,		"" );
-static idCVar cm_testRotation(	"cm_testRotation",		"1",					CVAR_GAME | CVAR_BOOL,		"" );
-static idCVar cm_testModel(	"cm_testModel",			"0",					CVAR_GAME | CVAR_INTEGER,	"" );
-static idCVar cm_testTimes(	"cm_testTimes",			"1000",					CVAR_GAME | CVAR_INTEGER,	"" );
-static idCVar cm_testRandomMany(	"cm_testRandomMany",	"0",					CVAR_GAME | CVAR_BOOL,		"" );
-static idCVar cm_testOrigin(	"cm_testOrigin",		"0 0 0",				CVAR_GAME,					"" );
-static idCVar cm_testReset(	"cm_testReset",			"0",					CVAR_GAME | CVAR_BOOL,		"" );
-static idCVar cm_testBox(	"cm_testBox",			"-16 -16 0 16 16 64",	CVAR_GAME,					"" );
-static idCVar cm_testBoxRotation(	"cm_testBoxRotation",	"0 0 0",				CVAR_GAME,					"" );
-static idCVar cm_testWalk(	"cm_testWalk",			"1",					CVAR_GAME | CVAR_BOOL,		"" );
-static idCVar cm_testLength(	"cm_testLength",		"1024",					CVAR_GAME | CVAR_FLOAT,		"" );
-static idCVar cm_testRadius(	"cm_testRadius",		"64",					CVAR_GAME | CVAR_FLOAT,		"" );
-static idCVar cm_testAngle(	"cm_testAngle",			"60",					CVAR_GAME | CVAR_FLOAT,		"" );
+static idCVar cm_testCollision( "cm_testCollision", "0", CVAR_GAME | CVAR_BOOL, "" );
+static idCVar cm_testRotation( "cm_testRotation", "1", CVAR_GAME | CVAR_BOOL, "" );
+static idCVar cm_testModel( "cm_testModel", "0", CVAR_GAME | CVAR_INTEGER, "" );
+static idCVar cm_testTimes( "cm_testTimes", "1000", CVAR_GAME | CVAR_INTEGER, "" );
+static idCVar cm_testRandomMany( "cm_testRandomMany", "0", CVAR_GAME | CVAR_BOOL, "" );
+static idCVar cm_testOrigin( "cm_testOrigin", "0 0 0", CVAR_GAME, "" );
+static idCVar cm_testReset( "cm_testReset", "0", CVAR_GAME | CVAR_BOOL, "" );
+static idCVar cm_testBox( "cm_testBox", "-16 -16 0 16 16 64", CVAR_GAME, "" );
+static idCVar cm_testBoxRotation( "cm_testBoxRotation", "0 0 0", CVAR_GAME, "" );
+static idCVar cm_testWalk( "cm_testWalk", "1", CVAR_GAME | CVAR_BOOL, "" );
+static idCVar cm_testLength( "cm_testLength", "1024", CVAR_GAME | CVAR_FLOAT, "" );
+static idCVar cm_testRadius( "cm_testRadius", "64", CVAR_GAME | CVAR_FLOAT, "" );
+static idCVar cm_testAngle( "cm_testAngle", "60", CVAR_GAME | CVAR_FLOAT, "" );
 
 static int total_translation;
 static int min_translation = 999999;
@@ -414,27 +412,26 @@ static int min_rotation = 999999;
 static int max_rotation = -999999;
 static int num_rotation = 0;
 static idVec3 start;
-static idVec3* testend;
 
 #include "../sys/sys_public.h"
 
 void idCollisionModelManagerLocal::DebugOutput( const idVec3& origin )
 {
-	int i, k, t;
-	char buf[128];
+	int  i, k, t;
+	char buf[ 128 ];
 	idVec3 end;
 	idAngles boxAngles;
 	idMat3 modelAxis, boxAxis;
 	idBounds bounds;
 	trace_t trace;
-	
+
 	if( !cm_testCollision.GetBool() )
 	{
 		return;
 	}
-	
-	testend = ( idVec3* ) Mem_Alloc( cm_testTimes.GetInteger() * sizeof( idVec3 ), TAG_COLLISION );
-	
+
+	idTempArray<idVec3> testend( cm_testTimes.GetInteger() );
+
 	if( cm_testReset.GetBool() || ( cm_testWalk.GetBool() && !start.Compare( start ) ) )
 	{
 		total_translation = total_rotation = 0;
@@ -443,57 +440,56 @@ void idCollisionModelManagerLocal::DebugOutput( const idVec3& origin )
 		num_translation = num_rotation = 0;
 		cm_testReset.SetBool( false );
 	}
-	
+
 	if( cm_testWalk.GetBool() )
 	{
 		start = origin;
-		cm_testOrigin.SetString( va( "%1.2f %1.2f %1.2f", start[0], start[1], start[2] ) );
+		cm_testOrigin.SetString( va( "%1.2f %1.2f %1.2f", start[ 0 ], start[ 1 ], start[ 2 ] ) );
 	}
 	else
 	{
-		sscanf( cm_testOrigin.GetString(), "%f %f %f", &start[0], &start[1], &start[2] );
+		sscanf( cm_testOrigin.GetString(), "%f %f %f", &start[ 0 ], &start[ 1 ], &start[ 2 ] );
 	}
-	
-	sscanf( cm_testBox.GetString(), "%f %f %f %f %f %f", &bounds[0][0], &bounds[0][1], &bounds[0][2],
-			&bounds[1][0], &bounds[1][1], &bounds[1][2] );
-	sscanf( cm_testBoxRotation.GetString(), "%f %f %f", &boxAngles[0], &boxAngles[1], &boxAngles[2] );
+
+	sscanf( cm_testBox.GetString(), "%f %f %f %f %f %f", &bounds[ 0 ][ 0 ], &bounds[ 0 ][ 1 ], &bounds[ 0 ][ 2 ], &bounds[ 1 ][ 0 ], &bounds[ 1 ][ 1 ], &bounds[ 1 ][ 2 ] );
+	sscanf( cm_testBoxRotation.GetString(), "%f %f %f", &boxAngles[ 0 ], &boxAngles[ 1 ], &boxAngles[ 2 ] );
 	boxAxis = boxAngles.ToMat3();
 	modelAxis.Identity();
-	
+
 	idTraceModel itm( bounds );
 	idRandom random( 0 );
 	idTimer timer;
-	
+
 	if( cm_testRandomMany.GetBool() )
 	{
 		// if many traces in one random direction
 		for( i = 0; i < 3; i++ )
 		{
-			testend[0][i] = start[i] + random.CRandomFloat() * cm_testLength.GetFloat();
+			testend[ 0 ][ i ] = start[ i ] + random.CRandomFloat() * cm_testLength.GetFloat();
 		}
-		for( k = 1; k < cm_testTimes.GetInteger(); k++ )
+		for( k = 1; k < ( int ) testend.Num(); k++ )
 		{
-			testend[k] = testend[0];
+			testend[ k ] = testend[ 0 ];
 		}
 	}
 	else
 	{
 		// many traces each in a different random direction
-		for( k = 0; k < cm_testTimes.GetInteger(); k++ )
+		for( k = 0; k < ( int ) testend.Num(); k++ )
 		{
 			for( i = 0; i < 3; i++ )
 			{
-				testend[k][i] = start[i] + random.CRandomFloat() * cm_testLength.GetFloat();
+				testend[ k ][ i ] = start[ i ] + random.CRandomFloat() * cm_testLength.GetFloat();
 			}
 		}
 	}
-	
+
 	// translational collision detection
 	timer.Clear();
 	timer.Start();
-	for( i = 0; i < cm_testTimes.GetInteger(); i++ )
+	for( i = 0; i < ( int ) testend.Num(); i++ )
 	{
-		Translation( &trace, start, testend[i], &itm, boxAxis, CONTENTS_SOLID | CONTENTS_PLAYERCLIP, cm_testModel.GetInteger(), vec3_origin, modelAxis );
+		Translation( &trace, start, testend[ i ], &itm, boxAxis, CONTENTS_SOLID | CONTENTS_PLAYERCLIP, cm_testModel.GetInteger(), vec3_origin, modelAxis );
 	}
 	timer.Stop();
 	t = timer.Milliseconds();
@@ -501,52 +497,52 @@ void idCollisionModelManagerLocal::DebugOutput( const idVec3& origin )
 	if( t > max_translation ) max_translation = t;
 	num_translation++;
 	total_translation += t;
-	if( cm_testTimes.GetInteger() > 9999 )
+	if( testend.Num() > 9999 )
 	{
-		sprintf( buf, "%3dK", ( int )( cm_testTimes.GetInteger() / 1000 ) );
+		sprintf( buf, "%3dK", ( int ) ( testend.Num() / 1000 ) );
 	}
 	else
 	{
-		sprintf( buf, "%4d", cm_testTimes.GetInteger() );
+		sprintf( buf, "%4d", ( int ) testend.Num() );
 	}
-	common->Printf( "%s translations: %4d milliseconds, (min = %d, max = %d, av = %1.1f)\n", buf, t, min_translation, max_translation, ( float ) total_translation / num_translation );
-	
+	common->Printf( "%s translations: %4i milliseconds, (min = %i, max = %i, av = %1.1f)\n", buf, t, min_translation, max_translation, ( float ) total_translation / num_translation );
+
 	if( cm_testRandomMany.GetBool() )
 	{
 		// if many traces in one random direction
 		for( i = 0; i < 3; i++ )
 		{
-			testend[0][i] = start[i] + random.CRandomFloat() * cm_testRadius.GetFloat();
+			testend[ 0 ][ i ] = start[ i ] + random.CRandomFloat() * cm_testRadius.GetFloat();
 		}
-		for( k = 1; k < cm_testTimes.GetInteger(); k++ )
+		for( k = 1; k < ( int ) testend.Num(); k++ )
 		{
-			testend[k] = testend[0];
+			testend[ k ] = testend[ 0 ];
 		}
 	}
 	else
 	{
 		// many traces each in a different random direction
-		for( k = 0; k < cm_testTimes.GetInteger(); k++ )
+		for( k = 0; k < ( int ) testend.Num(); k++ )
 		{
 			for( i = 0; i < 3; i++ )
 			{
-				testend[k][i] = start[i] + random.CRandomFloat() * cm_testRadius.GetFloat();
+				testend[ k ][ i ] = start[ i ] + random.CRandomFloat() * cm_testRadius.GetFloat();
 			}
 		}
 	}
-	
+
 	if( cm_testRotation.GetBool() )
 	{
 		// rotational collision detection
 		idVec3 vec( random.CRandomFloat(), random.CRandomFloat(), random.RandomFloat() );
 		vec.Normalize();
 		idRotation rotation( vec3_origin, vec, cm_testAngle.GetFloat() );
-		
+
 		timer.Clear();
 		timer.Start();
-		for( i = 0; i < cm_testTimes.GetInteger(); i++ )
+		for( i = 0; i < ( int ) testend.Num(); i++ )
 		{
-			rotation.SetOrigin( testend[i] );
+			rotation.SetOrigin( testend[ i ] );
 			Rotation( &trace, start, rotation, &itm, boxAxis, CONTENTS_SOLID | CONTENTS_PLAYERCLIP, cm_testModel.GetInteger(), vec3_origin, modelAxis );
 		}
 		timer.Stop();
@@ -555,17 +551,15 @@ void idCollisionModelManagerLocal::DebugOutput( const idVec3& origin )
 		if( t > max_rotation ) max_rotation = t;
 		num_rotation++;
 		total_rotation += t;
-		if( cm_testTimes.GetInteger() > 9999 )
+
+		if( testend.Num() > 9999u )
 		{
-			sprintf( buf, "%3dK", ( int )( cm_testTimes.GetInteger() / 1000 ) );
+			sprintf( buf, "%3dK", ( int ) ( testend.Num() / 1000 ) );
 		}
-		else
-		{
-			sprintf( buf, "%4d", cm_testTimes.GetInteger() );
+		else {
+			sprintf( buf, "%4d", testend.Num() );
+
 		}
-		common->Printf( "%s rotation: %4d milliseconds, (min = %d, max = %d, av = %1.1f)\n", buf, t, min_rotation, max_rotation, ( float ) total_rotation / num_rotation );
+		common->Printf( "%s rotation: %4i milliseconds, (min = %i, max = %i, av = %1.1f)\n", buf, t, min_rotation, max_rotation, ( float ) total_rotation / num_rotation );
 	}
-	
-	Mem_Free( testend );
-	testend = NULL;
 }

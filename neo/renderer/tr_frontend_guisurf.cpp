@@ -138,9 +138,9 @@ void R_AddInGameGuis( idRenderView * const renderView )
 	// check for gui surfaces
 	for( int i = 0; i < renderView->numDrawSurfs; ++i )
 	{
-		const drawSurf_t * const drawSurf = renderView->drawSurfs[ i ];
+		const auto * const drawSurf = renderView->drawSurfs[ i ];
 
-		idUserInterface* gui = drawSurf->material->GlobalGui();
+		auto * gui = drawSurf->material->GlobalGui();
 
 		int guiNum = drawSurf->material->GetEntityGui() - 1;
 		if( guiNum >= 0 && guiNum < MAX_RENDERENTITY_GUI )
@@ -150,8 +150,7 @@ void R_AddInGameGuis( idRenderView * const renderView )
 				gui = drawSurf->space->entityDef->GetParms().gui[ guiNum ];
 			}
 		}
-
-		if( gui == NULL )
+		if( !gui )
 		{
 			continue;
 		}

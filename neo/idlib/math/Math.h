@@ -51,9 +51,11 @@ If you have questions concerning this license or the applicable additional terms
 #define SEC2MS(t)				( idMath::Ftoi( (t) * idMath::M_SEC2MS ) )
 #define MS2SEC(t)				( (t) * idMath::M_MS2SEC )
 
+// run-time conversion from degrees to the range [0, 65535]
 #define	ANGLE2SHORT(x)			( idMath::Ftoi( (x) * 65536.0f / 360.0f ) & 65535 )
 #define	SHORT2ANGLE(x)			( (x) * ( 360.0f / 65536.0f ) )
 
+// run-time conversion from degrees to the range [0, 255]
 #define	ANGLE2BYTE(x)			( idMath::Ftoi( (x) * 256.0f / 360.0f ) & 255 )
 #define	BYTE2ANGLE(x)			( (x) * ( 360.0f / 256.0f ) )
 
@@ -362,7 +364,6 @@ public:
 
 	static float				Cos( float a );				// cosine with 32 bits precision
 	static float				Cos16( float a );			// cosine with 16 bits precision, maximum absolute error is 2.3082e-09
-
 	static void					SinCos( float a, float& s, float& c );		// sine and cosine with 32 bits precision
 	static void					SinCos16( float a, float& s, float& c );	// sine and cosine with 16 bits precision
 
@@ -377,6 +378,7 @@ public:
 
 	static float				ATan( float a );			// arc tangent with 32 bits precision
 	static float				ATan16( float a );			// arc tangent with 16 bits precision, maximum absolute error is 1.3593e-08
+	static double				ATan64( float a );			// arc tangent with 64 bits precision
 
 	static float				ATan( float y, float x );	// arc tangent with 32 bits precision
 	static float				ATan16( float y, float x );	// arc tangent with 16 bits precision, maximum absolute error is 1.3593e-08
@@ -395,11 +397,14 @@ public:
 	static int					ILog2( int i );				// integral base-2 logarithm of the integer value
 
 	static int					BitsForFloat( float f );	// minumum number of bits required to represent ceil( f )
+	static int					BitsForFloat( float max, float min );	// minimum number of bits required to represent everything between min & max (min being the minimum relevant precision)
 	static int					BitsForInteger( int i );	// minumum number of bits required to represent i
 	static int					MaskForFloatSign( float f );// returns 0x00000000 if x >= 0.0f and returns 0xFFFFFFFF if x <= -0.0f
 	static int					MaskForIntegerSign( int i );// returns 0x00000000 if x >= 0 and returns 0xFFFFFFFF if x < 0
 	static int					FloorPowerOfTwo( int x );	// round x down to the nearest power of 2
 	static int					CeilPowerOfTwo( int x );	// round x up to the nearest power of 2
+	//static int					LowerPowerOfTwo( int x );	// round x down to the first power of 2
+	//static int					HigherPowerOfTwo( int x );	// round x up to the first power of 2
 	static bool					IsPowerOfTwo( int x );		// returns true if x is a power of 2
 	static int					BitCount( int x );			// returns the number of 1 bits in x
 	static int					BitReverse( int x );		// returns the bit reverse of x
@@ -450,12 +455,18 @@ public:
 	ID_INLINE static int		FRAME2MS( int f, int frameRate ) { return( ( f * 1000 ) / frameRate ); }
 	ID_INLINE static int		MS2FRAME( int t, int frameRate ) { return( t * frameRate / 1000 ); }
 
+	static float				BarycentricTriangleArea( const class idVec3 &normal, const idVec3 &a, const idVec3 &b, const idVec3 &c );
+	static void					BarycentricEvaluate( class idVec2 &result, const idVec3 &point, const idVec3 &normal, const float area, const idVec3 t[3], const idVec2 tc[3] );
+	static void					BarycentricEvaluate( class idVec2 &result, const idVec3 &point, const idVec3 &normal, const float area, const idVec3 t[3], const short tc[ 3 ][ 2 ], float scale );
+
+
 	static const float			PI;							// pi
 	static const float			TWO_PI;						// pi * 2
 	static const float			HALF_PI;					// pi / 2
 	static const float			ONEFOURTH_PI;				// pi / 4
 	static const float			ONEOVER_PI;					// 1 / pi
 	static const float			ONEOVER_TWOPI;				// 1 / pi * 2
+	static const float			THREEFOURTHS_PI;			// 3 * pi / 4
 	static const float			E;							// e
 	static const float			SQRT_TWO;					// sqrt( 2 )
 	static const float			SQRT_THREE;					// sqrt( 3 )
@@ -994,13 +1005,11 @@ ID_INLINE float idMath::ATan16( float y, float x )
 		{
 			return s - HALF_PI;
 		}
-		else
-		{
+		else {
 			return s + HALF_PI;
 		}
 	}
-	else
-	{
+	else {
 		a = y / x;
 		s = a * a;
 		return ( ( ( ( ( ( ( ( ( 0.0028662257f * s - 0.0161657367f ) * s + 0.0429096138f ) * s - 0.0752896400f )
@@ -1146,6 +1155,13 @@ idMath::BitsForFloat
 ID_INLINE int idMath::BitsForFloat( float f )
 {
 	return ILog2( f ) + 1;
+}
+ID_INLINE int idMath::BitsForFloat( float max, float min )
+{
+	int bitsForMax = static_cast< int >( fabs( static_cast< float >( ILog2( max ) ) ) ) + 1;
+	int bitsForMin = static_cast< int >( fabs( static_cast< float >( ILog2( min ) ) ) ) + 1;
+
+	return bitsForMax > bitsForMin ? bitsForMax : bitsForMin;
 }
 
 /*

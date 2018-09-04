@@ -711,27 +711,25 @@ idAASBuild::Build
 */
 bool idAASBuild::Build( const idStr& fileName, const idAASSettings* settings )
 {
-	int i, bit, mask, startTime;
-	idMapFile* mapFile;
+	int i, bit, mask;
 	idBrushList brushList;
 	idList<idBrushList*> expandedBrushes;
 	idBrush* b;
 	idBrushBSP bsp;
-	idStr name;
 	idAASReach reach;
 	idAASCluster cluster;
 	idStrList entityClassNames;
 
-	startTime = sys->Milliseconds();
+	int startTime = sys->Milliseconds();
 
 	Shutdown();
 
 	aasSettings = settings;
 
-	name = fileName;
+	idStr name = fileName;
 	name.SetFileExtension( "map" );
 
-	mapFile = new idMapFile;
+	auto mapFile = new idMapFile;
 	if( !mapFile->Parse( name ) )
 	{
 		delete mapFile;
@@ -879,20 +877,17 @@ idAASBuild::BuildReachability
 */
 bool idAASBuild::BuildReachability( const idStr& fileName, const idAASSettings* settings )
 {
-	int startTime;
-	idMapFile* mapFile;
-	idStr name;
 	idAASReach reach;
 	idAASCluster cluster;
 
-	startTime = sys->Milliseconds();
+	int startTime = sys->Milliseconds();
 
 	aasSettings = settings;
 
-	name = fileName;
+	idStr name = fileName;
 	name.SetFileExtension( "map" );
 
-	mapFile = new idMapFile;
+	auto mapFile = new idMapFile;
 	if( !mapFile->Parse( name ) )
 	{
 		delete mapFile;

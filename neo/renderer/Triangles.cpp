@@ -2564,11 +2564,11 @@ idTriangles * idTriangles::CreateTrianglesForPolytope( int numPlanes, const idPl
 /*
 =============
  CreateIndexesForQuads
+	build the index list
 =============
 */
 void idTriangles::CreateIndexesForQuads( int numVerts, triIndex_t* indexes, int& numIndexes )
 {
-	// build the index list
 	numIndexes = 0;
 	for( int i = 0; i < numVerts; i += 4 )
 	{

@@ -37,10 +37,10 @@ If you have questions concerning this license or the applicable additional terms
 ===============================================================================
 */
 
-class idBounds
-{
+class idBounds {
 public:
 	idBounds();
+	explicit idBounds( const idSphere& sphere );
 	explicit idBounds( const idVec3& mins, const idVec3& maxs );
 	explicit idBounds( const idVec3& point );
 
@@ -63,19 +63,29 @@ public:
 	void			Clear();									// inside out bounds
 	void			Zero();									// single point at origin
 
+	idVec3			GetSize() const;							// returns max - min
 	idVec3			GetCenter() const;						// returns center of bounds
 	float			GetRadius() const;						// returns the radius relative to the bounds origin
 	float			GetRadius( const idVec3& center ) const;		// returns the radius relative to the given center
 	float			GetVolume() const;						// returns the volume of the bounds
+	float			GetSurfaceArea() const;						// returns the volume of the bounds
+	float			GetMaxDistFromOrigin() const;				// returns the maximum distance from the origin
 	bool			IsCleared() const;						// returns true if bounds are inside out
 
 	bool			AddPoint( const idVec3& v );					// add the point, returns true if the bounds expanded
 	bool			AddBounds( const idBounds& a );					// add the bounds, returns true if the bounds expanded
 	idBounds		Intersect( const idBounds& a ) const;			// return intersection of this bounds with the given bounds
+
 	idBounds& 		IntersectSelf( const idBounds& a );				// intersect this bounds with the given bounds
 	idBounds&		Intersect2DSelf( const idBounds& a );			// intersect this bounds xy with the given bounds xy
 	idBounds		Expand( const float d ) const;					// return bounds expanded in all directions with the given value
 	idBounds& 		ExpandSelf( const float d );					// expand bounds in all directions with the given value
+	idBounds &		ExpandSelf( const idVec3 &d );					// expand bounds in all directions by the given vector
+	idBounds &		DirectedExpandSelf( const idVec3 &d );			// expand bounds in direction of vec
+
+	int				GetLargestAxis() const;
+	float			ShortestDistance( const idVec3 &point ) const;
+
 	idBounds		Translate( const idVec3& translation ) const;	// return translated bounds
 	idBounds& 		TranslateSelf( const idVec3& translation );		// translate this bounds
 	idBounds		Rotate( const idMat3& rotation ) const;			// return rotated bounds
@@ -85,13 +95,24 @@ public:
 	int				PlaneSide( const idPlane& plane, const float epsilon = ON_EPSILON ) const;
 
 	bool			ContainsPoint( const idVec3& p ) const;			// includes touching
+	bool			ContainsPoint( const idVec3 &p, const float epsilon ) const;		// includes touching
+	bool			ContainsPoint2D( const idVec3 &p ) const;		// includes touching
+	bool			ContainsBounds( const idBounds &a ) const;							// includes touching
+	bool			ContainsBounds2D( const idBounds &a ) const;						// includes touching
+	bool			ContainsBounds( const idBounds &a, const float epsilon ) const;		// includes touching
 	bool			IntersectsBounds( const idBounds& a ) const;	// includes touching
-	bool			LineIntersection( const idVec3& start, const idVec3& end ) const;
+	bool			IntersectsBounds( const idBounds &a, const float epsilon ) const;	// includes touching
+	bool			IntersectsBounds2D( const idBounds &a ) const;	// includes touching
+
+	// Returns true if the line intersects the bounds between the start and end point.
+	bool			LineIntersection( const idVec3 &start, const idVec3 &end ) const;
+
 	// intersection point is start + dir * scale
 	bool			RayIntersection( const idVec3& start, const idVec3& dir, float& scale ) const;
 
 	// most tight bounds for the given transformed bounds
 	void			FromTransformedBounds( const idBounds& bounds, const idVec3& origin, const idMat3& axis );
+	void			FromTransformedBounds( const idBounds &bounds, const float matrix[16] );
 	// most tight bounds for a point set
 	void			FromPoints( const idVec3* points, const int numPoints );
 	// most tight bounds for a translation
@@ -103,14 +124,21 @@ public:
 
 	void			ToPoints( idVec3 points[8] ) const;
 	idSphere		ToSphere() const;
+	void			ToPlanes( idPlane planes[6] ) const;
 
 	void			AxisProjection( const idVec3& dir, float& min, float& max ) const;
 	void			AxisProjection( const idVec3& origin, const idMat3& axis, const idVec3& dir, float& min, float& max ) const;
 
 	int				GetDimension() const;
 
+	idBounds		ToMaya() const;
+	idBounds&		ToMayaSelf();
+	idBounds		FromMaya() const;
+	idBounds&		FromMayaSelf();
+
 	const float* 	ToFloatPtr() const;
 	float* 			ToFloatPtr();
+	const char *	ToString( int precision = 2 ) const;
 
 	const idVec3 &	GetMins() const { return b[0]; }
 	const idVec3 &	GetMaxs() const { return b[1]; }
@@ -138,6 +166,14 @@ ID_INLINE idBounds::idBounds( const idVec3& mins, const idVec3& maxs )
 {
 	b[0] = mins;
 	b[1] = maxs;
+}
+
+ID_INLINE idBounds::idBounds( const idSphere& sphere )
+{
+	const idVec3& org = sphere.GetOrigin();
+	float radius = sphere.GetRadius();
+	b[ 0 ].Set( org[ 0 ] - radius, org[ 1 ] - radius, org[ 2 ] - radius );
+	b[ 1 ].Set( org[ 0 ] + radius, org[ 1 ] + radius, org[ 2 ] + radius );
 }
 
 ID_INLINE idBounds::idBounds( const idVec3& point )
@@ -246,6 +282,10 @@ ID_INLINE void idBounds::Zero()
 	b[1][0] = b[1][1] = b[1][2] = 0;
 }
 
+ID_INLINE idVec3 idBounds::GetSize( void ) const {
+	return idVec3( ( b[1][0] - b[0][0] ), ( b[1][1] - b[0][1] ), ( b[1][2] - b[0][2] ) );
+}
+
 ID_INLINE idVec3 idBounds::GetCenter() const
 {
 	return idVec3( ( b[1][0] + b[0][0] ) * 0.5f, ( b[1][1] + b[0][1] ) * 0.5f, ( b[1][2] + b[0][2] ) * 0.5f );
@@ -257,7 +297,23 @@ ID_INLINE float idBounds::GetVolume() const
 	{
 		return 0.0f;
 	}
-	return ( ( b[1][0] - b[0][0] ) * ( b[1][1] - b[0][1] ) * ( b[1][2] - b[0][2] ) );
+	return( ( b[1][0] - b[0][0] ) * ( b[1][1] - b[0][1] ) * ( b[1][2] - b[0][2] ) );
+}
+
+ID_INLINE float idBounds::GetSurfaceArea() const 
+{
+	idVec3 s = GetSize();
+	return( 2.0f * ( s.x * s.y + s.x * s.z + s.y * s.z ) );
+}
+
+ID_INLINE float idBounds::GetMaxDistFromOrigin() const 
+{
+	float r1 = b[0].LengthSqr();
+	float r2 = b[1].LengthSqr();
+	if( r2 > r1 ) {
+		r1 = r2;
+	}
+	return idMath::Sqrt( r1 );
 }
 
 ID_INLINE bool idBounds::IsCleared() const
@@ -389,7 +445,53 @@ ID_INLINE idBounds& idBounds::ExpandSelf( const float d )
 	b[1][0] += d;
 	b[1][1] += d;
 	b[1][2] += d;
+	return( *this );
+}
+ID_INLINE idBounds &idBounds::ExpandSelf( const idVec3 &d ) 
+{
+	b[0][0] -= d[0];
+	b[0][1] -= d[1];
+	b[0][2] -= d[2];
+	b[1][0] += d[0];
+	b[1][1] += d[1];
+	b[1][2] += d[2];
+	return( *this );
+}
+
+ID_INLINE idBounds &idBounds::DirectedExpandSelf( const idVec3 &d )  {
+	if ( d[0] < 0.f ) {
+		b[0][0] += d[0];
+	} else {
+		b[1][0] += d[0];
+	}
+	if ( d[1] < 0.f ) {
+		b[0][1] += d[1];
+	} else {
+		b[1][1] += d[1];
+	}
+	if ( d[2] < 0.f ) {
+		b[0][2] += d[2];
+	} else {
+		b[1][2] += d[2];
+	}
+
 	return *this;
+}
+
+ID_INLINE int idBounds::GetLargestAxis( void ) const
+{
+	idVec3 work = b[1] - b[0];
+	int axis = 0;
+
+	if( work[1] > work[0] )
+	{
+		axis = 1;
+	}
+	if( work[2] > work[axis] )
+	{
+		axis = 2;
+	}
+	return( axis );
 }
 
 ID_INLINE idBounds idBounds::Translate( const idVec3& translation ) const
@@ -419,12 +521,122 @@ ID_INLINE idBounds& idBounds::RotateSelf( const idMat3& rotation )
 
 ID_INLINE bool idBounds::ContainsPoint( const idVec3& p ) const
 {
-	if( p[0] < b[0][0] ||
-		p[1] < b[0][1] ||
-		p[2] < b[0][2] ||
-		p[0] > b[1][0] ||
-		p[1] > b[1][1] ||
-		p[2] > b[1][2] )
+#if USE_INTRINSICS && !_WIN64
+	bool r = false;
+	__asm {
+		mov			esi, p
+		mov			edi, this
+		movss		xmm0, [ esi + 0 ]
+		movhps		xmm0, [ esi + 4 ]
+		movaps		xmm2, xmm0
+		movss		xmm1, [ edi + 0 ]
+		movhps		xmm1, [ edi + 4 ]
+		cmpnltps	xmm0, xmm1
+		movss		xmm3, [ edi + 12 ]
+		movhps		xmm3, [ edi + 16 ]
+		cmpleps		xmm2, xmm3
+		andps		xmm0, xmm2
+		movmskps	eax, xmm0
+		xor			eax, 0x0F
+		setz		r
+	}
+	return r;
+#else
+	if( p[ 0 ] < b[ 0 ][ 0 ] ||
+		p[ 1 ] < b[ 0 ][ 1 ] ||
+		p[ 2 ] < b[ 0 ][ 2 ] ||
+		p[ 0 ] > b[ 1 ][ 0 ] ||
+		p[ 1 ] > b[ 1 ][ 1 ] ||
+		p[ 2 ] > b[ 1 ][ 2 ] )
+	{
+		return false;
+	}
+	return true;
+#endif
+}
+ID_INLINE bool idBounds::ContainsPoint( const idVec3 &p, const float epsilon ) const
+{
+#if USE_INTRINSICS && !_WIN64
+	bool r = false;
+	__asm {
+		mov			esi, p
+		mov			edi, this
+		movss		xmm7, epsilon
+		shufps		xmm7, xmm7, 0
+		movss		xmm0, [ esi + 0 ]
+		movhps		xmm0, [ esi + 4 ]
+		movaps		xmm2, xmm0
+		movss		xmm1, [ edi + 0 ]
+		movhps		xmm1, [ edi + 4 ]
+		subps		xmm1, xmm7
+		cmpnltps	xmm0, xmm1
+		movss		xmm3, [ edi + 12 ]
+		movhps		xmm3, [ edi + 16 ]
+		addps		xmm3, xmm7
+		cmpleps		xmm2, xmm3
+		andps		xmm0, xmm2
+		movmskps	eax, xmm0
+		xor			eax, 0x0F
+		setz		r
+	}
+	return r;
+#else
+	if( p[ 0 ] < b[ 0 ][ 0 ] - epsilon || 
+		p[ 1 ] < b[ 0 ][ 1 ] - epsilon || 
+		p[ 2 ] < b[ 0 ][ 2 ] - epsilon ||
+		p[ 0 ] > b[ 1 ][ 0 ] + epsilon || 
+		p[ 1 ] > b[ 1 ][ 1 ] + epsilon || 
+		p[ 2 ] > b[ 1 ][ 2 ] + epsilon )
+	{
+		return false;
+	}
+	return true;
+#endif
+}
+ID_INLINE bool idBounds::ContainsPoint2D( const idVec3 &p ) const
+{
+	if( p[ 0 ] < b[ 0 ][ 0 ] || 
+		p[ 1 ] < b[ 0 ][ 1 ] || 
+		p[ 0 ] > b[ 1 ][ 0 ] || 
+		p[ 1 ] > b[ 1 ][ 1 ] )
+	{
+		return false;
+	}
+	return true;
+}
+
+ID_INLINE bool idBounds::ContainsBounds( const idBounds &a ) const
+{
+	if( a[ 0 ][ 0 ] < b[ 0 ][ 0 ] || 
+		a[ 0 ][ 1 ] < b[ 0 ][ 1 ] || 
+		a[ 0 ][ 2 ] < b[ 0 ][ 2 ] ||
+		a[ 1 ][ 0 ] > b[ 1 ][ 0 ] || 
+		a[ 1 ][ 1 ] > b[ 1 ][ 1 ] || 
+		a[ 1 ][ 2 ] > b[ 1 ][ 2 ] )
+	{
+		return false;
+	}
+	return true;
+}
+ID_INLINE bool idBounds::ContainsBounds( const idBounds &a, const float epsilon ) const
+{
+	if( a[ 0 ][ 0 ] < b[ 0 ][ 0 ] - epsilon || 
+		a[ 0 ][ 1 ] < b[ 0 ][ 1 ] - epsilon || 
+		a[ 0 ][ 2 ] < b[ 0 ][ 2 ] - epsilon ||
+		a[ 1 ][ 0 ] > b[ 1 ][ 0 ] + epsilon || 
+		a[ 1 ][ 1 ] > b[ 1 ][ 1 ] + epsilon || 
+		a[ 1 ][ 2 ] > b[ 1 ][ 2 ] + epsilon )
+	{
+		return false;
+	}
+	return true;
+}
+ID_INLINE bool idBounds::ContainsBounds2D( const idBounds &a ) const
+{
+	if( a[ 0 ][ 0 ] < b[ 0 ][ 0 ] || 
+		a[ 0 ][ 1 ] < b[ 0 ][ 1 ] || 
+		a[ 1 ][ 0 ] > b[ 1 ][ 0 ] || 
+		a[ 1 ][ 1 ] > b[ 1 ][ 1 ] )
 	{
 		return false;
 	}
@@ -433,12 +645,86 @@ ID_INLINE bool idBounds::ContainsPoint( const idVec3& p ) const
 
 ID_INLINE bool idBounds::IntersectsBounds( const idBounds& a ) const
 {
-	if( a.b[1][0] < b[0][0] ||
-		a.b[1][1] < b[0][1] ||
-		a.b[1][2] < b[0][2] ||
-		a.b[0][0] > b[1][0] ||
-		a.b[0][1] > b[1][1] ||
-		a.b[0][2] > b[1][2] )
+#if USE_INTRINSICS && !_WIN64
+	bool r = false;
+	__asm {
+		mov			esi, this
+		mov			edi, a
+		movss		xmm0, [ esi + 12 ]
+		movhps		xmm0, [ esi + 16 ]
+		movss		xmm1, [ edi + 0 ]
+		movhps		xmm1, [ edi + 4 ]
+		cmpnltps	xmm0, xmm1
+		movss		xmm2, [ esi + 0 ]
+		movhps		xmm2, [ esi + 4 ]
+		movss		xmm3, [ edi + 12 ]
+		movhps		xmm3, [ edi + 16 ]
+		cmpleps		xmm2, xmm3
+		andps		xmm0, xmm2
+		movmskps	eax, xmm0
+		xor			eax, 0x0F
+		setz		r
+	}
+	return r;
+#else
+	if( a.b[ 1 ][ 0 ] < b[ 0 ][ 0 ] ||
+		a.b[ 1 ][ 1 ] < b[ 0 ][ 1 ] ||
+		a.b[ 1 ][ 2 ] < b[ 0 ][ 2 ] ||
+		a.b[ 0 ][ 0 ] > b[ 1 ][ 0 ] ||
+		a.b[ 0 ][ 1 ] > b[ 1 ][ 1 ] ||
+		a.b[ 0 ][ 2 ] > b[ 1 ][ 2 ] )
+	{
+		return false;
+	}
+	return true;
+#endif
+}
+ID_INLINE bool idBounds::IntersectsBounds( const idBounds &a, const float epsilon ) const
+{
+#if USE_INTRINSICS && !_WIN64
+	bool r = false;
+	__asm {
+		mov			esi, this
+		mov			edi, a
+		movss		xmm7, epsilon
+		shufps		xmm7, xmm7, 0
+		movss		xmm0, [ esi + 12 ]
+		movhps		xmm0, [ esi + 16 ]
+		movss		xmm1, [ edi + 0 ]
+		movhps		xmm1, [ edi + 4 ]
+		subps		xmm1, xmm7
+		cmpnltps	xmm0, xmm1
+		movss		xmm2, [ esi + 0 ]
+		movhps		xmm2, [ esi + 4 ]
+		movss		xmm3, [ edi + 12 ]
+		movhps		xmm3, [ edi + 16 ]
+		addps		xmm3, xmm7
+		cmpleps		xmm2, xmm3
+		andps		xmm0, xmm2
+		movmskps	eax, xmm0
+		xor			eax, 0x0F
+		setz		r
+	}
+	return r;
+#else
+	if( a.b[ 1 ][ 0 ] < b[ 0 ][ 0 ] - epsilon ||
+		a.b[ 1 ][ 1 ] < b[ 0 ][ 1 ] - epsilon ||
+		a.b[ 1 ][ 2 ] < b[ 0 ][ 2 ] - epsilon ||
+		a.b[ 0 ][ 0 ] > b[ 1 ][ 0 ] + epsilon ||
+		a.b[ 0 ][ 1 ] > b[ 1 ][ 1 ] + epsilon ||
+		a.b[ 0 ][ 2 ] > b[ 1 ][ 2 ] + epsilon )
+	{
+		return false;
+	}
+	return true;
+#endif
+}
+ID_INLINE bool idBounds::IntersectsBounds2D( const idBounds &a ) const
+{
+	if( a.b[ 1 ][ 0 ] < b[ 0 ][ 0 ] ||
+		a.b[ 1 ][ 1 ] < b[ 0 ][ 1 ] ||
+		a.b[ 0 ][ 0 ] > b[ 1 ][ 0 ] ||
+		a.b[ 0 ][ 1 ] > b[ 1 ][ 1 ] )
 	{
 		return false;
 	}
@@ -456,10 +742,9 @@ ID_INLINE idSphere idBounds::ToSphere() const
 ID_INLINE void idBounds::AxisProjection( const idVec3& dir, float& min, float& max ) const
 {
 	float d1, d2;
-	idVec3 center, extents;
 
-	center = ( b[0] + b[1] ) * 0.5f;
-	extents = b[1] - center;
+	idVec3 center = ( b[0] + b[1] ) * 0.5f;
+	idVec3 extents = b[1] - center;
 
 	d1 = dir * center;
 	d2 = idMath::Fabs( extents[0] * dir[0] ) +
@@ -497,10 +782,38 @@ ID_INLINE const float* idBounds::ToFloatPtr() const
 {
 	return &b[0].x;
 }
-
 ID_INLINE float* idBounds::ToFloatPtr()
 {
 	return &b[0].x;
 }
 
+
+ID_INLINE idBounds idBounds::ToMaya() const
+{
+	idBounds boundsMaya;
+	boundsMaya = *this;
+	boundsMaya.ToMayaSelf();
+	return boundsMaya;
+}
+ID_INLINE idBounds& idBounds::ToMayaSelf()
+{
+	b[ 0 ].ToMayaSelf();
+	b[ 1 ].ToMayaSelf();
+	SwapValues( b[ 0 ].z, b[ 1 ].z );
+	return ( *this );
+}
+ID_INLINE idBounds idBounds::FromMaya() const
+{
+	idBounds boundsId;
+	boundsId = *this;
+	boundsId.FromMayaSelf();
+	return boundsId;
+}
+ID_INLINE idBounds& idBounds::FromMayaSelf()
+{
+	SwapValues( b[ 0 ].z, b[ 1 ].z );
+	b[ 0 ].FromMayaSelf();
+	b[ 1 ].FromMayaSelf();
+	return ( *this );
+}
 #endif /* !__BV_BOUNDS_H__ */

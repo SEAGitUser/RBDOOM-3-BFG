@@ -1297,7 +1297,7 @@ void idAI::Think()
 	}
 
 	// this still draws in retail builds.. not sure why.. don't care at this point.
-	if ( !aas && developer.GetBool() && !fl.hidden && !num_cinematics ) {
+	if( !aas && developer.GetBool() && !fl.hidden && !num_cinematics ) {
 		gameRenderWorld->DrawText( "No AAS", physicsObj.GetAbsBounds().GetCenter(), 0.1f, idColor::white.ToVec4(), gameLocal.GetLocalPlayer()->viewAngles.ToMat3(), 1, 1 );
 	}
 
@@ -2873,12 +2873,6 @@ idAI::CheckObstacleAvoidance
 */
 void idAI::CheckObstacleAvoidance( const idVec3& goalPos, idVec3& newPos )
 {
-	idEntity*		obstacle;
-	obstaclePath_t	path;
-	idVec3			dir;
-	float			dist;
-	bool			foundPath;
-
 	if( ignore_obstacles )
 	{
 		newPos = goalPos;
@@ -2888,15 +2882,16 @@ void idAI::CheckObstacleAvoidance( const idVec3& goalPos, idVec3& newPos )
 
 	const idVec3& origin = physicsObj.GetOrigin();
 
-	obstacle = NULL;
 	AI_OBSTACLE_IN_PATH = false;
-	foundPath = FindPathAroundObstacles( &physicsObj, aas, enemy.GetEntity(), origin, goalPos, path );
+
+	obstaclePath_t path;
+	idEntity* obstacle = NULL;
+	bool foundPath = FindPathAroundObstacles( &physicsObj, aas, enemy.GetEntity(), origin, goalPos, path );
 	if( ai_showObstacleAvoidance.GetBool() )
 	{
 		gameRenderWorld->DebugLine( idColor::blue.ToVec4(), goalPos + idVec3( 1.0f, 1.0f, 0.0f ), goalPos + idVec3( 1.0f, 1.0f, 64.0f ), 1 );
 		gameRenderWorld->DebugLine( foundPath ? idColor::yellow.ToVec4() : idColor::red.ToVec4(), path.seekPos, path.seekPos + idVec3( 0.0f, 0.0f, 64.0f ), 1 );
 	}
-
 	if( !foundPath )
 	{
 		// couldn't get around obstacles
@@ -2916,8 +2911,7 @@ void idAI::CheckObstacleAvoidance( const idVec3& goalPos, idVec3& newPos )
 				obstacle = path.startPosObstacle;
 			}
 		}
-		else
-		{
+		else {
 			// Blocked by wall
 			move.moveStatus = MOVE_STATUS_BLOCKED_BY_WALL;
 		}
@@ -2943,9 +2937,9 @@ void idAI::CheckObstacleAvoidance( const idVec3& goalPos, idVec3& newPos )
 		AI_OBSTACLE_IN_PATH = true;
 
 		// check if we're past where the goalPos was pushed out of the obstacle
-		dir = goalPos - origin;
+		idVec3 dir = goalPos - origin;
 		dir.Normalize();
-		dist = ( path.seekPos - origin ) * dir;
+		float dist = ( path.seekPos - origin ) * dir;
 		if( dist < 1.0f )
 		{
 			obstacle = path.seekPosObstacle;
@@ -2962,13 +2956,11 @@ void idAI::CheckObstacleAvoidance( const idVec3& goalPos, idVec3& newPos )
 			{
 				move.moveStatus = MOVE_STATUS_BLOCKED_BY_ENEMY;
 			}
-			else
-			{
+			else {
 				move.moveStatus = MOVE_STATUS_BLOCKED_BY_MONSTER;
 			}
 		}
-		else
-		{
+		else {
 			// try kicking the object out of the way
 			move.moveStatus = MOVE_STATUS_BLOCKED_BY_OBJECT;
 		}
@@ -2976,8 +2968,7 @@ void idAI::CheckObstacleAvoidance( const idVec3& goalPos, idVec3& newPos )
 		//newPos = path.seekPos;
 		move.obstacle = obstacle;
 	}
-	else
-	{
+	else {
 		newPos = path.seekPos;
 		move.obstacle = NULL;
 	}
@@ -2989,18 +2980,16 @@ idAI::DeadMove
 =====================
 */
 void idAI::DeadMove()
-{
-	idVec3				delta;
-	monsterMoveResult_t	moveResult;
-
+{	
 	idVec3 org = physicsObj.GetOrigin();
 
+	idVec3 delta;
 	GetMoveDelta( viewAxis, viewAxis, delta );
 	physicsObj.SetDelta( delta );
 
 	RunPhysics();
 
-	moveResult = physicsObj.GetMoveResult();
+	auto moveResult = physicsObj.GetMoveResult();
 	AI_ONGROUND = physicsObj.OnGround();
 }
 
@@ -4575,21 +4564,16 @@ calculate joint positions on attack frames so we can do proper "can hit" tests
 */
 void idAI::CalculateAttackOffsets()
 {
-	const idDeclModelDef*	modelDef;
-	int						num;
-	int						i;
-	int						frame;
-	const frameCommand_t*	command;
 	idMat3					axis;
-	const idAnim*			anim;
 	jointHandle_t			joint;
 
-	modelDef = animator.ModelDef();
+	auto modelDef = animator.ModelDef();
 	if( !modelDef )
 	{
 		return;
 	}
-	num = modelDef->NumAnims();
+
+	int num = modelDef->NumAnims();
 
 	// needs to be off while getting the offsets so that we account for the distance the monster moves in the attack anim
 	animator.RemoveOriginOffset( false );
@@ -4600,19 +4584,21 @@ void idAI::CalculateAttackOffsets()
 	missileLaunchOffset.SetNum( num + 1 );
 	missileLaunchOffset[ 0 ].Zero();
 
-	for( i = 1; i <= num; i++ )
+	for( int i = 1; i <= num; i++ )
 	{
 		missileLaunchOffset[ i ].Zero();
-		anim = modelDef->GetAnim( i );
+
+		auto anim = modelDef->GetAnim( i );
 		if( anim )
 		{
-			frame = anim->FindFrameForFrameCommand( FC_LAUNCHMISSILE, &command );
+			const idAnimFrameCommand * command = nullptr;
+			int frame = anim->FindFrameForFrameCommand( FC_LAUNCHMISSILE, &command );
 			if( frame >= 0 )
 			{
-				joint = animator.GetJointHandle( command->string->c_str() );
+				joint = animator.GetJointHandle( command->GetString()->c_str() );
 				if( joint == INVALID_JOINT )
 				{
-					gameLocal.Error( "Invalid joint '%s' on 'launch_missile' frame command on frame %d of model '%s'", command->string->c_str(), frame, modelDef->GetName() );
+					gameLocal.Error( "Invalid joint '%s' on 'launch_missile' frame command on frame %d of model '%s'", command->GetString()->c_str(), frame, modelDef->GetName() );
 				}
 				GetJointTransformForAnim( joint, i, FRAME2MS( frame ), missileLaunchOffset[ i ], axis );
 			}
@@ -5511,18 +5497,15 @@ void idAI::TriggerParticles( const char* jointName )
 
 void idAI::TriggerFX( const char* joint, const char* fx )
 {
-
-	if( !strcmp( joint, "origin" ) )
+	if( !idStr::Cmp( joint, "origin" ) )
 	{
 		idEntityFx::StartFx( fx, NULL, NULL, this, true );
 	}
-	else
-	{
+	else {
 		idVec3	joint_origin;
 		idMat3	joint_axis;
-		jointHandle_t jointNum;
-		jointNum = animator.GetJointHandle( joint );
 
+		jointHandle_t jointNum = animator.GetJointHandle( joint );
 		if( jointNum == INVALID_JOINT )
 		{
 			gameLocal.Warning( "Unknown fx joint '%s' on entity %s", joint, name.c_str() );

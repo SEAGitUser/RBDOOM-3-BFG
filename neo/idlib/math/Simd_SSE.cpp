@@ -527,7 +527,6 @@ void VPCALL idSIMD_SSE::ConvertJointQuatsToJointMats( idJointMat* jointMats, con
 	int i = 0;
 	for( ; i + 1 < numJoints; i += 2 )
 	{
-	
 		__m128 q0 = _mm_load_ps( &jointQuatPtr[i * 8 + 0 * 8 + 0] );
 		__m128 q1 = _mm_load_ps( &jointQuatPtr[i * 8 + 1 * 8 + 0] );
 		
@@ -596,8 +595,7 @@ void VPCALL idSIMD_SSE::ConvertJointQuatsToJointMats( idJointMat* jointMats, con
 	}
 	
 	for( ; i < numJoints; i++ )
-	{
-	
+	{	
 		__m128 q0 = _mm_load_ps( &jointQuatPtr[i * 8 + 0 * 8 + 0] );
 		__m128 t0 = _mm_load_ps( &jointQuatPtr[i * 8 + 0 * 8 + 4] );
 		
@@ -870,7 +868,7 @@ void VPCALL idSIMD_SSE::TransformJoints( idJointMat* jointMats, const int* paren
 	__m128 pmb = _mm_load_ps( firstMatrix + 4 );
 	__m128 pmc = _mm_load_ps( firstMatrix + 8 );
 	
-	for( int joint = firstJoint; joint <= lastJoint; joint++ )
+	for( int joint = firstJoint; joint <= lastJoint; ++joint )
 	{
 		const int parent = parents[joint];
 		const float* __restrict parentMatrix = jointMats->ToFloatPtr() + ( parent + parent + parent ) * 4;

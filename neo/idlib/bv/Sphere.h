@@ -77,6 +77,8 @@ public:
 	bool			ContainsPoint( const idVec3& p ) const;			// includes touching
 	bool			IntersectsSphere( const idSphere& s ) const;	// includes touching
 	bool			LineIntersection( const idVec3& start, const idVec3& end ) const;
+	bool			IntersectsBounds( const class idBounds& bounds ) const;
+
 	// intersection points are (start + dir * scale1) and (start + dir * scale2)
 	bool			RayIntersection( const idVec3& start, const idVec3& dir, float& scale1, float& scale2 ) const;
 

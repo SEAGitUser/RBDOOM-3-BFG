@@ -831,7 +831,7 @@ int idBrushBSP::FindSplitter( idBrushBSPNode* node, const idPlaneSet& planeList,
 				continue;
 			}
 
-			value = f * stats.numFacing - 10 * stats.numSplits - abs( stats.numFront - stats.numBack ) - stats.epsilonBrushes * 1000;
+			value = f * stats.numFacing - 10 * stats.numSplits - idMath::Abs( stats.numFront - stats.numBack ) - stats.epsilonBrushes * 1000;
 
 			if( value > bestValue )
 			{
@@ -1022,10 +1022,10 @@ void idBrushBSP::BuildGrid_r( idList<idBrushBSPNode*>& gridCells, idBrushBSPNode
 	{
 		if( halfSize[ axis ] > BSP_GRID_SIZE )
 		{
-			dist = BSP_GRID_SIZE * ( floor( ( bounds[ 0 ][ axis ] + halfSize[ axis ] ) / BSP_GRID_SIZE ) + 1 );
+			dist = BSP_GRID_SIZE * ( idMath::Floor( ( bounds[ 0 ][ axis ] + halfSize[ axis ] ) / BSP_GRID_SIZE ) + 1 );
 		}
 		else {
-			dist = BSP_GRID_SIZE * ( floor( bounds[ 0 ][ axis ] / BSP_GRID_SIZE ) + 1 );
+			dist = BSP_GRID_SIZE * ( idMath::Floor( bounds[ 0 ][ axis ] / BSP_GRID_SIZE ) + 1 );
 		}
 		if( dist > bounds[ 0 ][ axis ] + 1.0f && dist < bounds[ 1 ][ axis ] - 1.0f )
 		{

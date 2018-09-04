@@ -639,7 +639,7 @@ void idIK_Walk::Evaluate()
 	lowestHeight = idMath::INFINITY;
 	for( i = 0; i < numLegs; i++ )
 	{
-		animator->GetJointTransform( footJoints[i], gameLocal.GetGameTimeMs(), footOrigin, axis );
+		animator->GetJointTransform( footJoints[i], gameLocal.GetGameTimeMs(), footOrigin );
 		jointOrigins[i] = modelOrigin + footOrigin * modelAxis;
 		jointHeight = jointOrigins[i] * normal;
 		if( jointHeight < lowestHeight )
@@ -658,7 +658,7 @@ void idIK_Walk::Evaluate()
 		{
 			pivotFoot = newPivotFoot;
 			pivotYaw = newPivotYaw;
-			animator->GetJointTransform( footJoints[pivotFoot], gameLocal.GetGameTimeMs(), footOrigin, axis );
+			animator->GetJointTransform( footJoints[pivotFoot], gameLocal.GetGameTimeMs(), footOrigin );
 			pivotPos = modelOrigin + footOrigin * modelAxis;
 		}
 
@@ -1152,7 +1152,7 @@ void idIK_Reach::Evaluate()
 		shoulderDir = shoulderForward[i] * axis * modelAxis;
 
 		// get the position of the hand in world space
-		animator->GetJointTransform( handJoints[i], gameLocal.GetGameTimeMs(), handOrigin, axis );
+		animator->GetJointTransform( handJoints[i], gameLocal.GetGameTimeMs(), handOrigin );
 		handOrigin = modelOrigin + handOrigin * modelAxis;
 
 		// get first collision going from shoulder to hand

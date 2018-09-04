@@ -468,9 +468,7 @@ idClass::Shutdown
 */
 void idClass::Shutdown()
 {
-	idTypeInfo*	c;
-	
-	for( c = typelist; c != NULL; c = c->next )
+	for( auto c = typelist; c != NULL; c = c->next )
 	{
 		c->Shutdown();
 	}
@@ -487,13 +485,11 @@ idClass::new
 */
 void* idClass::operator new( size_t s )
 {
-	int* p;
-	
 	s += sizeof( int );
-	p = ( int* )Mem_Alloc( s, TAG_IDCLASS );
-	*p = s;
-	memused += s;
-	numobjects++;
+	auto p = ( int* )Mem_Alloc( s, TAG_IDCLASS );
+	*p = ( int )s;
+	memused += ( int )s;
+	++numobjects;
 	
 	return p + 1;
 }
@@ -505,13 +501,12 @@ idClass::delete
 */
 void idClass::operator delete( void* ptr )
 {
-	int* p;
-	
 	if( ptr )
 	{
-		p = ( ( int* )ptr ) - 1;
+		auto p = ( ( int* )ptr ) - 1;
 		memused -= *p;
-		numobjects--;
+		--numobjects;
+
 		Mem_Free( p );
 	}
 }

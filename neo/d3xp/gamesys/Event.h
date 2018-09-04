@@ -56,27 +56,26 @@ Event are used for scheduling tasks and for linking script commands.
 class idClass;
 class idTypeInfo;
 
-class idEventDef
-{
+class idEventDef {
 private:
-	const char*					name;
-	const char*					formatspec;
+	const char *				name;
+	const char *				formatspec;
 	unsigned int				formatspecIndex;
 	int							returnType;
 	int							numargs;
 	size_t						argsize;
 	int							argOffset[ D_EVENT_MAXARGS ];
 	int							eventnum;
-	const idEventDef* 			next;
+	const idEventDef * 			next;
 	
-	static idEventDef* 			eventDefList[MAX_EVENTS];
+	static idEventDef * 		eventDefList[MAX_EVENTS];
 	static int					numEventDefs;
 	
 public:
 	idEventDef( const char* command, const char* formatspec = NULL, char returnType = 0 );
 	
-	const char*					GetName() const;
-	const char*					GetArgFormat() const;
+	const char *				GetName() const;
+	const char *				GetArgFormat() const;
 	unsigned int				GetFormatspecIndex() const;
 	char						GetReturnType() const;
 	int							GetEventNum() const;
@@ -85,8 +84,8 @@ public:
 	int							GetArgOffset( int arg ) const;
 	
 	static int					NumEventCommands();
-	static const idEventDef*		GetEventCommand( int eventnum );
-	static const idEventDef*		FindEvent( const char* name );
+	static const idEventDef *	GetEventCommand( int eventnum );
+	static const idEventDef *	FindEvent( const char* name );
 };
 
 class idSaveGame;
@@ -96,9 +95,9 @@ class idEvent
 {
 private:
 	const idEventDef*			eventdef;
-	byte*						data;
+	byte *						data;
 	int							time;
-	idClass*						object;
+	idClass *					object;
 	const idTypeInfo*			typeinfo;
 	
 	idLinkList<idEvent>			eventNode;
@@ -111,14 +110,14 @@ public:
 	
 	~idEvent();
 	
-	static idEvent*				Alloc( const idEventDef* evdef, int numargs, va_list args );
+	static idEvent *			Alloc( const idEventDef* evdef, int numargs, va_list args );
 	// RB: 64 bit fix, changed int to intptr_t
 	static void					CopyArgs( const idEventDef* evdef, int numargs, va_list args, intptr_t data[ D_EVENT_MAXARGS ] );
 	// RB end
 	
 	void						Free();
 	void						Schedule( idClass* object, const idTypeInfo* cls, int time );
-	byte*						GetData();
+	byte *						GetData();
 	
 	static void					CancelEvents( const idClass* obj, const idEventDef* evdef = NULL );
 	static void					ClearEventList();

@@ -1897,7 +1897,7 @@ void VK_() // Translucency and Deferred Shading Setup
 */
 void GL_StartFrame()
 {
-	auto const dc = VK_GetCurrDC();
+	auto const dc = vkSys.GetCurrDC();
 
 	if( dc->IsPresentable() )
 	{
@@ -1912,7 +1912,7 @@ void GL_StartFrame()
 */
 void GL_EndFrame()
 {
-	auto const dc = VK_GetCurrDC();
+	auto const dc = vkSys.GetCurrDC();
 
 
 	// Host access to queue must be externally synchronized.
@@ -1967,7 +1967,7 @@ void GL_BlockingSwapBuffers()
 {
 	( "***************** BlockingSwapBuffers *****************\n\n\n" );
 
-	auto dc = VK_GetCurrDC();
+	auto dc = vkSys.GetCurrDC();
 
 	//if( vkcontext.commandBufferRecorded[ vkcontext.currentFrameData ] == false )
 	//{

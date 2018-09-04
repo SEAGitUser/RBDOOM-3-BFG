@@ -40,8 +40,7 @@ If you have questions concerning this license or the applicable additional terms
 
 #if defined(USE_INTRINSICS)
 
-class idSIMD_SSE : public idSIMD_Generic
-{
+class idSIMD_SSE : public idSIMD_Generic {
 public:
 	virtual const char* VPCALL GetName() const;
 	

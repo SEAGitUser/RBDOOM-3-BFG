@@ -90,8 +90,7 @@ typedef int						interlockedInt_t;
 
 // RB: added POSIX implementation
 #if defined(_WIN32)
-class idSysThreadLocalStorage
-{
+class idSysThreadLocalStorage {
 public:
 	idSysThreadLocalStorage()
 	{

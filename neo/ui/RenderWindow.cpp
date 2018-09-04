@@ -150,7 +150,7 @@ void idRenderWindow::Render( int time )
 			}
 			gameEdit->ANIM_CreateAnimFrame( worldEntity.hModel, modelAnim, worldEntity.numJoints, worldEntity.joints, animLength - ( animEndTime - time ), vec3_origin, false );
 		}
-		worldEntity.axis = idAngles( modelRotate.x(), modelRotate.y(), modelRotate.z() ).ToMat3();
+		idAngles( modelRotate.x(), modelRotate.y(), modelRotate.z() ).ToMat3( worldEntity.axis );
 		world->UpdateEntityDef( modelDef, &worldEntity );
 	}
 }
@@ -171,7 +171,7 @@ void idRenderWindow::Draw( int time, float x, float y )
 	refdef.shaderParms[ SHADERPARM_ALPHA ] = 1.0f;
 
 	refdef.fov_x = 90.0f;
-	refdef.fov_y = 2.0f * idMath::ATan( ( float )drawRect.h / drawRect.w ) * idMath::M_RAD2DEG;
+	refdef.fov_y = 2.0f * RAD2DEG( idMath::ATan( ( float )drawRect.h / drawRect.w ) );
 
 	refdef.time[ 0 ] = time;
 	refdef.time[ 1 ] = time;

@@ -84,10 +84,10 @@ const int MAX_EXPRESSION_OPS = 4096;
 const int MAX_EXPRESSION_REGISTERS = 4096;
 
 // renderer
-
 // RB: replaced QGL with GLEW
 #include <GL/glew.h>
 // RB end
+#include "../renderer/RenderMatrix.h"
 #include "../renderer/Cinematic.h"
 #include "../renderer/Material.h"
 #include "../renderer/BufferObject.h"

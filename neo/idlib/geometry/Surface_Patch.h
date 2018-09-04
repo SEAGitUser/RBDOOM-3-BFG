@@ -37,9 +37,7 @@ If you have questions concerning this license or the applicable additional terms
 ===============================================================================
 */
 
-class idSurface_Patch : public idSurface
-{
-
+class idSurface_Patch : public idSurface {
 public:
 	idSurface_Patch();
 	idSurface_Patch( int maxPatchWidth, int maxPatchHeight );
@@ -47,6 +45,7 @@ public:
 	~idSurface_Patch();
 	
 	void				SetSize( int patchWidth, int patchHeight );
+	void				SetMaxSize( int patchWidth, int patchHeight );
 	int					GetWidth() const;
 	int					GetHeight() const;
 	

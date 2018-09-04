@@ -31,23 +31,26 @@ If you have questions concerning this license or the applicable additional terms
 //
 // animation channels
 // these can be changed by modmakers and licensees to be whatever they need.
-const int ANIM_NumAnimChannels = 5;
-const int ANIM_MaxAnimsPerChannel = 3;
-const int ANIM_MaxSyncedAnims = 3;
+const int ANIM_MaxAnimsPerChannel	= 3;
+const int ANIM_MaxSyncedAnims		= 3;
 
 //
 // animation channels.  make sure to change script/doom_defs.script if you add any channels, or change their order
 //
-const int ANIMCHANNEL_ALL = 0;
-const int ANIMCHANNEL_TORSO = 1;
-const int ANIMCHANNEL_LEGS = 2;
-const int ANIMCHANNEL_HEAD = 3;
-const int ANIMCHANNEL_EYELIDS = 4;
+enum animChannel_t 
+{
+	ANIMCHANNEL_ALL = 0,
+	ANIMCHANNEL_TORSO,
+	ANIMCHANNEL_LEGS,
+	ANIMCHANNEL_HEAD,
+	ANIMCHANNEL_EYELIDS,
+
+	ANIM_NumAnimChannels,
+};
 
 // for converting from 24 frames per second to milliseconds
 #define ANIM_FRAMERATE 24
-ID_INLINE int FRAME2MS( int framenum )
-{
+ID_INLINE int FRAME2MS( int framenum ) {
 	return idMath::FRAME2MS( framenum, ANIM_FRAMERATE );
 }
 
@@ -68,16 +71,16 @@ struct frameBlend_t {
 };
 
 struct jointAnimInfo_t {
-	int						nameIndex;
-	int						parentNum;
-	int						animBits;
-	int						firstComponent;
+	short					nameIndex;
+	short					parentNum;
+	short					animBits;
+	short					firstComponent;
 };
 
 struct jointInfo_t {
 	jointHandle_t			num;
 	jointHandle_t			parentNum;
-	int						channel;
+	animChannel_t			channel;
 };
 
 //
@@ -92,97 +95,34 @@ enum jointModTransform_t {
 };
 
 struct jointMod_t {
+	idMat3					mat;
+	idVec3					pos;
 	jointHandle_t			jointnum;
 	jointModTransform_t		transform_pos;
 	jointModTransform_t		transform_axis;
-	idMat3					mat;
-	idVec3					pos;
 };
 
-#define	ANIM_BIT_TX			0
-#define	ANIM_BIT_TY			1
-#define	ANIM_BIT_TZ			2
-#define	ANIM_BIT_QX			3
-#define	ANIM_BIT_QY			4
-#define	ANIM_BIT_QZ			5
-
-#define	ANIM_TX				BIT( ANIM_BIT_TX )
-#define	ANIM_TY				BIT( ANIM_BIT_TY )
-#define	ANIM_TZ				BIT( ANIM_BIT_TZ )
-#define	ANIM_QX				BIT( ANIM_BIT_QX )
-#define	ANIM_QY				BIT( ANIM_BIT_QY )
-#define	ANIM_QZ				BIT( ANIM_BIT_QZ )
-
-enum frameCommandType_t {
-	FC_SCRIPTFUNCTION,
-	FC_SCRIPTFUNCTIONOBJECT,
-	FC_EVENTFUNCTION,
-	FC_SOUND,
-	FC_SOUND_VOICE,
-	FC_SOUND_VOICE2,
-	FC_SOUND_BODY,
-	FC_SOUND_BODY2,
-	FC_SOUND_BODY3,
-	FC_SOUND_WEAPON,
-	FC_SOUND_ITEM,
-	FC_SOUND_GLOBAL,
-	FC_SOUND_CHATTER,
-	FC_SKIN,
-	FC_TRIGGER,
-	FC_TRIGGER_SMOKE_PARTICLE,
-	FC_MELEE,
-	FC_DIRECTDAMAGE,
-	FC_BEGINATTACK,
-	FC_ENDATTACK,
-	FC_MUZZLEFLASH,
-	FC_CREATEMISSILE,
-	FC_LAUNCHMISSILE,
-	FC_FIREMISSILEATTARGET,
-	FC_FOOTSTEP,
-	FC_LEFTFOOT,
-	FC_RIGHTFOOT,
-	FC_ENABLE_EYE_FOCUS,
-	FC_DISABLE_EYE_FOCUS,
-	FC_FX,
-	FC_DISABLE_GRAVITY,
-	FC_ENABLE_GRAVITY,
-	FC_JUMP,
-	FC_ENABLE_CLIP,
-	FC_DISABLE_CLIP,
-	FC_ENABLE_WALK_IK,
-	FC_DISABLE_WALK_IK,
-	FC_ENABLE_LEG_IK,
-	FC_DISABLE_LEG_IK,
-	FC_RECORDDEMO,
-	FC_AVIGAME,
-	FC_LAUNCH_PROJECTILE,
-	FC_TRIGGER_FX,
-	FC_START_EMITTER,
-	FC_STOP_EMITTER,
-};
+#define	ANIM_TX				BIT( 0 )
+#define	ANIM_TY				BIT( 1 )
+#define	ANIM_TZ				BIT( 2 )
+#define	ANIM_QX				BIT( 3 )
+#define	ANIM_QY				BIT( 4 )
+#define	ANIM_QZ				BIT( 5 )
 
 struct frameLookup_t {
 	int						num;
 	int						firstCommand;
 };
 
-struct frameCommand_t {
-	frameCommandType_t		type;
-	idStr*					string;
-
-	union {
-		const idSoundShader*	soundShader;
-		const function_t*	function;
-		const idDeclSkin*	skin;
-		int					index;
-	};
-};
+#include "Anim_FrameCommands.h"
 
 struct animFlags_t {
 	bool					prevent_idle_override : 1;
 	bool					random_cycle_start : 1;
 	bool					ai_no_turn : 1;
+//	bool					ai_fixed_forward : 1;
 	bool					anim_turn : 1;
+//	bool					no_pitch : 1;
 };
 
 /*
@@ -194,6 +134,39 @@ struct animFlags_t {
 */
 
 class idMD5Anim {
+public:
+	idMD5Anim();
+	~idMD5Anim();
+
+	void					Free();
+	bool					Reload();
+	size_t					Allocated() const;
+	size_t					Size() const { return sizeof( *this ) + Allocated(); };
+	bool					LoadAnim( const char* filename );
+	bool					LoadBinary( idFile* file, ID_TIME_T sourceTimeStamp );
+	void					WriteBinary( idFile* file, ID_TIME_T sourceTimeStamp );
+
+	void					IncreaseRefs() const { ref_count++; }
+	void					DecreaseRefs() const { ref_count--; }
+	int						NumRefs() const { return ref_count; }
+
+	void					CheckModelHierarchy( const idRenderModel* model ) const;
+	void					GetInterpolatedFrame( frameBlend_t& frame, idJointQuat* joints, const int* index, int numIndexes ) const;
+	void					GetSingleFrame( int framenum, idJointQuat* joints, const int* index, int numIndexes ) const;
+	int						Length() const { return animLength; }
+	int						NumFrames() const { return numFrames; }
+	int						NumJoints() const { return numJoints; }
+	const idVec3&			TotalMovementDelta() const { return totaldelta; }
+	const char*				Name() const { return name; }
+
+	void					GetFrameBlend( int framenum, frameBlend_t& frame ) const;	// frame 1 is first frame
+	void					ConvertTimeToFrame( int time, int cyclecount, frameBlend_t& frame ) const;
+
+	void					GetOrigin( idVec3& offset, int currentTime, int cyclecount ) const;
+	void					GetOriginRotation( idQuat& rotation, int time, int cyclecount ) const;
+	void					GetBounds( idBounds& bounds, int currentTime, int cyclecount ) const;
+	int						GetFrameRate() const { return frameRate; }
+
 private:
 	int						numFrames;
 	int						frameRate;
@@ -208,37 +181,6 @@ private:
 	idVec3					totaldelta;
 	mutable int				ref_count;
 
-public:
-	idMD5Anim();
-	~idMD5Anim();
-
-	void					Free();
-	bool					Reload();
-	size_t					Allocated() const;
-	size_t					Size() const { return sizeof( *this ) + Allocated(); };
-	bool					LoadAnim( const char* filename );
-	bool					LoadBinary( idFile* file, ID_TIME_T sourceTimeStamp );
-	void					WriteBinary( idFile* file, ID_TIME_T sourceTimeStamp );
-
-	void					IncreaseRefs() const;
-	void					DecreaseRefs() const;
-	int						NumRefs() const;
-
-	void					CheckModelHierarchy( const idRenderModel* model ) const;
-	void					GetInterpolatedFrame( frameBlend_t& frame, idJointQuat* joints, const int* index, int numIndexes ) const;
-	void					GetSingleFrame( int framenum, idJointQuat* joints, const int* index, int numIndexes ) const;
-	int						Length() const;
-	int						NumFrames() const;
-	int						NumJoints() const;
-	const idVec3&			TotalMovementDelta() const;
-	const char*				Name() const;
-
-	void					GetFrameBlend( int framenum, frameBlend_t& frame ) const;	// frame 1 is first frame
-	void					ConvertTimeToFrame( int time, int cyclecount, frameBlend_t& frame ) const;
-
-	void					GetOrigin( idVec3& offset, int currentTime, int cyclecount ) const;
-	void					GetOriginRotation( idQuat& rotation, int time, int cyclecount ) const;
-	void					GetBounds( idBounds& bounds, int currentTime, int cyclecount ) const;
 };
 
 /*
@@ -250,6 +192,34 @@ public:
 */
 
 class idAnim {
+public:
+	idAnim();
+	idAnim( const idDeclModelDef* modelDef, const idAnim* anim );
+	~idAnim();
+
+	void						SetAnim( const idDeclModelDef* modelDef, const char* sourcename, const char* animname, int num, const idMD5Anim* md5anims[ ANIM_MaxSyncedAnims ] );
+	const char*					Name() const { return name; }
+	const char*					FullName() const { return realname; }
+	const idMD5Anim*			MD5Anim( int num ) const { return ( anims[ 0 ] == NULL )? NULL : anims[ num ]; }; // index 0 will never be NULL. Any anim >= NumAnims will return NULL.
+	const idDeclModelDef*		ModelDef() const { return modelDef; }
+	int							Length() const { return anims[ 0 ] ? anims[ 0 ]->Length() : 0; }
+	int							NumFrames() const { return anims[ 0 ] ? anims[ 0 ]->NumFrames() : 0; }
+	int							NumAnims() const { return numAnims; }
+	const idVec3&				TotalMovementDelta() const { return anims[ 0 ] ? anims[ 0 ]->TotalMovementDelta() : vec3_zero; }
+	bool						GetOrigin( idVec3& offset, int animNum, int time, int cyclecount ) const;
+	bool						GetOriginRotation( idQuat& rotation, int animNum, int currentTime, int cyclecount ) const;
+	bool						GetBounds( idBounds& bounds, int animNum, int time, int cyclecount ) const;
+	const char*					AddFrameCommand( const class idDeclModelDef* modelDef, int framenum, idLexer& src, const idDict* def );
+	void						CallFrameCommands( idEntity* ent, int from, int to ) const;
+	bool						HasFrameCommands() const { return( frameCommands.Num() > 0 ); }
+	void						ClearFrameCommands();
+
+	// returns first frame (zero based) that command occurs.  returns -1 if not found.
+	int							FindFrameForFrameCommand( frameCommandType_t framecommand, const idAnimFrameCommand ** command ) const;
+
+	void						SetAnimFlags( const animFlags_t& animflags ) { flags = animflags; }
+	const animFlags_t&			GetAnimFlags() const { return flags; }
+
 private:
 	const class idDeclModelDef*	modelDef;
 	const idMD5Anim*			anims[ ANIM_MaxSyncedAnims ];
@@ -257,34 +227,8 @@ private:
 	idStr						name;
 	idStr						realname;
 	idList<frameLookup_t, TAG_ANIM>	frameLookup;
-	idList<frameCommand_t, TAG_ANIM> frameCommands;
+	idList<idAnimFrameCommand, TAG_ANIM> frameCommands;
 	animFlags_t					flags;
-
-public:
-	idAnim();
-	idAnim( const idDeclModelDef* modelDef, const idAnim* anim );
-	~idAnim();
-
-	void						SetAnim( const idDeclModelDef* modelDef, const char* sourcename, const char* animname, int num, const idMD5Anim* md5anims[ ANIM_MaxSyncedAnims ] );
-	const char*					Name() const;
-	const char*					FullName() const;
-	const idMD5Anim*				MD5Anim( int num ) const;
-	const idDeclModelDef*		ModelDef() const;
-	int							Length() const;
-	int							NumFrames() const;
-	int							NumAnims() const;
-	const idVec3&				TotalMovementDelta() const;
-	bool						GetOrigin( idVec3& offset, int animNum, int time, int cyclecount ) const;
-	bool						GetOriginRotation( idQuat& rotation, int animNum, int currentTime, int cyclecount ) const;
-	bool						GetBounds( idBounds& bounds, int animNum, int time, int cyclecount ) const;
-	const char*					AddFrameCommand( const class idDeclModelDef* modelDef, int framenum, idLexer& src, const idDict* def );
-	void						CallFrameCommands( idEntity* ent, int from, int to ) const;
-	bool						HasFrameCommands() const;
-
-	// returns first frame (zero based) that command occurs.  returns -1 if not found.
-	int							FindFrameForFrameCommand( frameCommandType_t framecommand, const frameCommand_t** command ) const;
-	void						SetAnimFlags( const animFlags_t& animflags );
-	const animFlags_t&			GetAnimFlags() const;
 };
 
 /*
@@ -298,7 +242,7 @@ public:
 class idDeclModelDef : public idDecl {
 public:
 	idDeclModelDef();
-	~idDeclModelDef();
+	virtual ~idDeclModelDef();
 
 	virtual size_t				Size() const;
 	virtual const char* 		DefaultDefinition() const;
@@ -307,29 +251,29 @@ public:
 
 	void						Touch() const;
 
-	const idDeclSkin* 			GetDefaultSkin() const;
-	const idJointQuat* 			GetDefaultPose() const;
+	const idDeclSkin* 			GetDefaultSkin() const { return skin; }
+	const idJointQuat* 			GetDefaultPose() const { return modelHandle->GetDefaultPose(); }
 	void						SetupJoints( int* numJoints, idJointMat** jointList, idBounds& frameBounds, bool removeOriginOffset ) const;
-	idRenderModel* 				ModelHandle() const;
 	void						GetJointList( const char* jointnames, idList<jointHandle_t>& jointList ) const;
 	const jointInfo_t* 			FindJoint( const char* name ) const;
 
-	int							NumAnims() const;
-	const idAnim* 				GetAnim( int index ) const;
+	int							NumAnims() const { return( anims.Num() + 1 ); }
+	const idAnim* 				GetAnim( int index ) const { return ( ( index < 1 ) || ( index > anims.Num() ) )? nullptr : anims[ index - 1 ]; }
 	int							GetSpecificAnim( const char* name ) const;
 	int							GetAnim( const char* name ) const;
 	bool						HasAnim( const char* name ) const;
-	const idDeclSkin* 			GetSkin() const;
-	const char* 				GetModelName() const;
-	const idList<jointInfo_t>& 	Joints() const;
-	const int* 					JointParents() const;
-	int							NumJoints() const;
+	const idDeclSkin* 			GetSkin() const { return skin; }
+	const char* 				GetModelName() const { return modelHandle ? modelHandle->Name() : ""; }
+	const idList<jointInfo_t>& 	Joints() const { return joints; }
+	const int* 					JointParents() const { return jointParents.Ptr(); }
+	int							NumJoints() const { return joints.Num(); }
 	const jointInfo_t* 			GetJoint( int jointHandle ) const;
 	const char* 				GetJointName( int jointHandle ) const;
-	int							NumJointsOnChannel( int channel ) const;
-	const int* 					GetChannelJoints( int channel ) const;
-
-	const idVec3& 				GetVisualOffset() const;
+	int							NumJointsOnChannel( animChannel_t channel ) const { assert( !( ( channel < 0 ) || ( channel >= ANIM_NumAnimChannels ) ) ); return channelJoints[ channel ].Num(); }
+	const int* 					GetChannelJoints( animChannel_t channel ) const { assert( !( ( channel < 0 ) || ( channel >= ANIM_NumAnimChannels ) ) ); return channelJoints[ channel ].Ptr(); }
+	int							NumChannels() const { return numChannels; }
+	const idVec3 & 				GetVisualOffset() const { return offset; }
+	idRenderModel * 			ModelHandle() const { return modelHandle; }
 
 private:
 	void						CopyDecl( const idDeclModelDef* decl );
@@ -343,6 +287,7 @@ private:
 	idRenderModel* 				modelHandle;
 	idList<idAnim*, TAG_ANIM>	anims;
 	const idDeclSkin* 			skin;
+	int										numChannels; //SEA: added
 };
 
 /*
@@ -354,6 +299,37 @@ private:
 */
 
 class idAnimBlend {
+public:
+	idAnimBlend();
+	void						Save( idSaveGame* savefile ) const;
+	void						Restore( idRestoreGame* savefile, const idDeclModelDef* modelDef );
+	const char*					AnimName() const;
+	const char*					AnimFullName() const;
+	float						GetWeight( int currenttime ) const;
+	float						GetFinalWeight() const { return blendEndValue; }
+	void						SetWeight( float newweight, int currenttime, int blendtime );
+	int							NumSyncedAnims() const;
+	bool						SetSyncedAnimWeight( int num, float weight );
+	void						Clear( int currentTime, int clearTime );
+	bool						IsDone( int currentTime ) const;
+	bool						FrameHasChanged( int currentTime ) const;
+	int							GetCycleCount() const { return cycle; }
+	void						SetCycleCount( int count );
+	void						SetPlaybackRate( int currentTime, float newRate );
+	float						GetPlaybackRate() const { return rate; }
+	void						SetStartTime( int startTime );
+	int							GetStartTime() const { return ( !animNum )? 0 : starttime; }
+	int							GetEndTime() const { return ( !animNum )? 0 : endtime; }
+	int							GetFrameNumber( int currenttime ) const;
+	int							AnimTime( int currenttime ) const;
+	int							NumFrames() const;
+	int							Length() const;
+	int							PlayLength() const { if( !animNum ) return 0; if( endtime < 0 ) return -1; return endtime - starttime + timeOffset; }
+	void						AllowMovement( bool allow ) { allowMove = allow; }
+	void						AllowFrameCommands( bool allow ) { allowFrameCommands = allow; }
+	const idAnim*				Anim() const { return modelDef ? modelDef->GetAnim( animNum ) : nullptr; }
+	int							AnimNum() const { return animNum; }
+
 private:
 	const class idDeclModelDef*	modelDef;
 	int							starttime;
@@ -380,42 +356,12 @@ private:
 	void						SetFrame( const idDeclModelDef* modelDef, int animnum, int frame, int currenttime, int blendtime );
 	void						CycleAnim( const idDeclModelDef* modelDef, int animnum, int currenttime, int blendtime );
 	void						PlayAnim( const idDeclModelDef* modelDef, int animnum, int currenttime, int blendtime );
-	bool						BlendAnim( int currentTime, int channel, int numJoints, idJointQuat* blendFrame, float& blendWeight, bool removeOrigin, bool overrideBlend, bool printInfo ) const;
+	bool						BlendAnim( int currentTime, animChannel_t channel, int numJoints, idJointQuat* blendFrame, float& blendWeight, bool removeOrigin, bool overrideBlend, bool printInfo ) const;
 	void						BlendOrigin( int currentTime, idVec3& blendPos, float& blendWeight, bool removeOriginOffset ) const;
 	void						BlendDelta( int fromtime, int totime, idVec3& blendDelta, float& blendWeight ) const;
 	void						BlendDeltaRotation( int fromtime, int totime, idQuat& blendDelta, float& blendWeight ) const;
-	bool						AddBounds( int currentTime, idBounds& bounds, bool removeOriginOffset ) const;
+	bool						AddBounds( int currentTime, idBounds& bounds, bool removeOriginOffset, const bool ignoreLastFrame = false ) const;
 
-public:
-	idAnimBlend();
-	void						Save( idSaveGame* savefile ) const;
-	void						Restore( idRestoreGame* savefile, const idDeclModelDef* modelDef );
-	const char*					AnimName() const;
-	const char*					AnimFullName() const;
-	float						GetWeight( int currenttime ) const;
-	float						GetFinalWeight() const;
-	void						SetWeight( float newweight, int currenttime, int blendtime );
-	int							NumSyncedAnims() const;
-	bool						SetSyncedAnimWeight( int num, float weight );
-	void						Clear( int currentTime, int clearTime );
-	bool						IsDone( int currentTime ) const;
-	bool						FrameHasChanged( int currentTime ) const;
-	int							GetCycleCount() const;
-	void						SetCycleCount( int count );
-	void						SetPlaybackRate( int currentTime, float newRate );
-	float						GetPlaybackRate() const;
-	void						SetStartTime( int startTime );
-	int							GetStartTime() const;
-	int							GetEndTime() const;
-	int							GetFrameNumber( int currenttime ) const;
-	int							AnimTime( int currenttime ) const;
-	int							NumFrames() const;
-	int							Length() const;
-	int							PlayLength() const;
-	void						AllowMovement( bool allow );
-	void						AllowFrameCommands( bool allow );
-	const idAnim*				Anim() const;
-	int							AnimNum() const;
 };
 
 /*
@@ -434,19 +380,16 @@ enum AFJointModType_t {
 
 class idAFPoseJointMod {
 public:
-	idAFPoseJointMod();
+	ID_INLINE idAFPoseJointMod::idAFPoseJointMod() : mod( AF_JOINTMOD_AXIS )
+	{
+		axis.Identity();
+		origin.Zero();
+	}
 
-	AFJointModType_t			mod;
 	idMat3						axis;
 	idVec3						origin;
+	AFJointModType_t			mod;
 };
-
-ID_INLINE idAFPoseJointMod::idAFPoseJointMod()
-{
-	mod = AF_JOINTMOD_AXIS;
-	axis.Identity();
-	origin.Zero();
-}
 
 /*
 ==============================================================================================
@@ -467,48 +410,55 @@ public:
 	void						Save( idSaveGame* savefile ) const;					// archives object for save game file
 	void						Restore( idRestoreGame* savefile );					// unarchives object from save game file
 
-	void						SetEntity( idEntity* ent );
-	idEntity*					GetEntity() const;
-	void						RemoveOriginOffset( bool remove );
-	bool						RemoveOrigin() const;
+	void						SetEntity( idEntity* ent ) { entity = ent; }
+	idEntity*					GetEntity() const { return entity; }
+	void						RemoveOriginOffset( bool remove ) { removeOriginOffset = remove; }
+	bool						RemoveOrigin() const { return removeOriginOffset; }
 
 	void						GetJointList( const char* jointnames, idList<jointHandle_t>& jointList ) const;
 
-	int							NumAnims() const;
-	const idAnim*				GetAnim( int index ) const;
-	int							GetAnim( const char* name ) const;
-	bool						HasAnim( const char* name ) const;
+	int							NumAnims() const { return modelDef ? modelDef->NumAnims() : 0; }
+	const idAnim*				GetAnim( int index ) const { return modelDef ? modelDef->GetAnim( index ) : nullptr; }
+	int							GetAnim( const char* name ) const { return modelDef ? modelDef->GetAnim( name ) : 0; }
+	bool						HasAnim( const char* name ) const { return modelDef ? modelDef->HasAnim( name ) : false; }
 
 	void						ServiceAnims( int fromtime, int totime );
 	bool						IsAnimating( int currentTime ) const;
+	bool						IsAnimatingOnChannel( animChannel_t channelNum, int currentTime ) const;			//SEA:
+	bool						IsPlayingAnim( animChannel_t channel, int animNum, int currentTime ) const;			// added
+	bool						IsPlayingAnimPrimary( animChannel_t channel, int animNum, int currentTime ) const;	//
+	bool						IsCyclingAnim( animChannel_t channel, int animNum, int currentTime ) const;			//
 
 	void						GetJoints( int* numJoints, idJointMat** jointsPtr );
-	int							NumJoints() const;
+	int							NumJoints() const { return numJoints; }
 	jointHandle_t				GetFirstChild( jointHandle_t jointnum ) const;
 	jointHandle_t				GetFirstChild( const char* name ) const;
 
 	idRenderModel*				SetModel( const char* modelname );
-	idRenderModel*				ModelHandle() const;
-	const idDeclModelDef*		ModelDef() const;
+	idRenderModel*				ModelHandle() const { return modelDef ? modelDef->ModelHandle() : nullptr; }
+	const idDeclModelDef*		ModelDef() const { return modelDef; }
 
 	void						ForceUpdate();
 	void						ClearForceUpdate();
 	bool						CreateFrame( int animtime, bool force );
 	bool						FrameHasChanged( int animtime ) const;
-	void						GetDelta( int fromtime, int totime, idVec3& delta ) const;
-	bool						GetDeltaRotation( int fromtime, int totime, idMat3& delta ) const;
-	void						GetOrigin( int currentTime, idVec3& pos ) const;
-	bool						GetBounds( int currentTime, idBounds& bounds );
+	void						GetDelta( int fromtime, int totime, idVec3& delta, const int maxChannels = ANIM_MaxAnimsPerChannel ) const;
+	bool						GetDeltaRotation( int fromtime, int totime, idMat3& delta, const int maxChannels = ANIM_MaxAnimsPerChannel ) const;
+	void						GetOrigin( int currentTime, idVec3& pos, const int maxChannels = ANIM_MaxAnimsPerChannel ) const;
+	bool						GetBounds( int currentTime, idBounds& bounds, const bool force = false, const int maxChannels = ANIM_MaxAnimsPerChannel );
 
-	idAnimBlend*				CurrentAnim( int channelNum );
-	void						Clear( int channelNum, int currentTime, int cleartime );
-	void						SetFrame( int channelNum, int animnum, int frame, int currenttime, int blendtime );
-	void						CycleAnim( int channelNum, int animnum, int currenttime, int blendtime );
-	void						PlayAnim( int channelNum, int animnum, int currenttime, int blendTime );
+	// Gets the bounding box in joint space of the specified mesh, this is uncached and will cause reskinning so use sparingly
+	///bool						GetMeshBounds( jointHandle_t jointnum, int meshHandle, int currentTime, idBounds& bounds, bool useDefaultAnim );
+
+	idAnimBlend*				CurrentAnim( animChannel_t channelNum );
+	void						Clear( animChannel_t channelNum, int currentTime, int cleartime );
+	void						SetFrame( animChannel_t channelNum, int animnum, int frame, int currentTime, int blendtime );
+	void						CycleAnim( animChannel_t channelNum, int animnum, int currentTime, int blendtime );
+	void						PlayAnim( animChannel_t channelNum, int animnum, int currentTime, int blendTime );
 
 	// copies the current anim from fromChannelNum to channelNum.
 	// the copied anim will have frame commands disabled to avoid executing them twice.
-	void						SyncAnimChannels( int channelNum, int fromChannelNum, int currenttime, int blendTime );
+	void						SyncAnimChannels( animChannel_t channelNum, animChannel_t fromChannelNum, int currentTime, int blendTime );
 
 	void						SetJointPos( jointHandle_t jointnum, jointModTransform_t transform_type, const idVec3& pos );
 	void						SetJointAxis( jointHandle_t jointnum, jointModTransform_t transform_type, const idMat3& mat );
@@ -526,9 +476,15 @@ public:
 
 	jointHandle_t				GetJointHandle( const char* name ) const;
 	const char* 				GetJointName( jointHandle_t handle ) const;
-	int							GetChannelForJoint( jointHandle_t joint ) const;
-	bool						GetJointTransform( jointHandle_t jointHandle, int currenttime, idVec3& offset, idMat3& axis );
+	animChannel_t				GetChannelForJoint( jointHandle_t joint ) const;
+	bool						GetJointTransform( jointHandle_t jointHandle, int currentTime, idVec3& offset, idMat3& axis );
+	bool						GetJointTransform( jointHandle_t jointHandle, int currentTime, idVec3& offset );		//SEA:
+	bool						GetJointTransform( jointHandle_t jointHandle, int currentTime, idMat3& axis );			// added
 	bool						GetJointLocalTransform( jointHandle_t jointHandle, int currentTime, idVec3& offset, idMat3& axis );
+	bool						GetJointLocalTransform( jointHandle_t jointHandle, int currentTime, idVec3& offset );	//
+	bool						GetJointLocalTransform( jointHandle_t jointHandle, int currentTime, idMat3& axis );		//
+
+	jointHandle_t				GetJointParent( jointHandle_t jointHandle ) const;
 
 	const animFlags_t			GetAnimFlags( int animnum ) const;
 	int							NumFrames( int animnum ) const;
@@ -538,9 +494,12 @@ public:
 	int							AnimLength( int animnum ) const;
 	const idVec3&				TotalMovementDelta( int animnum ) const;
 
+	int							GetLastTransformTime( void ) const { return lastTransformTime; }
+	int							GetTransformCount( void ) const { return transformCount; }
+
 private:
 	void						FreeData();
-	void						PushAnims( int channel, int currentTime, int blendTime );
+	void						PushAnims( animChannel_t channel, int currentTime, int blendTime );
 
 private:
 	const idDeclModelDef* 		modelDef;
@@ -552,6 +511,7 @@ private:
 	idJointMat* 				joints;
 
 	mutable int					lastTransformTime;		// mutable because the value is updated in CreateFrame
+	mutable int					transformCount; //SEA: added
 	mutable bool				stoppedAnimatingUpdate;
 	bool						removeOriginOffset;
 	bool						forceUpdate;

@@ -46,7 +46,7 @@ class idMat3;
 class idBounds;
 
 // trace model type
-typedef enum
+enum traceModel_t
 {
 	TRM_INVALID,		// invalid trm
 	TRM_BOX,			// box
@@ -58,7 +58,7 @@ typedef enum
 	TRM_POLYGON,		// arbitrary convex polygon
 	TRM_POLYGONVOLUME,	// volume for arbitrary convex polygon
 	TRM_CUSTOM			// loaded from map model or ASE/LWO
-} traceModel_t;
+};
 
 // these are bit cache limits
 #define MAX_TRACEMODEL_VERTS		32
@@ -68,24 +68,22 @@ typedef enum
 
 typedef idVec3 traceModelVert_t;
 
-typedef struct
+struct traceModelEdge_t
 {
 	int					v[2];
 	idVec3				normal;
-} traceModelEdge_t;
+};
 
-typedef struct
+struct traceModelPoly_t
 {
 	idVec3				normal;
 	float				dist;
 	idBounds			bounds;
 	int					numEdges;
 	int					edges[MAX_TRACEMODEL_POLYEDGES];
-} traceModelPoly_t;
+};
 
-class idTraceModel
-{
-
+class idTraceModel {
 public:
 	traceModel_t		type;
 	int					numVerts;
@@ -97,7 +95,7 @@ public:
 	idVec3				offset;			// offset to center of model
 	idBounds			bounds;			// bounds of model
 	bool				isConvex;		// true when model is convex
-	
+
 public:
 	idTraceModel();
 	// axial bounding box
@@ -106,7 +104,7 @@ public:
 	idTraceModel( const idBounds& cylBounds, const int numSides );
 	// bone
 	idTraceModel( const float length, const float width );
-	
+
 	// axial box
 	void				SetupBox( const idBounds& boxBounds );
 	void				SetupBox( const float size );
@@ -117,7 +115,7 @@ public:
 	void				SetupDodecahedron( const idBounds& dodBounds );
 	void				SetupDodecahedron( const float size );
 	// cylinder approximation
-	void				SetupCylinder( const idBounds& cylBounds, const int numSides );
+	void				SetupCylinder( const idBounds &cylBounds, const int numSides, float offset = 0, int axis = 0 );
 	void				SetupCylinder( const float height, const float width, const int numSides );
 	// cone approximation
 	void				SetupCone( const idBounds& coneBounds, const int numSides );
@@ -127,18 +125,37 @@ public:
 	// arbitrary convex polygon
 	void				SetupPolygon( const idVec3* v, const int count );
 	void				SetupPolygon( const idWinding& w );
+						// extruded polygonal prism
+	void				SetupPolygonPrism( const idWinding &w, float thickness );
+
+						// basically a box, but with the top verts pushed out
+	void				SetupFrustum( const idBounds& boxBounds, float topOffset );
+
 	// generate edge normals
 	int					GenerateEdgeNormals();
+	// test whether or not the model is convex and set isConvex accordingly
+	void				TestConvexity();
 	// translate the trm
 	void				Translate( const idVec3& translation );
 	// rotate the trm
 	void				Rotate( const idMat3& rotation );
 	// shrink the model m units on all sides
 	void				Shrink( const float m );
+	// clear unused spots in the arrays
+	void				ClearUnused( void );
+	// make sure the trace model is well formed
+	bool				Verify();
+
 	// compare
-	bool				Compare( const idTraceModel& trm ) const;
-	bool				operator==(	const idTraceModel& trm ) const;
-	bool				operator!=(	const idTraceModel& trm ) const;
+	bool				Compare( const idTraceModel& ) const;
+	bool				operator==(	const idTraceModel& ) const;
+	bool				operator!=(	const idTraceModel& ) const;
+
+	bool				ContainsPoint( const idVec3& point ) const;
+
+	// returns true of the model is a closed surface
+	bool				IsClosedSurface() const;
+
 	// get the area of one of the polygons
 	float				GetPolygonArea( int polyNum ) const;
 	// get the silhouette edges
@@ -146,17 +163,20 @@ public:
 	int					GetParallelProjectionSilhouetteEdges( const idVec3& projectionDir, int silEdges[MAX_TRACEMODEL_EDGES] ) const;
 	// calculate mass properties assuming an uniform density
 	void				GetMassProperties( const float density, float& mass, idVec3& centerOfMass, idMat3& inertiaTensor ) const;
-	
+
+	//void				Write( idFile* fp, trmNameForMaterial_t lookup ) const;
+	//void				Read( idFile* fp, trmMaterialForName_t lookup );
+
 private:
 	void				InitBox();
 	void				InitOctahedron();
 	void				InitDodecahedron();
 	void				InitBone();
-	
-	void				ProjectionIntegrals( int polyNum, int a, int b, struct projectionIntegrals_s& integrals ) const;
-	void				PolygonIntegrals( int polyNum, int a, int b, int c, struct polygonIntegrals_s& integrals ) const;
-	void				VolumeIntegrals( struct volumeIntegrals_s& integrals ) const;
-	void				VolumeFromPolygon( idTraceModel& trm, float thickness ) const;
+
+	void				ProjectionIntegrals( int polyNum, int a, int b, struct projectionIntegrals_t& ) const;
+	void				PolygonIntegrals( int polyNum, int a, int b, int c, struct polygonIntegrals_t& ) const;
+	void				VolumeIntegrals( struct volumeIntegrals_t& ) const;
+	void				VolumeFromPolygon( idTraceModel&, float thickness ) const;
 	int					GetOrderedSilhouetteEdges( const int edgeIsSilEdge[MAX_TRACEMODEL_EDGES + 1], int silEdges[MAX_TRACEMODEL_EDGES] ) const;
 };
 

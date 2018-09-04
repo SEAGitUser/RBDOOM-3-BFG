@@ -48,8 +48,7 @@ class idRotation;
 class idMat3;
 class idMat4;
 
-class idAngles
-{
+class idAngles {
 public:
 	float			pitch;
 	float			yaw;
@@ -93,12 +92,22 @@ public:
 	idVec3			ToForward() const;
 	idQuat			ToQuat() const;
 	idRotation		ToRotation() const;
+	void			ToRotation( idRotation & ) const;
 	idMat3			ToMat3() const;
+	void			ToMat3( idMat3 & ) const;
+	void			ToMat3NoRoll( idMat3& mat ) const;
+	static idMat3&	YawToMat3( float yaw, idMat3& mat );
+	static idMat3&	PitchToMat3( float pitch, idMat3& mat );
+	static idMat3&	RollToMat3( float roll, idMat3& mat );
 	idMat4			ToMat4() const;
 	idVec3			ToAngularVelocity() const;
 	const float* 	ToFloatPtr() const;
 	float* 			ToFloatPtr();
 	const char* 	ToString( int precision = 2 ) const;
+
+	idMat3			ToMat3Maya( void ) const;
+
+	bool			FixDenormals( float epsilon = idMath::FLT_EPSILON );		// change tiny numbers to zero
 };
 
 extern idAngles ang_zero;
@@ -296,6 +305,57 @@ ID_INLINE const float* idAngles::ToFloatPtr() const
 ID_INLINE float* idAngles::ToFloatPtr()
 {
 	return &pitch;
+}
+
+ID_INLINE idMat3& idAngles::YawToMat3( float yaw, idMat3& mat )
+{
+	float sy, cy;	
+	idMath::SinCos( DEG2RAD( yaw ), sy, cy );
+	mat[ 0 ].Set( cy, sy, 0 );
+	mat[ 1 ].Set( -sy, cy, 0 );
+	mat[ 2 ].Set( 0, 0, 1 );
+	return mat;
+}
+
+ID_INLINE idMat3& idAngles::PitchToMat3( float pitch, idMat3& mat )
+{
+	float sp, cp;
+	idMath::SinCos( DEG2RAD( pitch ), sp, cp );
+	mat[ 0 ].Set( cp, 0, -sp );
+	mat[ 1 ].Set( 0, 1, 0 );
+	mat[ 2 ].Set( sp, 0, cp );
+	return mat;
+}
+
+ID_INLINE idMat3& idAngles::RollToMat3( float roll, idMat3& mat )
+{
+	float sr, cr;
+	idMath::SinCos( DEG2RAD( roll ), sr, cr );
+	mat[ 0 ].Set( 1, 0, 0 );
+	mat[ 1 ].Set( 0, cr, sr );
+	mat[ 2 ].Set( 0, -sr, cr );
+	return mat;
+}
+
+ID_INLINE bool idAngles::FixDenormals( float epsilon )
+{
+	bool denormal = false;
+	if( idMath::Fabs( yaw ) < epsilon )
+	{
+		yaw = 0.0f;
+		denormal = true;
+	}
+	if( idMath::Fabs( pitch ) < epsilon )
+	{
+		pitch = 0.0f;
+		denormal = true;
+	}
+	if( idMath::Fabs( roll ) < epsilon )
+	{
+		roll = 0.0f;
+		denormal = true;
+	}
+	return denormal;
 }
 
 #endif /* !__MATH_ANGLES_H__ */

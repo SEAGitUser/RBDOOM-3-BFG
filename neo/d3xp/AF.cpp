@@ -1300,8 +1300,6 @@ void idAF::AddBindConstraints()
 	idAFBody* body;
 	idLexer lexer;
 	idToken type, bodyName, jointName;
-	idVec3 origin, renderOrigin;
-	idMat3 axis, renderAxis;
 
 	if( !IsLoaded() )
 	{
@@ -1311,10 +1309,9 @@ void idAF::AddBindConstraints()
 	const idDict& args = self->spawnArgs;
 
 	// get the render position
-	origin = physicsObj.GetOrigin( 0 );
-	axis = physicsObj.GetAxis( 0 );
-	renderAxis = baseAxis.Transpose() * axis;
-	renderOrigin = origin - baseOrigin * renderAxis;
+	idVec3 origin = physicsObj.GetOrigin( 0 );
+	idMat3 renderAxis = baseAxis.Transpose() * physicsObj.GetAxis( 0 );
+	idVec3 renderOrigin = origin - baseOrigin * renderAxis;
 
 	// parse all the bind constraints
 	for( kv = args.MatchPrefix( "bindConstraint ", NULL ); kv; kv = args.MatchPrefix( "bindConstraint ", kv ) )
@@ -1351,7 +1348,7 @@ void idAF::AddBindConstraints()
 				gameLocal.Warning( "idAF::AddBindConstraints: joint '%s' not found", jointName.c_str() );
 			}
 
-			animator->GetJointTransform( joint, gameLocal.GetGameTimeMs(), origin, axis );
+			animator->GetJointTransform( joint, gameLocal.GetGameTimeMs(), origin );
 			c->SetAnchor( renderOrigin + origin * renderAxis );
 		}
 		else if( type.Icmp( "universal" ) == 0 )
@@ -1365,7 +1362,7 @@ void idAF::AddBindConstraints()
 			{
 				gameLocal.Warning( "idAF::AddBindConstraints: joint '%s' not found", jointName.c_str() );
 			}
-			animator->GetJointTransform( joint, gameLocal.GetGameTimeMs(), origin, axis );
+			animator->GetJointTransform( joint, gameLocal.GetGameTimeMs(), origin );
 			c->SetAnchor( renderOrigin + origin * renderAxis );
 			c->SetShafts( idVec3( 0, 0, 1 ), idVec3( 0, 0, -1 ) );
 		}

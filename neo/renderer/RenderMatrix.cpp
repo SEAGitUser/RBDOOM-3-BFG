@@ -27,15 +27,15 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
-#include "../ParallelJobList_JobHeaders.h"
+#include "../idlib/ParallelJobList_JobHeaders.h"
 
-#include "../math/Math.h"
-#include "../math/Vector.h"
-#include "../math/Matrix.h"
-#include "../math/Rotation.h"
-#include "../math/Plane.h"
-#include "../bv/Sphere.h"
-#include "../bv/Bounds.h"
+#include "../idlib/math/Math.h"
+#include "../idlib/math/Vector.h"
+#include "../idlib/math/Matrix.h"
+#include "../idlib/math/Rotation.h"
+#include "../idlib/math/Plane.h"
+#include "../idlib/bv/Sphere.h"
+#include "../idlib/bv/Bounds.h"
 
 #include "RenderMatrix.h"
 
@@ -108,29 +108,29 @@ SIMD constants
 #define USE_AVX 1
 #define USE_FMA 1
 
-static const __m128i vector_int_1							= _mm_set1_epi32( 1 );
-static const __m128i vector_int_4							= _mm_set1_epi32( 4 );
-static const __m128i vector_int_0123						= _mm_set_epi32( 3, 2, 1, 0 );
-static const __m128 vector_float_mask0						= __m128c( _mm_set1_epi32( 1 << 0 ) );
-static const __m128 vector_float_mask1						= __m128c( _mm_set1_epi32( 1 << 1 ) );
-static const __m128 vector_float_mask2						= __m128c( _mm_set1_epi32( 1 << 2 ) );
-static const __m128 vector_float_mask3						= __m128c( _mm_set1_epi32( 1 << 3 ) );
-static const __m128 vector_float_mask4						= __m128c( _mm_set1_epi32( 1 << 4 ) );
-static const __m128 vector_float_mask5						= __m128c( _mm_set1_epi32( 1 << 5 ) );
-static const __m128 vector_float_sign_bit					= __m128c( _mm_set1_epi32( IEEE_FLT_SIGN_MASK ) );
-static const __m128 vector_float_abs_mask					= __m128c( _mm_set1_epi32( ~( int )IEEE_FLT_SIGN_MASK ) );
-static const __m128 vector_float_keep_last					= __m128c( _mm_set_epi32( -1, 0, 0, 0 ) );
-static const __m128 vector_float_inverse_epsilon			= { RENDER_MATRIX_INVERSE_EPSILON, RENDER_MATRIX_INVERSE_EPSILON, RENDER_MATRIX_INVERSE_EPSILON, RENDER_MATRIX_INVERSE_EPSILON };
-static const __m128 vector_float_smallest_non_denorm		= { 1.1754944e-038f, 1.1754944e-038f, 1.1754944e-038f, 1.1754944e-038f };
-static const __m128 vector_float_pos_infinity				= { RENDER_MATRIX_INFINITY, RENDER_MATRIX_INFINITY, RENDER_MATRIX_INFINITY, RENDER_MATRIX_INFINITY };
-static const __m128 vector_float_neg_infinity				= { -RENDER_MATRIX_INFINITY, -RENDER_MATRIX_INFINITY, -RENDER_MATRIX_INFINITY, -RENDER_MATRIX_INFINITY };
-static const __m128 vector_float_zero						= { 0.0f, 0.0f, 0.0f, 0.0f };
-static const __m128 vector_float_half						= { 0.5f, 0.5f, 0.5f, 0.5f };
-static const __m128 vector_float_neg_half					= { -0.5f, -0.5f, -0.5f, -0.5f };
-static const __m128 vector_float_one						= { 1.0f, 1.0f, 1.0f, 1.0f };
-static const __m128 vector_float_pos_one					= { +1.0f, +1.0f, +1.0f, +1.0f };
-static const __m128 vector_float_neg_one					= { -1.0f, -1.0f, -1.0f, -1.0f };
-static const __m128 vector_float_last_one					= { 0.0f, 0.0f, 0.0f, 1.0f };
+static const __m128i vector_int_1						= _mm_set1_epi32( 1 );
+static const __m128i vector_int_4						= _mm_set1_epi32( 4 );
+static const __m128i vector_int_0123					= _mm_set_epi32( 3, 2, 1, 0 );
+static const __m128 vector_float_mask0					= __m128c( _mm_set1_epi32( 1 << 0 ) );
+static const __m128 vector_float_mask1					= __m128c( _mm_set1_epi32( 1 << 1 ) );
+static const __m128 vector_float_mask2					= __m128c( _mm_set1_epi32( 1 << 2 ) );
+static const __m128 vector_float_mask3					= __m128c( _mm_set1_epi32( 1 << 3 ) );
+static const __m128 vector_float_mask4					= __m128c( _mm_set1_epi32( 1 << 4 ) );
+static const __m128 vector_float_mask5					= __m128c( _mm_set1_epi32( 1 << 5 ) );
+static const __m128 vector_float_sign_bit				= __m128c( _mm_set1_epi32( IEEE_FLT_SIGN_MASK ) );
+static const __m128 vector_float_abs_mask				= __m128c( _mm_set1_epi32( ~( int )IEEE_FLT_SIGN_MASK ) );
+static const __m128 vector_float_keep_last				= __m128c( _mm_set_epi32( -1, 0, 0, 0 ) );
+static const __m128 vector_float_inverse_epsilon		= { RENDER_MATRIX_INVERSE_EPSILON, RENDER_MATRIX_INVERSE_EPSILON, RENDER_MATRIX_INVERSE_EPSILON, RENDER_MATRIX_INVERSE_EPSILON };
+static const __m128 vector_float_smallest_non_denorm	= { 1.1754944e-038f, 1.1754944e-038f, 1.1754944e-038f, 1.1754944e-038f };
+static const __m128 vector_float_pos_infinity			= { RENDER_MATRIX_INFINITY, RENDER_MATRIX_INFINITY, RENDER_MATRIX_INFINITY, RENDER_MATRIX_INFINITY };
+static const __m128 vector_float_neg_infinity			= { -RENDER_MATRIX_INFINITY, -RENDER_MATRIX_INFINITY, -RENDER_MATRIX_INFINITY, -RENDER_MATRIX_INFINITY };
+static const __m128 vector_float_zero					= { 0.0f, 0.0f, 0.0f, 0.0f };
+static const __m128 vector_float_half					= { 0.5f, 0.5f, 0.5f, 0.5f };
+static const __m128 vector_float_neg_half				= { -0.5f, -0.5f, -0.5f, -0.5f };
+static const __m128 vector_float_one					= { 1.0f, 1.0f, 1.0f, 1.0f };
+static const __m128 vector_float_pos_one				= { +1.0f, +1.0f, +1.0f, +1.0f };
+static const __m128 vector_float_neg_one				= { -1.0f, -1.0f, -1.0f, -1.0f };
+static const __m128 vector_float_last_one				= { 0.0f, 0.0f, 0.0f, 1.0f };
 
 // idMath::ClampFloat( 0.0f, 1.0f, Vec )
 #define _mm_saturate( v ) _mm_max_ps( _mm_min_ps( v, vector_float_one ), vector_float_zero )
@@ -737,9 +737,7 @@ static int GetBoxFrontBits_SSE2( const __m128& b0, const __m128& b1, const __m12
 	int frontBits = _mm_movemask_ps( d0 ) | ( _mm_movemask_ps( d1 ) << 3 );
 	return frontBits;
 }
-
 #else
-
 static int GetBoxFrontBits_Generic( const idBounds& bounds, const idVec3& viewOrigin )
 {
 	idVec3 dir0 = viewOrigin - bounds[0];
@@ -753,7 +751,6 @@ static int GetBoxFrontBits_Generic( const idBounds& bounds, const idVec3& viewOr
 	frontBits |= IEEE_FLT_SIGNBITSET( dir1.z ) << 5;
 	return frontBits;
 }
-
 #endif
 
 /*

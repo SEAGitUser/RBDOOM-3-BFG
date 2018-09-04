@@ -28,6 +28,7 @@ If you have questions concerning this license or the applicable additional terms
 */
 #pragma hdrstop
 #include "precompiled.h"
+
 #include "tr_local.h"
 
 idCVar r_showBuffers( "r_showBuffers", "1", CVAR_INTEGER, "print creation info" );
@@ -303,8 +304,8 @@ void UnbindBufferObjects()
 	glBindBuffer( GL_ARRAY_BUFFER, 0 );
 	glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, 0 );
 	glBindBuffer( GL_UNIFORM_BUFFER, 0 );
-	//glBindBuffer( GL_PIXEL_PACK_BUFFER, 0 );
-	//glBindBuffer( GL_PIXEL_UNPACK_BUFFER, 0 );
+	glBindBuffer( GL_PIXEL_PACK_BUFFER, 0 );
+	glBindBuffer( GL_PIXEL_UNPACK_BUFFER, 0 );
 }
 
 #if defined(USE_INTRINSICS)
@@ -1608,4 +1609,217 @@ void idTextureBuffer::Bind()
 	glTextureBufferRangeEXT( m_tbo_tex, GL_TEXTURE_BUFFER, m_internalFormat, bufferObject, offset​, buffSize );
 }
 
+/*
+================================================================================================
 
+	idPixelPackBuffer	TODO!
+
+================================================================================================
+*/
+
+/*
+========================
+ idPixelPackBuffer()
+========================
+*/
+idPixelPackBuffer::idPixelPackBuffer()
+{
+	size = 0;
+	offsetInOtherBuffer = OWNS_BUFFER_FLAG;
+	apiObject = nullptr;
+	SetUnmapped();
+}
+
+/*
+========================
+ ~idPixelPackBuffer()
+========================
+*/
+idPixelPackBuffer::~idPixelPackBuffer()
+{
+	FreeBufferObject();
+}
+
+/*
+========================
+ AllocBufferObject
+========================
+*/
+bool idPixelPackBuffer::AllocBufferObject( const void * data, int allocSize )
+{
+	assert( apiObject == nullptr );
+	assert_16_byte_aligned( data );
+
+	if( allocSize <= 0 ) {
+		idLib::Error( "idPixelPackBuffer::AllocBufferObject: allocSize = %i", allocSize );
+	}
+
+	size = allocSize;
+
+	int numBytes = GetAllocedSize();
+
+	// clear out any previous error
+	glGetError();
+
+	// these are rewritten every frame
+	apiObject = GL_CreateBuffer( "idPixelPackBuffer", this, GL_PIXEL_PACK_BUFFER, BU_DEFAULT, numBytes, NULL );
+
+	if( r_showBuffers.GetBool() ) {
+		idLib::Printf( "pixel pack buffer %p api %p, size %i ( alloced %i ) bytes\n", this, GetAPIObject(), GetSize(), GetAllocedSize() );
+	}
+
+	// copy the data
+	if( data != NULL )
+	{
+		Update( data, allocSize );
+	}
+
+	return( apiObject != nullptr );
+}
+
+/*
+========================
+ FreeBufferObject
+========================
+*/
+void idPixelPackBuffer::FreeBufferObject()
+{
+	if( IsMapped() )
+	{
+		UnmapBuffer();
+	}
+
+	// if this is a sub-allocation inside a larger buffer, don't actually free anything.
+	if( OwnsBuffer() == false )
+	{
+		ClearWithoutFreeing();
+		return;
+	}
+
+	if( apiObject == nullptr )
+		return;
+
+	if( r_showBuffers.GetBool() ) {
+		idLib::Printf( "pixel pack buffer free %p, api %p (%i bytes)\n", this, GetAPIObject(), GetSize() );
+	}
+
+	GLintptr bufferObject = reinterpret_cast< GLintptr >( apiObject );
+	glDeleteBuffers( 1, ( const unsigned int* )& bufferObject );
+
+	ClearWithoutFreeing();
+}
+
+/*
+========================
+ Reference
+========================
+*/
+void idPixelPackBuffer::Reference( const idPixelPackBuffer & other )
+{
+	assert( IsMapped() == false );
+	assert( other.IsMapped() == false );
+	assert( other.GetAPIObject() != NULL );
+	assert( other.GetSize() > 0 );
+
+	FreeBufferObject();
+	size = other.GetSize();						// this strips the MAPPED_FLAG
+	offsetInOtherBuffer = other.GetOffset();	// this strips the OWNS_BUFFER_FLAG
+	apiObject = other.apiObject;
+	assert( OwnsBuffer() == false );
+}
+void idPixelPackBuffer::Reference( const idPixelPackBuffer & other, int refOffset, int refSize )
+{
+	assert( IsMapped() == false );
+	assert( other.IsMapped() == false );
+	assert( other.GetAPIObject() != NULL );
+	assert( refOffset >= 0 );
+	assert( refSize >= 0 );
+	assert( refOffset + refSize <= other.GetSize() );
+
+	FreeBufferObject();
+	size = refSize;
+	offsetInOtherBuffer = other.GetOffset() + refOffset;
+	apiObject = other.apiObject;
+	assert( OwnsBuffer() == false );
+}
+
+/*
+========================
+ Update
+========================
+*/
+void idPixelPackBuffer::Update( const void * data, int updateSize ) const
+{
+	assert( apiObject != NULL );
+	assert( IsMapped() == false );
+	assert_16_byte_aligned( data );
+	assert( ( GetOffset() & 15 ) == 0 );
+
+	if( updateSize > size ) {
+		idLib::FatalError( "idPixelPackBuffer::Update: size overrun, %i > %i\n", updateSize, GetSize() );
+	}
+
+	GLsizeiptr numBytes = ALIGN( updateSize, 16 );
+
+	// RB: 64 bit fixes, changed GLuint to GLintptrARB
+	///GLintptr bufferObject = reinterpret_cast< GLintptr >( apiObject );
+	// RB end
+
+	GL_UpdateSubData( GL_PIXEL_PACK_BUFFER, reinterpret_cast< GLintptr >( apiObject ), GetOffset(), numBytes, data );
+	/*
+	void * buffer = MapBuffer( BM_WRITE );
+	CopyBuffer( (byte *)buffer + GetOffset(), (byte *)data, numBytes );
+	UnmapBuffer();
+	*/
+}
+
+/*
+========================
+ MapBuffer
+========================
+*/
+void * idPixelPackBuffer::MapBuffer( bufferMapType_t mapType ) const
+{
+	assert( apiObject != NULL );
+	assert( IsMapped() == false );
+
+	void* buffer = NULL;
+	buffer = GL_TryMapBufferRange( GL_PIXEL_PACK_BUFFER, reinterpret_cast< GLintptr >( apiObject ), GetOffset(), GetAllocedSize(), GetMapFlags( mapType, false ) );
+
+	SetMapped();
+
+	if( buffer == NULL ) {
+		idLib::FatalError( "idPixelPackBuffer::MapBuffer: failed" );
+	}
+	return buffer;
+}
+
+/*
+========================
+ UnmapBuffer
+========================
+*/
+void idPixelPackBuffer::UnmapBuffer() const
+{
+	assert( apiObject != NULL );
+	assert( IsMapped() );
+
+	if( !GL_TryUnmap( GL_PIXEL_PACK_BUFFER, reinterpret_cast< GLintptr >( apiObject ) ) )
+	{
+		idLib::Printf( "idPixelPackBuffer::UnmapBuffer failed\n" );
+	}
+
+	SetUnmapped();
+}
+
+/*
+========================
+ ClearWithoutFreeing
+========================
+*/
+void idPixelPackBuffer::ClearWithoutFreeing()
+{
+	size = 0;
+	offsetInOtherBuffer = OWNS_BUFFER_FLAG;
+	apiObject = NULL;
+}

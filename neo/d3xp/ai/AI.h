@@ -61,11 +61,12 @@ extern int Ballistics( const idVec3& start, const idVec3& end, float speed, floa
 // defined in script/ai_base.script.  please keep them up to date.
 enum moveType_t
 {
-	MOVETYPE_DEAD,
-	MOVETYPE_ANIM,
-	MOVETYPE_SLIDE,
-	MOVETYPE_FLY,
-	MOVETYPE_STATIC,
+	MOVETYPE_DEAD,		// no enemy tracking or steering.  just runs physics and script.
+	MOVETYPE_ANIM,		// movement based on animation deltas.
+	MOVETYPE_SLIDE,		// movement based on velocity.  set speed using setFlySpeed.
+	MOVETYPE_FLY,		// flying monsters.
+	MOVETYPE_STATIC,	// no movement or gravity.
+
 	NUM_MOVETYPES
 };
 
@@ -106,10 +107,10 @@ enum talkState_t
 //
 enum moveStatus_t
 {
-	MOVE_STATUS_DONE,
-	MOVE_STATUS_MOVING,
-	MOVE_STATUS_WAITING,
-	MOVE_STATUS_DEST_NOT_FOUND,
+	MOVE_STATUS_DONE,					// move succeeded, or not moving
+	MOVE_STATUS_MOVING,					// move in progress
+	MOVE_STATUS_WAITING,				
+	MOVE_STATUS_DEST_NOT_FOUND,			// destination doesn't exist
 	MOVE_STATUS_DEST_UNREACHABLE,
 	MOVE_STATUS_BLOCKED_BY_WALL,
 	MOVE_STATUS_BLOCKED_BY_OBJECT,

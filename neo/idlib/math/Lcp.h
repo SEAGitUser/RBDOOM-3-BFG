@@ -57,8 +57,7 @@ Before calculating any of the bounded x[i] with boxIndex[i] != -1, the solver ca
 unbounded x[i] and all x[i] with boxIndex[i] == -1.
 ================================================
 */
-class idLCP
-{
+class idLCP {
 public:
 	static idLCP* 	AllocSquare();		// 'A' must be a square matrix
 	static idLCP* 	AllocSymmetric();	// 'A' must be a symmetric matrix

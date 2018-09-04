@@ -26,7 +26,9 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
-#include "DynamicShadowVolume_local.h"
+#include "../../tr_local.h"
+#include "../ShadowShared.h"
+#include "DynamicShadowVolume.h"
 
 #include "../../../idlib/sys/sys_intrinsics.h"
 #include "../../../idlib/geometry/DrawVert_intrinsics.h"

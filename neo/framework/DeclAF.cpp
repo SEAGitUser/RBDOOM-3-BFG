@@ -1966,10 +1966,8 @@ idDeclAF::Finish
 */
 void idDeclAF::Finish( const getJointTransform_t GetJointTransform, const idJointMat* frame, void* model ) const
 {
-	int i;
-	
 	const char* name = GetName();
-	for( i = 0; i < bodies.Num(); i++ )
+	for( int i = 0; i < bodies.Num(); i++ )
 	{
 		idDeclAF_Body* body = bodies[i];
 		body->v1.Finish( name, GetJointTransform, frame, model );
@@ -1978,7 +1976,7 @@ void idDeclAF::Finish( const getJointTransform_t GetJointTransform, const idJoin
 		body->frictionDirection.Finish( name, GetJointTransform, frame, model );
 		body->contactMotorDirection.Finish( name, GetJointTransform, frame, model );
 	}
-	for( i = 0; i < constraints.Num(); i++ )
+	for( int i = 0; i < constraints.Num(); i++ )
 	{
 		idDeclAF_Constraint* constraint = constraints[i];
 		constraint->anchor.Finish( name, GetJointTransform, frame, model );

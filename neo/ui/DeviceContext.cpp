@@ -252,7 +252,7 @@ void idDeviceContext::DrawWinding( idWinding& w, const idMaterial* mat )
 		return;
 
 	int numIndexes = 0;
-	triIndex_t tempIndexes[ ( MAX_POINTS_ON_WINDING - 2 ) * 3 ];
+	triIndex_t tempIndexes[ ( idFixedWinding::MAX_POINTS - 2 ) * 3 ];
 	for( int j = 2; j < w.GetNumPoints(); ++j )
 	{
 		tempIndexes[ numIndexes++ ] = 0;

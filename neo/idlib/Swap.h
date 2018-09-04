@@ -191,8 +191,7 @@ idSwapClass is a template class for performing EndianSwapping.
 ================================================
 */
 template<class classType>
-class idSwapClass
-{
+class idSwapClass {
 public:
 	idSwapClass()
 	{

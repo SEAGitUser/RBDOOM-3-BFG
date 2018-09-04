@@ -505,7 +505,7 @@ idBounds2D::ContainsPoint
 ID_INLINE bool idBounds2D::ContainsPoint( const idVec2& point ) const
 {
 	bool contained = true;
-	for(  int i = 0; i < 2; i++ ) {
+	for( int i = 0; i < 2; i++ ) {
 		if( point[ i ] < bounds[ 0 ][ i ] ) {
 			contained = false;
 			break;

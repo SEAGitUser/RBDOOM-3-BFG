@@ -71,7 +71,7 @@ public:
 	void					Save( idSaveGame* savefile ) const;
 	void					Restore( idRestoreGame* savefile );
 
-	void					Init( idActor* owner, idAnimator* _animator, int animchannel );
+	void					Init( idActor* owner, idAnimator* _animator, animChannel_t animChannel );
 	void					Shutdown();
 	void					SetState( const char* name, int blendFrames );
 	void					StopAnim( int frames );
@@ -90,14 +90,14 @@ private:
 	idActor* 				self;
 	idAnimator* 			animator;
 	idThread* 				thread;
-	int						channel;
+	animChannel_t			channel;
 	bool					disabled;
 };
 
 class idAttachInfo {
 public:
 	idEntityPtr<idEntity>	ent;
-	int						channel;
+	animChannel_t			channel;
 };
 
 struct copyJoints_t
@@ -198,20 +198,17 @@ public:
 	virtual	renderViewParms_t* 	GetRenderView();
 
 	// animation state control
-	int						GetAnim( int channel, const char* name );
+	int						GetAnim( animChannel_t channel, const char* name );
 	void					UpdateAnimState();
-	void					SetAnimState( int channel, const char* name, int blendFrames );
-	const char* 			GetAnimState( int channel ) const;
-	bool					InAnimState( int channel, const char* name ) const;
+	void					SetAnimState( animChannel_t channel, const char* name, int blendFrames );
+	const char* 			GetAnimState( animChannel_t channel ) const;
+	bool					InAnimState( animChannel_t channel, const char* name ) const;
 	const char* 			WaitState() const;
 	void					SetWaitState( const char* _waitstate );
-	bool					AnimDone( int channel, int blendFrames ) const;
+	bool					AnimDone( animChannel_t channel, int blendFrames ) const;
 	virtual void			SpawnGibs( const idVec3& dir, const char* damageDefName );
 
-	idEntity*				GetHeadEntity()
-	{
-		return head.GetEntity();
-	};
+	idEntity *				GetHeadEntity() const { return head.GetEntity(); };
 
 protected:
 	friend class			idAnimState;
@@ -227,11 +224,11 @@ protected:
 	int						pain_threshold;		// how much damage monster can take at any one time before playing pain animation
 
 	idStrList				damageGroups;		// body damage groups
-	idList<float, TAG_ACTOR>			damageScale;		// damage scale per damage gruop
+	idList<float, TAG_ACTOR> damageScale;		// damage scale per damage gruop
 
-	bool						use_combat_bbox;	// whether to use the bounding box for combat collision
+	bool					use_combat_bbox;	// whether to use the bounding box for combat collision
 	idEntityPtr<idAFAttachment>	head;
-	idList<copyJoints_t, TAG_ACTOR>		copyJoints;			// copied from the body animation to the head model
+	idList<copyJoints_t, TAG_ACTOR>	copyJoints;			// copied from the body animation to the head model
 
 	// state variables
 	const function_t*		state;
@@ -280,7 +277,7 @@ protected:
 	void					CopyJointsFromBodyToHead();
 
 private:
-	void					SyncAnimChannels( int channel, int syncToChannel, int blendFrames );
+	void					SyncAnimChannels( animChannel_t channel, animChannel_t syncToChannel, int blendFrames );
 	void					FinishSetup();
 	void					SetupHead();
 	void					PlayFootStepSound();
@@ -298,25 +295,25 @@ private:
 	void					Event_DisablePain();
 	void					Event_EnablePain();
 	void					Event_GetPainAnim();
-	void					Event_StopAnim( int channel, int frames );
-	void					Event_PlayAnim( int channel, const char* name );
-	void					Event_PlayCycle( int channel, const char* name );
-	void					Event_IdleAnim( int channel, const char* name );
-	void					Event_SetSyncedAnimWeight( int channel, int anim, float weight );
-	void					Event_OverrideAnim( int channel );
-	void					Event_EnableAnim( int channel, int blendFrames );
-	void					Event_SetBlendFrames( int channel, int blendFrames );
-	void					Event_GetBlendFrames( int channel );
-	void					Event_AnimState( int channel, const char* name, int blendFrames );
-	void					Event_GetAnimState( int channel );
-	void					Event_InAnimState( int channel, const char* name );
+	void					Event_StopAnim( animChannel_t channel, int frames );
+	void					Event_PlayAnim( animChannel_t channel, const char* name );
+	void					Event_PlayCycle( animChannel_t channel, const char* name );
+	void					Event_IdleAnim( animChannel_t channel, const char* name );
+	void					Event_SetSyncedAnimWeight( animChannel_t channel, int anim, float weight );
+	void					Event_OverrideAnim( animChannel_t channel );
+	void					Event_EnableAnim( animChannel_t channel, int blendFrames );
+	void					Event_SetBlendFrames( animChannel_t channel, int blendFrames );
+	void					Event_GetBlendFrames( animChannel_t channel );
+	void					Event_AnimState( animChannel_t channel, const char* name, int blendFrames );
+	void					Event_GetAnimState( animChannel_t channel );
+	void					Event_InAnimState( animChannel_t channel, const char* name );
 	void					Event_FinishAction( const char* name );
-	void					Event_AnimDone( int channel, int blendFrames );
-	void					Event_HasAnim( int channel, const char* name );
-	void					Event_CheckAnim( int channel, const char* animname );
-	void					Event_ChooseAnim( int channel, const char* animname );
-	void					Event_AnimLength( int channel, const char* animname );
-	void					Event_AnimDistance( int channel, const char* animname );
+	void					Event_AnimDone( animChannel_t channel, int blendFrames );
+	void					Event_HasAnim( animChannel_t channel, const char* name );
+	void					Event_CheckAnim( animChannel_t channel, const char* animname );
+	void					Event_ChooseAnim( animChannel_t channel, const char* animname );
+	void					Event_AnimLength( animChannel_t channel, const char* animname );
+	void					Event_AnimDistance( animChannel_t channel, const char* animname );
 	void					Event_HasEnemies();
 	void					Event_NextEnemy( idEntity* ent );
 	void					Event_ClosestEnemyToPoint( const idVec3& pos );

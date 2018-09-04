@@ -986,21 +986,22 @@ public:
 
 	vkDeviceContext_t *					CreateDeviceContext( uint32_t gpu, bool bPresentable );
 	void								DestroyDeviceContext( vkDeviceContext_t * );
+
+	ID_INLINE vkDeviceContext_t *		GetCurrDC()
+	{
+		const int index = 0;
+		return GetDeviceContext( index );
+	}
+
+private:
+	PFN_vkDestroyInstance				vkDestroyInstance;
+	PFN_vkEnumeratePhysicalDevices		vkEnumeratePhysicalDevices;
+	PFN_vkGetInstanceProcAddr			vkGetInstanceProcAddr;
+
+	PFN_vkDestroySurfaceKHR				vkDestroySurfaceKHR;
 };
 
-extern idVulkanInterface	vkSys;
-
-ID_INLINE VkInstance VK_GetInstance()
-{
-	assert( vkSys.GetInstance() != VK_NULL_HANDLE );
-	return vkSys.GetInstance();
-}
-
-ID_INLINE vkDeviceContext_t * VK_GetCurrDC()
-{
-	const int index = 0;
-	return vkSys.GetDeviceContext( index );
-}
+extern idVulkanInterface				vkSys;
 
 #endif /*__VK_H__*/
 

@@ -149,18 +149,16 @@ idSphere::FromPoints
 */
 void idSphere::FromPoints( const idVec3* points, const int numPoints )
 {
-	int i;
-	float radiusSqr, dist;
 	idVec3 mins, maxs;
 	
 	SIMDProcessor->MinMax( mins, maxs, points, numPoints );
 	
 	origin = ( mins + maxs ) * 0.5f;
 	
-	radiusSqr = 0.0f;
-	for( i = 0; i < numPoints; i++ )
+	float radiusSqr = 0.0f;
+	for( int i = 0; i < numPoints; i++ )
 	{
-		dist = ( points[i] - origin ).LengthSqr();
+		float dist = ( points[i] - origin ).LengthSqr();
 		if( dist > radiusSqr )
 		{
 			radiusSqr = dist;
@@ -168,3 +166,25 @@ void idSphere::FromPoints( const idVec3* points, const int numPoints )
 	}
 	radius = idMath::Sqrt( radiusSqr );
 }
+
+/*
+============
+idSphere::IntersectsBounds
+============
+*/
+bool idSphere::IntersectsBounds( const idBounds& bounds ) const
+{
+	const idVec3& mins = bounds.GetMins();
+	const idVec3& maxs = bounds.GetMaxs();
+
+	float dmin = 0;
+	for( int i = 0; i < 3; i++ )
+	{
+		if( origin[ i ] < mins[ i ] ) {
+			dmin += idMath::Square( origin[ i ] - mins[ i ] );
+		} else if( origin[ i ] > maxs[ i ] ) {
+			dmin += idMath::Square( origin[ i ] - maxs[ i ] );
+		}
+	}
+	return dmin <= idMath::Square( radius );
+} 

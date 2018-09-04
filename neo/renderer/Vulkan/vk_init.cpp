@@ -31,7 +31,7 @@ idCVar r_vk_allowAsyncCompute( "r_vk_allowAsyncCompute", "1", CVAR_BOOL, "" );
 
 #define GET_IPROC_LOCAL( NAME ) \
 PFN_##NAME NAME = VK_NULL_HANDLE; \
-NAME = reinterpret_cast<PFN_##NAME>( vkGetInstanceProcAddr( VK_GetInstance(), #NAME ) ); \
+NAME = reinterpret_cast<PFN_##NAME>( vkGetInstanceProcAddr( vkSys.GetInstance(), #NAME ) ); \
 ID_VK_VALIDATE( NAME != VK_NULL_HANDLE, #NAME"== NULL" )
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -435,7 +435,7 @@ void idVulkanInterface::EnumeratePhysicalDevices( vkPhysicalDeviceList_t & gpus 
 	gpus.SetNum( numDevices );
 	for( uint32_t i = 0; i < numDevices; ++i )
 	{
-		gpus[ i ] = new ( TAG_RENDER ) vkPhysicalDevice_t( devices[ i ] );
+		gpus[ i ] = new( TAG_RENDER ) vkPhysicalDevice_t( devices[ i ] );
 		auto & gpu = *gpus[ i ];
 
 		vkGetPhysicalDeviceProperties( gpu.GetHandle(), &gpu.m_props );
@@ -1106,7 +1106,7 @@ static void SetupPresentQueue( vkDeviceContext_t * dc, VkSurfaceKHR Surface )
 		VkSurfaceKHR Surface;
 		PFN_vkGetPhysicalDeviceSurfaceSupportKHR vkGetPhysicalDeviceSurfaceSupportKHR = nullptr;
 		Local_t( VkSurfaceKHR _Surface ) : Surface( _Surface ) {
-			vkGetPhysicalDeviceSurfaceSupportKHR = ( PFN_vkGetPhysicalDeviceSurfaceSupportKHR )vkGetInstanceProcAddr( VK_GetInstance(), "vkGetPhysicalDeviceSurfaceSupportKHR" );
+			vkGetPhysicalDeviceSurfaceSupportKHR = ( PFN_vkGetPhysicalDeviceSurfaceSupportKHR )vkGetInstanceProcAddr( vkSys.GetInstance(), "vkGetPhysicalDeviceSurfaceSupportKHR" );
 			ID_VK_VALIDATE( vkGetPhysicalDeviceSurfaceSupportKHR != VK_NULL_HANDLE, "vkGetPhysicalDeviceSurfaceSupportKHR == NULL" )
 		}
 		auto SupportsPresent( VkPhysicalDevice PhysicalDevice, vkQueue_t* Queue ) const
@@ -1125,14 +1125,14 @@ static void SetupPresentQueue( vkDeviceContext_t * dc, VkSurfaceKHR Surface )
 		return;
 
 	Local_t local( Surface );
-	bool bGfx = local.SupportsPresent( dc->GetPhysicalHandle(), dc->m_graphicsQueue );
+	bool bGfx = local.SupportsPresent( dc->GetPDHandle(), dc->m_graphicsQueue );
 	ID_VK_VALIDATE( bGfx, "Graphics Queue doesn't support present!" );
 
-	bool bCompute = local.SupportsPresent( dc->GetPhysicalHandle(), dc->m_computeQueue );
+	bool bCompute = local.SupportsPresent( dc->GetPDHandle(), dc->m_computeQueue );
 	if( dc->m_transferQueue->GetFamilyIndex() != dc->m_graphicsQueue->GetFamilyIndex() &&
 		dc->m_transferQueue->GetFamilyIndex() != dc->m_computeQueue->GetFamilyIndex() )
 	{
-		local.SupportsPresent( dc->GetPhysicalHandle(), dc->m_transferQueue );
+		local.SupportsPresent( dc->GetPDHandle(), dc->m_transferQueue );
 	}
 
 	if( dc->m_computeQueue->GetFamilyIndex() != dc->m_graphicsQueue->GetFamilyIndex() && bCompute )
@@ -1229,11 +1229,11 @@ static vkSwapChain_t * CreateSwapChain( VkInstance inst, window_t & wnd, vkDevic
 	idList<VkSurfaceFormatKHR> surfaceFormats;
 
 	uint32_t formatCount;
-	ID_VK_CHECK( vkGetPhysicalDeviceSurfaceFormatsKHR( dc->GetPhysicalHandle(), surf, &formatCount, NULL ) );
+	ID_VK_CHECK( vkGetPhysicalDeviceSurfaceFormatsKHR( dc->GetPDHandle(), surf, &formatCount, NULL ) );
 	ID_VK_VALIDATE( formatCount != 0, "vkGetPhysicalDeviceSurfaceFormatsKHR returned 0 formatCount" );
 
 	surfaceFormats.SetNum( formatCount );
-	ID_VK_CHECK( vkGetPhysicalDeviceSurfaceFormatsKHR( dc->GetPhysicalHandle(), surf, &formatCount, surfaceFormats.Ptr() ) );
+	ID_VK_CHECK( vkGetPhysicalDeviceSurfaceFormatsKHR( dc->GetPDHandle(), surf, &formatCount, surfaceFormats.Ptr() ) );
 
 	VkSurfaceFormatKHR fmtInfo;
 
@@ -1292,15 +1292,15 @@ static vkSwapChain_t * CreateSwapChain( VkInstance inst, window_t & wnd, vkDevic
 	// images we should use for our swap chain and set the appropriate
 	// sizes for them.
 	VkSurfaceCapabilitiesKHR surfaceCapabilities;
-	ID_VK_CHECK( vkGetPhysicalDeviceSurfaceCapabilitiesKHR( dc->GetPhysicalHandle(), surf, &surfaceCapabilities ) );
+	ID_VK_CHECK( vkGetPhysicalDeviceSurfaceCapabilitiesKHR( dc->GetPDHandle(), surf, &surfaceCapabilities ) );
 
 	// Get the available modes for presentation.
 	uint32_t presentModeCount;
-	ID_VK_CHECK( vkGetPhysicalDeviceSurfacePresentModesKHR( dc->GetPhysicalHandle(), surf, &presentModeCount, NULL ) );
+	ID_VK_CHECK( vkGetPhysicalDeviceSurfacePresentModesKHR( dc->GetPDHandle(), surf, &presentModeCount, NULL ) );
 	ID_VK_VALIDATE( presentModeCount > 0, "vkGetPhysicalDeviceSurfacePresentModesKHR returned 0 presentModeCount" )
 
 	idList<VkPresentModeKHR> presentModes; presentModes.SetNum( presentModeCount );
-	ID_VK_CHECK( vkGetPhysicalDeviceSurfacePresentModesKHR( dc->GetPhysicalHandle(), surf, &presentModeCount, presentModes.Ptr() ) );
+	ID_VK_CHECK( vkGetPhysicalDeviceSurfacePresentModesKHR( dc->GetPDHandle(), surf, &presentModeCount, presentModes.Ptr() ) );
 
 	// When constructing a swap chain we must supply our surface resolution.
 	// Like all things in Vulkan there is a structure for representing this:
@@ -1740,33 +1740,7 @@ void vkDeviceContext_t::Present()
 
 
 
-VkDescriptorPool CreateDescriptorPool( vkDeviceContext_t * dc )
-{
-	VkDescriptorPoolSize pool_sizes[] =
-	{
-		//{ VK_DESCRIPTOR_TYPE_SAMPLER, 1000 },
-		{ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1000 },
-		//{ VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1000 },
-		//{ VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1000 },
-		//{ VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER, 1000 },
-		//{ VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER, 1000 },
-		{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1000 },
-		//{ VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1000 },
-		{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 1000 },
-		//{ VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, 1000 },
-		//{ VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, 1000 }
-	};
-	VkDescriptorPoolCreateInfo pool_info = {};
-	pool_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-	pool_info.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
-	pool_info.maxSets = 2 * _countof( pool_sizes );
-	pool_info.poolSizeCount = _countof( pool_sizes );
-	pool_info.pPoolSizes = pool_sizes;
 
-	VkDescriptorPool descriptorPool = VK_NULL_HANDLE;
-	ID_VK_CHECK( vkCreateDescriptorPool( dc->GetHandle(), &pool_info, nullptr, &descriptorPool ) );
-	return descriptorPool;
-}
 
 
 /*
@@ -1787,9 +1761,9 @@ void idVulkanInterface::Init()
 	CreateInstance();
 	EnumeratePhysicalDevices( m_gpus );
 
-	auto gpu = ChooseRenderDevice( m_gpus );
+	auto igpu = ChooseRenderDevice( m_gpus );
 
-	auto dc = CreateDeviceContext( gpu, true );
+	auto dc = CreateDeviceContext( igpu, true );
 
 	auto wnd = CreateRenderWindow();
 	uint32 width = renderSystem->GetWidth();

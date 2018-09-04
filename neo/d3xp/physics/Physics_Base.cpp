@@ -658,12 +658,9 @@ idPhysics_Base::RemoveContactEntity
 */
 void idPhysics_Base::RemoveContactEntity( idEntity* e )
 {
-	int i;
-	idEntity* ent;
-	
-	for( i = 0; i < contactEntities.Num(); i++ )
+	for( int i = 0; i < contactEntities.Num(); ++i )
 	{
-		ent = contactEntities[i].GetEntity();
+		auto ent = contactEntities[i].GetEntity();
 		if( !ent )
 		{
 			contactEntities.RemoveIndex( i-- );
@@ -684,9 +681,7 @@ idPhysics_Base::HasGroundContacts
 */
 bool idPhysics_Base::HasGroundContacts() const
 {
-	int i;
-	
-	for( i = 0; i < contacts.Num(); i++ )
+	for( int i = 0; i < contacts.Num(); ++i )
 	{
 		if( contacts[i].normal * -gravityNormal > 0.0f )
 		{
@@ -703,9 +698,7 @@ idPhysics_Base::IsGroundEntity
 */
 bool idPhysics_Base::IsGroundEntity( int entityNum ) const
 {
-	int i;
-	
-	for( i = 0; i < contacts.Num(); i++ )
+	for( int i = 0; i < contacts.Num(); ++i )
 	{
 		if( contacts[i].entityNum == entityNum && ( contacts[i].normal * -gravityNormal > 0.0f ) )
 		{
@@ -722,9 +715,7 @@ idPhysics_Base::IsGroundClipModel
 */
 bool idPhysics_Base::IsGroundClipModel( int entityNum, int id ) const
 {
-	int i;
-	
-	for( i = 0; i < contacts.Num(); i++ )
+	for( int i = 0; i < contacts.Num(); ++i )
 	{
 		if( contacts[i].entityNum == entityNum && contacts[i].id == id && ( contacts[i].normal * -gravityNormal > 0.0f ) )
 		{

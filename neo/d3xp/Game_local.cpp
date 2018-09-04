@@ -3407,8 +3407,8 @@ void idGameLocal::RunDebugInfo()
 				idVec3 velocity;
 				predictedPath_t path;
 
-				velocity.x = cos( DEG2RAD( player->viewAngles.yaw ) ) * 100.0f;
-				velocity.y = sin( DEG2RAD( player->viewAngles.yaw ) ) * 100.0f;
+				velocity.x = idMath::Cos( DEG2RAD( player->viewAngles.yaw ) ) * 100.0f;
+				velocity.y = idMath::Sin( DEG2RAD( player->viewAngles.yaw ) ) * 100.0f;
 				velocity.z = 0.0f;
 				idAI::PredictPath( player, aas, origin, velocity, 1000, 100, SE_ENTER_OBSTACLE | SE_BLOCKED | SE_ENTER_LEDGE_AREA, path );
 			}
@@ -3420,10 +3420,8 @@ void idGameLocal::RunDebugInfo()
 		idAAS* aas = GetAAS( 0 );
 		if( aas )
 		{
-			idVec3 seekPos;
 			obstaclePath_t path;
-
-			seekPos = player->GetPhysics()->GetOrigin() + player->viewAxis[0] * 200.0f;
+			idVec3 seekPos = player->GetPhysics()->GetOrigin() + player->viewAxis[0] * 200.0f;
 			idAI::FindPathAroundObstacles( player->GetPhysics(), aas, NULL, player->GetPhysics()->GetOrigin(), seekPos, path );
 		}
 	}
@@ -3814,7 +3812,7 @@ bool idGameLocal::SpawnEntityDef( const idDict& args, idEntity** ent, bool setDe
 idGameLocal::FindEntityDef
 ================
 */
-const idDeclEntityDef* idGameLocal::FindEntityDef( const char* name, bool makeDefault ) const
+const idDeclEntityDef * idGameLocal::FindEntityDef( const char* name, bool makeDefault ) const
 {
 	const idDecl* decl = NULL;
 	if( common->IsMultiplayer() )
@@ -3825,7 +3823,7 @@ const idDeclEntityDef* idGameLocal::FindEntityDef( const char* name, bool makeDe
 	{
 		decl = declManager->FindType( DECL_ENTITYDEF, name, makeDefault );
 	}
-	return static_cast<const idDeclEntityDef*>( decl );
+	return decl->Cast<idDeclEntityDef>();
 }
 
 /*

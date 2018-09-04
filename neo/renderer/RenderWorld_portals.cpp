@@ -186,7 +186,7 @@ bool idRenderWorldLocal::CullEntityByPortals( const idRenderEntityLocal* entity,
 			}
 
 			assert( ps->numPortalPlanes <= MAX_PORTAL_PLANES );
-			assert( w.GetNumPoints() + ps->numPortalPlanes < MAX_POINTS_ON_WINDING );
+			assert( w.GetNumPoints() + ps->numPortalPlanes < idFixedWinding::MAX_POINTS );
 
 			// now clip the winding against each of the portalStack planes
 			// skip the last plane which is the last portal itself
@@ -324,7 +324,7 @@ bool idRenderWorldLocal::CullLightByPortals( const idRenderLightLocal* light, co
 			}
 
 			assert( ps->numPortalPlanes <= MAX_PORTAL_PLANES );
-			assert( w.GetNumPoints() + ps->numPortalPlanes < MAX_POINTS_ON_WINDING );
+			assert( w.GetNumPoints() + ps->numPortalPlanes < idFixedWinding::MAX_POINTS );
 
 			// now clip the winding against each of the portalStack planes
 			// skip the last plane which is the last portal itself

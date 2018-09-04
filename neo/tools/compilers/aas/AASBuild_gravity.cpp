@@ -112,6 +112,7 @@ bool idAASBuild::PortalIsGap( idBrushBSPPortal* portal, int side )
 	{
 		return true;
 	}
+
 	return false;
 }
 
@@ -307,8 +308,8 @@ void idAASBuild::GravSubdivLeafNode( idBrushBSPNode* node )
 		return;
 	}
 
-	splitterOrder = ( int* ) _alloca( planeList.Num() * sizeof( int ) );
-	bestNumSplits = ( int* ) _alloca( planeList.Num() * sizeof( int ) );
+	splitterOrder = ( int* )_alloca( planeList.Num() * sizeof( int ) );
+	bestNumSplits = ( int* )_alloca( planeList.Num() * sizeof( int ) );
 	numSplitters = 0;
 
 	// test all possible seperators and sort them from best to worst

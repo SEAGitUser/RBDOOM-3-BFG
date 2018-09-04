@@ -40,7 +40,7 @@ struct glslProgram_t
 	{
 		if( renderSystem->IsRenderDeviceRunning() )
 		{
-			for( uint32 i = 0; i < shaderObjects.Num(); i++ )
+			for( int i = 0; i < shaderObjects.Num(); i++ )
 			{
 				if( shaderObjects[ i ] )
 				{

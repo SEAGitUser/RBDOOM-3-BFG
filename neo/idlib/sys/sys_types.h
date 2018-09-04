@@ -86,13 +86,13 @@ struct idNullPtr
 	// one pointer member initialized to zero so you can pass NULL as a vararg
 	void* value;
 	idNullPtr() : value( 0 ) { }
-	
+
 	// implicit conversion to all pointer types
 	template<typename T1> operator T1* () const
 	{
 		return 0;
 	}
-	
+
 	// implicit conversion to all pointer to member types
 	template<typename T1, typename T2> operator T1 T2::* () const
 	{
@@ -131,15 +131,11 @@ struct idNullPtr
 const float	MAX_ENTITY_COORDINATE = 64000.0f;
 
 #if 1
-
-typedef unsigned short triIndex_t;
-#define GL_INDEX_TYPE		GL_UNSIGNED_SHORT
-
+	typedef unsigned short triIndex_t;
+	#define GL_INDEX_TYPE		GL_UNSIGNED_SHORT
 #else
-
-typedef unsigned int triIndex_t;
-#define GL_INDEX_TYPE		GL_UNSIGNED_INT
-
+	typedef unsigned int triIndex_t;
+	#define GL_INDEX_TYPE		GL_UNSIGNED_INT
 #endif
 
 // if writing to write-combined memroy, always write indexes as pairs for 32 bit writes
@@ -147,6 +143,8 @@ ID_INLINE void WriteIndexPair( triIndex_t* dest, const triIndex_t a, const triIn
 {
 	*( unsigned* )dest = ( unsigned )a | ( ( unsigned )b << 16 );
 }
+
+#define ID_USE_DRAWVERT_SIZE_32
 
 #if defined(_DEBUG) || defined(_lint)
 #define NODEFAULT	default: assert( 0 )
@@ -294,5 +292,18 @@ literals or sizeof(). NEVER use an actual variable as a parameter to one of thes
 											- CONST_COSINE_POLY( CONST_PI - (a) ) ) )
 
 #define CONST_DEG2RAD( a )			( (a) * CONST_PI / 180.0f )
+
+/*
+========================
+SwapValues
+========================
+*/
+template< typename _type_ >
+ID_INLINE void SwapValues( _type_ & a, _type_ & b )
+{
+	_type_ c = a;
+	a = b;
+	b = c;
+}
 
 #endif

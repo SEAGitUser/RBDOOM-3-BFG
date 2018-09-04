@@ -110,7 +110,7 @@ void idAnimState::Restore( idRestoreGame* savefile )
 	
 	savefile->ReadInt( animBlendFrames );
 	savefile->ReadInt( lastAnimBlendFrames );
-	savefile->ReadInt( channel );
+	savefile->ReadInt( (int&)channel );
 	savefile->ReadBool( idleAnim );
 	savefile->ReadBool( disabled );
 }
@@ -120,13 +120,13 @@ void idAnimState::Restore( idRestoreGame* savefile )
 idAnimState::Init
 =====================
 */
-void idAnimState::Init( idActor* owner, idAnimator* _animator, int animchannel )
+void idAnimState::Init( idActor* owner, idAnimator* _animator, animChannel_t animChannel )
 {
 	assert( owner );
 	assert( _animator );
 	self = owner;
 	animator = _animator;
-	channel = animchannel;
+	channel = animChannel;
 	
 	if( !thread )
 	{
@@ -791,12 +791,12 @@ void idActor::SetupHead()
 			headEnt->xraySkin = declManager->FindSkin( xSkin.c_str() );
 			headEnt->UpdateModel();
 		}
+
+		idAttachInfo & attach = attachments.Alloc();
 		
-		idVec3		origin;
-		idMat3		axis;
-		idAttachInfo& attach = attachments.Alloc();
+		idVec3 origin;
 		attach.channel = animator.GetChannelForJoint( joint );
-		animator.GetJointTransform( joint, gameLocal.GetGameTimeMs(), origin, axis );
+		animator.GetJointTransform( joint, gameLocal.GetGameTimeMs(), origin );
 		origin = renderEntity.origin + ( origin + modelOffset ) * renderEntity.axis;
 		attach.ent = headEnt;
 		headEnt->SetOrigin( origin );
@@ -813,9 +813,6 @@ idActor::CopyJointsFromBodyToHead
 void idActor::CopyJointsFromBodyToHead()
 {
 	idEntity*	headEnt = head.GetEntity();
-	idAnimator*	headAnimator;
-	int			i;
-	idMat3		mat;
 	idMat3		axis;
 	idVec3		pos;
 	
@@ -824,14 +821,14 @@ void idActor::CopyJointsFromBodyToHead()
 		return;
 	}
 	
-	headAnimator = headEnt->GetAnimator();
+	auto headAnimator = headEnt->GetAnimator();
 	
 	// copy the animation from the body to the head
-	for( i = 0; i < copyJoints.Num(); i++ )
+	for( int i = 0; i < copyJoints.Num(); i++ )
 	{
 		if( copyJoints[ i ].mod == JOINTMOD_WORLD_OVERRIDE )
 		{
-			mat = headEnt->GetPhysics()->GetAxis().Transpose();
+			idMat3 mat = headEnt->GetPhysics()->GetAxis().Transpose();
 			GetJointWorldTransform( copyJoints[ i ].from, gameLocal.GetGameTimeMs(), pos, axis );
 			pos -= headEnt->GetPhysics()->GetOrigin();
 			headAnimator->SetJointPos( copyJoints[ i ].to, copyJoints[ i ].mod, pos * mat );
@@ -1082,7 +1079,7 @@ void idActor::Restore( idRestoreGame* savefile )
 	{
 		idAttachInfo& attach = attachments.Alloc();
 		attach.ent.Restore( savefile );
-		savefile->ReadInt( attach.channel );
+		savefile->ReadInt( (int&)attach.channel );
 	}
 	
 	savefile->ReadBool( finalBoss );
@@ -1251,9 +1248,8 @@ void idActor::SetupBody()
 			if( anim && ( leftEyeJoint != INVALID_JOINT ) )
 			{
 				idVec3 pos;
-				idMat3 axis;
 				headEnt->GetAnimator()->PlayAnim( ANIMCHANNEL_ALL, anim, gameLocal.GetGameTimeMs(), 0 );
-				headEnt->GetAnimator()->GetJointTransform( leftEyeJoint, gameLocal.GetGameTimeMs(), pos, axis );
+				headEnt->GetAnimator()->GetJointTransform( leftEyeJoint, gameLocal.GetGameTimeMs(), pos );
 				headEnt->GetAnimator()->ClearAllAnims( gameLocal.GetGameTimeMs(), 0 );
 				headEnt->GetAnimator()->ForceUpdate();
 				pos += headEnt->GetPhysics()->GetOrigin() - GetPhysics()->GetOrigin();
@@ -1283,9 +1279,8 @@ void idActor::SetupBody()
 			if( anim && ( leftEyeJoint != INVALID_JOINT ) )
 			{
 				idVec3 pos;
-				idMat3 axis;
 				animator.PlayAnim( ANIMCHANNEL_ALL, anim, gameLocal.GetGameTimeMs(), 0 );
-				animator.GetJointTransform( leftEyeJoint, gameLocal.GetGameTimeMs(), pos, axis );
+				animator.GetJointTransform( leftEyeJoint, gameLocal.GetGameTimeMs(), pos );
 				animator.ClearAllAnims( gameLocal.GetGameTimeMs(), 0 );
 				animator.ForceUpdate();
 				eyeOffset = pos + modelOffset;
@@ -2145,7 +2140,7 @@ void idActor::GetAASLocation( idAAS* aas, idVec3& pos, int& areaNum ) const
 idActor::SetAnimState
 =====================
 */
-void idActor::SetAnimState( int channel, const char* statename, int blendFrames )
+void idActor::SetAnimState( animChannel_t channel, const char* statename, int blendFrames )
 {
 	const function_t* func = scriptObject.GetFunction( statename );
 	if( !func )
@@ -2186,7 +2181,7 @@ void idActor::SetAnimState( int channel, const char* statename, int blendFrames 
 idActor::GetAnimState
 =====================
 */
-const char* idActor::GetAnimState( int channel ) const
+const char* idActor::GetAnimState( animChannel_t channel ) const
 {
 	switch( channel )
 	{
@@ -2204,9 +2199,9 @@ const char* idActor::GetAnimState( int channel ) const
 			
 		default:
 			gameLocal.Error( "idActor::GetAnimState: Unknown anim group" );
-			return NULL;
 			break;
 	}
+	return NULL;
 }
 
 /*
@@ -2214,7 +2209,7 @@ const char* idActor::GetAnimState( int channel ) const
 idActor::InAnimState
 =====================
 */
-bool idActor::InAnimState( int channel, const char* statename ) const
+bool idActor::InAnimState( animChannel_t channel, const char* statename ) const
 {
 	switch( channel )
 	{
@@ -2288,7 +2283,7 @@ void idActor::UpdateAnimState()
 idActor::GetAnim
 =====================
 */
-int idActor::GetAnim( int channel, const char* animname )
+int idActor::GetAnim( animChannel_t channel, const char* animname )
 {
 	int			anim;
 	const char* temp;
@@ -2327,12 +2322,12 @@ int idActor::GetAnim( int channel, const char* animname )
 idActor::SyncAnimChannels
 ===============
 */
-void idActor::SyncAnimChannels( int channel, int syncToChannel, int blendFrames )
+void idActor::SyncAnimChannels( animChannel_t channel, animChannel_t syncToChannel, int blendFrames )
 {
 	idAnimator*		headAnimator;
 	idAFAttachment*	headEnt;
 	int				anim;
-	idAnimBlend*		syncAnim;
+	idAnimBlend*	syncAnim;
 	int				starttime;
 	int				blendTime;
 	int				cycle;
@@ -3049,7 +3044,7 @@ void idActor::Event_SetAnimPrefix( const char* prefix )
 idActor::Event_StopAnim
 ===============
 */
-void idActor::Event_StopAnim( int channel, int frames )
+void idActor::Event_StopAnim( animChannel_t channel, int frames )
 {
 	switch( channel )
 	{
@@ -3076,13 +3071,11 @@ void idActor::Event_StopAnim( int channel, int frames )
 idActor::Event_PlayAnim
 ===============
 */
-void idActor::Event_PlayAnim( int channel, const char* animname )
+void idActor::Event_PlayAnim( animChannel_t channel, const char* animname )
 {
 	animFlags_t	flags;
 	idEntity* headEnt;
-	int	anim;
-	
-	anim = GetAnim( channel, animname );
+	int anim = GetAnim( channel, animname );
 	if( !anim )
 	{
 		if( ( channel == ANIMCHANNEL_HEAD ) && head.GetEntity() )
@@ -3164,6 +3157,7 @@ void idActor::Event_PlayAnim( int channel, const char* animname )
 			gameLocal.Error( "Unknown anim group" );
 			break;
 	}
+
 	idThread::ReturnInt( 1 );
 }
 
@@ -3172,7 +3166,7 @@ void idActor::Event_PlayAnim( int channel, const char* animname )
 idActor::Event_PlayCycle
 ===============
 */
-void idActor::Event_PlayCycle( int channel, const char* animname )
+void idActor::Event_PlayCycle( animChannel_t channel, const char* animname )
 {
 	animFlags_t	flags;
 	int anim = GetAnim( channel, animname );
@@ -3258,7 +3252,7 @@ void idActor::Event_PlayCycle( int channel, const char* animname )
 idActor::Event_IdleAnim
 ===============
 */
-void idActor::Event_IdleAnim( int channel, const char* animname )
+void idActor::Event_IdleAnim( animChannel_t channel, const char* animname )
 {
 	int anim = GetAnim( channel, animname );
 	if( !anim )
@@ -3389,7 +3383,7 @@ void idActor::Event_IdleAnim( int channel, const char* animname )
 idActor::Event_SetSyncedAnimWeight
 ================
 */
-void idActor::Event_SetSyncedAnimWeight( int channel, int anim, float weight )
+void idActor::Event_SetSyncedAnimWeight( animChannel_t channel, int anim, float weight )
 {
 	idEntity * headEnt = head.GetEntity();
 	switch( channel )
@@ -3447,7 +3441,7 @@ void idActor::Event_SetSyncedAnimWeight( int channel, int anim, float weight )
 idActor::Event_OverrideAnim
 ===============
 */
-void idActor::Event_OverrideAnim( int channel )
+void idActor::Event_OverrideAnim( animChannel_t channel )
 {
 	switch( channel )
 	{
@@ -3488,7 +3482,7 @@ void idActor::Event_OverrideAnim( int channel )
 idActor::Event_EnableAnim
 ===============
 */
-void idActor::Event_EnableAnim( int channel, int blendFrames )
+void idActor::Event_EnableAnim( animChannel_t channel, int blendFrames )
 {
 	switch( channel )
 	{
@@ -3515,7 +3509,7 @@ void idActor::Event_EnableAnim( int channel, int blendFrames )
 idActor::Event_SetBlendFrames
 ===============
 */
-void idActor::Event_SetBlendFrames( int channel, int blendFrames )
+void idActor::Event_SetBlendFrames( animChannel_t channel, int blendFrames )
 {
 	switch( channel )
 	{
@@ -3545,7 +3539,7 @@ void idActor::Event_SetBlendFrames( int channel, int blendFrames )
 idActor::Event_GetBlendFrames
 ===============
 */
-void idActor::Event_GetBlendFrames( int channel )
+void idActor::Event_GetBlendFrames( animChannel_t channel )
 {
 	switch( channel )
 	{
@@ -3572,7 +3566,7 @@ void idActor::Event_GetBlendFrames( int channel )
 idActor::Event_AnimState
 ===============
 */
-void idActor::Event_AnimState( int channel, const char* statename, int blendFrames )
+void idActor::Event_AnimState( animChannel_t channel, const char* statename, int blendFrames )
 {
 	SetAnimState( channel, statename, blendFrames );
 }
@@ -3582,7 +3576,7 @@ void idActor::Event_AnimState( int channel, const char* statename, int blendFram
 idActor::Event_GetAnimState
 ===============
 */
-void idActor::Event_GetAnimState( int channel )
+void idActor::Event_GetAnimState( animChannel_t channel )
 {
 	const char* state = GetAnimState( channel );
 	idThread::ReturnString( state );
@@ -3593,7 +3587,7 @@ void idActor::Event_GetAnimState( int channel )
 idActor::Event_InAnimState
 ===============
 */
-void idActor::Event_InAnimState( int channel, const char* statename )
+void idActor::Event_InAnimState( animChannel_t channel, const char* statename )
 {
 	bool instate = InAnimState( channel, statename );
 	idThread::ReturnInt( instate );
@@ -3617,7 +3611,7 @@ void idActor::Event_FinishAction( const char* actionname )
 idActor::Event_AnimDone
 ===============
 */
-void idActor::Event_AnimDone( int channel, int blendFrames )
+void idActor::Event_AnimDone( animChannel_t channel, int blendFrames )
 {
 	bool result;
 	
@@ -3640,6 +3634,7 @@ void idActor::Event_AnimDone( int channel, int blendFrames )
 			
 		default:
 			gameLocal.Error( "Unknown anim group" );
+			break;
 	}
 }
 
@@ -3648,7 +3643,7 @@ void idActor::Event_AnimDone( int channel, int blendFrames )
 idActor::Event_HasAnim
 ================
 */
-void idActor::Event_HasAnim( int channel, const char* animname )
+void idActor::Event_HasAnim( animChannel_t channel, const char* animname )
 {
 	if( GetAnim( channel, animname ) != 0 )
 	{
@@ -3665,7 +3660,7 @@ void idActor::Event_HasAnim( int channel, const char* animname )
 idActor::Event_CheckAnim
 ================
 */
-void idActor::Event_CheckAnim( int channel, const char* animname )
+void idActor::Event_CheckAnim( animChannel_t channel, const char* animname )
 {
 	if( !GetAnim( channel, animname ) )
 	{
@@ -3685,7 +3680,7 @@ void idActor::Event_CheckAnim( int channel, const char* animname )
 idActor::Event_ChooseAnim
 ================
 */
-void idActor::Event_ChooseAnim( int channel, const char* animname )
+void idActor::Event_ChooseAnim( animChannel_t channel, const char* animname )
 {
 	int anim = GetAnim( channel, animname );
 	if( anim )
@@ -3713,7 +3708,7 @@ void idActor::Event_ChooseAnim( int channel, const char* animname )
 idActor::Event_AnimLength
 ================
 */
-void idActor::Event_AnimLength( int channel, const char* animname )
+void idActor::Event_AnimLength( animChannel_t channel, const char* animname )
 {
 	int anim = GetAnim( channel, animname );
 	if( anim )
@@ -3741,7 +3736,7 @@ void idActor::Event_AnimLength( int channel, const char* animname )
 idActor::Event_AnimDistance
 ================
 */
-void idActor::Event_AnimDistance( int channel, const char* animname )
+void idActor::Event_AnimDistance( animChannel_t channel, const char* animname )
 {
 	int anim = GetAnim( channel, animname );
 	if( anim )

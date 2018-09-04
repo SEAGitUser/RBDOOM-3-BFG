@@ -278,30 +278,50 @@ public:
 	const char*				FindString( const char* text, bool casesensitive = true, int start = 0, int end = INVALID_POSITION ) const;
 	int						CountChar( const char c );
 	bool					Filter( const char* filter, bool casesensitive ) const;
-	int						Last( const char c, int index = INVALID_POSITION ) const;						// return the index to the last occurance of 'c', returns INVALID_POSITION if not found
-	int						Last( const char* str, bool casesensitive = true, int index = INVALID_POSITION ) const;						// return the index to the last occurance of 'c', returns INVALID_POSITION if not found
-	const char* 			Left( int len, idStr& result ) const;			// store the leftmost 'len' characters in the result
-	const char* 			Right( int len, idStr& result ) const;			// store the rightmost 'len' characters in the result
-	const char* 			Mid( int start, int len, idStr& result ) const;	// store 'len' characters starting at 'start' in result
-	idStr					Left( int len ) const;							// return the leftmost 'len' characters
-	idStr					Right( int len ) const;							// return the rightmost 'len' characters
-	idStr					Mid( int start, int len ) const;				// return 'len' characters starting at 'start'
+	// return the index to the last occurance of 'c', returns INVALID_POSITION if not found
+	int						Last( const char c, int index = INVALID_POSITION ) const;
+	// return the index to the last occurance of 'str', returns INVALID_POSITION if not found
+	int						Last( const char* str, bool casesensitive = true, int index = INVALID_POSITION ) const;	
+	// store the leftmost 'len' characters in the result
+	const char* 			Left( int len, idStr& result ) const;
+	// store the rightmost 'len' characters in the result
+	const char* 			Right( int len, idStr& result ) const;
+	// store 'len' characters starting at 'start' in result
+	const char* 			Mid( int start, int len, idStr& result ) const;	
+	// return the leftmost 'len' characters
+	idStr					Left( int len ) const;
+	// return the rightmost 'len' characters
+	idStr					Right( int len ) const;
+	// return 'len' characters starting at 'start'
+	idStr					Mid( int start, int len ) const;
 	// perform a threadsafe sprintf to the string
 	template< uint32 _size_ = MAX_STRING_CHARS > idStr & Format( VERIFY_FORMAT_STRING const char* fmt, ... ); // MAX_PRINT_MSG
-	static idStr			FormatInt( const int num, bool isCash = false );			// formats an integer as a value with commas
+	// formats an integer as a value with commas
+	static idStr			FormatInt( const int num, bool isCash = false );
 	static idStr			FormatCash( const int num ) { return FormatInt( num, true ); }
 
-	void					StripLeading( const char c );					// strip char from front as many times as the char occurs
-	void					StripLeading( const char* string );				// strip string from front as many times as the string occurs
-	bool					StripLeadingOnce( const char* string );			// strip string from front just once if it occurs
-	void					StripTrailing( const char c );					// strip char from end as many times as the char occurs
-	void					StripTrailing( const char* string );			// strip string from end as many times as the string occurs
-	bool					StripTrailingOnce( const char* string );		// strip string from end just once if it occurs
-	void					Strip( const char c );							// strip char from front and end as many times as the char occurs
-	void					Strip( const char* string );					// strip string from front and end as many times as the string occurs
-	void					StripLeadingWhiteSpace();					// strip leading white space characters
-	void					StripTrailingWhitespace();				// strip trailing white space characters
-	idStr& 					StripQuotes();							// strip quotes around string
+	// strip char from front as many times as the char occurs
+	void					StripLeading( const char c );
+	// strip string from front as many times as the string occurs
+	void					StripLeading( const char* string );
+	// strip string from front just once if it occurs
+	bool					StripLeadingOnce( const char* string );
+	// strip char from end as many times as the char occurs
+	void					StripTrailing( const char c );
+	// strip string from end as many times as the string occurs
+	void					StripTrailing( const char* string );
+	// strip string from end just once if it occurs
+	bool					StripTrailingOnce( const char* string );
+	// strip char from front and end as many times as the char occurs
+	void					Strip( const char c );
+	// strip string from front and end as many times as the string occurs
+	void					Strip( const char* string );
+	// strip leading white space characters
+	void					StripLeadingWhiteSpace();
+	// strip trailing white space characters
+	void					StripTrailingWhitespace();
+	// strip quotes around string
+	idStr& 					StripQuotes();
 	bool					Replace( const char* old, const char* nw );
 	void					ReplaceFirst( const char *old, const char *nw );
 	bool					ReplaceChar( const char oldChar, const char newChar );
@@ -312,29 +332,50 @@ public:
 
 	// File name methods
 
-	int						FileNameHash( const int hashSize = FILE_HASH_SIZE ) const; // hash key for the filename (skips extension)
-	idStr &					CollapsePath();							// where possible removes /../ and /./ from path
-	idStr& 					BackSlashesToSlashes();					// convert slashes
-	idStr& 					SlashesToBackSlashes();					// convert slashes
-	idStr& 					SetFileExtension( const char* extension );		// set the given file extension
-	idStr& 					StripFileExtension();						// remove any file extension
-	idStr& 					StripAbsoluteFileExtension();				// remove any file extension looking from front (useful if there are multiple .'s)
-	idStr& 					DefaultFileExtension( const char* extension );	// if there's no file extension use the default
-	idStr& 					DefaultPath( const char* basepath );			// if there's no path use the default
-	void					AppendPath( const char* text );					// append a partial path
-	idStr& 					StripFilename();							// remove the filename from a path
-	idStr& 					StripPath();								// remove the path from the filename
-	void					ExtractFilePath( idStr& dest ) const;			// copy the file path to another string
-	void					ExtractFileName( idStr& dest ) const;			// copy the filename to another string
-	void					ExtractFileBase( idStr& dest ) const;			// copy the filename minus the extension to another string
-	void					ExtractFileExtension( idStr& dest ) const;		// copy the file extension to another string
+	// hash key for the filename (skips extension)
+	int						FileNameHash( const int hashSize = FILE_HASH_SIZE ) const;
+	// where possible removes /../ and /./ from path
+	idStr &					CollapsePath();	
+	// convert slashes
+	idStr& 					BackSlashesToSlashes();
+	// convert slashes
+	idStr& 					SlashesToBackSlashes();	
+	// set the given file extension
+	idStr& 					SetFileExtension( const char* extension );
+	// remove any file extension
+	idStr& 					StripFileExtension();
+	// remove any file extension looking from front (useful if there are multiple .'s)
+	idStr& 					StripAbsoluteFileExtension();	
+	// if there's no file extension use the default
+	idStr& 					DefaultFileExtension( const char* extension );
+	// if there's no path use the default
+	idStr& 					DefaultPath( const char* basepath );
+	// append a partial path
+	void					AppendPath( const char* text );	
+	// remove the filename from a path
+	idStr& 					StripFilename();
+	// remove the path from the filename
+	idStr& 					StripPath();
+	// copy the file path to another string
+	void					ExtractFilePath( idStr& dest ) const;
+	// copy the filename to another string
+	void					ExtractFileName( idStr& dest ) const;
+	// copy the filename minus the extension to another string
+	void					ExtractFileBase( idStr& dest ) const;
+	// copy the file extension to another string
+	void					ExtractFileExtension( idStr& dest ) const;		
 	bool					CheckExtension( const char* ext );
-	idStr&					StripComments();								// remove C++ and C style comments
-	idStr& 					Indent();										// indents brace-delimited text, preserving tabs in the middle of lines
-	idStr& 					Unindent();										// unindents brace-delimited text, preserving tabs in the middle of lines
-	idStr&					CleanFilename();							// strips bad characters
+	// remove C++ and C style comments
+	idStr&					StripComments();
+	// indents brace-delimited text, preserving tabs in the middle of lines
+	idStr& 					Indent();
+	// unindents brace-delimited text, preserving tabs in the middle of lines
+	idStr& 					Unindent();
+	// strips bad characters
+	idStr&					CleanFilename();							
 	bool					IsValidEmailAddress();
-	idStr&					CollapseColors();							// removes redundant color codes
+	// removes redundant color codes
+	idStr&					CollapseColors();							
 
 // jscott: like the declManager version, but globally accessible
 	void					MakeNameCanonical();
@@ -361,8 +402,10 @@ public:
 	static int				Icmp( const char* s1, const char* s2 );
 	static int				Icmpn( const char* s1, const char* s2, int n );
 	static int				IcmpNoColor( const char* s1, const char* s2 );
-	static int				IcmpPath( const char* s1, const char* s2 );			// compares paths and makes sure folders come first
-	static int				IcmpnPath( const char* s1, const char* s2, int n );	// compares paths and makes sure folders come first
+	// compares paths and makes sure folders come first
+	static int				IcmpPath( const char* s1, const char* s2 );	
+	// compares paths and makes sure folders come first
+	static int				IcmpnPath( const char* s1, const char* s2, int n );	
 	static void				Append( char* dest, int size, const char* src );
 	static void				Copynz( char* dest, const char* src, size_t destsize );
 	static void				Copy( char* dest, const char* src );
@@ -392,9 +435,12 @@ public:
 
 	static int				Hash( const char* string );
 	static int				Hash( const char* string, int length );
-	static int				IHash( const char* string );					// case insensitive
-	static int				IHash( const char* string, int length );		// case insensitive
-	static int				FileNameHash( const char *string, const int hashSize );	// hash key for the filename (skips extension)
+	// case insensitive
+	static int				IHash( const char* string );
+	// case insensitive
+	static int				IHash( const char* string, int length );
+	// hash key for the filename (skips extension)
+	static int				FileNameHash( const char *string, const int hashSize );	
 
 	// character methods
 	static char				ToLower( char c );
@@ -416,8 +462,10 @@ public:
 	friend int				sprintf( idStr &dest, const char *fmt, ... );
 	friend int				vsprintf( idStr &dest, const char *fmt, va_list ap );
 
-	void					ReAllocate( int amount, bool keepold );				// reallocate string data buffer
-	void					FreeData();									// free allocated string memory
+	// reallocate string data buffer
+	void					ReAllocate( int amount, bool keepold );
+	// free allocated string memory
+	void					FreeData();									
 
 	// format value in the given measurement with the best unit, returns the best unit
 	int						BestUnit( const char* format, float value, measure_t measure );
@@ -440,7 +488,8 @@ protected:
 	int						allocedAndFlag;	// top bit is used to store a flag that indicates if the string data is static or not
 	char					baseBuffer[ STR_ALLOC_BASE ];
 
-	void					EnsureAlloced( int amount, bool keepold = true );	// ensure string data buffer is large anough
+	// ensure string data buffer is large anough
+	void					EnsureAlloced( int amount, bool keepold = true );	
 
 	// sets the data point to the specified buffer... note that this ignores makes the passed buffer empty and ignores
 	// anything currently in the idStr's dynamic buffer.  This method is intended to be called only from a derived class's constructor.
@@ -477,8 +526,7 @@ char* 						va( VERIFY_FORMAT_STRING const char* fmt, ... ) ID_STATIC_ATTRIBUTE_
 ================================================================================================
 */
 
-class idSort_Str : public idSort_Quick< idStr, idSort_Str >
-{
+class idSort_Str : public idSort_Quick< idStr, idSort_Str > {
 public:
 	int Compare( const idStr& a, const idStr& b ) const
 	{
@@ -486,8 +534,7 @@ public:
 	}
 };
 
-class idSort_PathStr : public idSort_Quick< idStr, idSort_PathStr >
-{
+class idSort_PathStr : public idSort_Quick< idStr, idSort_PathStr > {
 public:
 	int Compare( const idStr& a, const idStr& b ) const
 	{

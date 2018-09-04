@@ -215,10 +215,10 @@ void idRenderModelLiquid::IntersectBounds( const idBounds& bounds, float displac
 	{
 		for( int cx = left; cx < right; ++cx )
 		{
-			float* pos = &page1[ verts_x * cy + cx ];
-			if( *pos > down )   //&& ( *pos < up ) ) {
+			float & pos = page1[ verts_x * cy + cx ];
+			if( pos > down )   //&& ( pos < up ) ) {
 			{
-				*pos = down;
+				pos = down;
 			}
 		}
 	}
@@ -552,7 +552,7 @@ idRenderModel* idRenderModelLiquid::InstantiateDynamicModel( const struct render
 	while( frames > 0 )
 	{
 		Update();
-		frames--;
+		--frames;
 	}
 
 	// create the surface

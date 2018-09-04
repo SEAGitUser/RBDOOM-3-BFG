@@ -1177,6 +1177,8 @@ TransformJoints
 */
 static void TransformJoints( idJointMat* __restrict outJoints, const int numJoints, const idJointMat* __restrict inJoints1, const idJointMat* __restrict inJoints2 )
 {
+#if defined( USE_INTRINSICS )
+
 	float* outFloats = outJoints->ToFloatPtr();
 	const float* inFloats1 = inJoints1->ToFloatPtr();
 	const float* inFloats2 = inJoints2->ToFloatPtr();
@@ -1184,8 +1186,6 @@ static void TransformJoints( idJointMat* __restrict outJoints, const int numJoin
 	assert_16_byte_aligned( outFloats );
 	assert_16_byte_aligned( inFloats1 );
 	assert_16_byte_aligned( inFloats2 );
-
-#if defined(USE_INTRINSICS)
 
 	const __m128 mask_keep_last = __m128c( _mm_set_epi32( 0xFFFFFFFF, 0x00000000, 0x00000000, 0x00000000 ) );
 
@@ -1261,14 +1261,12 @@ static void TransformJoints( idJointMat* __restrict outJoints, const int numJoin
 		_mm_store_ps( outFloats + 1 * 12 + 4, rf1 );
 		_mm_store_ps( outFloats + 1 * 12 + 8, ri1 );
 	}
-
 #else
 
 	for( int i = 0; i < numJoints; i++ )
 	{
 		idJointMat::Multiply( outJoints[i], inJoints1[i], inJoints2[i] );
 	}
-
 #endif
 }
 

@@ -134,7 +134,7 @@ bool idAASCluster::FloodClusterAreas_r( int areaNum, int clusterNum )
 		// use area faces to flood into adjacent areas
 		for( i = 0; i < area->numFaces; i++ )
 		{
-			faceNum = abs( file->faceIndex[ area->firstFace + i ] );
+			faceNum = idMath::Abs( file->faceIndex[ area->firstFace + i ] );
 			face = &file->faces[ faceNum ];
 			if( face->areas[ 0 ] == areaNum )
 			{
@@ -486,7 +486,7 @@ void idAASCluster::RemoveInvalidPortals()
 		for( j = 0; j < file->areas[ i ].numFaces; j++ )
 		{
 			face1Num = file->faceIndex[ file->areas[ i ].firstFace + j ];
-			face1 = &file->faces[ abs( face1Num ) ];
+			face1 = &file->faces[ idMath::Abs( face1Num ) ];
 			otherAreaNum = face1->areas[ face1Num < 0 ];
 
 			if( !otherAreaNum )
@@ -497,7 +497,7 @@ void idAASCluster::RemoveInvalidPortals()
 			for( k = 0; k < j; k++ )
 			{
 				face2Num = file->faceIndex[ file->areas[ i ].firstFace + k ];
-				face2 = &file->faces[ abs( face2Num ) ];
+				face2 = &file->faces[ idMath::Abs( face2Num ) ];
 				if( otherAreaNum == face2->areas[ face2Num < 0 ] )
 				{
 					break;

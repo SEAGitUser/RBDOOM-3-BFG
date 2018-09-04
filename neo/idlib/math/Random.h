@@ -37,21 +37,21 @@ If you have questions concerning this license or the applicable additional terms
 ===============================================================================
 */
 
-class idRandom
-{
+class idRandom {
 public:
 	idRandom( int seed = 0 );
-	
+
 	void				SetSeed( int seed );
 	int					GetSeed() const;
-	
+
 	int					RandomInt();			// random integer in the range [0, MAX_RAND]
-	int					RandomInt( int max );		// random integer in the range [0, max[
+	int					RandomInt( int max );		// random integer in the range [0, max]
 	float				RandomFloat();		// random number in the range [0.0f, 1.0f]
 	float				CRandomFloat();		// random number in the range [-1.0f, 1.0f]
-	
+	idVec3				RandomVectorInCone( float halfOpeningAngle ); //Random vector in the cone with angle 2 * halfOpeningAngle centered around the z-axis 
+	idVec3				RandomVectorInCone( idVec3 dir, float halfOpeningAngle );
 	static const int	MAX_RAND = 0x7fff;
-	
+
 private:
 	int					seed;
 };
@@ -88,14 +88,13 @@ ID_INLINE int idRandom::RandomInt( int max )
 
 ID_INLINE float idRandom::RandomFloat()
 {
-	return ( RandomInt() / ( float )( idRandom::MAX_RAND + 1 ) );
+	return ( RandomInt() / ( float ) ( idRandom::MAX_RAND + 1 ) );
 }
 
 ID_INLINE float idRandom::CRandomFloat()
 {
 	return ( 2.0f * ( RandomFloat() - 0.5f ) );
 }
-
 
 /*
 ===============================================================================
@@ -105,25 +104,24 @@ ID_INLINE float idRandom::CRandomFloat()
 ===============================================================================
 */
 
-class idRandom2
-{
+class idRandom2 {
 public:
 	// DG: use int instead of long for 64bit compatibility in this whole class
 	idRandom2( unsigned int seed = 0 );
-	
+
 	void					SetSeed( unsigned int seed );
 	unsigned int			GetSeed() const;
-	
+
 	int						RandomInt();			// random integer in the range [0, MAX_RAND]
 	int						RandomInt( int max );		// random integer in the range [0, max]
 	float					RandomFloat();		// random number in the range [0.0f, 1.0f]
 	float					CRandomFloat();		// random number in the range [-1.0f, 1.0f]
-	
+
 	static const int		MAX_RAND = 0x7fff;
-	
+
 private:
 	unsigned int			seed;
-	
+
 	static const unsigned int	IEEE_ONE = 0x3f800000;
 	static const unsigned int	IEEE_MASK = 0x007fffff;
 };
@@ -163,7 +161,7 @@ ID_INLINE float idRandom2::RandomFloat()
 	unsigned int i;
 	seed = 1664525L * seed + 1013904223L;
 	i = idRandom2::IEEE_ONE | ( seed & idRandom2::IEEE_MASK );
-	return ( ( *( float* )&i ) - 1.0f );
+	return ( ( *( float* ) &i ) - 1.0f );
 }
 
 ID_INLINE float idRandom2::CRandomFloat()
@@ -171,7 +169,7 @@ ID_INLINE float idRandom2::CRandomFloat()
 	unsigned int i;
 	seed = 1664525L * seed + 1013904223L;
 	i = idRandom2::IEEE_ONE | ( seed & idRandom2::IEEE_MASK );
-	return ( 2.0f * ( *( float* )&i ) - 3.0f );
+	return ( 2.0f * ( *( float* ) &i ) - 3.0f );
 }
 // DG end
 

@@ -483,7 +483,7 @@ void idImage::AllocImage() // imgOpts
 	GL_CheckErrors();
 #endif
 
-	vkDeviceContext_t * dc = VK_GetCurrDC();
+	vkDeviceContext_t * dc = vkSys.GetCurrDC();
 
 	apiObject = new vkTextureObject_t();
 	auto tex = ( vkTextureObject_t * )apiObject;

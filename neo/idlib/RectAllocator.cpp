@@ -133,7 +133,7 @@ void RectAllocator( const idList<idVec2i>& inputSizes, idList<idVec2i>& outputPo
 				// widths must be multiples of 128 pixels / 32 DXT blocks to
 				// allow it to be used directly as a GPU texture without re-packing
 				// FIXME: make this a parameter
-				newMax[0] = ( newMax[0] + 31 ) & ~31;
+				newMax[0] = ALIGN( newMax[0], 32 );
 				
 				// don't let an image get larger than 1024 DXT block, or PS3 crashes
 				// FIXME: pass maxSize in as a parameter
@@ -165,9 +165,9 @@ void RectAllocator( const idList<idVec2i>& inputSizes, idList<idVec2i>& outputPo
 					const idVec2i& check = outputPositions[sizeRemap[n]];
 					const idVec2i& checkSize = inputSizes[sizeRemap[n]];
 					if(	test.x + size.x > check.x &&
-							test.y + size.y > check.y &&
-							test.x < check.x + checkSize.x &&
-							test.y < check.y + checkSize.y )
+						test.y + size.y > check.y &&
+						test.x < check.x + checkSize.x &&
+						test.y < check.y + checkSize.y )
 					{
 						break;
 					}
@@ -189,4 +189,3 @@ void RectAllocator( const idList<idVec2i>& inputSizes, idList<idVec2i>& outputPo
 		totalSize = bestMax;
 	}
 }
-

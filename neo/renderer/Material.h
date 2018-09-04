@@ -743,7 +743,7 @@ public:
 	// Utilities
 
 	static void GetTexMatrixFromStage( const float* registers, const textureStage_t*, float matrix[ 16 ] );
-	static void GetTexMatrixFromStage( const float* registers, const textureStage_t*, idRenderMatrix & );
+	static void GetTexMatrixFromStage( const float* registers, const textureStage_t*, class idRenderMatrix & );
 
 private:
 	// parse the entire material

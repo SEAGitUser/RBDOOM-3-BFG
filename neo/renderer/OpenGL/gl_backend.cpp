@@ -418,6 +418,9 @@ void RB_ExecuteBackEndCommands( const emptyCommand_t* cmds )
 	RENDERLOG_START_FRAME();
 	GL_StartFrame( 0 );
 
+	// upload any image loads that have completed
+	//globalImages->CompleteBackgroundImageLoads();
+
 	if( renderSystem->GetStereo3DMode() != STEREO3D_OFF )
 	{
 		// If we have a stereo pixel format, this will draw to both
@@ -435,9 +438,6 @@ void RB_ExecuteBackEndCommands( const emptyCommand_t* cmds )
 
 	// needed for editor rendering
 	GL_SetDefaultState();
-
-	// upload any image loads that have completed
-	//globalImages->CompleteBackgroundImageLoads();
 
 	for(/**/; cmds != NULL; cmds = ( const emptyCommand_t* )cmds->next )
 	{
@@ -497,3 +497,6 @@ void RB_ExecuteBackEndCommands( const emptyCommand_t* cmds )
 
 	RENDERLOG_END_FRAME();
 }
+
+
+

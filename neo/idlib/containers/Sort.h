@@ -88,19 +88,6 @@ this string class to avoid excessive re-allocation and copying of strings.
 */
 
 /*
-========================
-SwapValues
-========================
-*/
-template< typename _type_ >
-ID_INLINE void SwapValues( _type_ & a, _type_ & b )
-{
-	_type_ c = a;
-	a = b;
-	b = c;
-}
-
-/*
 ================================================
 idSort is an abstract template class for sorting an array of objects of the specified data type.
 The array of objects is sorted such that: Compare( array[i], array[i+1] ) <= 0 for all i

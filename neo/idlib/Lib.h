@@ -45,8 +45,7 @@ If you have questions concerning this license or the applicable additional terms
 ===============================================================================
 */
 
-class idLib
-{
+class idLib {
 private:
 	static bool					mainThreadInitialized;
 	static ID_TLS				isMainThread;
@@ -71,10 +70,7 @@ public:
 
 	// the extra check for mainThreadInitialized is necessary for this to be accurate
 	// when called by startup code that happens before idLib::Init
-	static bool					IsMainThread()
-	{
-		return ( 0 == mainThreadInitialized ) || ( 1 == isMainThread );
-	}
+	static bool					IsMainThread() { return ( 0 == mainThreadInitialized ) || ( 1 == isMainThread ); }
 };
 
 
@@ -156,27 +152,17 @@ class idException {
 public:
 	static const int MAX_ERROR_LEN = 2048;
 
-	idException( const char* text = "" )
-	{
+	idException( const char* text = "" ) {
 		strncpy( error, text, MAX_ERROR_LEN );
 	}
 
 	// this really, really should be a const function, but it's referenced too many places to change right now
-	const char* 	GetError()
-	{
-		return error;
-	}
+	const char* 	GetError() { return error; }
 
 protected:
 	// if GetError() were correctly const this would be named GetError(), too
-	char* 		GetErrorBuffer()
-	{
-		return error;
-	}
-	int			GetErrorBufferSize()
-	{
-		return MAX_ERROR_LEN;
-	}
+	char* 		GetErrorBuffer() { return error; }
+	int			GetErrorBufferSize() { return MAX_ERROR_LEN; }
 
 private:
 	friend class idFatalException;
@@ -188,32 +174,21 @@ private:
 idFatalException
 ================================================
 */
-class idFatalException
-{
+class idFatalException {
 public:
 	static const int MAX_ERROR_LEN = 2048;
 
-	idFatalException( const char* text = "" )
-	{
+	idFatalException( const char* text = "" ) {
 		strncpy( idException::error, text, MAX_ERROR_LEN );
 	}
 
 	// this really, really should be a const function, but it's referenced too many places to change right now
-	const char* 	GetError()
-	{
-		return idException::error;
-	}
+	const char* 	GetError() { return idException::error; }
 
 protected:
 	// if GetError() were correctly const this would be named GetError(), too
-	char* 		GetErrorBuffer()
-	{
-		return idException::error;
-	}
-	int			GetErrorBufferSize()
-	{
-		return MAX_ERROR_LEN;
-	}
+	char* 		GetErrorBuffer() { return idException::error; }
+	int			GetErrorBufferSize() { return MAX_ERROR_LEN; }
 };
 
 /*
@@ -221,8 +196,7 @@ protected:
 idNetworkLoadException
 ================================================
 */
-class idNetworkLoadException : public idException
-{
+class idNetworkLoadException : public idException {
 public:
 	idNetworkLoadException( const char* text = "" ) : idException( text ) { }
 };
@@ -256,6 +230,7 @@ public:
 #include "math/VecX.h"
 #include "math/VectorI.h"
 #include "math/Matrix.h"
+#include "math/Mat3x4.h"
 #include "math/MatX.h"
 #include "math/Angles.h"
 #include "math/Quat.h"
@@ -268,6 +243,8 @@ public:
 #include "math/Curve.h"
 #include "math/Ode.h"
 #include "math/Lcp.h"
+#include "math/Perlin.h"
+#include "math/Radians.h"
 
 // bounding volumes
 #include "bv/Sphere.h"
@@ -277,7 +254,6 @@ public:
 #include "bv/Box.h"
 
 // geometry
-#include "geometry/RenderMatrix.h"
 #include "geometry/JointTransform.h"
 #include "geometry/DrawVert.h"
 #include "geometry/Winding.h"
@@ -286,7 +262,9 @@ public:
 #include "geometry/Surface_Patch.h"
 #include "geometry/Surface_Polytope.h"
 #include "geometry/Surface_SweptSpline.h"
+//#include "geometry/Surface_Traceable.h"  fix triIndex_t
 #include "geometry/TraceModel.h"
+//#include "geometry/TraceSurface.h"  fix triIndex_t
 
 // text manipulation
 #include "text/Str.h"

@@ -189,7 +189,6 @@ bool idAASBuild::GetEdge( const idVec3& v1, const idVec3& v2, int* edgeNum, int 
 	{
 		for( e = aas_edgeHash->First( hashKey ); e >= 0; e = aas_edgeHash->Next( e ) )
 		{
-
 			vertexNum = file->edges[e].vertexNum;
 			if( vertexNum[0] == v2num )
 			{
@@ -235,7 +234,7 @@ idAASBuild::GetFaceForPortal
 bool idAASBuild::GetFaceForPortal( idBrushBSPPortal* portal, int side, int* faceNum )
 {
 	int i, j, v1num;
-	int numFaceEdges, faceEdges[MAX_POINTS_ON_WINDING];
+	int numFaceEdges, faceEdges[ idFixedWinding::MAX_POINTS ];
 	idWinding* w;
 	aasFace_t face;
 
@@ -245,8 +244,7 @@ bool idAASBuild::GetFaceForPortal( idBrushBSPPortal* portal, int side, int* face
 		{
 			*faceNum = -portal->GetFaceNum();
 		}
-		else
-		{
+		else {
 			*faceNum = portal->GetFaceNum();
 		}
 		return true;
@@ -264,7 +262,7 @@ bool idAASBuild::GetFaceForPortal( idBrushBSPPortal* portal, int side, int* face
 		if( faceEdges[numFaceEdges] )
 		{
 			// last vertex of this edge is the first vertex of the next edge
-			v1num = file->edges[abs( faceEdges[numFaceEdges] )].vertexNum[INT32_SIGNBITNOTSET( faceEdges[numFaceEdges] )];
+			v1num = file->edges[ idMath::Abs( faceEdges[numFaceEdges] )].vertexNum[INT32_SIGNBITNOTSET( faceEdges[numFaceEdges] )];
 
 			// this edge is valid so keep it
 			numFaceEdges++;
@@ -352,11 +350,11 @@ bool idAASBuild::GetAreaForLeafNode( idBrushBSPNode* node, int* areaNum )
 
 		if( faceNum > 0 )
 		{
-			file->faces[abs( faceNum )].areas[0] = file->areas.Num();
+			file->faces[idMath::Abs( faceNum )].areas[0] = file->areas.Num();
 		}
 		else
 		{
-			file->faces[abs( faceNum )].areas[1] = file->areas.Num();
+			file->faces[idMath::Abs( faceNum )].areas[1] = file->areas.Num();
 		}
 	}
 

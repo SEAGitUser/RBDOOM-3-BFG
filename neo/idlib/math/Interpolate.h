@@ -38,56 +38,25 @@ If you have questions concerning this license or the applicable additional terms
 */
 
 template< class type >
-class idInterpolate
-{
+class idInterpolate {
 public:
 	idInterpolate();
-	
+
 	void				Init( const int startTime, const int duration, const type& startValue, const type& endValue );
-	void				SetStartTime( int time )
-	{
-		this->startTime = time;
-	}
-	void				SetDuration( int duration )
-	{
-		this->duration = duration;
-	}
-	void				SetStartValue( const type& startValue )
-	{
-		this->startValue = startValue;
-	}
-	void				SetEndValue( const type& endValue )
-	{
-		this->endValue = endValue;
-	}
-	
+	void				SetStartTime( int time ) { this->startTime = time; }
+	void				SetDuration( int duration ) { this->duration = duration; }
+	void				SetStartValue( const type& startValue ) { this->startValue = startValue; }
+	void				SetEndValue( const type& endValue ) { this->endValue = endValue; }
+
 	type				GetCurrentValue( int time ) const;
-	bool				IsDone( int time ) const
-	{
-		return ( time >= startTime + duration );
-	}
-	
-	int					GetStartTime() const
-	{
-		return startTime;
-	}
-	int					GetEndTime() const
-	{
-		return startTime + duration;
-	}
-	int					GetDuration() const
-	{
-		return duration;
-	}
-	const type& 		GetStartValue() const
-	{
-		return startValue;
-	}
-	const type& 		GetEndValue() const
-	{
-		return endValue;
-	}
-	
+	bool				IsDone( int time ) const { return ( time >= startTime + duration ); }
+
+	int					GetStartTime() const { return startTime; }
+	int					GetEndTime() const { return startTime + duration; }
+	int					GetDuration() const { return duration; }
+	const type& 		GetStartValue() const { return startValue; }
+	const type& 		GetEndValue() const { return endValue; }
+
 private:
 	int					startTime;
 	int					duration;
@@ -141,7 +110,7 @@ ID_INLINE type idInterpolate<type>::GetCurrentValue( int time ) const
 	else
 	{
 		const float deltaTime = time - startTime;
-		const float f = deltaTime / ( float )duration;
+		const float f = deltaTime / ( float ) duration;
 		const type range = ( endValue - startValue );
 		return startValue + ( range * f );
 	}
@@ -157,64 +126,27 @@ ID_INLINE type idInterpolate<type>::GetCurrentValue( int time ) const
 */
 
 template< class type >
-class idInterpolateAccelDecelLinear
-{
+class idInterpolateAccelDecelLinear {
 public:
 	idInterpolateAccelDecelLinear();
-	
+
 	void				Init( const int startTime, const int accelTime, const int decelTime, const int duration, const type& startValue, const type& endValue );
-	void				SetStartTime( int time )
-	{
-		startTime = time;
-		Invalidate();
-	}
-	void				SetStartValue( const type& startValue )
-	{
-		this->startValue = startValue;
-		Invalidate();
-	}
-	void				SetEndValue( const type& endValue )
-	{
-		this->endValue = endValue;
-		Invalidate();
-	}
-	
+	void				SetStartTime( int time ) { startTime = time; Invalidate(); }
+	void				SetStartValue( const type& startValue ) { this->startValue = startValue; Invalidate(); }
+	void				SetEndValue( const type& endValue ) { this->endValue = endValue; Invalidate(); }
+
 	type				GetCurrentValue( int time ) const;
 	type				GetCurrentSpeed( int time ) const;
-	bool				IsDone( int time ) const
-	{
-		return ( time >= startTime + accelTime + linearTime + decelTime );
-	}
-	
-	int					GetStartTime() const
-	{
-		return startTime;
-	}
-	int					GetEndTime() const
-	{
-		return startTime + accelTime + linearTime + decelTime;
-	}
-	int					GetDuration() const
-	{
-		return accelTime + linearTime + decelTime;
-	}
-	int					GetAcceleration() const
-	{
-		return accelTime;
-	}
-	int					GetDeceleration() const
-	{
-		return decelTime;
-	}
-	const type& 		GetStartValue() const
-	{
-		return startValue;
-	}
-	const type& 		GetEndValue() const
-	{
-		return endValue;
-	}
-	
+	bool				IsDone( int time ) const { return ( time >= startTime + accelTime + linearTime + decelTime ); }
+
+	int					GetStartTime() const { return startTime; }
+	int					GetEndTime() const { return startTime + accelTime + linearTime + decelTime; }
+	int					GetDuration() const { return accelTime + linearTime + decelTime; }
+	int					GetAcceleration() const { return accelTime; }
+	int					GetDeceleration() const { return decelTime; }
+	const type& 		GetStartValue() const { return startValue; }
+	const type& 		GetEndValue() const { return endValue; }
+
 private:
 	int					startTime;
 	int					accelTime;
@@ -223,7 +155,7 @@ private:
 	type				startValue;
 	type				endValue;
 	mutable idExtrapolate<type> extrapolate;
-	
+
 	void				Invalidate();
 	void				SetPhase( int time ) const;
 };
@@ -254,12 +186,12 @@ ID_INLINE void idInterpolateAccelDecelLinear<type>::Init( const int startTime, c
 	this->decelTime = decelTime;
 	this->startValue = startValue;
 	this->endValue = endValue;
-	
+
 	if( duration <= 0 )
 	{
 		return;
 	}
-	
+
 	if( this->accelTime + this->decelTime > duration )
 	{
 		this->accelTime = this->accelTime * duration / ( this->accelTime + this->decelTime );
@@ -267,7 +199,7 @@ ID_INLINE void idInterpolateAccelDecelLinear<type>::Init( const int startTime, c
 	}
 	this->linearTime = duration - this->accelTime - this->decelTime;
 	const type speed = ( endValue - startValue ) * ( 1000.0f / ( ( float ) this->linearTime + ( this->accelTime + this->decelTime ) * 0.5f ) );
-	
+
 	if( this->accelTime )
 	{
 		extrapolate.Init( startTime, this->accelTime, startValue, ( startValue - startValue ), speed, EXTRAPOLATION_ACCELLINEAR ); //-V501
@@ -349,7 +281,6 @@ ID_INLINE type idInterpolateAccelDecelLinear<type>::GetCurrentSpeed( int time ) 
 	return extrapolate.GetCurrentSpeed( time );
 }
 
-
 /*
 ==============================================================================================
 
@@ -360,64 +291,27 @@ ID_INLINE type idInterpolateAccelDecelLinear<type>::GetCurrentSpeed( int time ) 
 */
 
 template< class type >
-class idInterpolateAccelDecelSine
-{
+class idInterpolateAccelDecelSine {
 public:
 	idInterpolateAccelDecelSine();
-	
+
 	void				Init( const int startTime, const int accelTime, const int decelTime, const int duration, const type& startValue, const type& endValue );
-	void				SetStartTime( int time )
-	{
-		startTime = time;
-		Invalidate();
-	}
-	void				SetStartValue( const type& startValue )
-	{
-		this->startValue = startValue;
-		Invalidate();
-	}
-	void				SetEndValue( const type& endValue )
-	{
-		this->endValue = endValue;
-		Invalidate();
-	}
-	
+	void				SetStartTime( int time ) { startTime = time; Invalidate(); }
+	void				SetStartValue( const type& startValue ) { this->startValue = startValue; Invalidate(); }
+	void				SetEndValue( const type& endValue ) { this->endValue = endValue; Invalidate(); }
+
 	type				GetCurrentValue( int time ) const;
 	type				GetCurrentSpeed( int time ) const;
-	bool				IsDone( int time ) const
-	{
-		return ( time >= startTime + accelTime + linearTime + decelTime );
-	}
-	
-	int					GetStartTime() const
-	{
-		return startTime;
-	}
-	int					GetEndTime() const
-	{
-		return startTime + accelTime + linearTime + decelTime;
-	}
-	int					GetDuration() const
-	{
-		return accelTime + linearTime + decelTime;
-	}
-	int					GetAcceleration() const
-	{
-		return accelTime;
-	}
-	int					GetDeceleration() const
-	{
-		return decelTime;
-	}
-	const type& 		GetStartValue() const
-	{
-		return startValue;
-	}
-	const type& 		GetEndValue() const
-	{
-		return endValue;
-	}
-	
+	bool				IsDone( int time ) const { return ( time >= startTime + accelTime + linearTime + decelTime ); }
+
+	int					GetStartTime() const { return startTime; }
+	int					GetEndTime() const { return startTime + accelTime + linearTime + decelTime; }
+	int					GetDuration() const { return accelTime + linearTime + decelTime; }
+	int					GetAcceleration() const { return accelTime; }
+	int					GetDeceleration() const { return decelTime; }
+	const type& 		GetStartValue() const { return startValue; }
+	const type& 		GetEndValue() const { return endValue; }
+
 private:
 	int					startTime;
 	int					accelTime;
@@ -426,7 +320,7 @@ private:
 	type				startValue;
 	type				endValue;
 	mutable idExtrapolate<type> extrapolate;
-	
+
 	void				Invalidate();
 	void				SetPhase( int time ) const;
 };
@@ -457,12 +351,12 @@ ID_INLINE void idInterpolateAccelDecelSine<type>::Init( const int startTime, con
 	this->decelTime = decelTime;
 	this->startValue = startValue;
 	this->endValue = endValue;
-	
+
 	if( duration <= 0 )
 	{
 		return;
 	}
-	
+
 	if( this->accelTime + this->decelTime > duration )
 	{
 		this->accelTime = this->accelTime * duration / ( this->accelTime + this->decelTime );
@@ -470,7 +364,7 @@ ID_INLINE void idInterpolateAccelDecelSine<type>::Init( const int startTime, con
 	}
 	this->linearTime = duration - this->accelTime - this->decelTime;
 	const type speed = ( endValue - startValue ) * ( 1000.0f / ( ( float ) this->linearTime + ( this->accelTime + this->decelTime ) * idMath::SQRT_1OVER2 ) );
-	
+
 	if( this->accelTime )
 	{
 		extrapolate.Init( startTime, this->accelTime, startValue, ( startValue - startValue ), speed, EXTRAPOLATION_ACCELSINE ); //-V501
@@ -550,6 +444,152 @@ ID_INLINE type idInterpolateAccelDecelSine<type>::GetCurrentSpeed( int time ) co
 {
 	SetPhase( time );
 	return extrapolate.GetCurrentSpeed( time );
+}
+
+/*
+==============================================================================================
+
+	Bandpass filter styleee, with lerping on the leading and falling edges.
+	If OOB flag is set, an additional OOB value will be returned if the
+	time is out with the boundaries of the filter.
+
+			_______
+		   /       \
+		  /         \
+	_____/           \______
+
+	With OOB conditions:
+			_______
+		   /       \
+		  /         \
+		 /           \
+		 |           |
+		 |           |
+		 |           |
+	_____|           |______
+
+==============================================================================================
+*/
+
+template< typename type >
+class idInterpolateBandPass {
+public:
+	idInterpolateBandPass();
+	void				Init( const float lowPassStart, const float lowPassDuration, const float highPassStart, const float highPassDuration, const type &lowValue, const type &highValue );
+	void				SetLowPassStart( float _time ) { lowStartTime = _time; }
+	void				SetLowPassDuration( float _duration ) { lowDuration = _duration; }
+	void				SetHighPassStart( float _time ) { highStartTime = _time; }
+	void				SetHighPassDuration( float _duration ) { highDuration = _duration; }
+	void				SetLowValue( const type& _low ) { lowValue = _low; }
+	void				SetHighValue( const type& _high ) { highValue = _high; }
+	void				SetOOBValue( const type& _value ) { oobFlag = true; oobValue = _value; }
+	void				SetOOBFlag( bool _flag ) { oobFlag = _flag; }
+	type				GetCurrentValue( float time ) const;
+	bool				IsDone( float time ) const { return ( time >= highStartTime + highDuration ); }
+	float				GetLowPassStart() const { return lowStartTime; }
+	float				GetLowPassDuration() const { return lowDuration; }
+	float				GetHighPassStart() const { return highStartTime; }
+	float				GetHighPassDuration() const { return highDuration; }
+	const type&			GetOOBValue() const { return oobValue; }
+	bool				GetOOBFlag() const { return oobFlag; }
+	const type&			GetLowValue() const { return lowValue; }
+	const type&			GetHighValue() const { return highValue; }
+
+private:
+	float				lowStartTime, lowDuration;
+	float				highStartTime, highDuration;
+	type				oobValue;
+	type				lowValue, highValue;
+	bool				oobFlag;
+};
+
+/*
+====================
+idInterpolateBandPass::idInterpolate
+====================
+*/
+template< typename type >
+ID_INLINE idInterpolateBandPass<type>::idInterpolateBandPass()
+{
+	lowStartTime = 0.f;
+	lowDuration = 0.f;
+	highStartTime = 0.f;
+	highDuration = 0.f;
+
+	memset( &lowValue, 0, sizeof( lowValue ) );
+	highValue = lowValue;
+
+	oobFlag = false;
+}
+
+/*
+====================
+idInterpolateBandPass::Init
+====================
+*/
+template< typename type >
+ID_INLINE void idInterpolateBandPass< type >::Init( const float lowPassStart, const float lowPassDuration, const float highPassStart, const float highPassDuration, const type& _lowValue, const type& _highValue )
+{
+	assert( lowPassDuration >= 0 );
+	assert( highPassDuration >= 0 );
+	assert( lowPassStart + lowPassDuration <= highPassStart );
+
+	lowStartTime = lowPassStart;
+	lowDuration = lowPassDuration;
+	highStartTime = highPassStart;
+	highDuration = highPassDuration;
+
+	lowValue = _lowValue;
+	highValue = _highValue;
+}
+
+/*
+====================
+idInterpolateBandPass::GetCurrentValue
+====================
+*/
+template< typename type >
+ID_INLINE type idInterpolateBandPass< type >::GetCurrentValue( float time ) const
+{
+	if( time < lowStartTime )
+	{
+		// pre leading edge condition
+
+		if( oobFlag )
+		{
+			return oobValue;
+		}
+		return lowValue;
+	}
+
+	if( time < lowStartTime + lowDuration )
+	{
+		// on the leading edge
+
+		float frac = ( time - lowStartTime ) / lowDuration;
+		return Lerp( lowValue, highValue, frac );
+	}
+
+	if( time < highStartTime )
+	{
+		// on the upper level
+
+		return highValue;
+	}
+
+	if( time < highStartTime + highDuration )
+	{
+		// on the trailing edge
+
+		float frac = ( time - highStartTime ) / highDuration;
+		return Lerp( highValue, lowValue, frac );
+	}
+
+	if( oobFlag )
+	{
+		return oobValue;
+	}
+	return lowValue;
 }
 
 #endif /* !__MATH_INTERPOLATE_H__ */

@@ -216,7 +216,7 @@ idSIMD_Generic::TransformJoints
 */
 void VPCALL idSIMD_Generic::TransformJoints( idJointMat* jointMats, const int* parents, const int firstJoint, const int lastJoint )
 {
-	for( int i = firstJoint; i <= lastJoint; i++ )
+	for( int i = firstJoint; i <= lastJoint; ++i )
 	{
 		assert( parents[i] < i );
 		jointMats[i] *= jointMats[parents[i]];
@@ -230,7 +230,7 @@ idSIMD_Generic::UntransformJoints
 */
 void VPCALL idSIMD_Generic::UntransformJoints( idJointMat* jointMats, const int* parents, const int firstJoint, const int lastJoint )
 {
-	for( int i = lastJoint; i >= firstJoint; i-- )
+	for( int i = lastJoint; i >= firstJoint; --i )
 	{
 		assert( parents[i] < i );
 		jointMats[i] /= jointMats[parents[i]];

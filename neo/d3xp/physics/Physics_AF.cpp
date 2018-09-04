@@ -6957,7 +6957,6 @@ idPhysics_AF::GetBounds
 */
 const idBounds & idPhysics_AF::GetBounds( int id ) const
 {
-	int i;
 	static idBounds relBounds;
 
 	if( id >= 0 && id < bodies.Num() )
@@ -6971,7 +6970,7 @@ const idBounds & idPhysics_AF::GetBounds( int id ) const
 	}
 
 	relBounds = bodies[0]->GetClipModel()->GetBounds();
-	for( i = 1; i < bodies.Num(); i++ )
+	for( int i = 1; i < bodies.Num(); i++ )
 	{
 		idBounds bounds;
 		idVec3 origin = ( bodies[i]->GetWorldOrigin() - bodies[0]->GetWorldOrigin() ) * bodies[0]->GetWorldAxis().Transpose();
@@ -6989,7 +6988,6 @@ idPhysics_AF::GetAbsBounds
 */
 const idBounds& idPhysics_AF::GetAbsBounds( int id ) const
 {
-	int i;
 	static idBounds absBounds;
 
 	if( id >= 0 && id < bodies.Num() )
@@ -7003,7 +7001,7 @@ const idBounds& idPhysics_AF::GetAbsBounds( int id ) const
 	}
 
 	absBounds = bodies[0]->GetClipModel()->GetAbsBounds();
-	for( i = 1; i < bodies.Num(); i++ )
+	for( int i = 1; i < bodies.Num(); i++ )
 	{
 		absBounds += bodies[i]->GetClipModel()->GetAbsBounds();
 	}

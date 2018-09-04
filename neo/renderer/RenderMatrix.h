@@ -97,21 +97,10 @@ public:
 											float c0, float c1, float c2, float c3,
 											float d0, float d1, float d2, float d3 );
 
-	ID_INLINE const float * operator[]( int index ) const
-	{
-		assert( index >= 0 && index < 4 );
-		return &m[index * 4];
-	}
-	ID_INLINE float * 		operator[]( int index )
-	{
-		assert( index >= 0 && index < 4 );
-		return &m[index * 4];
-	}
+	ID_INLINE const float * operator[]( int index ) const { assert( index >= 0 && index < 4 ); return &m[index * 4]; }
+	ID_INLINE float * 		operator[]( int index ) { assert( index >= 0 && index < 4 ); return &m[index * 4]; }
 
-	ID_INLINE const float *	Ptr() const
-	{
-		return m;
-	}
+	ID_INLINE const float *	Ptr() const { return m; }
 
 	ID_INLINE void			Zero()
 	{
@@ -216,9 +205,6 @@ public:
 	static void				SetMVPForInverseProject( const idRenderMatrix& mvp, const idRenderMatrix& inverseProject, idVec4& row0, idVec4& row1, idVec4& row2, idVec4& row3, bool& negativeDeterminant );
 	static void	/*SEA*/		SetMVPForInverseProject( const idRenderMatrix& mvp, const idRenderMatrix& inverseProject, idVec4& row0, idVec4& row1, idVec4& row2, idVec4& row3 );
 
-
-
-
 	// Cull to a Model-View-Projection (MVP) matrix.
 	static bool				CullPointToMVP( const idRenderMatrix& mvp, const idVec3& point, bool zeroToOne = false );
 	static bool				CullPointToMVPbits( const idRenderMatrix& mvp, const idVec3& point, byte* outBits, bool zeroToOne = false );
@@ -322,8 +308,7 @@ ID_INLINE bool idRenderMatrix::IsZero( float epsilon ) const
 {
 	for( int i = 0; i < 16; i++ )
 	{
-		if( idMath::Fabs( m[i] ) > epsilon )
-		{
+		if( idMath::Fabs( m[i] ) > epsilon ) {
 			return false;
 		}
 	}
@@ -343,15 +328,12 @@ ID_INLINE bool idRenderMatrix::IsIdentity( float epsilon ) const
 		{
 			if( i == j )
 			{
-				if( idMath::Fabs( m[i * 4 + j] - 1.0f ) > epsilon )
-				{
+				if( idMath::Fabs( m[i * 4 + j] - 1.0f ) > epsilon ) {
 					return false;
 				}
 			}
-			else
-			{
-				if( idMath::Fabs( m[i * 4 + j] ) > epsilon )
-				{
+			else {
+				if( idMath::Fabs( m[i * 4 + j] ) > epsilon ) {
 					return false;
 				}
 			}
@@ -387,16 +369,13 @@ ID_INLINE bool idRenderMatrix::IsUniformScale( float epsilon ) const
 	float d0 = idMath::InvSqrt( m[0 * 4 + 0] * m[0 * 4 + 0] + m[1 * 4 + 0] * m[1 * 4 + 0] + m[2 * 4 + 0] * m[2 * 4 + 0] );
 	float d1 = idMath::InvSqrt( m[0 * 4 + 1] * m[0 * 4 + 1] + m[1 * 4 + 1] * m[1 * 4 + 1] + m[2 * 4 + 1] * m[2 * 4 + 1] );
 	float d2 = idMath::InvSqrt( m[0 * 4 + 2] * m[0 * 4 + 2] + m[1 * 4 + 2] * m[1 * 4 + 2] + m[2 * 4 + 2] * m[2 * 4 + 2] );
-	if( idMath::Fabs( d0 - d1 ) > epsilon )
-	{
+	if( idMath::Fabs( d0 - d1 ) > epsilon ) {
 		return false;
 	}
-	if( idMath::Fabs( d1 - d2 ) > epsilon )
-	{
+	if( idMath::Fabs( d1 - d2 ) > epsilon ) {
 		return false;
 	}
-	if( idMath::Fabs( d0 - d2 ) > epsilon )
-	{
+	if( idMath::Fabs( d0 - d2 ) > epsilon ) {
 		return false;
 	}
 	return true;
@@ -612,15 +591,13 @@ ID_INLINE void idRenderMatrix::TransformModelToClip( const idVec3& src, const id
 	_mm_store_ps( clip.ToFloatPtr(), vec );
 
 #else
-	for( int i = 0; i < 4; i++ )
-	{
+	for( int i = 0; i < 4; i++ ) {
 		eye[i] =	modelMatrix[i][0] * src[0] +
 					modelMatrix[i][1] * src[1] +
 					modelMatrix[i][2] * src[2] +
 					modelMatrix[i][3];
 	}
-	for( int i = 0; i < 4; i++ )
-	{
+	for( int i = 0; i < 4; i++ ) {
 		clip[i] =	projectionMatrix[i][0] * eye[0] +
 					projectionMatrix[i][1] * eye[1] +
 					projectionMatrix[i][2] * eye[2] +

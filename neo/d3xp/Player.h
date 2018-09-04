@@ -171,7 +171,7 @@ public:
 	int						selVideo;
 	int						selAudio;
 	bool					pdaOpened;
-	idList<idDict*>		items;
+	idList<idDict*>			items;
 	idList<idStr>			pdaSecurity;
 	idList<const idDeclPDA*>	pdas;
 	idList<const idDeclVideo*>	videos;
@@ -258,11 +258,9 @@ struct aasLocation_t
 	idVec3	pos;
 };
 
-class idPlayer : public idActor
-{
+class idPlayer : public idActor {
 public:
-	enum
-	{
+	enum {
 		EVENT_IMPULSE = idEntity::EVENT_MAXEVENTS,
 		EVENT_EXIT_TELEPORTER,
 		EVENT_ABORT_TELEPORTER,
@@ -530,19 +528,10 @@ public:
 	void					GiveItem( const char* name );
 	void					GiveHealthPool( float amt );
 
-	void							SetPrimaryObjective( idTarget_SetPrimaryObjective* target )
-	{
-		primaryObjective = target;
-	}
-	idTarget_SetPrimaryObjective* 	GetPrimaryObjective()
-	{
-		return primaryObjective;
-	}
+	void					SetPrimaryObjective( idTarget_SetPrimaryObjective* target ) { primaryObjective = target; }
+	idTarget_SetPrimaryObjective * GetPrimaryObjective() { return primaryObjective; }
 
-	idInventory& 			GetInventory()
-	{
-		return inventory;
-	}
+	idInventory & 			GetInventory() { return inventory; }
 	bool					GiveInventoryItem( idDict* item, unsigned int giveFlags );
 	void					RemoveInventoryItem( idDict* item );
 	bool					GiveInventoryItem( const char* name );
@@ -554,10 +543,7 @@ public:
 	void					EndAudioLog();
 	void					PlayVideoDisk( const idDeclVideo* decl );
 	void					EndVideoDisk();
-	const idMaterial* 		GetVideoMaterial()
-	{
-		return pdaVideoMat;
-	}
+	const idMaterial* 		GetVideoMaterial() const { return pdaVideoMat; }
 
 	void					SetQuickSlot( int index, int val );
 	int						GetQuickSlot( int index );
@@ -579,10 +565,7 @@ public:
 	void					NextWeapon();
 	void					NextBestWeapon();
 	void					PrevWeapon();
-	void					SetPreviousWeapon( int num )
-	{
-		previousWeapon = num;
-	}
+	void					SetPreviousWeapon( int num ) { previousWeapon = num; }
 	void					SelectWeapon( int num, bool force );
 	void					DropWeapon( bool died ) ;
 	void					StealWeapon( idPlayer* player );
@@ -608,10 +591,7 @@ public:
 	void					UpdatePowerupHud();
 
 	virtual bool			HandleSingleGuiCommand( idEntity* entityGui, idLexer* src );
-	bool					GuiActive()
-	{
-		return focusGUIent != NULL;
-	}
+	bool					GuiActive() { return focusGUIent != NULL; }
 
 	bool					HandleGuiEvents( const idSysEvent* ev );
 	void					PerformImpulse( int impulse );
@@ -620,23 +600,14 @@ public:
 	void					RouteGuiMouse( idUserInterface* gui );
 	void					UpdateHud();
 	const idDeclPDA* 		GetPDA() const;
-	bool					GetPDAOpen() const
-	{
-		return objectiveSystemOpen;
-	}
+	bool					GetPDAOpen() const { return objectiveSystemOpen; }
 	const idDeclVideo* 		GetVideo( int index );
 	void					SetInfluenceFov( float fov );
 	void					SetInfluenceView( const char* mtr, const char* skinname, float radius, idEntity* ent );
 	void					SetInfluenceLevel( int level );
-	int						GetInfluenceLevel()
-	{
-		return influenceActive;
-	};
+	int						GetInfluenceLevel() { return influenceActive; };
 	void					SetPrivateCameraView( idCamera* camView );
-	idCamera* 				GetPrivateCameraView() const
-	{
-		return privateCameraView;
-	}
+	idCamera* 				GetPrivateCameraView() const { return privateCameraView; }
 	void					StartFxFov( float duration );
 	void					UpdateHudWeapon( bool flashWeapon = true );
 	void					UpdateChattingHud();
@@ -645,10 +616,7 @@ public:
 	bool					IsSoundChannelPlaying( const s_channelType channel = SND_CHANNEL_ANY );
 	void					ShowTip( const char* title, const char* tip, bool autoHide );
 	void					HideTip();
-	bool					IsTipVisible()
-	{
-		return tipUp;
-	};
+	bool					IsTipVisible() { return tipUp; };
 	void					HideObjective();
 
 	virtual void			ClientThink( const int curTime, const float fraction, const bool predict );
@@ -663,34 +631,22 @@ public:
 	virtual bool			GetPhysicsToSoundTransform( idVec3& origin, idMat3& axis );
 
 	virtual bool			ClientReceiveEvent( int event, int time, const idBitMsg& msg );
-	bool					IsRespawning();
-	bool					IsInTeleport();
+	bool					IsRespawning() { return respawning; }
+	bool					IsInTeleport() { return( teleportEntity.GetEntity() != NULL ); }
 
-	int						GetSkinIndex() const
-	{
-		return skinIndex;
-	}
+	int						GetSkinIndex() const { return skinIndex; }
 
-	idEntity*				GetInfluenceEntity()
-	{
-		return influenceEntity;
-	};
-	const idMaterial*		GetInfluenceMaterial()
-	{
-		return influenceMaterial;
-	};
-	float					GetInfluenceRadius()
-	{
-		return influenceRadius;
-	};
+	idEntity*				GetInfluenceEntity() { return influenceEntity; };
+	const idMaterial*		GetInfluenceMaterial() { return influenceMaterial; };
+	float					GetInfluenceRadius() { return influenceRadius; };
 
 	// server side work for in/out of spectate. takes care of spawning it into the world as well
 	void					ServerSpectate( bool spectate );
 	// for very specific usage. != GetPhysics()
-	idPhysics*				GetPlayerPhysics();
+	idPhysics*				GetPlayerPhysics() { return &physicsObj; }
 	void					TeleportDeath( int killer );
-	void					SetLeader( bool lead );
-	bool					IsLeader();
+	void					SetLeader( bool lead ) { leader = lead; }
+	bool					IsLeader() { return leader; }
 
 	void					UpdateSkinSetup();
 
@@ -727,8 +683,8 @@ public:
 	void					ReturnFlag();
 	virtual void			FreeModelDef();
 
-	bool					SelfSmooth();
-	void					SetSelfSmooth( bool b );
+	bool					SelfSmooth() { return selfSmooth; }
+	void					SetSelfSmooth( bool b ) { selfSmooth = b; }
 
 	const idAngles& 		GetViewBobAngles()
 	{
@@ -989,42 +945,8 @@ private:
 	void					Event_StopHelltime( int mode );
 	void					Event_ToggleBloom( int on );
 	void					Event_SetBloomParms( float speed, float intensity );
-};
-
-ID_INLINE bool idPlayer::IsRespawning()
-{
-	return respawning;
-}
-
-ID_INLINE idPhysics* idPlayer::GetPlayerPhysics()
-{
-	return &physicsObj;
-}
-
-ID_INLINE bool idPlayer::IsInTeleport()
-{
-	return ( teleportEntity.GetEntity() != NULL );
-}
-
-ID_INLINE void idPlayer::SetLeader( bool lead )
-{
-	leader = lead;
-}
-
-ID_INLINE bool idPlayer::IsLeader()
-{
-	return leader;
-}
-
-ID_INLINE bool idPlayer::SelfSmooth()
-{
-	return selfSmooth;
-}
-
-ID_INLINE void idPlayer::SetSelfSmooth( bool b )
-{
-	selfSmooth = b;
-}
+}; 
+//const size_t idPlayerSize = sizeof( idPlayer );
 
 extern idCVar g_infiniteAmmo;
 

@@ -36,8 +36,7 @@ object that can only be locked by one thread at a time.  It's used to prevent tw
 from accessing the same piece of data simultaneously.
 ================================================
 */
-class idSysMutex
-{
+class idSysMutex {
 public:
 	idSysMutex()
 	{
@@ -70,8 +69,7 @@ idScopedCriticalSection is a helper class that automagically locks a mutex when 
 and unlocks it when it goes out of scope.
 ================================================
 */
-class idScopedCriticalSection
-{
+class idScopedCriticalSection {
 public:
 	idScopedCriticalSection( idSysMutex& m ) : mutex( &m )
 	{
@@ -93,8 +91,7 @@ that a thread can wait on for it to be raised.  It's used to indicate data is av
 a thread has reached a specific point.
 ================================================
 */
-class idSysSignal
-{
+class idSysSignal {
 public:
 	static const int	WAIT_INFINITE = -1;
 	
@@ -137,8 +134,7 @@ idSysInterlockedInteger is a C++ wrapper for the low level system interlocked in
 routines to atomically increment or decrement an integer.
 ================================================
 */
-class idSysInterlockedInteger
-{
+class idSysInterlockedInteger {
 public:
 	idSysInterlockedInteger() : value( 0 ) {}
 	
@@ -189,8 +185,7 @@ routine to atomically set a pointer while retrieving the previous value of the p
 ================================================
 */
 template< typename T >
-class idSysInterlockedPointer
-{
+class idSysInterlockedPointer {
 public:
 	idSysInterlockedPointer() : ptr( NULL ) {}
 	
@@ -270,8 +265,7 @@ from the worker thread.
 Note that worker threads are useful on all platforms but they do not map to the SPUs on the PS3.
 ================================================
 */
-class idSysThread
-{
+class idSysThread {
 public:
 	idSysThread();
 	virtual			~idSysThread();
@@ -377,8 +371,7 @@ in that the worker threads won't automatically run on the SPUs.
 ================================================
 */
 template<class threadType>
-class idSysWorkerThreadGroup
-{
+class idSysWorkerThreadGroup {
 public:
 	idSysWorkerThreadGroup( const char* name, int numThreads,
 							xthreadPriority priority = THREAD_NORMAL,
@@ -498,8 +491,7 @@ synchronize with each other half-way through execution.
 
 ================================================
 */
-class idSysThreadSynchronizer
-{
+class idSysThreadSynchronizer {
 public:
 	static const int	WAIT_INFINITE = -1;
 	
