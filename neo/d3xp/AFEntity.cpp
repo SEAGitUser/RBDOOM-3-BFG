@@ -2796,10 +2796,10 @@ void idAFEntity_VehicleAutomated::Think()
 	// DEBUG
 	if( g_vehicleDebug.GetBool() )
 	{
-		gameRenderWorld->DebugBounds( idColor::red.ToVec4(), idBounds( idVec3( -4, -4, -4 ), idVec3( 4, 4, 4 ) ), vehicle_origin );
-		gameRenderWorld->DebugBounds( idColor::red.ToVec4(), idBounds( idVec3( -4, -4, -4 ), idVec3( 4, 4, 4 ) ), waypoint_origin );
-		gameRenderWorld->DrawText( waypoint->name.c_str(), waypoint_origin + idVec3( 0, 0, 16 ), 0.25f, idColor::yellow.ToVec4(), gameLocal.GetLocalPlayer()->viewAxis );
-		gameRenderWorld->DebugArrow( idColor::white.ToVec4(), vehicle_origin, waypoint_origin, 12.f );
+		gameRenderWorld->DebugBounds( idColor::red, idBounds( idVec3( -4, -4, -4 ), idVec3( 4, 4, 4 ) ), vehicle_origin );
+		gameRenderWorld->DebugBounds( idColor::red, idBounds( idVec3( -4, -4, -4 ), idVec3( 4, 4, 4 ) ), waypoint_origin );
+		gameRenderWorld->DrawText( waypoint->name.c_str(), waypoint_origin + idVec3( 0, 0, 16 ), 0.25f, idColor::yellow, gameLocal.GetLocalPlayer()->viewAxis );
+		gameRenderWorld->DebugArrow( idColor::white, vehicle_origin, waypoint_origin, 12.f );
 	}
 
 	// Set the final steerAngle for the vehicle

@@ -550,10 +550,10 @@ void idSoundWorldLocal::Update()
 			ref.AddPoint( idVec3( 10.0f ) );
 			
 			// draw a box
-			renderWorld->DebugBounds( idVec4( maxGain, maxGain, 1.0f, 1.0f ), ref, emitter->origin, lifetime );
+			renderWorld->DebugBounds( idColor( maxGain, maxGain, 1.0f, 1.0f ), ref, emitter->origin, lifetime );
 			if( emitter->origin != emitter->spatializedOrigin )
 			{
-				renderWorld->DebugLine( idVec4( 1.0f, 0.0f, 0.0f, 1.0f ), emitter->origin, emitter->spatializedOrigin, lifetime );
+				renderWorld->DebugLine( idColor( 1.0f, 0.0f, 0.0f, 1.0f ), emitter->origin, emitter->spatializedOrigin, lifetime );
 			}
 			
 			// draw the index
@@ -561,7 +561,7 @@ void idSoundWorldLocal::Update()
 			textPos.z -= 8;
 			temp.Clear();
 			temp.Format( "%i", e );
-			renderWorld->DrawText( temp.c_str(), textPos, 0.1f, idVec4( 1, 0, 0, 1 ), listener.axis, 1, lifetime );
+			renderWorld->DrawText( temp.c_str(), textPos, 0.1f, idColor( 1.0, 0.0, 0.0, 1.0 ), listener.axis, 1, lifetime );
 			textPos.z += 8;
 			
 			// run through all the channels
@@ -573,7 +573,7 @@ void idSoundWorldLocal::Update()
 				const char* defaulted = chan->leadinSample->IsDefault() ? " *DEFAULTED*" : "";
 				temp.Clear();
 				temp.Format( "%s (%i %i/%i)%s", chan->soundShader->GetName(), idMath::Ftoi( emitter->spatializedDistance ), idMath::Ftoi( min ), idMath::Ftoi( max ), defaulted );
-				renderWorld->DrawText( temp.c_str(), textPos, 0.1f, idVec4( 1, 0, 0, 1 ), listener.axis, 1, lifetime );
+				renderWorld->DrawText( temp.c_str(), textPos, 0.1f, idColor( 1.0, 0.0, 0.0, 1.0 ), listener.axis, 1, lifetime );
 				textPos.z += 8;
 			}
 		}

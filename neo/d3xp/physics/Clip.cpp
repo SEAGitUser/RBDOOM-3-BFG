@@ -1956,7 +1956,7 @@ void idClip::DrawClipModels( const idVec3& eye, const float radius, const idEnti
 		}
 		if( clipModel->renderModelHandle != -1 )
 		{
-			gameRenderWorld->DebugBounds( idColor::cyan.ToVec4(), clipModel->GetAbsBounds() );
+			gameRenderWorld->DebugBounds( idColor::cyan, clipModel->GetAbsBounds() );
 		}
 		else
 		{
@@ -1983,20 +1983,20 @@ bool idClip::DrawModelContactFeature( const contactInfo_t& contact, const idClip
 
 	if( winding.GetNumPoints() == 1 )
 	{
-		gameRenderWorld->DebugLine( idColor::cyan.ToVec4(), winding[ 0 ].ToVec3(), winding[ 0 ].ToVec3() + 2.0f * axis[ 0 ], lifetime );
-		gameRenderWorld->DebugLine( idColor::white.ToVec4(), winding[ 0 ].ToVec3() - 1.0f * axis[ 1 ], winding[ 0 ].ToVec3() + 1.0f * axis[ 1 ], lifetime );
-		gameRenderWorld->DebugLine( idColor::white.ToVec4(), winding[ 0 ].ToVec3() - 1.0f * axis[ 2 ], winding[ 0 ].ToVec3() + 1.0f * axis[ 2 ], lifetime );
+		gameRenderWorld->DebugLine( idColor::cyan, winding[ 0 ].ToVec3(), winding[ 0 ].ToVec3() + 2.0f * axis[ 0 ], lifetime );
+		gameRenderWorld->DebugLine( idColor::white, winding[ 0 ].ToVec3() - 1.0f * axis[ 1 ], winding[ 0 ].ToVec3() + 1.0f * axis[ 1 ], lifetime );
+		gameRenderWorld->DebugLine( idColor::white, winding[ 0 ].ToVec3() - 1.0f * axis[ 2 ], winding[ 0 ].ToVec3() + 1.0f * axis[ 2 ], lifetime );
 	}
 	else {
 		for( int i = 0; i < winding.GetNumPoints(); i++ )
 		{
-			gameRenderWorld->DebugLine( idColor::cyan.ToVec4(), winding[ i ].ToVec3(), winding[ ( i + 1 ) % winding.GetNumPoints() ].ToVec3(), lifetime );
+			gameRenderWorld->DebugLine( idColor::cyan, winding[ i ].ToVec3(), winding[ ( i + 1 ) % winding.GetNumPoints() ].ToVec3(), lifetime );
 		}
 	}
 
 	axis[ 0 ] = -axis[ 0 ];
 	axis[ 2 ] = -axis[ 2 ];
-	gameRenderWorld->DrawText( contact.material->GetName(), winding.GetCenter() - 4.0f * axis[ 2 ], 0.1f, idColor::white.ToVec4(), axis, 1, 5000 );
+	gameRenderWorld->DrawText( contact.material->GetName(), winding.GetCenter() - 4.0f * axis[ 2 ], 0.1f, idColor::white, axis, 1, 5000 );
 
 	return true;
 }

@@ -1441,7 +1441,7 @@ void idPVS::DrawPVS( const idVec3& source, const pvsType_t type ) const
 			offset = plane.Normal() * 4.0f;
 			for( k = 0; k < numPoints; k++ )
 			{
-				gameRenderWorld->DebugLine( color.ToVec4(), ( *portal.w )[k].ToVec3() + offset, ( *portal.w )[( k + 1 ) % numPoints].ToVec3() + offset );
+				gameRenderWorld->DebugLine( color, ( *portal.w )[k].ToVec3() + offset, ( *portal.w )[( k + 1 ) % numPoints].ToVec3() + offset );
 			}
 		}
 	}
@@ -1499,7 +1499,7 @@ void idPVS::DrawPVS( const idBounds& source, const pvsType_t type ) const
 			offset = plane.Normal() * 4.0f;
 			for( k = 0; k < numPoints; k++ )
 			{
-				gameRenderWorld->DebugLine( color.ToVec4(), ( *portal.w )[k].ToVec3() + offset, ( *portal.w )[( k + 1 ) % numPoints].ToVec3() + offset );
+				gameRenderWorld->DebugLine( color, ( *portal.w )[k].ToVec3() + offset, ( *portal.w )[( k + 1 ) % numPoints].ToVec3() + offset );
 			}
 		}
 	}
@@ -1554,7 +1554,7 @@ void idPVS::DrawCurrentPVS( const pvsHandle_t handle, const idVec3& source ) con
 			offset = plane.Normal() * 4.0f;
 			for( k = 0; k < numPoints; k++ )
 			{
-				gameRenderWorld->DebugLine( color.ToVec4(), ( *portal.w )[k].ToVec3() + offset, ( *portal.w )[( k + 1 ) % numPoints].ToVec3() + offset );
+				gameRenderWorld->DebugLine( color, ( *portal.w )[k].ToVec3() + offset, ( *portal.w )[( k + 1 ) % numPoints].ToVec3() + offset );
 			}
 		}
 	}

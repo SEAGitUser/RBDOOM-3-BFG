@@ -895,7 +895,7 @@ void idPhysics_Base::DrawVelocity( int id, float linearScale, float angularScale
 	{
 		dir = dir.Truncate( 10.0f );
 		org = GetOrigin( id );
-		gameRenderWorld->DebugArrow( idColor::red.ToVec4(), org, org + dir, 1 );
+		gameRenderWorld->DebugArrow( idColor::red, org, org + dir, 1 );
 	}
 	
 	dir = GetAngularVelocity( id );
@@ -924,11 +924,11 @@ void idPhysics_Base::DrawVelocity( int id, float linearScale, float angularScale
 		for( a = 20.0f; a < length; a += 20.0f )
 		{
 			end = org + idRotation( vec3_origin, dir, -a ).ToMat3() * vec;
-			gameRenderWorld->DebugLine( idColor::blue.ToVec4(), start, end, 1 );
+			gameRenderWorld->DebugLine( idColor::blue, start, end, 1 );
 			start = end;
 		}
 		end = org + idRotation( vec3_origin, dir, -length ).ToMat3() * vec;
-		gameRenderWorld->DebugArrow( idColor::blue.ToVec4(), start, end, 1 );
+		gameRenderWorld->DebugArrow( idColor::blue, start, end, 1 );
 	}
 }
 

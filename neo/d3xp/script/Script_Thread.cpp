@@ -2005,7 +2005,8 @@ idThread::Event_DebugLine
 */
 void idThread::Event_DebugLine( const idVec3& color, const idVec3& start, const idVec3& end, const float lifetime )
 {
-	gameRenderWorld->DebugLine( idVec4( color.x, color.y, color.z, 0.0f ), start, end, SEC2MS( lifetime ) );
+	idColor _color( color.x, color.y, color.z, 0.0f );
+	gameRenderWorld->DebugLine( _color, start, end, SEC2MS( lifetime ) );
 }
 
 /*
@@ -2015,7 +2016,8 @@ idThread::Event_DebugArrow
 */
 void idThread::Event_DebugArrow( const idVec3& color, const idVec3& start, const idVec3& end, const int size, const float lifetime )
 {
-	gameRenderWorld->DebugArrow( idVec4( color.x, color.y, color.z, 0.0f ), start, end, size, SEC2MS( lifetime ) );
+	idColor _color( color.x, color.y, color.z, 0.0f );
+	gameRenderWorld->DebugArrow( _color, start, end, size, SEC2MS( lifetime ) );
 }
 
 /*
@@ -2025,7 +2027,8 @@ idThread::Event_DebugCircle
 */
 void idThread::Event_DebugCircle( const idVec3& color, const idVec3& origin, const idVec3& dir, const float radius, const int numSteps, const float lifetime )
 {
-	gameRenderWorld->DebugCircle( idVec4( color.x, color.y, color.z, 0.0f ), origin, dir, radius, numSteps, SEC2MS( lifetime ) );
+	idColor _color( color.x, color.y, color.z, 0.0f );
+	gameRenderWorld->DebugCircle( _color, origin, dir, radius, numSteps, SEC2MS( lifetime ) );
 }
 
 /*
@@ -2035,7 +2038,8 @@ idThread::Event_DebugBounds
 */
 void idThread::Event_DebugBounds( const idVec3& color, const idVec3& mins, const idVec3& maxs, const float lifetime )
 {
-	gameRenderWorld->DebugBounds( idVec4( color.x, color.y, color.z, 0.0f ), idBounds( mins, maxs ), vec3_origin, SEC2MS( lifetime ) );
+	idColor _color( color.x, color.y, color.z, 0.0f );
+	gameRenderWorld->DebugBounds( _color, idBounds( mins, maxs ), vec3_origin, SEC2MS( lifetime ) );
 }
 
 /*
@@ -2045,7 +2049,8 @@ idThread::Event_DrawText
 */
 void idThread::Event_DrawText( const char* text, const idVec3& origin, float scale, const idVec3& color, const int align, const float lifetime )
 {
-	gameRenderWorld->DrawText( text, origin, scale, idVec4( color.x, color.y, color.z, 0.0f ), gameLocal.GetLocalPlayer()->viewAngles.ToMat3(), align, SEC2MS( lifetime ) );
+	idColor _color( color.x, color.y, color.z, 0.0f );
+	gameRenderWorld->DrawText( text, origin, scale, _color, gameLocal.GetLocalPlayer()->viewAngles.ToMat3(), align, SEC2MS( lifetime ) );
 }
 
 /*

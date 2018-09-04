@@ -84,8 +84,8 @@ void idCursor3D::Present()
 
 	const idVec3& origin = GetPhysics()->GetOrigin();
 	const idMat3& axis = GetPhysics()->GetAxis();
-	gameRenderWorld->DebugArrow( idColor::yellow.ToVec4(), origin + axis[ 1 ] * -5.0f + axis[ 2 ] * 5.0f, origin, 2 );
-	gameRenderWorld->DebugArrow( idColor::red.ToVec4(), origin, draggedPosition, 2 );
+	gameRenderWorld->DebugArrow( idColor::yellow, origin + axis[ 1 ] * -5.0f + axis[ 2 ] * 5.0f, origin, 2 );
+	gameRenderWorld->DebugArrow( idColor::red, origin, draggedPosition, 2 );
 }
 
 /*
@@ -292,12 +292,14 @@ void idDragEntity::Update( idPlayer* player )
 		{
 			dragAnimator->GetJointTransform( joint, gameLocal.GetGameTimeMs(), cursor->draggedPosition );
 			cursor->draggedPosition = renderEntity->origin + cursor->draggedPosition * renderEntity->axis;
-			gameRenderWorld->DrawText( va( "%s\n%s\n%s, %s", drag->GetName(), drag->GetType()->classname, dragAnimator->GetJointName( joint ), bodyName.c_str() ), cursor->GetPhysics()->GetOrigin(), 0.1f, idColor::white.ToVec4(), viewAxis, 1 );
+			gameRenderWorld->DrawText( va( "%s\n%s\n%s, %s", drag->GetName(), drag->GetType()->classname, dragAnimator->GetJointName( joint ), 
+										   bodyName.c_str() ), cursor->GetPhysics()->GetOrigin(), 0.1f, idColor::white, viewAxis, 1 );
 		}
 		else
 		{
 			cursor->draggedPosition = cursor->GetPhysics()->GetOrigin();
-			gameRenderWorld->DrawText( va( "%s\n%s\n%s", drag->GetName(), drag->GetType()->classname, bodyName.c_str() ), cursor->GetPhysics()->GetOrigin(), 0.1f, idColor::white.ToVec4(), viewAxis, 1 );
+			gameRenderWorld->DrawText( va( "%s\n%s\n%s", drag->GetName(), drag->GetType()->classname, bodyName.c_str() ), 
+									   cursor->GetPhysics()->GetOrigin(), 0.1f, idColor::white, viewAxis, 1 );
 		}
 	}
 
@@ -308,7 +310,7 @@ void idDragEntity::Update( idPlayer* player )
 		renderEntityParms_t* renderEntity = selected.GetEntity()->GetRenderEntity();
 		if( renderEntity )
 		{
-			gameRenderWorld->DebugBox( idColor::yellow.ToVec4(), idBox( renderEntity->bounds, renderEntity->origin, renderEntity->axis ) );
+			gameRenderWorld->DebugBox( idColor::yellow, idBox( renderEntity->bounds, renderEntity->origin, renderEntity->axis ) );
 		}
 	}
 }
@@ -652,10 +654,10 @@ void idEditEntities::DisplayEntities()
 
 	for( ent = gameLocal.spawnedEntities.Next(); ent != NULL; ent = ent->spawnNode.Next() )
 	{
-		idVec4 color;
+		idColor color;
 
 		textKey = "";
-		if( !EntityIsSelectable( ent, &color, &textKey ) )
+		if( !EntityIsSelectable( ent, &color.ToVec4(), &textKey ) )
 		{
 			continue;
 		}
@@ -698,23 +700,23 @@ void idEditEntities::DisplayEntities()
 		{
 			idVec3 start = ent->GetPhysics()->GetOrigin();
 			idVec3 end = start + idVec3( 1, 0, 0 ) * 20.0f;
-			gameRenderWorld->DebugArrow( idColor::white.ToVec4(), start, end, 2 );
-			gameRenderWorld->DrawText( "x+", end + idVec3( 4, 0, 0 ), 0.15f, idColor::white.ToVec4(), axis );
+			gameRenderWorld->DebugArrow( idColor::white, start, end, 2 );
+			gameRenderWorld->DrawText( "x+", end + idVec3( 4, 0, 0 ), 0.15f, idColor::white, axis );
 			end = start + idVec3( 1, 0, 0 ) * -20.0f;
-			gameRenderWorld->DebugArrow( idColor::white.ToVec4(), start, end, 2 );
-			gameRenderWorld->DrawText( "x-", end + idVec3( -4, 0, 0 ), 0.15f, idColor::white.ToVec4(), axis );
+			gameRenderWorld->DebugArrow( idColor::white, start, end, 2 );
+			gameRenderWorld->DrawText( "x-", end + idVec3( -4, 0, 0 ), 0.15f, idColor::white, axis );
 			end = start + idVec3( 0, 1, 0 ) * +20.0f;
-			gameRenderWorld->DebugArrow( idColor::green.ToVec4(), start, end, 2 );
-			gameRenderWorld->DrawText( "y+", end + idVec3( 0, 4, 0 ), 0.15f, idColor::white.ToVec4(), axis );
+			gameRenderWorld->DebugArrow( idColor::green, start, end, 2 );
+			gameRenderWorld->DrawText( "y+", end + idVec3( 0, 4, 0 ), 0.15f, idColor::white, axis );
 			end = start + idVec3( 0, 1, 0 ) * -20.0f;
-			gameRenderWorld->DebugArrow( idColor::green.ToVec4(), start, end, 2 );
-			gameRenderWorld->DrawText( "y-", end + idVec3( 0, -4, 0 ), 0.15f, idColor::white.ToVec4(), axis );
+			gameRenderWorld->DebugArrow( idColor::green, start, end, 2 );
+			gameRenderWorld->DrawText( "y-", end + idVec3( 0, -4, 0 ), 0.15f, idColor::white, axis );
 			end = start + idVec3( 0, 0, 1 ) * +20.0f;
-			gameRenderWorld->DebugArrow( idColor::blue.ToVec4(), start, end, 2 );
-			gameRenderWorld->DrawText( "z+", end + idVec3( 0, 0, 4 ), 0.15f, idColor::white.ToVec4(), axis );
+			gameRenderWorld->DebugArrow( idColor::blue, start, end, 2 );
+			gameRenderWorld->DrawText( "z+", end + idVec3( 0, 0, 4 ), 0.15f, idColor::white, axis );
 			end = start + idVec3( 0, 0, 1 ) * -20.0f;
-			gameRenderWorld->DebugArrow( idColor::blue.ToVec4(), start, end, 2 );
-			gameRenderWorld->DrawText( "z-", end + idVec3( 0, 0, -4 ), 0.15f, idColor::white.ToVec4(), axis );
+			gameRenderWorld->DebugArrow( idColor::blue, start, end, 2 );
+			gameRenderWorld->DrawText( "z-", end + idVec3( 0, 0, -4 ), 0.15f, idColor::white, axis );
 		}
 
 		if( textKey.Length() )
@@ -722,7 +724,7 @@ void idEditEntities::DisplayEntities()
 			const char* text = ent->spawnArgs.GetString( textKey );
 			if( viewTextBounds.ContainsPoint( ent->GetPhysics()->GetOrigin() ) )
 			{
-				gameRenderWorld->DrawText( text, ent->GetPhysics()->GetOrigin() + idVec3( 0, 0, 12 ), 0.25, idColor::white.ToVec4(), axis, 1 );
+				gameRenderWorld->DrawText( text, ent->GetPhysics()->GetOrigin() + idVec3( 0, 0, 12 ), 0.25, idColor::white, axis, 1 );
 			}
 		}
 	}

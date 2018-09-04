@@ -95,7 +95,7 @@ idCVar cm_drawNormals( "cm_drawNormals", "0", CVAR_GAME | CVAR_BOOL, "draw polyg
 idCVar cm_backFaceCull( "cm_backFaceCull", "0", CVAR_GAME | CVAR_BOOL, "cull back facing polygons" );
 idCVar cm_debugCollision( "cm_debugCollision", "0", CVAR_GAME | CVAR_BOOL, "debug the collision detection" );
 
-static idVec4 cm_color;
+static idColor cm_color;
 
 /*
 ================
@@ -185,14 +185,14 @@ void idCollisionModelManagerLocal::DrawEdge( cm_model_t* model, int edgeNum, con
 	{
 		if( cm_drawInternal.GetBool() )
 		{
-			common->RW()->DebugArrow( idColor::green.ToVec4(), start, end, 1 );
+			common->RW()->DebugArrow( idColor::green, start, end, 1 );
 		}
 	}
 	else
 	{
 		if( edge->numUsers > 2 )
 		{
-			common->RW()->DebugArrow( idColor::blue.ToVec4(), start, end, 1 );
+			common->RW()->DebugArrow( idColor::blue, start, end, 1 );
 		}
 		else
 		{
@@ -211,7 +211,7 @@ void idCollisionModelManagerLocal::DrawEdge( cm_model_t* model, int edgeNum, con
 		{
 			end = mid + 5 * edge->normal;
 		}
-		common->RW()->DebugArrow( idColor::cyan.ToVec4(), mid, end, 1 );
+		common->RW()->DebugArrow( idColor::cyan, mid, end, 1 );
 	}
 }
 
@@ -257,7 +257,7 @@ void idCollisionModelManagerLocal::DrawPolygon( cm_model_t* model, cm_polygon_t*
 			center += origin;
 			end = center + 5 * p->plane.Normal();
 		}
-		common->RW()->DebugArrow( idColor::magenta.ToVec4(), center, end, 1 );
+		common->RW()->DebugArrow( idColor::magenta, center, end, 1 );
 	}
 
 	if( cm_drawFilled.GetBool() )
@@ -371,7 +371,7 @@ void idCollisionModelManagerLocal::DrawModel( cmHandle_t handle, const idVec3& m
 
 	if( cm_drawColor.IsModified() )
 	{
-		sscanf( cm_drawColor.GetString(), "%f %f %f %f", &cm_color.x, &cm_color.y, &cm_color.z, &cm_color.w );
+		sscanf( cm_drawColor.GetString(), "%f %f %f %f", &cm_color.r, &cm_color.g, &cm_color.b, &cm_color.a );
 		cm_drawColor.ClearModified();
 	}
 

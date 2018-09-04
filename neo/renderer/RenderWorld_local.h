@@ -142,21 +142,21 @@ public:
 	virtual bool			FastWorldTrace( modelTrace_t&, const idVec3& start, const idVec3& end ) const;
 
 	virtual void			DebugClearLines( int time );
-	virtual void			DebugLine( const idVec4& color, const idVec3& start, const idVec3& end, const int lifetime = 0, const bool depthTest = false );
-	virtual void			DebugArrow( const idVec4& color, const idVec3& start, const idVec3& end, int size, const int lifetime = 0 );
-	virtual void			DebugWinding( const idVec4& color, const idWinding& w, const idVec3& origin, const idMat3& axis, const int lifetime = 0, const bool depthTest = false );
-	virtual void			DebugCircle( const idVec4& color, const idVec3& origin, const idVec3& dir, const float radius, const int numSteps, const int lifetime = 0, const bool depthTest = false );
-	virtual void			DebugSphere( const idVec4& color, const idSphere&, const int lifetime = 0, bool depthTest = false );
-	virtual void			DebugBounds( const idVec4& color, const idBounds&, const idVec3& org = vec3_origin, const int lifetime = 0 );
-	virtual void			DebugBox( const idVec4& color, const idBox& box, const int lifetime = 0 );
-	virtual void			DebugCone( const idVec4& color, const idVec3& apex, const idVec3& dir, float radius1, float radius2, const int lifetime = 0 );
-	virtual void			DebugScreenRect( const idVec4& color, const idScreenRect&, const idRenderView*, const int lifetime = 0 );
+	virtual void			DebugLine( const idColor& color, const idVec3& start, const idVec3& end, const int lifetime = 0, const bool depthTest = false );
+	virtual void			DebugArrow( const idColor& color, const idVec3& start, const idVec3& end, int size, const int lifetime = 0 );
+	virtual void			DebugWinding( const idColor& color, const idWinding& w, const idVec3& origin, const idMat3& axis, const int lifetime = 0, const bool depthTest = false );
+	virtual void			DebugCircle( const idColor& color, const idVec3& origin, const idVec3& dir, const float radius, const int numSteps, const int lifetime = 0, const bool depthTest = false );
+	virtual void			DebugSphere( const idColor& color, const idSphere&, const int lifetime = 0, bool depthTest = false );
+	virtual void			DebugBounds( const idColor& color, const idBounds&, const idVec3& org = vec3_origin, const int lifetime = 0 );
+	virtual void			DebugBox( const idColor& color, const idBox& box, const int lifetime = 0 );
+	virtual void			DebugCone( const idColor& color, const idVec3& apex, const idVec3& dir, float radius1, float radius2, const int lifetime = 0 );
+	virtual void			DebugScreenRect( const idColor& color, const idScreenRect&, const idRenderView*, const int lifetime = 0 );
 	virtual void			DebugAxis( const idVec3& origin, const idMat3& axis );
 
 	virtual void			DebugClearPolygons( int time );
-	virtual void			DebugPolygon( const idVec4& color, const idWinding&, const int lifeTime = 0, const bool depthTest = false );
+	virtual void			DebugPolygon( const idColor& color, const idWinding&, const int lifeTime = 0, const bool depthTest = false );
 
-	virtual void			DrawText( const char* text, const idVec3& origin, float scale, const idVec4& color, const idMat3& viewAxis, const int align = 1, const int lifetime = 0, bool depthTest = false );
+	virtual void			DrawText( const char* text, const idVec3& origin, float scale, const idColor& color, const idMat3& viewAxis, const int align = 1, const int lifetime = 0, bool depthTest = false );
 
 	//-----------------------
 

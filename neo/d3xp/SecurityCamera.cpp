@@ -238,7 +238,6 @@ void idSecurityCamera::DrawFov()
 {
 	float radius, a, s, c, halfRadius;
 	idVec3 right, up;
-	idVec4 color( 1, 0, 0, 1 ), color2( 0, 0, 1, 1 );
 	idVec3 lastPoint, point, lastHalfPoint, halfPoint, center;
 	
 	idVec3 dir = GetAxis();
@@ -260,18 +259,18 @@ void idSecurityCamera::DrawFov()
 		point = dir + right * s * radius + up * c * radius;
 		point.Normalize();
 		point = GetPhysics()->GetOrigin() + point * scanDist;
-		gameRenderWorld->DebugLine( color, lastPoint, point );
-		gameRenderWorld->DebugLine( color, GetPhysics()->GetOrigin(), point );
+		gameRenderWorld->DebugLine( idColor::red, lastPoint, point );
+		gameRenderWorld->DebugLine( idColor::red, GetPhysics()->GetOrigin(), point );
 		lastPoint = point;
 		
 		halfPoint = dir + right * s * halfRadius + up * c * halfRadius;
 		halfPoint.Normalize();
 		halfPoint = GetPhysics()->GetOrigin() + halfPoint * scanDist;
-		gameRenderWorld->DebugLine( color2, point, halfPoint );
-		gameRenderWorld->DebugLine( color2, lastHalfPoint, halfPoint );
+		gameRenderWorld->DebugLine( idColor::blue, point, halfPoint );
+		gameRenderWorld->DebugLine( idColor::blue, lastHalfPoint, halfPoint );
 		lastHalfPoint = halfPoint;
 		
-		gameRenderWorld->DebugLine( color2, halfPoint, center );
+		gameRenderWorld->DebugLine( idColor::blue, halfPoint, center );
 	}
 }
 

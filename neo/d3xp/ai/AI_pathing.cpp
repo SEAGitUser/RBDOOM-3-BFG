@@ -438,7 +438,7 @@ int GetObstacles( const idPhysics* physics, const idAAS* aas, const idEntity* ig
 			}
 			for( j = 0; j < numVerts; j++ )
 			{
-				gameRenderWorld->DebugArrow( idColor::white.ToVec4(), silVerts[ j ], silVerts[ ( j + 1 ) % numVerts ], 4 );
+				gameRenderWorld->DebugArrow( idColor::white, silVerts[ j ], silVerts[ ( j + 1 ) % numVerts ], 4 );
 			}
 		}
 
@@ -534,7 +534,7 @@ int GetObstacles( const idPhysics* physics, const idAAS* aas, const idEntity* ig
 			}
 			for( j = 0; j < obstacle.winding.GetNumPoints(); j++ )
 			{
-				gameRenderWorld->DebugArrow( idColor::green.ToVec4(), silVerts[ j ], silVerts[ ( j + 1 ) % obstacle.winding.GetNumPoints() ], 4 );
+				gameRenderWorld->DebugArrow( idColor::green, silVerts[ j ], silVerts[ ( j + 1 ) % obstacle.winding.GetNumPoints() ], 4 );
 			}
 		}
 	}
@@ -579,7 +579,7 @@ void DrawPathTree( const pathNode_t* root, const float height )
 				start.z = height;
 				end.ToVec2() = node->children[ i ]->pos;
 				end.z = height;
-				gameRenderWorld->DebugArrow( node->edgeNum == -1 ? idColor::yellow.ToVec4() : i ? idColor::blue.ToVec4() : idColor::red.ToVec4(), start, end, 1 );
+				gameRenderWorld->DebugArrow( node->edgeNum == -1 ? idColor::yellow : i ? idColor::blue : idColor::red, start, end, 1 );
 				break;
 			}
 		}
@@ -1040,7 +1040,7 @@ bool FindOptimalPath( const pathNode_t* root, const obstacle_t* obstacles, int n
 			{
 				start.ToVec2() = optimizedPath[ i ];
 				end.ToVec2() = optimizedPath[ i + 1 ];
-				gameRenderWorld->DebugArrow( idColor::cyan.ToVec4(), start, end, 1 );
+				gameRenderWorld->DebugArrow( idColor::cyan, start, end, 1 );
 			}
 		}
 	}
@@ -1240,7 +1240,7 @@ bool PathTrace( const idEntity* ent, const idAAS* aas, const idVec3& start, cons
 
 						if( ai_debugMove.GetBool() )
 						{
-							gameRenderWorld->DebugLine( idColor::red.ToVec4(), start, aasTrace.endpos );
+							gameRenderWorld->DebugLine( idColor::red, start, aasTrace.endpos );
 						}
 						return true;
 					}
@@ -1256,7 +1256,7 @@ bool PathTrace( const idEntity* ent, const idAAS* aas, const idVec3& start, cons
 
 						if( ai_debugMove.GetBool() )
 						{
-							gameRenderWorld->DebugLine( idColor::red.ToVec4(), start, aasTrace.endpos );
+							gameRenderWorld->DebugLine( idColor::red, start, aasTrace.endpos );
 						}
 						return true;
 					}
@@ -1377,7 +1377,7 @@ bool idAI::PredictPath( const idEntity* ent, const idAAS* aas, const idVec3& sta
 
 							if( ai_debugMove.GetBool() )
 							{
-								gameRenderWorld->DebugLine( idColor::red.ToVec4(), lineStart, lastEnd );
+								gameRenderWorld->DebugLine( idColor::red, lineStart, lastEnd );
 							}
 
 							return true;
@@ -1413,7 +1413,7 @@ bool idAI::PredictPath( const idEntity* ent, const idAAS* aas, const idVec3& sta
 
 			if( ai_debugMove.GetBool() )
 			{
-				gameRenderWorld->DebugLine( idColor::red.ToVec4(), lineStart, curStart );
+				gameRenderWorld->DebugLine( idColor::red, lineStart, curStart );
 			}
 
 			if( trace.fraction >= 1.0f )
@@ -1585,7 +1585,7 @@ bool idAI::TestTrajectory( const idVec3& start, const idVec3& end, float zVel, f
 	{
 		for( i = 0; i < numSegments; i++ )
 		{
-			gameRenderWorld->DebugLine( idColor::red.ToVec4(), points[ i ], points[ i + 1 ], drawtime );
+			gameRenderWorld->DebugLine( idColor::red, points[ i ], points[ i + 1 ], drawtime );
 		}
 	}
 
@@ -1620,12 +1620,12 @@ bool idAI::TestTrajectory( const idVec3& start, const idVec3& end, float zVel, f
 	{
 		if( clip )
 		{
-			gameRenderWorld->DebugBounds( result ? idColor::green.ToVec4() : idColor::yellow.ToVec4(), clip->GetBounds().Expand( 1.0f ), trace.endpos, drawtime );
+			gameRenderWorld->DebugBounds( result ? idColor::green : idColor::yellow, clip->GetBounds().Expand( 1.0f ), trace.endpos, drawtime );
 		}
 		else {
 			idBounds bnds( trace.endpos );
 			bnds.ExpandSelf( 1.0f );
-			gameRenderWorld->DebugBounds( result ? idColor::green.ToVec4() : idColor::yellow.ToVec4(), bnds, vec3_zero, drawtime );
+			gameRenderWorld->DebugBounds( result ? idColor::green : idColor::yellow, bnds, vec3_zero, drawtime );
 		}
 	}
 
@@ -1673,10 +1673,10 @@ bool idAI::PredictTrajectory( const idVec3& firePos, const idVec3& target, float
 
 		if( drawtime )
 		{
-			gameRenderWorld->DebugLine( idColor::red.ToVec4(), firePos, target, drawtime );
+			gameRenderWorld->DebugLine( idColor::red, firePos, target, drawtime );
 			idBounds bnds( trace.endpos );
 			bnds.ExpandSelf( 1.0f );
-			gameRenderWorld->DebugBounds( ( trace.fraction >= 1.0f || ( gameLocal.GetTraceEntity( trace ) == targetEntity ) ) ? idColor::green.ToVec4() : idColor::yellow.ToVec4(), bnds, vec3_zero, drawtime );
+			gameRenderWorld->DebugBounds( ( trace.fraction >= 1.0f || ( gameLocal.GetTraceEntity( trace ) == targetEntity ) ) ? idColor::green : idColor::yellow, bnds, vec3_zero, drawtime );
 		}
 
 		return ( trace.fraction >= 1.0f || ( gameLocal.GetTraceEntity( trace ) == targetEntity ) );
@@ -1727,7 +1727,7 @@ bool idAI::PredictTrajectory( const idVec3& firePos, const idVec3& target, float
 			{
 				pos += velocity * t;
 				velocity += projGravity * t;
-				gameRenderWorld->DebugLine( idColor::cyan.ToVec4(), lastPos, pos );
+				gameRenderWorld->DebugLine( idColor::cyan, lastPos, pos );
 				lastPos = pos;
 			}
 		}

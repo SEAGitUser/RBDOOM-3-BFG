@@ -56,9 +56,9 @@ void idRenderWorldLocal::DebugClearLines( int time )
 idRenderWorldLocal::DebugLine
 ====================
 */
-void idRenderWorldLocal::DebugLine( const idVec4& color, const idVec3& start, const idVec3& end, const int lifetime, const bool depthTest )
+void idRenderWorldLocal::DebugLine( const idColor& color, const idVec3& start, const idVec3& end, const int lifetime, const bool depthTest )
 {
-	RB_AddDebugLine( color, start, end, lifetime, depthTest );
+	RB_AddDebugLine( color.ToVec4(), start, end, lifetime, depthTest );
 }
 
 /*
@@ -66,7 +66,7 @@ void idRenderWorldLocal::DebugLine( const idVec4& color, const idVec3& start, co
 idRenderWorldLocal::DebugArrow
 ================
 */
-void idRenderWorldLocal::DebugArrow( const idVec4& color, const idVec3& start, const idVec3& end, int size, const int lifetime )
+void idRenderWorldLocal::DebugArrow( const idColor& color, const idVec3& start, const idVec3& end, int size, const int lifetime )
 {
 	idVec3 forward, right, up, v1, v2;
 	float a, s;
@@ -120,7 +120,7 @@ void idRenderWorldLocal::DebugArrow( const idVec4& color, const idVec3& start, c
 idRenderWorldLocal::DebugWinding
 ====================
 */
-void idRenderWorldLocal::DebugWinding( const idVec4& color, const idWinding& w, const idVec3& origin, const idMat3& axis, const int lifetime, const bool depthTest )
+void idRenderWorldLocal::DebugWinding( const idColor& color, const idWinding& w, const idVec3& origin, const idMat3& axis, const int lifetime, const bool depthTest )
 {
 	if( w.GetNumPoints() < 2 )
 		return;
@@ -139,7 +139,7 @@ void idRenderWorldLocal::DebugWinding( const idVec4& color, const idWinding& w, 
 idRenderWorldLocal::DebugCircle
 ====================
 */
-void idRenderWorldLocal::DebugCircle( const idVec4& color, const idVec3& origin, const idVec3& dir, const float radius, const int numSteps, const int lifetime, const bool depthTest )
+void idRenderWorldLocal::DebugCircle( const idColor& color, const idVec3& origin, const idVec3& dir, const float radius, const int numSteps, const int lifetime, const bool depthTest )
 {
 	float s, c;
 	idVec3 left, up, point, lastPoint;
@@ -162,7 +162,7 @@ void idRenderWorldLocal::DebugCircle( const idVec4& color, const idVec3& origin,
 idRenderWorldLocal::DebugSphere
 ============
 */
-void idRenderWorldLocal::DebugSphere( const idVec4& color, const idSphere& sphere, const int lifetime, const bool depthTest /*_D3XP*/ )
+void idRenderWorldLocal::DebugSphere( const idColor& color, const idSphere& sphere, const int lifetime, const bool depthTest /*_D3XP*/ )
 {
 	int i, j, n;
 	float s, c, ss, cc;
@@ -203,7 +203,7 @@ void idRenderWorldLocal::DebugSphere( const idVec4& color, const idSphere& spher
 idRenderWorldLocal::DebugBounds
 ====================
 */
-void idRenderWorldLocal::DebugBounds( const idVec4& color, const idBounds& bounds, const idVec3& org, const int lifetime )
+void idRenderWorldLocal::DebugBounds( const idColor& color, const idBounds& bounds, const idVec3& org, const int lifetime )
 {
 	if( bounds.IsCleared() )
 	{
@@ -231,7 +231,7 @@ void idRenderWorldLocal::DebugBounds( const idVec4& color, const idBounds& bound
 idRenderWorldLocal::DebugBox
 ====================
 */
-void idRenderWorldLocal::DebugBox( const idVec4& color, const idBox& box, const int lifetime )
+void idRenderWorldLocal::DebugBox( const idColor& color, const idBox& box, const int lifetime )
 {
 	idVec3 v[ 8 ];
 	box.ToPoints( v );
@@ -252,7 +252,7 @@ radius1 is the radius at the apex
 radius2 is the radius at apex+dir
 ============
 */
-void idRenderWorldLocal::DebugCone( const idVec4& color, const idVec3& apex, const idVec3& dir, float radius1, float radius2, const int lifetime )
+void idRenderWorldLocal::DebugCone( const idColor& color, const idVec3& apex, const idVec3& dir, float radius1, float radius2, const int lifetime )
 {
 	float s, c;
 	idMat3 axis;
@@ -304,17 +304,17 @@ void idRenderWorldLocal::DebugAxis( const idVec3& origin, const idMat3& axis )
 {
 	idVec3 start = origin;
 	idVec3 end = start + axis[ 0 ] * 20.0f;
-	DebugArrow( idColor::white.ToVec4(), start, end, 2 );
+	DebugArrow( idColor::white, start, end, 2 );
 	end = start + axis[ 0 ] * -20.0f;
-	DebugArrow( idColor::white.ToVec4(), start, end, 2 );
+	DebugArrow( idColor::white, start, end, 2 );
 	end = start + axis[ 1 ] * +20.0f;
-	DebugArrow( idColor::green.ToVec4(), start, end, 2 );
+	DebugArrow( idColor::green, start, end, 2 );
 	end = start + axis[ 1 ] * -20.0f;
-	DebugArrow( idColor::green.ToVec4(), start, end, 2 );
+	DebugArrow( idColor::green, start, end, 2 );
 	end = start + axis[ 2 ] * +20.0f;
-	DebugArrow( idColor::blue.ToVec4(), start, end, 2 );
+	DebugArrow( idColor::blue, start, end, 2 );
 	end = start + axis[ 2 ] * -20.0f;
-	DebugArrow( idColor::blue.ToVec4(), start, end, 2 );
+	DebugArrow( idColor::blue, start, end, 2 );
 }
 
 /*
@@ -332,9 +332,9 @@ void idRenderWorldLocal::DebugClearPolygons( int time )
 idRenderWorldLocal::DebugPolygon
 ====================
 */
-void idRenderWorldLocal::DebugPolygon( const idVec4& color, const idWinding& winding, const int lifeTime, const bool depthTest )
+void idRenderWorldLocal::DebugPolygon( const idColor& color, const idWinding& winding, const int lifeTime, const bool depthTest )
 {
-	RB_AddDebugPolygon( color, winding, lifeTime, depthTest );
+	RB_AddDebugPolygon( color.ToVec4(), winding, lifeTime, depthTest );
 }
 
 /*
@@ -342,7 +342,7 @@ void idRenderWorldLocal::DebugPolygon( const idVec4& color, const idWinding& win
 idRenderWorldLocal::DebugScreenRect
 ================
 */
-void idRenderWorldLocal::DebugScreenRect( const idVec4& color, const idScreenRect& rect, const idRenderView* viewDef, const int lifetime )
+void idRenderWorldLocal::DebugScreenRect( const idColor& color, const idScreenRect& rect, const idRenderView* viewDef, const int lifetime )
 {
 	idBounds bounds;
 	idVec3 p[ 4 ];

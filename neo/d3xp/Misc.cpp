@@ -408,7 +408,7 @@ void idPathCorner::DrawDebugInfo()
 		}
 		
 		idVec3 org = ent->GetPhysics()->GetOrigin();
-		gameRenderWorld->DebugBounds( idColor::red.ToVec4(), bnds, org, 0 );
+		gameRenderWorld->DebugBounds( idColor::red, bnds, org, 0 );
 	}
 }
 
@@ -762,7 +762,7 @@ void idSpring::Think()
 			end = origin + p2 * axis;
 		}
 		
-		gameRenderWorld->DebugLine( idVec4( 1, 1, 0, 1 ), start, end, 0, true );
+		gameRenderWorld->DebugLine( idColor::yellow, start, end, 0, true );
 	}
 	
 	Present();
@@ -2420,12 +2420,12 @@ void idTextEntity::Think()
 {
 	if( thinkFlags & TH_THINK )
 	{
-		gameRenderWorld->DrawText( text, GetPhysics()->GetOrigin(), 0.25, idColor::white.ToVec4(), playerOriented ? gameLocal.GetLocalPlayer()->viewAngles.ToMat3() : GetPhysics()->GetAxis().Transpose(), 1 );
+		gameRenderWorld->DrawText( text, GetPhysics()->GetOrigin(), 0.25, idColor::white, playerOriented ? gameLocal.GetLocalPlayer()->viewAngles.ToMat3() : GetPhysics()->GetAxis().Transpose(), 1 );
 		for( int i = 0; i < targets.Num(); i++ )
 		{
 			if( targets[i].GetEntity() )
 			{
-				gameRenderWorld->DebugArrow( idColor::blue.ToVec4(), GetPhysics()->GetOrigin(), targets[i].GetEntity()->GetPhysics()->GetOrigin(), 1 );
+				gameRenderWorld->DebugArrow( idColor::blue, GetPhysics()->GetOrigin(), targets[i].GetEntity()->GetPhysics()->GetOrigin(), 1 );
 			}
 		}
 	}
@@ -3969,7 +3969,7 @@ void idShockwave::Think()
 		
 		if( g_debugShockwave.GetBool() )
 		{
-			gameRenderWorld->DebugBounds( idColor::red.ToVec4(),  bounds, vec3_origin );
+			gameRenderWorld->DebugBounds( idColor::red,  bounds, vec3_origin );
 		}
 		
 		listedClipModels = gameLocal.clip.ClipModelsTouchingBounds( bounds, -1, clipModelList, MAX_GENTITIES );

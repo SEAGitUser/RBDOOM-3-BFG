@@ -491,22 +491,22 @@ public:
 
 	// Line drawing for debug visualization
 	virtual void			DebugClearLines( int time ) = 0;		// a time of 0 will clear all lines and text
-	virtual void			DebugLine( const idVec4& color, const idVec3& start, const idVec3& end, const int lifetime = 0, const bool depthTest = false ) = 0;
-	virtual void			DebugArrow( const idVec4& color, const idVec3& start, const idVec3& end, int size, const int lifetime = 0 ) = 0;
-	virtual void			DebugWinding( const idVec4& color, const idWinding& w, const idVec3& origin, const idMat3& axis, const int lifetime = 0, const bool depthTest = false ) = 0;
-	virtual void			DebugCircle( const idVec4& color, const idVec3& origin, const idVec3& dir, const float radius, const int numSteps, const int lifetime = 0, const bool depthTest = false ) = 0;
-	virtual void			DebugSphere( const idVec4& color, const idSphere& sphere, const int lifetime = 0, bool depthTest = false ) = 0;
-	virtual void			DebugBounds( const idVec4& color, const idBounds& bounds, const idVec3& org = vec3_origin, const int lifetime = 0 ) = 0;
-	virtual void			DebugBox( const idVec4& color, const idBox& box, const int lifetime = 0 ) = 0;
-	virtual void			DebugCone( const idVec4& color, const idVec3& apex, const idVec3& dir, float radius1, float radius2, const int lifetime = 0 ) = 0;
+	virtual void			DebugLine( const idColor& color, const idVec3& start, const idVec3& end, const int lifetime = 0, const bool depthTest = false ) = 0;
+	virtual void			DebugArrow( const idColor& color, const idVec3& start, const idVec3& end, int size, const int lifetime = 0 ) = 0;
+	virtual void			DebugWinding( const idColor& color, const idWinding& w, const idVec3& origin, const idMat3& axis, const int lifetime = 0, const bool depthTest = false ) = 0;
+	virtual void			DebugCircle( const idColor& color, const idVec3& origin, const idVec3& dir, const float radius, const int numSteps, const int lifetime = 0, const bool depthTest = false ) = 0;
+	virtual void			DebugSphere( const idColor& color, const idSphere& sphere, const int lifetime = 0, bool depthTest = false ) = 0;
+	virtual void			DebugBounds( const idColor& color, const idBounds& bounds, const idVec3& org = vec3_origin, const int lifetime = 0 ) = 0;
+	virtual void			DebugBox( const idColor& color, const idBox& box, const int lifetime = 0 ) = 0;
+	virtual void			DebugCone( const idColor& color, const idVec3& apex, const idVec3& dir, float radius1, float radius2, const int lifetime = 0 ) = 0;
 	virtual void			DebugAxis( const idVec3& origin, const idMat3& axis ) = 0;
 
 	// Polygon drawing for debug visualization.
 	virtual void			DebugClearPolygons( int time ) = 0;		// a time of 0 will clear all polygons
-	virtual void			DebugPolygon( const idVec4& color, const idWinding& winding, const int lifeTime = 0, const bool depthTest = false ) = 0;
+	virtual void			DebugPolygon( const idColor& color, const idWinding& winding, const int lifeTime = 0, const bool depthTest = false ) = 0;
 
 	// Text drawing for debug visualization.
-	virtual void			DrawText( const char* text, const idVec3& origin, float scale, const idVec4& color, const idMat3& viewAxis, const int align = 1, const int lifetime = 0, bool depthTest = false ) = 0;
+	virtual void			DrawText( const char* text, const idVec3& origin, float scale, const idColor& color, const idMat3& viewAxis, const int align = 1, const int lifetime = 0, bool depthTest = false ) = 0;
 };
 
 #endif /* !__RENDERWORLD_H__ */

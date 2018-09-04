@@ -531,3 +531,149 @@ LONG WINAPI MainWndProc( HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam )
 	
 	return ::DefWindowProc( hWnd, uMsg, wParam, lParam );
 }
+
+
+
+
+
+////////////////////////////////////////////////////////////////////////
+// Displaying a Splash Screen
+////////////////////////////////////////////////////////////////////////
+#if 0
+// Window Class name
+const TCHAR * c_szSplashClass = TEXT( "SplashWindow" );
+#define IDI_SPLASHICON 0
+
+// Registers a window class for the splash and splash owner windows.
+void RegisterWindowClass()
+{
+	WNDCLASS wc = { 0 };
+	wc.lpfnWndProc = ::DefWindowProc;
+	wc.hInstance = win32.hInstance;
+	wc.hIcon = ::LoadIcon( win32.hInstance, MAKEINTRESOURCE( IDI_SPLASHICON ) );
+	wc.hCursor = ::LoadCursor( NULL, IDC_ARROW );
+	wc.lpszClassName = c_szSplashClass;
+	::RegisterClass( &wc );
+}
+
+// Creates the splash owner window and the splash window.
+HWND CreateSplashWindow()
+{
+	HWND hwndOwner = ::CreateWindow( c_szSplashClass, NULL, WS_POPUP,
+									 0, 0, 0, 0, NULL, NULL, win32.hInstance, NULL );
+	return ::CreateWindowEx( WS_EX_LAYERED, c_szSplashClass, NULL, WS_POPUP | WS_VISIBLE,
+							 0, 0, 0, 0, hwndOwner, NULL, win32.hInstance, NULL );
+}
+
+// Calls UpdateLayeredWindow to set a bitmap (with alpha) as the content of the splash window.
+void SetSplashImage( HWND hwndSplash, HBITMAP hbmpSplash )
+{
+	// get the size of the bitmap
+	BITMAP bm;
+	::GetObject( hbmpSplash, sizeof( bm ), &bm );
+	SIZE sizeSplash = { bm.bmWidth, bm.bmHeight };
+
+	// get the primary monitor's info
+	POINT ptZero = { 0 };
+	HMONITOR hmonPrimary = ::MonitorFromPoint( ptZero, MONITOR_DEFAULTTOPRIMARY );
+	MONITORINFO monitorinfo = { 0 };
+	monitorinfo.cbSize = sizeof( monitorinfo );
+	::GetMonitorInfo( hmonPrimary, &monitorinfo );
+
+	// center the splash screen in the middle of the primary work area
+	const RECT & rcWork = monitorinfo.rcWork;
+	POINT ptOrigin = {
+		rcWork.left + ( rcWork.right - rcWork.left - sizeSplash.cx ) / 2,
+		rcWork.top + ( rcWork.bottom - rcWork.top - sizeSplash.cy ) / 2
+	};
+
+	// create a memory DC holding the splash bitmap
+	HDC hdcScreen = ::GetDC( NULL );
+	HDC hdcMem = ::CreateCompatibleDC( hdcScreen );
+	HBITMAP hbmpOld = ( HBITMAP )::SelectObject( hdcMem, hbmpSplash );
+
+	// use the source image's alpha channel for blending
+	BLENDFUNCTION blend = { 0 };
+	blend.BlendOp = AC_SRC_OVER;
+	blend.SourceConstantAlpha = 255;
+	blend.AlphaFormat = AC_SRC_ALPHA;
+
+	// paint the window (in the right location) with the alpha-blended bitmap
+	::UpdateLayeredWindow( hwndSplash, hdcScreen, &ptOrigin, &sizeSplash,
+						 hdcMem, &ptZero, RGB( 0, 0, 0 ), &blend, ULW_ALPHA );
+
+	// delete temporary objects
+	::SelectObject( hdcMem, hbmpOld );
+	::DeleteDC( hdcMem );
+	::ReleaseDC( NULL, hdcScreen );
+
+	/////////////////////////////
+
+	// create the named close splash screen event, making sure we're the first process to create it
+	SetLastError( ERROR_SUCCESS );
+	HANDLE hCloseSplashEvent = CreateEvent( NULL, TRUE, FALSE, TEXT( "CloseSplashScreenEvent" ) );
+	if( GetLastError() == ERROR_ALREADY_EXISTS )
+		ExitProcess( 0 );
+}
+
+void Test()
+{
+	HANDLE hCloseSplashEvent;
+
+	// call LoadSplashImage() etc.
+	// call SetSplashImage() etc.
+
+	// launch the WPF application
+	HANDLE hProcess ;//= LaunchWpfApplication();
+	AllowSetForegroundWindow( GetProcessId( hProcess ) );
+
+	// display the splash screen for as long as it's needed
+	HANDLE aHandles[ 2 ] = { hProcess, hCloseSplashEvent };
+	PumpMsgWaitForMultipleObjects( 2, &aHandles[ 0 ], INFINITE );
+}
+
+/* 
+The PumpMsgWaitForMultipleObjects method has not yet been defined. It’s similar (in API) to the Win32 WaitForMultipleObjects function, 
+but it also dispatches window messages as they arrive. Since we have created a window on this thread, running a message pump is essential. 
+We use MsgWaitForMultipleObjects to wait for either of two HANDLEs while also being woken up when a window message arrives. 
+(Note that this implementation is more generic than is necessary in this example: the timeout is always INFINITE, 
+and there’s no outer message loop that would need to reprocess the WM_QUIT message.)
+*/
+ID_INLINE DWORD PumpMsgWaitForMultipleObjects( DWORD nCount, LPHANDLE pHandles, DWORD dwMilliseconds )
+{
+	// useful variables
+	const DWORD dwStartTickCount = ::GetTickCount();
+	for(;;) // loop until done
+	{
+		// calculate timeout
+		const DWORD dwElapsed = ::GetTickCount() - dwStartTickCount;
+		const DWORD dwTimeout = dwMilliseconds == INFINITE ? INFINITE : dwElapsed < dwMilliseconds ? dwMilliseconds - dwElapsed : 0;
+
+		// wait for a handle to be signaled or a message
+		const DWORD dwWaitResult = ::MsgWaitForMultipleObjects( nCount, pHandles, FALSE, dwTimeout, QS_ALLINPUT );
+		if( dwWaitResult == WAIT_OBJECT_0 + nCount )
+		{
+			// pump messages
+			MSG msg;
+			while( ::PeekMessage( &msg, NULL, 0, 0, PM_REMOVE ) != FALSE )
+			{
+				// check for WM_QUIT
+				if( msg.message == WM_QUIT )
+				{
+					// repost quit message and return
+					::PostQuitMessage( ( int ) msg.wParam );
+					return WAIT_OBJECT_0 + nCount;
+				}
+
+				// dispatch thread message
+				::TranslateMessage( &msg );
+				::DispatchMessage( &msg );
+			}
+		}
+		else {
+			// timeout on actual wait or any other object
+			return dwWaitResult;
+		}
+	}
+}
+#endif

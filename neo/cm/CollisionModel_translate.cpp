@@ -948,7 +948,7 @@ void idCollisionModelManagerLocal::Translation( trace_t* results, const idVec3& 
 		results->c.point = start;
 		if( common->RW() )
 		{
-			common->RW()->DebugArrow( idColor::red.ToVec4(), start, end, 1 );
+			common->RW()->DebugArrow( idColor::red, start, end, 1 );
 		}
 		common->Printf( "idCollisionModelManagerLocal::Translation: huge translation\n" );
 		return;

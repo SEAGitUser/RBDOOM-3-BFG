@@ -3235,13 +3235,13 @@ void idGameLocal::ShowTargets()
 			continue;
 		}
 
-		gameRenderWorld->DebugBounds( ( ent->IsHidden() ? idColor::ltGrey.ToVec4() : idColor::orange.ToVec4() ) * frac, ent->GetPhysics()->GetAbsBounds() );
+		gameRenderWorld->DebugBounds( ( ent->IsHidden() ? idColor::ltGrey : idColor::orange ) * frac, ent->GetPhysics()->GetAbsBounds() );
 		if( viewTextBounds.IntersectsBounds( ent->GetPhysics()->GetAbsBounds() ) )
 		{
 			idVec3 center = ent->GetPhysics()->GetAbsBounds().GetCenter();
-			gameRenderWorld->DrawText( ent->name.c_str(), center - up, 0.1f, idColor::white.ToVec4() * frac, axis, 1 );
-			gameRenderWorld->DrawText( ent->GetEntityDefName(), center, 0.1f, idColor::white.ToVec4() * frac, axis, 1 );
-			gameRenderWorld->DrawText( va( "#%d", ent->entityNumber ), center + up, 0.1f, idColor::white.ToVec4() * frac, axis, 1 );
+			gameRenderWorld->DrawText( ent->name.c_str(), center - up, 0.1f, idColor::white * frac, axis, 1 );
+			gameRenderWorld->DrawText( ent->GetEntityDefName(), center, 0.1f, idColor::white * frac, axis, 1 );
+			gameRenderWorld->DrawText( va( "#%d", ent->entityNumber ), center + up, 0.1f, idColor::white * frac, axis, 1 );
 		}
 
 		for( i = 0; i < ent->targets.Num(); i++ )
@@ -3249,8 +3249,8 @@ void idGameLocal::ShowTargets()
 			target = ent->targets[ i ].GetEntity();
 			if( target )
 			{
-				gameRenderWorld->DebugArrow( idColor::yellow.ToVec4() * frac, ent->GetPhysics()->GetAbsBounds().GetCenter(), target->GetPhysics()->GetOrigin(), 10, 0 );
-				gameRenderWorld->DebugBounds( idColor::green.ToVec4() * frac, box, target->GetPhysics()->GetOrigin() );
+				gameRenderWorld->DebugArrow( idColor::yellow * frac, ent->GetPhysics()->GetAbsBounds().GetCenter(), target->GetPhysics()->GetOrigin(), 10, 0 );
+				gameRenderWorld->DebugBounds( idColor::green * frac, box, target->GetPhysics()->GetOrigin() );
 			}
 		}
 	}
@@ -3300,31 +3300,31 @@ void idGameLocal::RunDebugInfo()
 			int contents = ent->GetPhysics()->GetContents();
 			if( contents & CONTENTS_BODY )
 			{
-				gameRenderWorld->DebugBounds( idColor::cyan.ToVec4(), entBounds );
+				gameRenderWorld->DebugBounds( idColor::cyan, entBounds );
 			}
 			else if( contents & CONTENTS_TRIGGER )
 			{
-				gameRenderWorld->DebugBounds( idColor::orange.ToVec4(), entBounds );
+				gameRenderWorld->DebugBounds( idColor::orange, entBounds );
 			}
 			else if( contents & CONTENTS_SOLID )
 			{
-				gameRenderWorld->DebugBounds( idColor::green.ToVec4(), entBounds );
+				gameRenderWorld->DebugBounds( idColor::green, entBounds );
 			}
 			else
 			{
 				if( !entBounds.GetVolume() )
 				{
-					gameRenderWorld->DebugBounds( idColor::mdGrey.ToVec4(), entBounds.Expand( 8.0f ) );
+					gameRenderWorld->DebugBounds( idColor::mdGrey, entBounds.Expand( 8.0f ) );
 				}
 				else
 				{
-					gameRenderWorld->DebugBounds( idColor::mdGrey.ToVec4(), entBounds );
+					gameRenderWorld->DebugBounds( idColor::mdGrey, entBounds );
 				}
 			}
 			if( viewTextBounds.IntersectsBounds( entBounds ) )
 			{
-				gameRenderWorld->DrawText( ent->name.c_str(), entBounds.GetCenter(), 0.1f, idColor::white.ToVec4(), axis, 1 );
-				gameRenderWorld->DrawText( va( "#%d", ent->entityNumber ), entBounds.GetCenter() + up, 0.1f, idColor::white.ToVec4(), axis, 1 );
+				gameRenderWorld->DrawText( ent->name.c_str(), entBounds.GetCenter(), 0.1f, idColor::white, axis, 1 );
+				gameRenderWorld->DrawText( va( "#%d", ent->entityNumber ), entBounds.GetCenter() + up, 0.1f, idColor::white, axis, 1 );
 			}
 		}
 	}
@@ -3342,11 +3342,11 @@ void idGameLocal::RunDebugInfo()
 			}
 			if( ent->fl.isDormant )
 			{
-				gameRenderWorld->DebugBounds( idColor::yellow.ToVec4(), b, ent->GetPhysics()->GetOrigin() );
+				gameRenderWorld->DebugBounds( idColor::yellow, b, ent->GetPhysics()->GetOrigin() );
 			}
 			else
 			{
-				gameRenderWorld->DebugBounds( idColor::green.ToVec4(), b, ent->GetPhysics()->GetOrigin() );
+				gameRenderWorld->DebugBounds( idColor::green, b, ent->GetPhysics()->GetOrigin() );
 			}
 		}
 	}

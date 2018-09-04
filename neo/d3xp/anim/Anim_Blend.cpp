@@ -4205,7 +4205,6 @@ bool idAnimator::GetJointLocalTransform( jointHandle_t jointHandle, int currentT
 
 	return true;
 }
-
 /*
 =====================
 idAnimator::GetJointLocalTransform

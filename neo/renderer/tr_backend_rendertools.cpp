@@ -999,8 +999,8 @@ static void RB_ShowSurfaceInfo( const drawSurf_t * const * drawSurfs, int numDra
 	// transform the object verts into global space
 	// R_AxisToModelMatrix( mt.entity->axis, mt.entity->origin, matrix );
 
-	tr.primaryWorld->DrawText( surfModelName, surfPoint + tr.primaryView->GetAxis()[2] * 12.0f, 0.35f, idColor::red.ToVec4(), tr.primaryView->GetAxis() );
-	tr.primaryWorld->DrawText( surfMatName, surfPoint,  0.35f, idColor::blue.ToVec4(), tr.primaryView->GetAxis() );
+	tr.primaryWorld->DrawText( surfModelName, surfPoint + tr.primaryView->GetAxis()[2] * 12.0f, 0.35f, idColor::red, tr.primaryView->GetAxis() );
+	tr.primaryWorld->DrawText( surfMatName, surfPoint,  0.35f, idColor::blue, tr.primaryView->GetAxis() );
 }
 
 static void RB_ShowSurfaceInfo2( const drawSurf_t * const * drawSurfs, int numDrawSurfs )
@@ -1018,8 +1018,8 @@ static void RB_ShowSurfaceInfo2( const drawSurf_t * const * drawSurfs, int numDr
 		GL_PolygonOffset( -1, -2 );
 		GL_State( GLS_DEPTHFUNC_ALWAYS | GLS_POLYMODE_LINE | GLS_POLYGON_OFFSET );
 
-		tr.primaryWorld->DrawText( mt.entity->hModel->Name(), mt.point + tr.primaryView->GetAxis()[ 2 ] * 12.0f, 0.35f, idColor::red.ToVec4(), tr.primaryView->GetAxis() );
-		tr.primaryWorld->DrawText( mt.material->GetName(), mt.point, 0.35f, idColor::blue.ToVec4(), tr.primaryView->GetAxis() );
+		tr.primaryWorld->DrawText( mt.entity->hModel->Name(), mt.point + tr.primaryView->GetAxis()[ 2 ] * 12.0f, 0.35f, idColor::red, tr.primaryView->GetAxis() );
+		tr.primaryWorld->DrawText( mt.material->GetName(), mt.point, 0.35f, idColor::blue, tr.primaryView->GetAxis() );
 	}
 }
 
@@ -1074,7 +1074,7 @@ static void RB_ShowViewEntitys( viewModel_t* vModels )
 
 		// draw the model bounds in white if directly visible,
 		// or, blue if it is only-for-sahdow
-		idVec4	color;
+		idColor	color;
 		if( edef->IsDirectlyVisible() )
 		{
 			color.Set( 1, 1, 1, 1 );
@@ -1082,7 +1082,7 @@ static void RB_ShowViewEntitys( viewModel_t* vModels )
 		else {
 			color.Set( 0, 0, 1, 1 );
 		}
-		renderProgManager.SetColorParm( color[0], color[1], color[2] );
+		renderProgManager.SetColorParm( color.r, color.g, color.b );
 
 		RB_DrawBounds( edef->localReferenceBounds, vModel->modelMatrix );
 

@@ -2411,8 +2411,8 @@ void idWeapon::AlertMonsters()
 	gameLocal.clip.TracePoint( tr, muzzleFlash.origin, end, CONTENTS_OPAQUE | MASK_SHOT_RENDERMODEL | CONTENTS_FLASHLIGHT_TRIGGER, owner );
 	if( g_debugWeapon.GetBool() )
 	{
-		gameRenderWorld->DebugLine( idColor::yellow.ToVec4(), muzzleFlash.origin, end, 0 );
-		gameRenderWorld->DebugArrow( idColor::green.ToVec4(), muzzleFlash.origin, tr.endpos, 2, 0 );
+		gameRenderWorld->DebugLine( idColor::yellow, muzzleFlash.origin, end, 0 );
+		gameRenderWorld->DebugArrow( idColor::green, muzzleFlash.origin, tr.endpos, 2, 0 );
 	}
 
 	if( tr.fraction < 1.0f )
@@ -2435,8 +2435,8 @@ void idWeapon::AlertMonsters()
 	gameLocal.clip.TracePoint( tr, muzzleFlash.origin, end, CONTENTS_OPAQUE | MASK_SHOT_RENDERMODEL | CONTENTS_FLASHLIGHT_TRIGGER, owner );
 	if( g_debugWeapon.GetBool() )
 	{
-		gameRenderWorld->DebugLine( idColor::yellow.ToVec4(), muzzleFlash.origin, end, 0 );
-		gameRenderWorld->DebugArrow( idColor::green.ToVec4(), muzzleFlash.origin, tr.endpos, 2, 0 );
+		gameRenderWorld->DebugLine( idColor::yellow, muzzleFlash.origin, end, 0 );
+		gameRenderWorld->DebugArrow( idColor::green, muzzleFlash.origin, tr.endpos, 2, 0 );
 	}
 
 	if( tr.fraction < 1.0f )
@@ -4447,10 +4447,10 @@ void idWeapon::Event_Melee()
 
 		if( g_debugWeapon.GetBool() )
 		{
-			gameRenderWorld->DebugLine( idColor::yellow.ToVec4(), start, end, 100 );
+			gameRenderWorld->DebugLine( idColor::yellow, start, end, 100 );
 			if( ent != NULL )
 			{
-				gameRenderWorld->DebugBounds( idColor::red.ToVec4(), ent->GetPhysics()->GetBounds(), ent->GetPhysics()->GetOrigin(), 100 );
+				gameRenderWorld->DebugBounds( idColor::red, ent->GetPhysics()->GetBounds(), ent->GetPhysics()->GetOrigin(), 100 );
 			}
 		}
 

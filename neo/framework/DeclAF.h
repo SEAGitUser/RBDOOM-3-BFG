@@ -57,7 +57,10 @@ enum declAFJointMod_t
 	DECLAF_JOINTMOD_BOTH
 };
 
-typedef bool ( *getJointTransform_t )( void* model, const idJointMat* frame, const char* jointName, idVec3& origin, idMat3& axis );
+typedef bool( *getJointTransform_t )( void* model, const idJointMat* frame, const char* jointName, idVec3& origin, idMat3& axis );
+//typedef bool( *getJointTransform3_t )( void* model, const idJointMat* frame, const char* jointName, idVec3& origin, idMat3& axis );
+//typedef bool( *getJointTransform2_t )( void* model, const idJointMat* frame, const char* jointName, idVec3& origin );
+//typedef bool( *getJointTransform1_t )( void* model, const idJointMat* frame, const char* jointName, idMat3& axis );
 
 class idAFVector {
 public:
@@ -75,6 +78,9 @@ public:
 
 	bool					Parse( idLexer& src );
 	bool					Finish( const char* fileName, const getJointTransform_t GetJointTransform, const idJointMat* frame, void* model ) const;
+	//bool					Finish( const char* fileName, const getJointTransform1_t GetJointTransform, const idJointMat* frame, void* model ) const;
+	//bool					Finish( const char* fileName, const getJointTransform2_t GetJointTransform, const idJointMat* frame, void* model ) const;
+	//bool					Finish( const char* fileName, const getJointTransform3_t GetJointTransform, const idJointMat* frame, void* model ) const;
 	bool					Write( idFile* f ) const;
 	const char* 			ToString( idStr& str, const int precision = 8 );
 	const idVec3& 			ToVec3() const

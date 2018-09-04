@@ -8391,14 +8391,14 @@ void idPlayer::RunPhysics_RemoteClientCorrection()
 			if( pm_clientAuthoritative_debug.GetBool() && delta > pm_clientAuthoritative_warnDist.GetFloat() )
 			{
 				idLib::Warning( "Remote client player physics: delta movement for frame was %f units", delta );
-				gameRenderWorld->DebugLine( idColor::red.ToVec4(), newOrigin, desiredPos );
+				gameRenderWorld->DebugLine( idColor::red, newOrigin, desiredPos );
 			}
 		}
 		if( pm_clientAuthoritative_debug.GetBool() )
 		{
 			//idLib::Printf( "[%d]Remote client player physics delta: %.2f. forward: %d pos <%.2f, %.2f, %.2f> \n", usercmd.clientGameFrame, delta, (int)usercmd.forwardmove, desiredPos.x, desiredPos.y, desiredPos.z );
-			gameRenderWorld->DebugLine( idColor::red.ToVec4(), newOrigin, desiredPos );
-			//gameRenderWorld->DebugPoint( idColor::blue.ToVec4(), cmdPos );
+			gameRenderWorld->DebugLine( idColor::red, newOrigin, desiredPos );
+			//gameRenderWorld->DebugPoint( idColor::blue, cmdPos );
 		}
 
 		// Set velocity if significantly different than client.
@@ -9026,7 +9026,7 @@ void idPlayer::Think()
 		for( auto ent = enemyList.Next(); ent != NULL; ent = ent->enemyNode.Next() )
 		{
 			gameLocal.Printf( "enemy (%d)'%s'\n", ent->entityNumber, ent->name.c_str() );
-			gameRenderWorld->DebugBounds( idColor::red.ToVec4(), ent->GetPhysics()->GetBounds().Expand( 2 ), ent->GetPhysics()->GetOrigin() );
+			gameRenderWorld->DebugBounds( idColor::red, ent->GetPhysics()->GetBounds().Expand( 2 ), ent->GetPhysics()->GetOrigin() );
 			num++;
 		}
 		gameLocal.Printf( "%d: enemies\n", num );

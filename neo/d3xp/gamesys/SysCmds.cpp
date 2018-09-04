@@ -1478,7 +1478,7 @@ void D_DrawDebugLines()
 {
 	int i;
 	idVec3 forward, right, up, p1, p2;
-	idVec4 color;
+	idColor color;
 	float l;
 
 	for( i = 0; i < MAX_DEBUGLINES; i++ )
@@ -1487,7 +1487,7 @@ void D_DrawDebugLines()
 		{
 			if( !debugLines[i].blink || ( gameLocal.GetGameTimeMs() & ( 1 << 9 ) ) )
 			{
-				color = idVec4( debugLines[i].color & 1, ( debugLines[i].color >> 1 ) & 1, ( debugLines[i].color >> 2 ) & 1, 1 );
+				color.Set( debugLines[i].color & 1, ( debugLines[i].color >> 1 ) & 1, ( debugLines[i].color >> 2 ) & 1, 1.0f );
 				gameRenderWorld->DebugLine( color, debugLines[i].start, debugLines[i].end );
 				//
 				if( debugLines[i].arrow )

@@ -38,7 +38,7 @@ If you have questions concerning this license or the applicable additional terms
 idAASLocal::DrawCone
 ============
 */
-void idAASLocal::DrawCone( const idVec3& origin, const idVec3& dir, float radius, const idVec4& color ) const
+void idAASLocal::DrawCone( const idVec3& origin, const idVec3& dir, float radius, const idVec4& _color ) const
 {
 	idMat3 axis;
 	axis[2] = dir;
@@ -48,6 +48,8 @@ void idAASLocal::DrawCone( const idVec3& origin, const idVec3& dir, float radius
 	idVec3 center = origin + dir;
 	idVec3 top = center + dir * ( 3.0f * radius );
 	idVec3 lastp = center + radius * axis[1];
+
+	idColor color( _color );
 
 	for( int i = 20; i <= 360; i += 20 )
 	{
@@ -67,11 +69,11 @@ idAASLocal::DrawReachability
 */
 void idAASLocal::DrawReachability( const idReachability* reach ) const
 {
-	gameRenderWorld->DebugArrow( idColor::cyan.ToVec4(), reach->start, reach->end, 2 );
+	gameRenderWorld->DebugArrow( idColor::cyan, reach->start, reach->end, 2 );
 
 	if( gameLocal.GetLocalPlayer() )
 	{
-		gameRenderWorld->DrawText( va( "%d", reach->edgeNum ), ( reach->start + reach->end ) * 0.5f, 0.1f, idColor::white.ToVec4(), gameLocal.GetLocalPlayer()->viewAxis );
+		gameRenderWorld->DrawText( va( "%d", reach->edgeNum ), ( reach->start + reach->end ) * 0.5f, 0.1f, idColor::white, gameLocal.GetLocalPlayer()->viewAxis );
 	}
 
 	switch( reach->travelType )
@@ -104,15 +106,15 @@ void idAASLocal::DrawEdge( int edgeNum, bool arrow ) const
 
 	if( arrow )
 	{
-		gameRenderWorld->DebugArrow( idColor::red.ToVec4(), file->GetVertex( edge->vertexNum[0] ), file->GetVertex( edge->vertexNum[1] ), 1 );
+		gameRenderWorld->DebugArrow( idColor::red, file->GetVertex( edge->vertexNum[0] ), file->GetVertex( edge->vertexNum[1] ), 1 );
 	}
 	else {
-		gameRenderWorld->DebugLine( idColor::red.ToVec4(), file->GetVertex( edge->vertexNum[0] ), file->GetVertex( edge->vertexNum[1] ) );
+		gameRenderWorld->DebugLine( idColor::red, file->GetVertex( edge->vertexNum[0] ), file->GetVertex( edge->vertexNum[1] ) );
 	}
 
 	if( gameLocal.GetLocalPlayer() )
 	{
-		gameRenderWorld->DrawText( va( "%d", edgeNum ), ( file->GetVertex( edge->vertexNum[0] ) + file->GetVertex( edge->vertexNum[1] ) ) * 0.5f + idVec3( 0, 0, 4 ), 0.1f, idColor::red.ToVec4(), gameLocal.GetLocalPlayer()->viewAxis );
+		gameRenderWorld->DrawText( va( "%d", edgeNum ), ( file->GetVertex( edge->vertexNum[0] ) + file->GetVertex( edge->vertexNum[1] ) ) * 0.5f + idVec3( 0, 0, 4 ), 0.1f, idColor::red, gameLocal.GetLocalPlayer()->viewAxis );
 	}
 }
 
@@ -153,7 +155,7 @@ void idAASLocal::DrawFace( int faceNum, bool side ) const
 	{
 		end = mid + 5.0f * file->GetPlane( file->GetFace( faceNum ).planeNum ).Normal();
 	}
-	gameRenderWorld->DebugArrow( idColor::green.ToVec4(), mid, end, 1 );
+	gameRenderWorld->DebugArrow( idColor::green, mid, end, 1 );
 }
 
 /*
@@ -259,7 +261,7 @@ void idAASLocal::ShowArea( const idVec3& origin ) const
 	{
 		idBounds bnds = file->GetSettings().boundingBoxes[ 0 ];
 		bnds[ 1 ].z = bnds[ 0 ].z;
-		gameRenderWorld->DebugBounds( idColor::yellow.ToVec4(), bnds, org );
+		gameRenderWorld->DebugBounds( idColor::yellow, bnds, org );
 	}
 
 	DrawArea( areaNum );
@@ -300,7 +302,7 @@ void idAASLocal::ShowWalkPath( const idVec3& origin, int goalAreaNum, const idVe
 			break;
 		}
 
-		gameRenderWorld->DebugArrow( idColor::green.ToVec4(), org, reach->start, 2 );
+		gameRenderWorld->DebugArrow( idColor::green, org, reach->start, 2 );
 		DrawReachability( reach );
 
 		if( reach->toAreaNum == goalAreaNum )
@@ -314,7 +316,7 @@ void idAASLocal::ShowWalkPath( const idVec3& origin, int goalAreaNum, const idVe
 
 	if( WalkPathToGoal( path, areaNum, origin, goalAreaNum, goalOrigin, TFL_WALK | TFL_AIR ) )
 	{
-		gameRenderWorld->DebugArrow( idColor::blue.ToVec4(), origin, path.moveGoal, 2 );
+		gameRenderWorld->DebugArrow( idColor::blue, origin, path.moveGoal, 2 );
 	}
 }
 
@@ -353,7 +355,7 @@ void idAASLocal::ShowFlyPath( const idVec3& origin, int goalAreaNum, const idVec
 			break;
 		}
 
-		gameRenderWorld->DebugArrow( idColor::purple.ToVec4(), org, reach->start, 2 );
+		gameRenderWorld->DebugArrow( idColor::purple, org, reach->start, 2 );
 		DrawReachability( reach );
 
 		if( reach->toAreaNum == goalAreaNum )
@@ -367,7 +369,7 @@ void idAASLocal::ShowFlyPath( const idVec3& origin, int goalAreaNum, const idVec
 
 	if( FlyPathToGoal( path, areaNum, origin, goalAreaNum, goalOrigin, TFL_WALK | TFL_FLY | TFL_AIR ) )
 	{
-		gameRenderWorld->DebugArrow( idColor::blue.ToVec4(), origin, path.moveGoal, 2 );
+		gameRenderWorld->DebugArrow( idColor::blue, origin, path.moveGoal, 2 );
 	}
 }
 
@@ -392,8 +394,8 @@ void idAASLocal::ShowWallEdges( const idVec3& origin ) const
 	for( i = 0; i < numEdges; i++ )
 	{
 		GetEdge( edges[i], start, end );
-		gameRenderWorld->DebugLine( idColor::red.ToVec4(), start, end );
-		gameRenderWorld->DrawText( va( "%d", edges[i] ), ( start + end ) * 0.5f, 0.1f, idColor::white.ToVec4(), player->viewAxis );
+		gameRenderWorld->DebugLine( idColor::red, start, end );
+		gameRenderWorld->DrawText( va( "%d", edges[i] ), ( start + end ) * 0.5f, 0.1f, idColor::white, player->viewAxis );
 	}
 }
 
@@ -522,7 +524,7 @@ void idAASLocal::ShowPushIntoArea( const idVec3& origin ) const
 	idVec3 target = origin;
 	int areaNum = PointReachableAreaNum( target, DefaultSearchBounds(), ( AREA_REACHABLE_WALK | AREA_REACHABLE_FLY ) );
 	PushPointIntoAreaNum( areaNum, target );
-	gameRenderWorld->DebugArrow( idColor::green.ToVec4(), origin, target, 1 );
+	gameRenderWorld->DebugArrow( idColor::green, origin, target, 1 );
 }
 
 /*
